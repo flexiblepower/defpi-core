@@ -1,0 +1,3 @@
+[submodule "docker-client"]
+	path = docker-client
+	url = git@ci.tno.nl:FAN/docker-client.git

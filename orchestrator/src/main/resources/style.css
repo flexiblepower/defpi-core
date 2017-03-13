@@ -1,0 +1,176 @@
+body {
+	padding-top: 50px;
+	word-wrap: break-word;
+}
+
+.starter-template {
+	padding: 40px 15px;
+}
+
+.starter-template h1 {
+	text-align: center;
+}
+
+.clearfix {
+	clear: both;
+}
+
+.navbar-nav {
+	float: right;
+}
+
+#containers>*>div {
+	padding: 5px;
+	border: 1px solid lightgray;
+	margin: 5px 0;
+}
+
+.row.border {
+	border-bottom: 1px solid lightgray;
+	padding-bottom: 5px;
+	margin-bottom: 5px;
+}
+
+.bold {
+	font-weight: bold;
+}
+
+#graph {
+	user-select: none;
+	-moz-user-select: none;
+	-khtml-user-select: none;
+	-webkit-user-select: none;
+	-ms-user-select: none;	
+	position: relative;
+	height: 500px;
+	width: 100%;
+	padding: 1em;
+	overflow: auto;
+	background: white;
+}
+
+#properties {
+	position: absolute;
+	top: 150px;
+	bottom: 130px;
+	right: 0;
+	padding: 1em;
+	width: 300px;
+	overflow: auto;
+	background: white;
+	border-left: 2px solid #33333;
+	z-index: 30;
+}
+
+#properties input {
+	width: 100%;
+}
+
+#properties h1 {
+	width: 100%;
+	font-size: 150%;
+	padding-top: 1em;
+	padding-bottom: .5em;
+	margin-bottom: .5em;
+	border-bottom: 1px dotted black;
+}
+
+#properties p {
+	line-height: 1.3em;
+}
+
+.node {
+    position: absolute;
+    padding: 1em 0.5em;
+    z-index: 20;
+    cursor: pointer;
+
+    text-align: center;
+    color: white;
+    line-height: 1.1em;
+    overflow: auto;
+    
+    background-color: rgb(68,79,85);
+    opacity: 0.8;
+
+	border: 5px solid rgb(161,168,171);
+    -moz-border-radius: 1em;
+    border-radius: 1em;
+}
+
+.node p {
+	width: 100%;
+	overflow: hidden;
+	padding: 4px 0;
+	margin: 0;
+}
+
+.node p.small {
+	font-size: 80%;
+}
+
+.node > i {
+	font-style: normal;
+	font-weight: bold;
+	position: absolute;
+	font-size: 15px;
+	padding: 5px;
+	cursor: default;
+}
+
+.node > p > i {
+    font-size: 0.8em;
+}
+.node > p > i.green {
+    color: green;
+}
+.node > p > i.red {
+    color: red;
+}
+
+.node i.delete {
+	top: 3px;
+	right: 6px;
+	font-size: 20px;
+}
+
+.node i.upgrade {
+	top: 3px;
+	left: 0px;
+}
+
+.node i.logs {
+	top: 30px;
+	left: 0px;
+}
+
+#graph .jsplumb-connector {
+    z-index: 4;
+}
+
+#graph .jsplumb-endpoint {
+    z-index: 22;
+    cursor: pointer;
+    opacity: 0.5;
+}
+
+#graph .jsplumb-endpoint.jsplumb-hover {
+	opacity: 0.7;
+}
+
+#graph .jsplumb-overlay {
+    z-index: 21;
+    font-weight: bold !important;
+}
+
+.alerts {
+    position: fixed;
+    bottom: 0;
+    padding: 15px;
+    left: 0;
+    right: 0;
+}
+
+.alert {
+    margin-bottom: 5px;
+}
