@@ -9,14 +9,14 @@ import org.slf4j.LoggerFactory;
 
 public class Hosts {
 	final static Logger logger = LoggerFactory.getLogger(Hosts.class);
-	private Database d;
+	private MongoDbConnector d;
 	
 	public Hosts(ObjectId user){
-		d = new Database();
-		d.setUser(user);
+		d = new MongoDbConnector();
+		d.setApplicationUser(user);
 	}
 	public Hosts(){
-		d = new Database();
+		d = new MongoDbConnector();
 	}
 	
 	public List<Document> getHosts(){

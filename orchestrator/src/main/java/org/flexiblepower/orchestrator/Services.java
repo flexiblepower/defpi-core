@@ -18,15 +18,15 @@ import org.slf4j.LoggerFactory;
 
 public class Services {
 	final static Logger logger = LoggerFactory.getLogger(Services.class);
-	private Database d;
+	private MongoDbConnector d;
 
 	public Services(ObjectId user) {
-		d = new Database();
-		d.setUser(user);
+		d = new MongoDbConnector();
+		d.setApplicationUser(user);
 	}
 
 	public Services() {
-		d = new Database();
+		d = new MongoDbConnector();
 	}
 
 	public List<Document> listServices() {

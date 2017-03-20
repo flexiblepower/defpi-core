@@ -19,8 +19,8 @@ import javax.ws.rs.core.Response.Status;
 
 import org.bson.Document;
 import org.bson.types.ObjectId;
+import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.Protos;
-import org.flexiblepower.orchestrator.User;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

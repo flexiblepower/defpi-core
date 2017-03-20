@@ -10,14 +10,14 @@ import org.slf4j.LoggerFactory;
 public class Protos {
 
 	final static Logger logger = LoggerFactory.getLogger(Containers.class);
-	private Database d;
+	private MongoDbConnector d;
 	
 	public Protos(ObjectId user){
-		d = new Database();
-		d.setUser(user);
+		d = new MongoDbConnector();
+		d.setApplicationUser(user);
 	}
 	public Protos(){
-		d = new Database();
+		d = new MongoDbConnector();
 	}
 	
 	public List<Document> getProtos(){

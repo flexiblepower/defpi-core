@@ -1,5 +1,8 @@
 package org.flexiblepower.gson;
 
+import org.flexiblepower.model.Host;
+import org.flexiblepower.model.Connection;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -16,7 +19,7 @@ public class InitGson {
 		gsonBuilder.registerTypeAdapter(RegistryTags.class, new GsonInstanceCreator<RegistryTags>(RegistryTags.class));
 		gsonBuilder.registerTypeAdapter(Repository.class, new GsonInstanceCreator<Repository>(Repository.class));
 		gsonBuilder.registerTypeAdapter(Interface.class, new GsonInstanceCreator<Interface>(Interface.class));
-		gsonBuilder.registerTypeAdapter(Link.class, new GsonInstanceCreator<Link>(Link.class));
+		gsonBuilder.registerTypeAdapter(Connection.class, new GsonInstanceCreator<Connection>(Connection.class));
 		gsonBuilder.registerTypeAdapter(Host.class, new GsonInstanceCreator<Host>(Host.class));
 		gsonBuilder.registerTypeAdapter(HostList.class, new GsonInstanceCreator<HostList>(HostList.class));
 		

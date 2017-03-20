@@ -8,7 +8,7 @@ import javax.ws.rs.core.Response.Status;
 
 import org.bson.Document;
 import org.bson.types.ObjectId;
-import org.flexiblepower.gson.Link;
+import org.flexiblepower.model.Connection;
 import org.flexiblepower.protos.SessionProto.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,22 +18,22 @@ import org.zeromq.ZMQ.Socket;
 
 public class Links {
 	final static Logger logger = LoggerFactory.getLogger(Containers.class);
-	private Database d;
+	private MongoDbConnector d;
 
 	public Links(ObjectId user) {
-		d = new Database();
-		d.setUser(user);
+		d = new MongoDbConnector();
+		d.setApplicationUser(user);
 	}
 
 	public Links() {
-		d = new Database();
+		d = new MongoDbConnector();
 	}
 
 	public List<Document> getLinks() {
 		return d.getLinks();
 	}
 
-	public Status newLink(Link link) {
+	public Status newLink(Connection link) {
 		logger.info("Check if link is allowed");
 		if (d.linkAllowed(link)) {
 			logger.info("Link is allowed");
@@ -124,7 +124,7 @@ public class Links {
 		return response;
 	}
 
-	public Database getDatabase() {
+	public MongoDbConnector getDatabase() {
 		return d;
 	}
 }

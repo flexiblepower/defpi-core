@@ -2,6 +2,8 @@ package org.flexiblepower.gson;
 
 import java.util.List;
 
+import org.flexiblepower.model.Host;
+
 public class HostList {
 	private List<Host> data;
 

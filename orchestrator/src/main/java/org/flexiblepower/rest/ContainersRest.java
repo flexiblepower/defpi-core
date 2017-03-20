@@ -17,85 +17,93 @@ import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.flexiblepower.gson.ContainerDescription;
 import org.flexiblepower.gson.InitGson;
+import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.Containers;
-import org.flexiblepower.orchestrator.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+import com.spotify.docker.client.exceptions.DockerCertificateException;
+import com.spotify.docker.client.exceptions.DockerException;
 
 @Path("containers")
 public class ContainersRest {
-	public final static Logger logger = LoggerFactory.getLogger(ContainersRest.class);
-	Containers containers;
 
-	private boolean initUser(HttpHeaders httpHeaders){
-		ObjectId userId = new User().getUserId(httpHeaders);
-		if(userId != null){
-			containers = new Containers(userId);
-			return true;
-		}
-		return false;
-	}
-	
-	@GET
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response listContainers(@Context HttpHeaders httpHeaders) {
-		logger.info("REST");
-		if (initUser(httpHeaders)) {
-			return Response.ok(new Document("containers", containers.listContainers()).toJson()).build();
-		}
-		return Response.status(Status.UNAUTHORIZED).build();
-	}
+    public final static Logger logger = LoggerFactory.getLogger(ContainersRest.class);
+    Containers containers;
 
-	@GET
-	@Path("{uuid}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response listContainer(@Context HttpHeaders httpHeaders, @PathParam("uuid") String uuid) {
-		if (initUser(httpHeaders)) {
-			return Response.ok(containers.getContainer(uuid).toJson()).build();
-		}
-		return Response.status(Status.UNAUTHORIZED).build();
-	}
+    private boolean initUser(final HttpHeaders httpHeaders) {
+        final ObjectId userId = new User().getUserId(httpHeaders);
+        if (userId != null) {
+            this.containers = new Containers(userId);
+            return true;
+        }
+        return false;
+    }
 
-	@POST
-	@Consumes(MediaType.APPLICATION_JSON)
-	public Response newContainer(@Context HttpHeaders httpHeaders, String json) {
-		logger.info("newContainer(): " + json);
-		if (initUser(httpHeaders)) {
-			try {
-				Gson gson = InitGson.create();
-				ContainerDescription containerDescription = gson.fromJson(json, ContainerDescription.class);
-				if(containers.createContainer(containerDescription) == null){
-					return Response.status(Status.FORBIDDEN).build();
-				}
-			} catch (Exception e) {
-				logger.error(e.toString());
-				return Response.status(Status.BAD_REQUEST).build();
-			}
-			return Response.ok().build();
-		}
-		return Response.status(Status.UNAUTHORIZED).build();
-	}
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response listContainers(@Context final HttpHeaders httpHeaders) {
+        ContainersRest.logger.info("REST");
+        if (this.initUser(httpHeaders)) {
+            return Response.ok(new Document("containers", this.containers.listContainers()).toJson()).build();
+        }
+        return Response.status(Status.UNAUTHORIZED).build();
+    }
 
-	@DELETE
-	@Path("{uuid}")
-	public Response deleteContainer(@Context HttpHeaders httpHeaders, @PathParam("uuid") String uuid) {
-		logger.info("deleteContainer('" + uuid + "')");
-		if (initUser(httpHeaders)) {
-			return Response.status(containers.deleteContainer(uuid)).build();
-		}
-		return Response.status(Status.UNAUTHORIZED).build();
-	}
+    @GET
+    @Path("{uuid}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response listContainer(@Context final HttpHeaders httpHeaders, @PathParam("uuid") final String uuid) {
+        if (this.initUser(httpHeaders)) {
+            return Response.ok(this.containers.getContainer(uuid).toJson()).build();
+        }
+        return Response.status(Status.UNAUTHORIZED).build();
+    }
 
-	@POST
-	@Path("{uuid}/upgrade")
-	public Response upgrade(@Context HttpHeaders httpHeaders, @PathParam("uuid") String uuid) {
-		logger.info("Upgrade: " + uuid);
-		if (initUser(httpHeaders)) {
-			Status status = containers.upgradeContainer(containers.getContainer(uuid));
-			return Response.status(status).build();
-		}
-		return Response.status(Status.UNAUTHORIZED).build();
-	}
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response newContainer(@Context final HttpHeaders httpHeaders, final String json) {
+        ContainersRest.logger.info("newContainer(): " + json);
+        if (this.initUser(httpHeaders)) {
+            try {
+                final Gson gson = InitGson.create();
+                final ContainerDescription containerDescription = gson.fromJson(json, ContainerDescription.class);
+                if (this.containers.createContainer(containerDescription) == null) {
+                    return Response.status(Status.FORBIDDEN).build();
+                }
+            } catch (final Exception e) {
+                ContainersRest.logger.error(e.toString());
+                return Response.status(Status.BAD_REQUEST).build();
+            }
+            return Response.ok().build();
+        }
+        return Response.status(Status.UNAUTHORIZED).build();
+    }
+
+    @DELETE
+    @Path("{uuid}")
+    public Response deleteContainer(@Context final HttpHeaders httpHeaders, @PathParam("uuid") final String uuid) {
+        ContainersRest.logger.info("deleteContainer('" + uuid + "')");
+        if (this.initUser(httpHeaders)) {
+            return Response.status(this.containers.deleteContainer(uuid)).build();
+        }
+        return Response.status(Status.UNAUTHORIZED).build();
+    }
+
+    @POST
+    @Path("{uuid}/upgrade")
+    public Response upgrade(@Context final HttpHeaders httpHeaders, @PathParam("uuid") final String uuid)
+            throws JsonSyntaxException,
+            DockerCertificateException,
+            DockerException,
+            InterruptedException {
+        ContainersRest.logger.info("Upgrade: " + uuid);
+        if (this.initUser(httpHeaders)) {
+            final Status status = this.containers.upgradeContainer(this.containers.getContainer(uuid));
+            return Response.status(status).build();
+        }
+        return Response.status(Status.UNAUTHORIZED).build();
+    }
 }

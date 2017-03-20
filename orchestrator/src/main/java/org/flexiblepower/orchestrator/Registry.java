@@ -38,7 +38,7 @@ public class Registry {
 			Client client = ClientBuilder.newClient();
 			WebTarget target = client.target(registryApiLink + URLEncoder.encode(registryPrefix+repository, "UTF-8") + "/manifests/"+URLEncoder.encode(tag, "UTF-8"));
 			Response response = target.request().accept("application/vnd.docker.distribution.manifest.v2+json").head();
-			String digest = response.getHeaderString("Docker-Content-Digest");
+			String digest = response.getHeaderString("DockerConnector-Content-Digest");
 			ServicesRest.logger.info("Tag digest: "+digest);
 			WebTarget target2 = client.target(registryApiLink + URLEncoder.encode(registryPrefix+repository, "UTF-8") + "/manifests/"+digest);
 			Response response2 = target2.request().delete();
