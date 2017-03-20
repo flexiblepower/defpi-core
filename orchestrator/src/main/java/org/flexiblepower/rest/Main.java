@@ -24,8 +24,7 @@ public class Main {
      * @return Grizzly HTTP server.
      */
     public static void startServer() {
-        final ResourceConfig rc = new ResourceConfig().packages("org.flexiblepower");
-        rc.register(CORSResponseFilter.class);
+        final ResourceConfig rc = new ResourceConfig().forApplication(new OrchestratorApplication());
         JettyHttpContainerFactory.createServer(URI.create(Main.BASE_URI), rc);
     }
 

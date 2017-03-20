@@ -7,9 +7,12 @@ package org.flexiblepower.model;
 
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.annotations.Id;
-import org.mongodb.morphia.annotations.Reference;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Node
@@ -19,12 +22,12 @@ import lombok.Getter;
  * @since 20 mrt. 2017
  */
 @Getter
-public class Node {
+@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
+public abstract class Node {
 
     @Id
-    private ObjectId id;
-
-    @Reference
-    private User owner;
+    @JsonIgnore
+    protected ObjectId id = null;
+    protected final String hostname;
 
 }

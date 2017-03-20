@@ -3,27 +3,25 @@ package org.flexiblepower.rest;
 import java.util.Collection;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
-import org.flexiblepower.gson.InitGson;
 import org.flexiblepower.model.Connection;
-import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.MongoDbConnector;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
 
 import lombok.extern.slf4j.Slf4j;
 
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.Authorization;
 
-@Path("Connections")
+@Path("connections")
 @Slf4j
 public class ConnectionApi {
 
@@ -42,41 +40,34 @@ public class ConnectionApi {
         try {
             return this.db.getConnections();
         } catch (final Exception e) {
+            e.printStackTrace();
             throw new ApiException(e);
         }
     }
 
     @POST
-    @ApiOperation(value = "Create a new user",
+    @ApiOperation(value = "Create a new connection",
                   notes = "",
-                  response = User.class,
                   authorizations = {@Authorization(value = "AdminSecurity")},
-                  tags = {"User",})
+                  tags = {"User"})
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response newConnection(@javax.ws.rs.core.Context final HttpHeaders httpHeaders, final String json) {
-        ConnectionApi.log.info("newConnection(): " + json);
+    public Response newConnection(@javax.ws.rs.core.Context final HttpHeaders httpHeaders,
+            final Connection connection) {
+        ConnectionApi.log.info("newConnection(): " + connection);
         // if (this.initUser(httpHeaders)) {
-        try {
-            final Gson gson = InitGson.create();
-            final Connection Connection = gson.fromJson(json, Connection.class);
-            return Response.status(this.Connections.newConnection(Connection)).build();
-        } catch (final JsonSyntaxException e) {
-            ConnectionApi.logger.info("Parse exception: " + e);
-            return Response.status(Status.BAD_REQUEST).build();
-        }
-        // }
-        // return Response.status(Status.UNAUTHORIZED).build();
+        this.db.insertConnection(connection);
+        return Response.ok().build();
     }
-    //
-    // @DELETE
-    // @Path("{id}")
-    // public Response deleteConnection(@javax.ws.rs.core.Context final HttpHeaders httpHeaders,
-    // @PathParam("id") final String id) {
-    // ConnectionApi.logger.info("deleteConnection(): " + id);
-    // if (this.initUser(httpHeaders)) {
-    // return Response.status(this.Connections.deleteConnection(id)).build();
-    // }
-    // return Response.status(Status.UNAUTHORIZED).build();
-    // }
+
+    @DELETE
+    @Path("{id}")
+    public Response deleteConnection(@javax.ws.rs.core.Context final HttpHeaders httpHeaders,
+            @PathParam("id") final String id) {
+        ConnectionApi.logger.info("deleteConnection(): " + id);
+        if (this.initUser(httpHeaders)) {
+            return Response.status(this.Connections.deleteConnection(id)).build();
+        }
+        return Response.status(Status.UNAUTHORIZED).build();
+    }
 }

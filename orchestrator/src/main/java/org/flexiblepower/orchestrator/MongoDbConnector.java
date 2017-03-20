@@ -10,8 +10,11 @@ import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Node;
+import org.flexiblepower.model.PrivateNode;
+import org.flexiblepower.model.PublicNode;
 import org.flexiblepower.model.User;
 import org.mongodb.morphia.Datastore;
+import org.mongodb.morphia.Key;
 import org.mongodb.morphia.Morphia;
 import org.mongodb.morphia.query.Query;
 
@@ -69,8 +72,13 @@ public class MongoDbConnector implements Closeable {
     }
 
     public User getUser(final String username, final String password) {
+        if ((username == null) || username.isEmpty() || (password == null) || password.isEmpty()) {
+            return null;
+        }
+
         final Query<User> query = this.datastore.find(User.class);
-        query.and(query.criteria("name").equal(username), query.criteria("password").equal(MongoDbConnector.sha256(password)));
+        query.and(query.criteria("name").equal(username),
+                query.criteria("password").equal(MongoDbConnector.sha256(password)));
         return query.get();
     }
 
@@ -97,9 +105,36 @@ public class MongoDbConnector implements Closeable {
         return nodes.asList();
     }
 
-    public Node getNode(final String uuid) {
-        MongoDbConnector.log.info("Searching Node {} from DB", uuid);
-        return this.datastore.get(Node.class, new ObjectId(uuid));
+    public List<PublicNode> getPublicNodes() {
+        MongoDbConnector.log.info("Fetching public nodes from DB");
+        final Query<PublicNode> nodes = this.datastore.find(PublicNode.class);
+
+        return nodes.asList();
+    }
+
+    public List<PrivateNode> getPrivateNodes() {
+        MongoDbConnector.log.info("Fetching private nodes from DB");
+        final Query<PrivateNode> nodes = this.datastore.find(PrivateNode.class);
+
+        return nodes.asList();
+    }
+
+    public PublicNode getPublicNode(final String uuid) {
+        MongoDbConnector.log.info("Searching PublicNode {} from DB", uuid);
+        return this.datastore.get(PublicNode.class, new ObjectId(uuid));
+    }
+
+    public PrivateNode getPrivateNode(final String uuid) {
+        MongoDbConnector.log.info("Searching PrivateNode {} from DB", uuid);
+        return this.datastore.get(PrivateNode.class, new ObjectId(uuid));
+    }
+
+    public Key<Node> insertNode(final Node newNode) {
+        return this.datastore.save(newNode);
+    }
+
+    public void removeNode(final String id) {
+        this.datastore.delete(Node.class, new ObjectId(id));
     }
 
     public Collection<Connection> getConnections() {
@@ -120,7 +155,7 @@ public class MongoDbConnector implements Closeable {
         return q.asList();
     }
 
-    public void insertLink(final Connection link) {
+    public void insertConnection(final Connection link) {
         this.datastore.save(link);
     }
 
@@ -204,4 +239,5 @@ public class MongoDbConnector implements Closeable {
         }
         return "";
     }
+
 }

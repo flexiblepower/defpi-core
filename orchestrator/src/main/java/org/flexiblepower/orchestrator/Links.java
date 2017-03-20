@@ -48,7 +48,7 @@ public class Links {
 			// Add reference
 			UUID id = UUID.randomUUID();
 			link.setId(id.toString());
-			d.insertLink(link);
+			d.insertConnection(link);
 
 			Session s1 = Session.newBuilder().setId(id.toString()).setMode(Session.ModeType.CREATE).setAddress(address2)
 					.setPort(port1).setSubscribeHash(link.getInterface1()).setPublishHash(link.getInterface2()).build();
