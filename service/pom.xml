@@ -11,6 +11,19 @@
 		<maven-shade-plugin.version>2.4.2</maven-shade-plugin.version>
 	</properties>
 
+	<distributionManagement>
+		<repository>
+			<id>def-pi-artifactory</id>
+			<name>def-pi release repository</name>
+			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-release-local</url>
+		</repository>
+		<snapshotRepository>
+			<id>def-pi-artifactory</id>
+			<name>def-pi snapshot repository</name>
+			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-snapshot-local</url>
+		</snapshotRepository>
+	</distributionManagement>
+
 	<dependencies>
 		<dependency>
 			<groupId>com.google.protobuf</groupId>
