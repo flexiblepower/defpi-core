@@ -41,4 +41,15 @@ public class User {
         this.password = userPass;
     }
 
+    /*
+     * (non-Javadoc)
+     *
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return "User [id=" + this.id + ", name=" + this.name + (this.email != null ? ", email=" + this.email : "")
+                + (this.admin ? " (admin)" : "") + "]";
+    }
+
 }

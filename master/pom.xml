@@ -7,7 +7,7 @@
 	<packaging>pom</packaging>
 
 	<properties>
-		<protobuf.classifier>win64</protobuf.classifier>
+		<protobuf.classifier>linux-x86_64</protobuf.classifier>
 
 		<mainClass>${project.groupId}.${project.artifactId}.ServiceImpl</mainClass>
 		<registry>hub.servicelab.org/dsefpi</registry>
@@ -36,14 +36,14 @@
 
 	<distributionManagement>
 		<repository>
-			<id>def-pi-release</id>
+			<id>def-pi-artifactory</id>
 			<name>def-pi release repository</name>
-			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/release-local</url>
+			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-release-local</url>
 		</repository>
 		<snapshotRepository>
-			<id>def-pi-snapshot</id>
+			<id>def-pi-artifactory</id>
 			<name>def-pi snapshot repository</name>
-			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/snapshot-local</url>
+			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-snapshot-local</url>
 		</snapshotRepository>
 	</distributionManagement>
 
@@ -57,18 +57,18 @@
 
 	<repositories>
 		<repository>
-			<id>etf-artifactory</id>
-			<name>ETF Release Artifactory</name>
-			<url>http://etf.sensorlab.tno.nl/artifactory/libs-release-local</url>
+			<id>def-pi-release</id>
+			<name>def-pi release repository</name>
+			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-release-local</url>
 			<snapshots>
 				<enabled>false</enabled>
 			</snapshots>
 		</repository>
 
 		<repository>
-			<id>etf-artifactory-snapshot</id>
-			<name>ETF Snapshot Artifactory</name>
-			<url>http://etf.sensorlab.tno.nl/artifactory/libs-snapshot-local</url>
+			<id>def-pi-snapshot</id>
+			<name>def-pi snapshot repository</name>
+			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-snapshot-local</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
@@ -126,9 +126,9 @@
 						<artifactId>docker-maven-plugin</artifactId>
 						<version>${docker-maven.version}</version>
 						<configuration>
-							<!-- dockerHost>unix:///var/run/docker.sock</dockerHost -->
+							<dockerHost>unix:///var/run/docker.sock</dockerHost>
 							<!-- dockerHost>tcp://192.168.137.15:2376</dockerHost -->
-							<dockerHost>https://192.168.137.15:2376</dockerHost>
+							<!-- dockerHost>https://192.168.137.15:2376</dockerHost -->
 							<resources>
 								<resource>
 									<targetPath>/</targetPath>

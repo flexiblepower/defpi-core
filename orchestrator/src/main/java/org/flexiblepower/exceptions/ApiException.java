@@ -3,7 +3,7 @@
  *
  * Copyright 2016 TNO
  */
-package org.flexiblepower.rest;
+package org.flexiblepower.exceptions;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;

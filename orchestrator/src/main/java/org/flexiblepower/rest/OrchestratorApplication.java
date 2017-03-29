@@ -38,6 +38,7 @@ public class OrchestratorApplication extends Application {
 
         resources.add(NodeApi.class);
         resources.add(ConnectionApi.class);
+        resources.add(UserApi.class);
         resources.add(ApiListingResource.class);
         resources.add(SwaggerSerializers.class);
         resources.add(JacksonFeature.class);

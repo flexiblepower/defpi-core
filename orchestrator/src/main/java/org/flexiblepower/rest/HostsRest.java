@@ -14,6 +14,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.bson.types.ObjectId;
+import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.orchestrator.Database;
 import org.flexiblepower.orchestrator.Hosts;
 import org.flexiblepower.orchestrator.Swarm;

@@ -14,6 +14,7 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.SecurityContext;
 
+import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.PublicNode;
 import org.flexiblepower.model.UnidentifiedNode;
@@ -26,6 +27,7 @@ import com.spotify.docker.client.messages.swarm.Node;
 
 import lombok.extern.slf4j.Slf4j;
 
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
@@ -35,7 +37,7 @@ import io.swagger.annotations.Authorization;
 @Slf4j
 @Path("node")
 @Produces(MediaType.APPLICATION_JSON)
-@io.swagger.annotations.Api(description = "the node API")
+@Api(description = "the node API")
 public class NodeApi {
 
     private final MongoDbConnector db = new MongoDbConnector();
@@ -90,7 +92,7 @@ public class NodeApi {
             @ApiParam(value = "The id of the Node that needs to be deleted",
                       required = true) @PathParam("node_id") final String nodeId,
             @Context final SecurityContext securityContext) {
-        this.db.removeNode(nodeId);
+        this.db.deleteNode(nodeId);
     }
 
     @DELETE
@@ -106,7 +108,7 @@ public class NodeApi {
             @ApiParam(value = "The id of the Node that needs to be feleted",
                       required = true) @PathParam("node_id") final String nodeId,
             @Context final SecurityContext securityContext) {
-        this.db.removeNode(nodeId);
+        this.db.deleteNode(nodeId);
     }
 
     @GET

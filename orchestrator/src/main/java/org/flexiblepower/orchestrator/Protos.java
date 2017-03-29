@@ -9,29 +9,33 @@ import org.slf4j.LoggerFactory;
 
 public class Protos {
 
-	final static Logger logger = LoggerFactory.getLogger(Containers.class);
-	private MongoDbConnector d;
-	
-	public Protos(ObjectId user){
-		d = new MongoDbConnector();
-		d.setApplicationUser(user);
-	}
-	public Protos(){
-		d = new MongoDbConnector();
-	}
-	
-	public List<Document> getProtos(){
-		return d.getProtos();
-	}
-	public Document getProto(String sha256) {
-		return d.getProto(sha256);
-	}
-	public void insertProto(String name, String sha256, String proto) {
-		if(getProto(sha256) == null){
-			d.insertProto(name, sha256, proto);
-		}
-	}
-	public void deleteProto(String sha256) {
-		d.deleteProto(sha256);
-	}
+    final static Logger logger = LoggerFactory.getLogger(Containers.class);
+    private final MongoDbConnector d;
+
+    public Protos(final ObjectId user) {
+        this.d = new MongoDbConnector();
+        this.d.setApplicationUser(user);
+    }
+
+    public Protos() {
+        this.d = new MongoDbConnector();
+    }
+
+    public List<Document> getProtos() {
+        return this.d.getProtos();
+    }
+
+    public Document getProto(final String sha256) {
+        return this.d.getProto(sha256);
+    }
+
+    public void insertProto(final String name, final String sha256, final String proto) {
+        if (this.getProto(sha256) == null) {
+            this.d.insertProto(name, sha256, proto);
+        }
+    }
+
+    public void deleteProto(final String sha256) {
+        this.d.deleteProto(sha256);
+    }
 }

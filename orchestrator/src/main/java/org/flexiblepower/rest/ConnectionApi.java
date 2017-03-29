@@ -13,6 +13,7 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.orchestrator.MongoDbConnector;
 
