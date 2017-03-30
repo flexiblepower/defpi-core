@@ -19,7 +19,6 @@ import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.PublicNode;
 import org.flexiblepower.model.UnidentifiedNode;
 import org.flexiblepower.orchestrator.DockerConnector;
-import org.flexiblepower.orchestrator.MongoDbConnector;
 
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
@@ -37,54 +36,56 @@ import io.swagger.annotations.Authorization;
 @Slf4j
 @Path("node")
 @Produces(MediaType.APPLICATION_JSON)
-@Api(description = "the node API")
-public class NodeApi {
+@Api("Node")
+public class NodeApi extends BaseApi {
 
-    private final MongoDbConnector db = new MongoDbConnector();
-
-    private void initUser(final HttpHeaders httpHeaders) {
-        final String username = httpHeaders.getHeaderString("username");
-        final String password = httpHeaders.getHeaderString("password");
-        this.db.setApplicationUser(this.db.getUser(username, password));
+    protected NodeApi(@Context final HttpHeaders httpHeaders) {
+        super(httpHeaders);
     }
 
     @POST
     @Path("/private")
-    @ApiOperation(value = "Create a private node based on the id of an unidentified node",
-                  notes = "",
-                  response = PrivateNode.class,
-                  authorizations = {@io.swagger.annotations.Authorization(value = "AdminSecurity")},
-                  tags = {"Node"})
+    @ApiOperation(value = "Create a new private node",
+                  notes = "Create a private node based on the id of an unidentified node",
+                  authorizations = {@Authorization(value = "AdminSecurity")})
     @ApiResponses(value = {
-            @ApiResponse(code = 201, message = "Private node succesfully created", response = PrivateNode.class),
-            @ApiResponse(code = 404, message = "Unidentified node not found", response = PrivateNode.class)})
-    public PrivateNode createPrivateNode(@Context final SecurityContext securityContext, final PrivateNode newNode) {
-        this.db.insertNode(newNode);
-        return newNode;
+            @ApiResponse(code = 201, message = "Private node succesfully created", response = String.class),
+            @ApiResponse(code = 404, message = "Unidentified node not found", response = void.class)})
+    public String createPrivateNode(@Context final HttpHeaders httpHeaders,
+            @Context final SecurityContext securityContext,
+            final PrivateNode newNode) {
+        try {
+            // this.initUser(httpHeaders);
+            return this.db.insertNode(newNode);
+        } catch (final Exception e) {
+            NodeApi.log.warn(e.getMessage(), e);
+            throw new ApiException(e);
+        }
     }
 
     @POST
     @Path("/public")
-    @ApiOperation(value = "Create a public node based on the id of an unidentified node",
-                  notes = "",
-                  response = PublicNode.class,
-                  authorizations = {@Authorization(value = "AdminSecurity")},
-                  tags = {"Node"})
+    @ApiOperation(value = "Create a new public node",
+                  notes = "Create a public node based on the id of an unidentified node",
+                  authorizations = {@Authorization(value = "AdminSecurity")})
     @ApiResponses(value = {
-            @ApiResponse(code = 201, message = "Public node succesfully created", response = PublicNode.class),
-            @ApiResponse(code = 404, message = "Unidentified node not found", response = PublicNode.class)})
-    public PublicNode createPublicNode(@Context final SecurityContext securityContext, final PublicNode newNode) {
-        this.db.insertNode(newNode);
-        return newNode;
+            @ApiResponse(code = 201, message = "Public node succesfully created", response = String.class),
+            @ApiResponse(code = 404, message = "Unidentified node not found", response = void.class)})
+    public String createPublicNode(@Context final HttpHeaders httpHeaders, final PublicNode newNode) {
+        try {
+            // this.initUser(httpHeaders);
+            return this.db.insertNode(newNode);
+        } catch (final Exception e) {
+            NodeApi.log.warn(e.getMessage(), e);
+            throw new ApiException(e);
+        }
     }
 
     @DELETE
     @Path("/private/{node_id}")
-    @ApiOperation(value = "Remove a node (and make it unidentified again)",
-                  notes = "",
-                  response = void.class,
-                  authorizations = {@Authorization(value = "AdminSecurity")},
-                  tags = {"Node"})
+    @ApiOperation(value = "Remove a private node",
+                  notes = "Remove a private node and make it unidentified again",
+                  authorizations = {@Authorization(value = "AdminSecurity")})
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Private node succesfully deleted", response = void.class),
             @ApiResponse(code = 404, message = "Private node not found", response = void.class)})
@@ -97,11 +98,9 @@ public class NodeApi {
 
     @DELETE
     @Path("/public/{node_id}")
-    @ApiOperation(value = "Remove a node (and make it unidentified again)",
-                  notes = "",
-                  response = void.class,
-                  authorizations = {@Authorization(value = "AdminSecurity")},
-                  tags = {"Node",})
+    @ApiOperation(value = "Remove a public node",
+                  notes = "Remove a public node and make it unidentified again",
+                  authorizations = {@Authorization(value = "AdminSecurity")})
     @ApiResponses(value = {@ApiResponse(code = 200, message = "Public node succesfully deleted", response = void.class),
             @ApiResponse(code = 404, message = "Public node not found", response = void.class)})
     public void deletePublicNode(
@@ -113,11 +112,9 @@ public class NodeApi {
 
     @GET
     @Path("/private/{node_id}")
-    @ApiOperation(value = "Find the private node with the specified Id",
-                  notes = "",
-                  response = PrivateNode.class,
-                  authorizations = {@Authorization(value = "UserSecurity")},
-                  tags = {"Node"})
+    @ApiOperation(value = "Find a private node",
+                  notes = "Find the private node with the specified Id",
+                  authorizations = {@Authorization(value = "UserSecurity")})
     @ApiResponses(value = {@ApiResponse(code = 200, message = "List all private nodes", response = PrivateNode.class)})
     public PrivateNode getPrivateNode(
             @ApiParam(value = "The id of the Node that needs to be fetched",
@@ -128,11 +125,9 @@ public class NodeApi {
 
     @GET
     @Path("/public/{node_id}")
-    @ApiOperation(value = "Find the public node with the specified Id",
-                  notes = "",
-                  response = PublicNode.class,
-                  authorizations = {@Authorization(value = "UserSecurity")},
-                  tags = {"Node"})
+    @ApiOperation(value = "Find a public node",
+                  notes = "Find the public node with the specified Id",
+                  authorizations = {@Authorization(value = "UserSecurity")})
     @ApiResponses(value = {@ApiResponse(code = 200, message = "List all public nodes", response = PublicNode.class)})
     public PublicNode getPublicNode(
             @ApiParam(value = "The id of the Node that needs to be fetched",
@@ -143,12 +138,11 @@ public class NodeApi {
 
     @GET
     @Path("/private")
-    @ApiOperation(value = "Lists the private nodes of the current user",
-                  notes = "",
+    @ApiOperation(value = "List private nodes",
+                  notes = "List the private nodes of the logged in user",
                   response = PrivateNode.class,
                   responseContainer = "List",
-                  authorizations = {@Authorization(value = "UserSecurity")},
-                  tags = {"Node"})
+                  authorizations = {@Authorization(value = "UserSecurity")})
     @ApiResponses(value = {@ApiResponse(code = 200,
                                         message = "List of private nodes owned by this user",
                                         response = PrivateNode.class,
@@ -159,12 +153,11 @@ public class NodeApi {
 
     @GET
     @Path("/public")
-    @ApiOperation(value = "Lists all public nodes",
-                  notes = "",
+    @ApiOperation(value = "List public nodes",
+                  notes = "List all public nodes",
                   response = PublicNode.class,
                   responseContainer = "List",
-                  authorizations = {@Authorization(value = "UserSecurity")},
-                  tags = {"Node"})
+                  authorizations = {@Authorization(value = "UserSecurity")})
     @ApiResponses(value = {@ApiResponse(code = 200,
                                         message = "List all public nodes",
                                         response = PublicNode.class,
@@ -175,12 +168,11 @@ public class NodeApi {
 
     @GET
     @Path("/unidentified")
-    @ApiOperation(value = "Lists all public nodes",
-                  notes = "",
+    @ApiOperation(value = "List unidentified nodes",
+                  notes = "List all unidentified nodes",
                   response = UnidentifiedNode.class,
                   responseContainer = "List",
-                  authorizations = {@Authorization(value = "AdminSecurity")},
-                  tags = {"Node"})
+                  authorizations = {@Authorization(value = "AdminSecurity")})
     @ApiResponses(value = {@ApiResponse(code = 200,
                                         message = "List all unidentified nodes",
                                         response = UnidentifiedNode.class,

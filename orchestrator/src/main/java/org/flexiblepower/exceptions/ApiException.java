@@ -25,7 +25,7 @@ public class ApiException extends WebApplicationException {
 
     private static final long serialVersionUID = 2129777409204339916L;
     private static final Status DEFAULT_STATUS = Status.INTERNAL_SERVER_ERROR;
-    private static final String DEFAULT_TILE = "Error using API";
+    private static final String DEFAULT_TITLE = "Error using API";
     private static final String DEFAULT_MESSAGE = "An error occured while processing your request";
 
     /**
@@ -44,23 +44,27 @@ public class ApiException extends WebApplicationException {
     }
 
     public ApiException(final String message) {
-        this(ApiException.DEFAULT_STATUS, ApiException.DEFAULT_TILE, message, null);
+        this(ApiException.DEFAULT_STATUS, ApiException.DEFAULT_TITLE, message, null);
     }
 
     public ApiException(final String message, final Throwable t) {
-        this(ApiException.DEFAULT_STATUS, ApiException.DEFAULT_TILE, message, t);
+        this(ApiException.DEFAULT_STATUS, ApiException.DEFAULT_TITLE, message, t);
     }
 
     public ApiException(final Throwable t) {
-        this(ApiException.DEFAULT_STATUS, ApiException.DEFAULT_TILE, ApiException.DEFAULT_MESSAGE, t);
+        this(ApiException.DEFAULT_STATUS, ApiException.DEFAULT_TITLE, ApiException.DEFAULT_MESSAGE, t);
     }
 
     public ApiException(final Status status) {
-        this(status, null);
+        this(status, "");
     }
 
     public ApiException(final Status status, final Throwable t) {
         this(status, String.format("%s (%d)", status.getReasonPhrase(), status.getStatusCode()), "", t);
+    }
+
+    public ApiException(final Status status, final String message) {
+        this(status, String.format("%s (%d)", status.getReasonPhrase(), status.getStatusCode()), message, null);
     }
 
     private static String createErrorPage(final String title, final String message, final Throwable cause) {

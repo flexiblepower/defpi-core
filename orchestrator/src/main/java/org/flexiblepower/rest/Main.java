@@ -2,31 +2,68 @@ package org.flexiblepower.rest;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 
+import org.apache.http.client.utils.URIBuilder;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.MongoDbConnector;
 import org.glassfish.jersey.jetty.JettyHttpContainerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import lombok.extern.slf4j.Slf4j;
+
+import io.swagger.models.Scheme;
 
 /**
  * Main class.
  *
  */
+@Slf4j
 public class Main {
 
     // Base URI the Grizzly HTTP server will listen on
-    public static final String BASE_URI = "http://0.0.0.0:8080/";
-    final static Logger logger = LoggerFactory.getLogger(Main.class);
+    private static final String URI_SCHEME = Scheme.HTTP.name();
+    private static final String URI_HOST = "192.168.239.128";
+    private static final int URI_PORT = 8080;
+    private static final String URI_PATH = "";
+
+    private static final String ROOT_USER = "admin";
+    private static final String ROOT_PASSWORD = "admin";
 
     /**
      * Starts HTTP server exposing JAX-RS resources defined in this application.
+     *
+     * @throws UnknownHostException
+     * @throws URISyntaxException
      */
-    public static void startServer() {
-        final ResourceConfig rc = ResourceConfig.forApplication(new OrchestratorApplication());
-        JettyHttpContainerFactory.createServer(URI.create(Main.BASE_URI), rc);
+    public static void startServer() throws UnknownHostException, URISyntaxException {
+        final URI publishURI = new URIBuilder().setScheme(Main.URI_SCHEME)
+                .setHost(Main.URI_HOST)
+                .setPort(Main.URI_PORT)
+                .setPath(Main.URI_PATH)
+                .build();
+        Main.log.info(String.format("Jersey app started with WADL available at {}/application.wadl", publishURI));
+        final ResourceConfig rc = ResourceConfig.forApplication(new OrchestratorApplication(publishURI));
+        JettyHttpContainerFactory.createServer(publishURI, rc);
+    }
+
+    /**
+     *
+     */
+    private static void ensureAdminUserExists() {
+        final MongoDbConnector db = new MongoDbConnector();
+        if (db.getUser(Main.ROOT_USER, Main.ROOT_PASSWORD) == null) {
+            final User root = new User(Main.ROOT_USER, Main.ROOT_PASSWORD);
+            root.setAdmin(true);
+            db.setApplicationUser(root);
+            try {
+                db.insertUser(root);
+            } catch (final AuthorizationException e) {
+                Main.log.error("Unexpected Authorization exception while adding root user", e);
+            }
+        }
     }
 
     /**
@@ -34,18 +71,14 @@ public class Main {
      *
      * @param args
      * @throws AuthorizationException
+     * @throws URISyntaxException
+     * @throws UnknownHostException
      * @throws IOException
      */
-    public static void main(final String[] args) throws AuthorizationException {
-        final User admin = new User("admin", "admin");
-        admin.setAdmin(true);
-        final MongoDbConnector db = new MongoDbConnector();
-        db.setApplicationUser(admin);
-        db.insertUser(admin);
-
+    public static void
+            main(final String[] args) throws AuthorizationException, UnknownHostException, URISyntaxException {
+        Main.ensureAdminUserExists();
         Main.startServer();
-        Main.logger.info(
-                String.format("Jersey app started with WADL available at " + "%sapplication.wadl", Main.BASE_URI));
         // final Services services = new Services(null);
         // while (true) {
         // try {

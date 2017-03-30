@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.bson.types.ObjectId;
+import org.mongodb.morphia.annotations.Entity;
 import org.mongodb.morphia.annotations.Id;
 import org.mongodb.morphia.annotations.Reference;
 
@@ -21,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @version 0.1
  * @since 20 mrt. 2017
  */
+@Entity
 public class NodePool {
 
     @Id

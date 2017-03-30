@@ -5,6 +5,8 @@
  */
 package org.flexiblepower.model;
 
+import org.mongodb.morphia.annotations.Entity;
+
 import lombok.Getter;
 
 /**
@@ -15,6 +17,7 @@ import lombok.Getter;
  * @since 20 mrt. 2017
  */
 @Getter
+@Entity
 public class PrivateNode extends Node {
 
     private final String owner;

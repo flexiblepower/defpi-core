@@ -5,6 +5,8 @@
  */
 package org.flexiblepower.model;
 
+import org.mongodb.morphia.annotations.Entity;
+
 /**
  * UnidentifiedNode
  *
@@ -12,6 +14,7 @@ package org.flexiblepower.model;
  * @version 0.1
  * @since 20 mrt. 2017
  */
+@Entity
 public class UnidentifiedNode extends Node {
 
     public UnidentifiedNode() {

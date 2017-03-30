@@ -1,8 +1,6 @@
 package org.flexiblepower.orchestrator;
 
 import java.io.Closeable;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.List;
 
@@ -119,10 +117,10 @@ public final class MongoDbConnector implements Closeable {
      * @return the user stored with the provided Id, or null
      * @throws AuthorizationException
      */
-    public User getUser(final String userId) throws AuthorizationException {
+    public User getUser(final ObjectId userId) throws AuthorizationException {
         MongoDbConnector.log.debug("Searching user with id {}", userId);
         this.assertUserIsAdmin();
-        return this.datastore.get(User.class, new ObjectId(userId));
+        return this.datastore.get(User.class, userId);
     }
 
     /**
@@ -143,7 +141,7 @@ public final class MongoDbConnector implements Closeable {
 
         final Query<User> query = this.datastore.find(User.class);
         query.and(query.criteria("name").equal(username),
-                query.criteria("password").equal(MongoDbConnector.sha256(password)));
+                query.criteria("password").equal(User.computeUserPass(username, password)));
         return query.get();
     }
 
@@ -159,7 +157,7 @@ public final class MongoDbConnector implements Closeable {
      */
     public String createNewUser(final String username, final String password) throws AuthorizationException {
         MongoDbConnector.log.info("Registering new user with name {} and password", username);
-        return this.datastore.save(new User(username, MongoDbConnector.sha256(password))).getId().toString();
+        return this.datastore.save(new User(username, password)).getId().toString();
     }
 
     /**
@@ -378,21 +376,23 @@ public final class MongoDbConnector implements Closeable {
      * @param input
      * @return the hash of the input string
      */
-    private static String sha256(final String input) {
-        try {
-            final MessageDigest mDigest = MessageDigest.getInstance("SHA-256");
-            final byte[] result = mDigest.digest(input.getBytes());
-            final StringBuffer sb = new StringBuffer();
-
-            for (final byte element : result) {
-                sb.append(Integer.toString((element & 0xff) + 0x100, 16).substring(1));
-            }
-
-            return sb.toString();
-        } catch (final NoSuchAlgorithmException e) {
-            MongoDbConnector.log.error("No SHA256 algorithm");
-        }
-        return "";
-    }
+    /*
+     * private static String sha256(final String input) {
+     * try {
+     * final MessageDigest mDigest = MessageDigest.getInstance("SHA-256");
+     * final byte[] result = mDigest.digest(input.getBytes());
+     * final StringBuffer sb = new StringBuffer();
+     *
+     * for (final byte element : result) {
+     * sb.append(Integer.toString((element & 0xff) + 0x100, 16).substring(1));
+     * }
+     *
+     * return sb.toString();
+     * } catch (final NoSuchAlgorithmException e) {
+     * MongoDbConnector.log.error("No SHA256 algorithm");
+     * }
+     * return "";
+     * }
+     */
 
 }

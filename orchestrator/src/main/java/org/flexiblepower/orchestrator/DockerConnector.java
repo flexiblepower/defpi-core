@@ -6,6 +6,7 @@
 package org.flexiblepower.orchestrator;
 
 import java.net.URI;
+import java.util.List;
 
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
@@ -27,6 +28,32 @@ public class DockerConnector {
     public static DockerClient init() throws DockerCertificateException, DockerException, InterruptedException {
         return DefaultDockerClient.builder().uri(URI.create(DockerConnector.DOCKER_HOST)).build();
         // .dockerCertificates(new DockerCertificates(Paths.get(DockerConnector.CERT_PATH)))
+    }
+
+    /**
+     * @return
+     */
+    public List<Process> getProcesses() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    /**
+     * @param json
+     * @return
+     */
+    public String newProcess(final String json) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    /**
+     * @param uuid
+     * @return
+     */
+    public Process getProcess(final String uuid) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
 }

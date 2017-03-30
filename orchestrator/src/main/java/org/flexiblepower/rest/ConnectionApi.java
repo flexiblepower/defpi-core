@@ -9,36 +9,33 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.model.Connection;
-import org.flexiblepower.orchestrator.MongoDbConnector;
 
 import lombok.extern.slf4j.Slf4j;
 
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.Authorization;
 
-@Path("connections")
+@Path("connection")
 @Slf4j
-public class ConnectionApi {
+@Api("Connection")
+public class ConnectionApi extends BaseApi {
 
-    private final MongoDbConnector db = new MongoDbConnector();
-
-    private void initUser(final HttpHeaders httpHeaders) {
-        final String username = httpHeaders.getHeaderString("username");
-        final String password = httpHeaders.getHeaderString("password");
-        this.db.setApplicationUser(this.db.getUser(username, password));
+    protected ConnectionApi(@Context final HttpHeaders httpHeaders) {
+        super(httpHeaders);
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Collection<Connection> listConnections(@javax.ws.rs.core.Context final HttpHeaders httpHeaders) {
-        this.initUser(httpHeaders);
+    public Collection<Connection> listConnections(@Context final HttpHeaders httpHeaders) {
         try {
+            // this.initUser(httpHeaders);
             return this.db.getConnections();
         } catch (final Exception e) {
             e.printStackTrace();
@@ -53,22 +50,27 @@ public class ConnectionApi {
                   tags = {"User"})
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response newConnection(@javax.ws.rs.core.Context final HttpHeaders httpHeaders,
-            final Connection connection) {
+    public String newConnection(@Context final HttpHeaders httpHeaders, final Connection connection) {
         ConnectionApi.log.info("newConnection(): " + connection);
-        // if (this.initUser(httpHeaders)) {
-        this.db.insertConnection(connection);
-        return Response.ok().build();
+        try {
+            // this.initUser(httpHeaders);
+            return this.db.insertConnection(connection);
+        } catch (final Exception e) {
+            ConnectionApi.log.warn(e.getMessage(), e);
+            throw new ApiException(e);
+        }
     }
 
     @DELETE
     @Path("{id}")
-    public Response deleteConnection(@javax.ws.rs.core.Context final HttpHeaders httpHeaders,
-            @PathParam("id") final String id) {
-        ConnectionApi.logger.info("deleteConnection(): " + id);
-        if (this.initUser(httpHeaders)) {
-            return Response.status(this.Connections.deleteConnection(id)).build();
+    public void deleteConnection(@Context final HttpHeaders httpHeaders, @PathParam("id") final String id) {
+        ConnectionApi.log.info("deleteConnection(): " + id);
+        try {
+            // this.initUser(httpHeaders);
+            this.db.deleteConnection(id);
+        } catch (final Exception e) {
+            ConnectionApi.log.warn(e.getMessage(), e);
+            throw new ApiException(e);
         }
-        return Response.status(Status.UNAUTHORIZED).build();
     }
 }

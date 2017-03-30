@@ -10,9 +10,14 @@ import java.util.UUID;
 
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.annotations.Embedded;
+import org.mongodb.morphia.annotations.Entity;
 import org.mongodb.morphia.annotations.Id;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
  * Interface
@@ -21,6 +26,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @version 0.1
  * @since 20 mrt. 2017
  */
+@Getter
+@Setter
+@ToString
+@Entity
 public class Interface {
 
     @Id
@@ -30,8 +39,20 @@ public class Interface {
     private final String name;
 
     @Embedded
-    @JsonProperty("interface_versions")
+    @JsonProperty("interfaceVersions")
     private List<InterfaceVersion> interfaceVersions;
+
+    @JsonProperty("cardinality")
+    private int cardinality;
+
+    @JsonProperty("autoConnect")
+    private boolean autoConnect;
+
+    @JsonProperty("subscribeHash")
+    private String subscribeHash;
+
+    @JsonProperty("publishHash")
+    private String publishHash;
 
     public Interface(final String name) {
         this.id = new ObjectId(UUID.randomUUID().toString());
