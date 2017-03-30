@@ -1,5 +1,5 @@
 var dockerPrefix = "hub.servicelab.org/dsefpi/";
-var apiLink = "";
+var apiLink = "localhost:8080";
 var rancherLink = "";
 
 var instance;
