@@ -32,18 +32,30 @@ import lombok.extern.slf4j.Slf4j;
 public final class MongoDbConnector implements Closeable {
 
     // private final static String host = "efpi-rd1.sensorlab.tno.nl";
-    private final static String MONGO_DB_HOST = "localhost";
-    private final static String MONGO_DB_NAME = "def-pi";
+    private final static String MONGO_HOST_KEY = "MONGO_HOST";
+    private final static String MONGO_HOST_DFLT = "localhost";
+    private final static String MONGO_DATABASE_KEY = "MONGO_DATABASE";
+    private final static String MONGO_DATABASE_DFLT = "def-pi";
 
     private final MongoClient client;
     private final Datastore datastore;
 
     // This is the user of the application, and accordingly, decides what functions are available
     private User appUser;
+    private String mongoDatabase;
+    private String mongoHost;
 
     public MongoDbConnector() {
-        MongoDbConnector.log.info("Connecting to MongoDB on {}", MongoDbConnector.MONGO_DB_HOST);
-        this.client = new MongoClient(MongoDbConnector.MONGO_DB_HOST);
+        this.mongoHost = System.getenv(MongoDbConnector.MONGO_HOST_KEY);
+        if (this.mongoHost == null) {
+            this.mongoHost = MongoDbConnector.MONGO_HOST_DFLT;
+        }
+        this.mongoDatabase = System.getenv(MongoDbConnector.MONGO_DATABASE_KEY);
+        if (this.mongoDatabase == null) {
+            this.mongoDatabase = MongoDbConnector.MONGO_DATABASE_DFLT;
+        }
+        MongoDbConnector.log.info("Connecting to MongoDB on {}", this.mongoHost);
+        this.client = new MongoClient(this.mongoHost);
 
         // Instantiate Morphia where to find your classes can be called multiple times with different packages or
         // classes
@@ -51,7 +63,7 @@ public final class MongoDbConnector implements Closeable {
         morphia.mapPackage("org.flexiblepower.model");
 
         // create the Datastore connecting to the default port on the local host
-        this.datastore = morphia.createDatastore(this.client, MongoDbConnector.MONGO_DB_NAME);
+        this.datastore = morphia.createDatastore(this.client, this.mongoDatabase);
         this.datastore.ensureIndexes();
     }
 

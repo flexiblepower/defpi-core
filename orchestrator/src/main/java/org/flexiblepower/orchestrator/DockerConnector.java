@@ -5,7 +5,6 @@
  */
 package org.flexiblepower.orchestrator;
 
-import java.net.URI;
 import java.util.List;
 
 import com.spotify.docker.client.DefaultDockerClient;
@@ -23,10 +22,15 @@ import com.spotify.docker.client.exceptions.DockerException;
 public class DockerConnector {
 
     // private static final String CERT_PATH = "C:\\Users\\leeuwencjv\\.docker\\machine\\machines\\default";
-    private static final String DOCKER_HOST = "http://192.168.239.128:2376/";
+    private static final String DOCKER_HOST_KEY = "DOCKER_HOST";
 
     public static DockerClient init() throws DockerCertificateException, DockerException, InterruptedException {
-        return DefaultDockerClient.builder().uri(URI.create(DockerConnector.DOCKER_HOST)).build();
+        final String dockerHost = System.getenv(DockerConnector.DOCKER_HOST_KEY);
+        if (dockerHost == null) {
+            return DefaultDockerClient.fromEnv().build();
+        } else {
+            return DefaultDockerClient.builder().uri(dockerHost).build();
+        }
         // .dockerCertificates(new DockerCertificates(Paths.get(DockerConnector.CERT_PATH)))
     }
 
