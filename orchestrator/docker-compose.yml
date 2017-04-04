@@ -1,5 +1,5 @@
 orchestrator:
-  image: hub.servicelab.org/dsefpi/orchestrator
+  image: def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator
   ports:
     - 0.0.0.0:8080:8080
   volumes:
