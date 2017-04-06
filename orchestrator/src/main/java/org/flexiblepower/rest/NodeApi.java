@@ -158,10 +158,11 @@ public class NodeApi extends BaseApi {
                   response = PublicNode.class,
                   responseContainer = "List",
                   authorizations = {@Authorization(value = "UserSecurity")})
-    @ApiResponses(value = {@ApiResponse(code = 200,
-                                        message = "List all public nodes",
-                                        response = PublicNode.class,
-                                        responseContainer = "List")})
+    @ApiResponses(value = {
+            @ApiResponse(code = 200,
+                         message = "List all public nodes",
+                         response = PublicNode.class,
+                         responseContainer = "List")})
     public List<PublicNode> listPublicNodes(@Context final SecurityContext securityContext) {
         return this.db.getPublicNodes();
     }
@@ -182,9 +183,10 @@ public class NodeApi extends BaseApi {
             final List<Node> nodeList = DockerConnector.init().listNodes();
             final LinkedList<UnidentifiedNode> ret = new LinkedList<>();
             for (final Node node : nodeList) {
-                if ((this.db.getPublicNode(node.id()) == null) && (this.db.getPrivateNode(node.id()) == null)) {
-                    ret.add(new UnidentifiedNode(node.description().hostname()));
-                }
+                // TODO
+                // if ((this.db.getPublicNode(node.id()) == null) && (this.db.getPrivateNode(node.id()) == null)) {
+                ret.add(new UnidentifiedNode(node.description().hostname()));
+                // }
             }
             return ret;
         } catch (DockerException | InterruptedException | DockerCertificateException e) {

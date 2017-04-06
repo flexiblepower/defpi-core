@@ -1,0 +1,14 @@
+orchestrator:
+  image: def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator
+  ports:
+    - 0.0.0.0:8080:8080
+  volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+  links:
+    - mongo
+  environment:
+    - MONGO_HOST=mongo
+    - MONGO_DATABASE=def-pi
+    - REGISTRY_URL=hub.servicelab.org
+mongo:
+  image: mongo

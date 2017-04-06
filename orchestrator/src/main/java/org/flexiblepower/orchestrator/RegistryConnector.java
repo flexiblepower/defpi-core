@@ -21,11 +21,21 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RegistryConnector {
 
-    public static final String registryLink = "hub.servicelab.org/";
-    public static final String registryPrefix = "dsefpi/";
-    public static final String registryApiLink = "https://" + RegistryConnector.registryLink + "v2/";
+    public static final String REGISTRY_URL_KEY = "REGISTRY_URL";
+    public static final String REGISTRY_URL_DFLT = "hub.servicelab.org";
+    public static final String REGISTRY_PREFIX = "dsefpi/";
+    public static String registryUrl;
+    public static String registryApiLink;
 
     private final Gson gson = new Gson();
+
+    public RegistryConnector() {
+        RegistryConnector.registryUrl = System.getenv(RegistryConnector.REGISTRY_URL_KEY);
+        if (RegistryConnector.registryUrl == null) {
+            RegistryConnector.registryUrl = RegistryConnector.REGISTRY_URL_DFLT;
+        }
+        RegistryConnector.registryApiLink = "https://" + RegistryConnector.registryUrl + "/v2/";
+    }
 
     @SuppressWarnings("unchecked")
     public List<String> getServices() {
@@ -40,7 +50,7 @@ public class RegistryConnector {
         try {
             final Client client = ClientBuilder.newClient();
             final WebTarget target = client.target(RegistryConnector.registryApiLink
-                    + URLEncoder.encode(RegistryConnector.registryPrefix + repository, "UTF-8") + "/manifests/"
+                    + URLEncoder.encode(RegistryConnector.REGISTRY_PREFIX + repository, "UTF-8") + "/manifests/"
                     + URLEncoder.encode(tag, "UTF-8"));
             final Response response = target.request()
                     .accept("application/vnd.docker.distribution.manifest.v2+json")
@@ -48,7 +58,7 @@ public class RegistryConnector {
             final String digest = response.getHeaderString("DockerConnector-Content-Digest");
             RegistryConnector.log.info("Tag digest: " + digest);
             final WebTarget target2 = client.target(RegistryConnector.registryApiLink
-                    + URLEncoder.encode(RegistryConnector.registryPrefix + repository, "UTF-8") + "/manifests/"
+                    + URLEncoder.encode(RegistryConnector.REGISTRY_PREFIX + repository, "UTF-8") + "/manifests/"
                     + digest);
             final Response response2 = target2.request().delete();
             RegistryConnector.log.info("Delete response: " + response2.getStatus() + "  -  "
@@ -64,7 +74,7 @@ public class RegistryConnector {
         try {
             final Client client = ClientBuilder.newClient();
             final WebTarget target = client.target(RegistryConnector.registryApiLink
-                    + URLEncoder.encode(RegistryConnector.registryPrefix + repository, "UTF-8") + "/tags/list");
+                    + URLEncoder.encode(RegistryConnector.REGISTRY_PREFIX + repository, "UTF-8") + "/tags/list");
 
             final Response response = target.request().get();
 
@@ -80,7 +90,7 @@ public class RegistryConnector {
         try {
             final Client client = ClientBuilder.newClient();
             final WebTarget target = client.target(RegistryConnector.registryApiLink
-                    + URLEncoder.encode(RegistryConnector.registryPrefix + repository, "UTF-8") + "/manifests/"
+                    + URLEncoder.encode(RegistryConnector.REGISTRY_PREFIX + repository, "UTF-8") + "/manifests/"
                     + URLEncoder.encode(tag, "UTF-8"));
             final Response response = target.request().get();
             final String responseStr = response.readEntity(String.class);
