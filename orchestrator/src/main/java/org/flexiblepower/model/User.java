@@ -56,7 +56,11 @@ public class User {
 
     public User(final String userName, final String userPass) {
         this.name = userName;
-        this.password = User.computeUserPass(userName, userPass);
+        this.setPassword(this.password);
+    }
+
+    public void setPassword(final String password) {
+        this.password = User.computeUserPass(this.name, password);
     }
 
     /*

@@ -46,6 +46,7 @@ public class Main {
                 .build();
         Main.log.info(String.format("Jersey app started with WADL available at {}/application.wadl", publishURI));
         final ResourceConfig rc = ResourceConfig.forApplication(new OrchestratorApplication(publishURI));
+        // rc.register(new ExceptionMapper());
         JettyHttpContainerFactory.createServer(publishURI, rc);
     }
 

@@ -67,7 +67,7 @@ public class ApiException extends WebApplicationException {
         this(status, String.format("%s (%d)", status.getReasonPhrase(), status.getStatusCode()), message, null);
     }
 
-    private static String createErrorPage(final String title, final String message, final Throwable cause) {
+    public static String createErrorPage(final String title, final String message, final Throwable cause) {
         final StringBuilder sb = new StringBuilder();
 
         sb.append("<html><body style='font: 10pt sans-serif'><h1>")

@@ -65,6 +65,8 @@ public class OrchestratorApplication extends Application {
         resources.add(ServiceApi.class);
         resources.add(UserApi.class);
 
+        resources.add(ExceptionMapper.class);
+
         // Add resources for swagger, jackson and CORS
         resources.add(ApiListingResource.class);
         resources.add(SwaggerSerializers.class);
