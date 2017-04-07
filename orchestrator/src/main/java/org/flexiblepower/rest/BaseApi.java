@@ -8,6 +8,7 @@ package org.flexiblepower.rest;
 import java.util.Base64;
 
 import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.SecurityContext;
 
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.MongoDbConnector;
@@ -26,7 +27,7 @@ public abstract class BaseApi {
 
     protected final MongoDbConnector db = new MongoDbConnector();
 
-    protected BaseApi(final HttpHeaders httpHeaders) {
+    protected BaseApi(final HttpHeaders httpHeaders, final SecurityContext securityContext) {
         final String authPrefix = "Basic ";
 
         String authString = httpHeaders.getHeaderString("Authorization");

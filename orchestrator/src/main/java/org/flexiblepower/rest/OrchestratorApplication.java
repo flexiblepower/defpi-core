@@ -58,12 +58,12 @@ public class OrchestratorApplication extends Application {
         final Set<Class<?>> resources = new HashSet<>();
 
         // Add resources for the model
-        resources.add(ConnectionApi.class);
-        resources.add(InterfaceApi.class);
-        resources.add(NodeApi.class);
-        resources.add(ProcessApi.class);
-        resources.add(ServiceApi.class);
-        resources.add(UserApi.class);
+        resources.add(ConnectionRestApi.class);
+        resources.add(InterfaceRestApi.class);
+        resources.add(NodeRestApi.class);
+        resources.add(ProcessRestApi.class);
+        resources.add(ServiceRestApi.class);
+        resources.add(UserRestApi.class);
 
         resources.add(ExceptionMapper.class);
 

@@ -12,6 +12,7 @@ import javax.ws.rs.core.Response.Status;
 
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.AuthorizationException;
+import org.flexiblepower.exceptions.InvalidObjectIdException;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -39,6 +40,13 @@ public class ExceptionMapper implements javax.ws.rs.ext.ExceptionMapper<Exceptio
             return Response.status(Status.UNAUTHORIZED)
                     .entity(ApiException
                             .createErrorPage("Unauthorized", "You are not authorized to perform this operation", null))
+                    .type(MediaType.TEXT_HTML)
+                    .build();
+        } else if (InvalidObjectIdException.class.isAssignableFrom(exception.getClass())) {
+            ExceptionMapper.log.warn("Invalid objectId provided", exception);
+            return Response.status(Status.BAD_REQUEST)
+                    .entity(ApiException
+                            .createErrorPage("Invalid objectId", "The id you provided is not a valid object id", null))
                     .type(MediaType.TEXT_HTML)
                     .build();
         } else {

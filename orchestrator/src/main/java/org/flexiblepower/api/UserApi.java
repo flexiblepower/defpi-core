@@ -1,4 +1,4 @@
-package org.flexiblepower.rest;
+package org.flexiblepower.api;
 
 import java.util.List;
 
@@ -8,18 +8,11 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.SecurityContext;
 
-import org.bson.types.ObjectId;
-import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.AuthorizationException;
+import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.model.User;
-
-import lombok.extern.slf4j.Slf4j;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -28,17 +21,12 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 
-@Slf4j
-@Path("/user")
 @Api("User")
+@Path("user")
 @Produces(MediaType.APPLICATION_JSON)
-public class UserApi extends BaseApi {
+public interface UserApi {
 
-    private static final String USER_NOT_FOUND_MESSAGE = "User not found";
-
-    protected UserApi(@Context final HttpHeaders httpHeaders) {
-        super(httpHeaders);
-    }
+    static final String USER_NOT_FOUND_MESSAGE = "User not found";
 
     @POST
     @Produces(MediaType.TEXT_PLAIN)
@@ -48,11 +36,7 @@ public class UserApi extends BaseApi {
                   authorizations = {@Authorization(value = "AdminSecurity")})
     @ApiResponses(value = {@ApiResponse(code = 201, message = "New user created", response = User.class),
             @ApiResponse(code = 200, message = "Unexpected error", response = User.class)})
-    public String createUser(final User newUser) throws AuthorizationException {
-        // Update the password to store it encrypted
-        newUser.setPassword(newUser.getPassword());
-        return this.db.insertUser(newUser);
-    }
+    public String createUser(final User newUser) throws AuthorizationException;
 
     @DELETE
     @Path("/{user_id}")
@@ -65,11 +49,9 @@ public class UserApi extends BaseApi {
             @ApiResponse(code = 404, message = UserApi.USER_NOT_FOUND_MESSAGE, response = User.class)})
     public String deleteUser(
             @ApiParam(value = "The id of the user that needs to be deleted",
-                      required = true) @PathParam("user_id") final String userId,
-            @Context final SecurityContext securityContext) throws AuthorizationException {
-        this.db.deleteUser(userId);
-        return userId;
-    }
+                      required = true) @PathParam("user_id") final String userId)
+            throws AuthorizationException,
+            InvalidObjectIdException;
 
     @GET
     @Path("/{user_id}")
@@ -79,23 +61,11 @@ public class UserApi extends BaseApi {
                   authorizations = {@Authorization(value = "UserSecurity")})
     @ApiResponses(value = {@ApiResponse(code = 200, message = "User data", response = User.class),
             @ApiResponse(code = 404, message = UserApi.USER_NOT_FOUND_MESSAGE, response = void.class)})
-    public User
-            getUserById(
-                    @ApiParam(value = "The id of the User that needs to be fetched",
-                              required = true) @PathParam("user_id") final String userId)
-                    throws AuthorizationException {
-        if (!ObjectId.isValid(userId)) {
-            throw new ApiException(Status.BAD_REQUEST, "UserId '" + userId + "' is not a valid User Id");
-        }
-
-        final ObjectId oid = new ObjectId(userId);
-        final User ret = this.db.getUser(oid);
-        if (ret == null) {
-            throw new ApiException(Status.NOT_FOUND, UserApi.USER_NOT_FOUND_MESSAGE);
-        } else {
-            return ret;
-        }
-    }
+    public User getUserById(
+            @ApiParam(value = "The id of the User that needs to be fetched",
+                      required = true) @PathParam("user_id") final String userId)
+            throws AuthorizationException,
+            InvalidObjectIdException;
 
     @GET
     @ApiOperation(value = "List users",
@@ -105,7 +75,5 @@ public class UserApi extends BaseApi {
                   authorizations = {@Authorization(value = "AdminSecurity")})
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "An array of Users", response = User.class, responseContainer = "List")})
-    public List<User> listUsers() throws AuthorizationException {
-        return this.db.getUsers();
-    }
+    public List<User> listUsers() throws AuthorizationException;
 }

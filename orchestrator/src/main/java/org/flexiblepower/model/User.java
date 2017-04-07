@@ -56,7 +56,7 @@ public class User {
 
     public User(final String userName, final String userPass) {
         this.name = userName;
-        this.setPassword(this.password);
+        this.setPassword(userPass);
     }
 
     public void setPassword(final String password) {
@@ -75,6 +75,9 @@ public class User {
     }
 
     public static final String computeUserPass(final String name, final String password) {
+        if ((name == null) || (password == null)) {
+            throw new NullPointerException("Name and password must both be set to compute password hash");
+        }
         return User.md5(password + name + User.SALT);
     }
 

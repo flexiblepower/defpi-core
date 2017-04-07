@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.AuthorizationException;
+import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Node;
 import org.flexiblepower.model.PrivateNode;
@@ -34,6 +35,8 @@ public final class MongoDbConnector implements Closeable {
     // private final static String host = "efpi-rd1.sensorlab.tno.nl";
     private final static String MONGO_HOST_KEY = "MONGO_HOST";
     private final static String MONGO_HOST_DFLT = "localhost";
+    private final static String MONGO_PORT_KEY = "MONGO_PORT";
+    private final static String MONGO_PORT_DFLT = "27017";
     private final static String MONGO_DATABASE_KEY = "MONGO_DATABASE";
     private final static String MONGO_DATABASE_DFLT = "def-pi";
 
@@ -44,6 +47,7 @@ public final class MongoDbConnector implements Closeable {
     private User appUser;
     private String mongoDatabase;
     private String mongoHost;
+    private String mongoPort;
 
     public MongoDbConnector() {
         this.mongoHost = System.getenv(MongoDbConnector.MONGO_HOST_KEY);
@@ -54,8 +58,13 @@ public final class MongoDbConnector implements Closeable {
         if (this.mongoDatabase == null) {
             this.mongoDatabase = MongoDbConnector.MONGO_DATABASE_DFLT;
         }
-        MongoDbConnector.log.info("Connecting to MongoDB on {}", this.mongoHost);
-        this.client = new MongoClient(this.mongoHost);
+        this.mongoPort = System.getenv(MongoDbConnector.MONGO_PORT_KEY);
+        if (this.mongoPort == null) {
+            this.mongoPort = MongoDbConnector.MONGO_PORT_DFLT;
+        }
+
+        MongoDbConnector.log.info("Connecting to MongoDB on {}:{}", this.mongoHost, this.mongoPort);
+        this.client = new MongoClient(this.mongoHost, Integer.parseInt(this.mongoPort));
 
         // Instantiate Morphia where to find your classes can be called multiple times with different packages or
         // classes
@@ -81,6 +90,21 @@ public final class MongoDbConnector implements Closeable {
         if ((this.appUser == null) || !this.appUser.isAdmin()) {
             throw new AuthorizationException();
         }
+    }
+
+    /**
+     * Private function that throws an exception if the string is not a valid ObjectId, and returns the corresponding
+     * ObjectId otherwise.
+     *
+     * @param userId
+     * @return
+     * @throws InvalidObjectIdException
+     */
+    private static ObjectId stringToObjectId(final String id) throws InvalidObjectIdException {
+        if (!ObjectId.isValid(id)) {
+            throw new InvalidObjectIdException("The provided id is not a valid ObjectId");
+        }
+        return new ObjectId(id);
     }
 
     /**
@@ -128,11 +152,13 @@ public final class MongoDbConnector implements Closeable {
      * @param userId
      * @return the user stored with the provided Id, or null
      * @throws AuthorizationException
+     * @throws InvalidObjectIdException
      */
-    public User getUser(final ObjectId userId) throws AuthorizationException {
+    public User getUser(final String userId) throws AuthorizationException, InvalidObjectIdException {
         MongoDbConnector.log.debug("Searching user with id {}", userId);
         this.assertUserIsAdmin();
-        return this.datastore.get(User.class, userId);
+        final ObjectId id = MongoDbConnector.stringToObjectId(userId);
+        return this.datastore.get(User.class, id);
     }
 
     /**
@@ -191,11 +217,13 @@ public final class MongoDbConnector implements Closeable {
      *
      * @param userId
      * @throws AuthorizationException
+     * @throws InvalidObjectIdException
      */
-    public void deleteUser(final String userId) throws AuthorizationException {
+    public void deleteUser(final String userId) throws AuthorizationException, InvalidObjectIdException {
         MongoDbConnector.log.debug("Removing user with id {}", userId);
         this.assertUserIsAdmin();
-        this.datastore.delete(User.class, new ObjectId(userId));
+        final ObjectId id = MongoDbConnector.stringToObjectId(userId);
+        this.datastore.delete(User.class, id);
     }
 
     /**
@@ -228,10 +256,12 @@ public final class MongoDbConnector implements Closeable {
      *
      * @param nodeId
      * @return the public node that has the provided id, or null
+     * @throws InvalidObjectIdException
      */
-    public PublicNode getPublicNode(final String nodeId) {
+    public PublicNode getPublicNode(final String nodeId) throws InvalidObjectIdException {
         MongoDbConnector.log.debug("Searching PublicNode with id {}", nodeId);
-        return this.datastore.get(PublicNode.class, new ObjectId(nodeId));
+        final ObjectId id = MongoDbConnector.stringToObjectId(nodeId);
+        return this.datastore.get(PublicNode.class, id);
     }
 
     /**
@@ -239,10 +269,12 @@ public final class MongoDbConnector implements Closeable {
      *
      * @param nodeId
      * @return the private node that has the provided id, or null
+     * @throws InvalidObjectIdException
      */
-    public PrivateNode getPrivateNode(final String nodeId) {
+    public PrivateNode getPrivateNode(final String nodeId) throws InvalidObjectIdException {
         MongoDbConnector.log.debug("Searching PrivateNode with id {}", nodeId);
-        return this.datastore.get(PrivateNode.class, new ObjectId(nodeId));
+        final ObjectId id = MongoDbConnector.stringToObjectId(nodeId);
+        return this.datastore.get(PrivateNode.class, id);
     }
 
     /**
@@ -260,10 +292,12 @@ public final class MongoDbConnector implements Closeable {
      * Removes the node (either public or private) that has the provided id from the database.
      *
      * @param nodeId
+     * @throws InvalidObjectIdException
      */
-    public void deleteNode(final String nodeId) {
+    public void deleteNode(final String nodeId) throws InvalidObjectIdException {
         MongoDbConnector.log.debug("Deleting node with id {}", nodeId);
-        this.datastore.delete(Node.class, new ObjectId(nodeId));
+        final ObjectId id = MongoDbConnector.stringToObjectId(nodeId);
+        this.datastore.delete(Node.class, id);
     }
 
     /**
@@ -279,10 +313,12 @@ public final class MongoDbConnector implements Closeable {
      *
      * @param connectionId
      * @return the connection that has the provided id, or null
+     * @throws InvalidObjectIdException
      */
-    public Connection getConnection(final String connectionId) {
+    public Connection getConnection(final String connectionId) throws InvalidObjectIdException {
         MongoDbConnector.log.debug("Searching connection with id {} ", connectionId);
-        return this.datastore.get(Connection.class, new ObjectId(connectionId));
+        final ObjectId id = MongoDbConnector.stringToObjectId(connectionId);
+        return this.datastore.get(Connection.class, id);
     }
 
     /**
@@ -310,10 +346,12 @@ public final class MongoDbConnector implements Closeable {
      * Removes the connection that has the provided id from the database.
      *
      * @param connectionId
+     * @throws InvalidObjectIdException
      */
-    public void deleteConnection(final String connectionId) {
+    public void deleteConnection(final String connectionId) throws InvalidObjectIdException {
         MongoDbConnector.log.debug("Deleting connection with id {}", connectionId);
-        this.datastore.delete(Connection.class, new ObjectId(connectionId));
+        final ObjectId id = MongoDbConnector.stringToObjectId(connectionId);
+        this.datastore.delete(Connection.class, id);
     }
 
     /**
@@ -327,84 +365,5 @@ public final class MongoDbConnector implements Closeable {
         q.or(q.criteria("container2").equal(processId), q.criteria("container2").equal(processId));
         this.datastore.delete(q);
     }
-
-    // @SuppressWarnings("unchecked")
-    // public boolean linkAllowed(final Link link) {
-    // final MongoCollection<Document> c = this.db.getCollection("links");
-    // final Document c1 = this.getProces(link.getContainer1());
-    // final Document c2 = this.getProces(link.getContainer2());
-    // if ((c1 == null) || (c2 == null)) {
-    // return false;
-    // }
-    // final List<Document> container1Interfaces = (List<Document>) c1.get("interfaces");
-    // final List<Document> container2Interfaces = (List<Document>) c2.get("interfaces");
-    // for (final Document i : container1Interfaces) {
-    // if (this.checkInterface(c, link, i, link.getContainer1())) {
-    // return false;
-    // }
-    // }
-    // for (final Document i : container2Interfaces) {
-    // if (this.checkInterface(c, link, i, link.getContainer2())) {
-    // return false;
-    // }
-    // }
-    //
-    // return true;
-    // }
-    //
-    // private boolean checkInterface(final MongoCollection<Document> c,
-    // final Link link,
-    // final Document i,
-    // final String container) {
-    // final String subscribeHash = i.getString("subscribeHash");
-    // final String publishHash = i.getString("publishHash");
-    // if (i.getInteger("cardinality") == 1) {
-    // if ((subscribeHash.equals(link.getInterface1()) && publishHash.equals(link.getInterface2()))
-    // || (subscribeHash.equals(link.getInterface2()) && publishHash.equals(link.getInterface1()))) {
-    //
-    // final Document search = new Document("$and",
-    // Arrays.asList(
-    // new Document("$or",
-    // Arrays.asList(new Document("container1", container),
-    // new Document("container2", container))),
-    // new Document("$or",
-    // Arrays.asList(
-    // new Document("interface1", link.getInterface1()).append("interface2",
-    // link.getInterface2()),
-    // new Document("interface1", link.getInterface2()).append("interface2",
-    // link.getInterface1())))));
-    // if (c.find(search).first() != null) {
-    // MongoDbConnector.log.info(" interface '" + i.getString("name") + "' is already connected");
-    // return true;
-    // }
-    // }
-    // }
-    // return false;
-    // }
-
-    /**
-     * Generate the sha256 hash for a given string
-     *
-     * @param input
-     * @return the hash of the input string
-     */
-    /*
-     * private static String sha256(final String input) {
-     * try {
-     * final MessageDigest mDigest = MessageDigest.getInstance("SHA-256");
-     * final byte[] result = mDigest.digest(input.getBytes());
-     * final StringBuffer sb = new StringBuffer();
-     *
-     * for (final byte element : result) {
-     * sb.append(Integer.toString((element & 0xff) + 0x100, 16).substring(1));
-     * }
-     *
-     * return sb.toString();
-     * } catch (final NoSuchAlgorithmException e) {
-     * MongoDbConnector.log.error("No SHA256 algorithm");
-     * }
-     * return "";
-     * }
-     */
 
 }

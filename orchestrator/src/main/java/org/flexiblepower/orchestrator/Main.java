@@ -1,14 +1,14 @@
-package org.flexiblepower.rest;
+package org.flexiblepower.orchestrator;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
+import java.util.List;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.model.User;
-import org.flexiblepower.orchestrator.MongoDbConnector;
+import org.flexiblepower.rest.OrchestratorApplication;
 import org.glassfish.jersey.jetty.JettyHttpContainerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 
@@ -23,7 +23,7 @@ import io.swagger.models.Scheme;
 @Slf4j
 public class Main {
 
-    // Base URI the Grizzly HTTP server will listen on
+    // Base URI the HTTP server will listen on
     private static final String URI_SCHEME = Scheme.HTTP.name();
     private static final String URI_HOST = "192.168.239.128";
     private static final int URI_PORT = 8080;
@@ -44,9 +44,9 @@ public class Main {
                 .setPort(Main.URI_PORT)
                 .setPath(Main.URI_PATH)
                 .build();
-        Main.log.info(String.format("Jersey app started with WADL available at {}/application.wadl", publishURI));
+        Main.log.info("Jersey app started with WADL available at {}/application.wadl", publishURI);
         final ResourceConfig rc = ResourceConfig.forApplication(new OrchestratorApplication(publishURI));
-        // rc.register(new ExceptionMapper());
+
         JettyHttpContainerFactory.createServer(publishURI, rc);
     }
 
@@ -54,16 +54,18 @@ public class Main {
      *
      */
     private static void ensureAdminUserExists() {
-        final MongoDbConnector db = new MongoDbConnector();
-        if (db.getUser(Main.ROOT_USER, Main.ROOT_PASSWORD) == null) {
-            final User root = new User(Main.ROOT_USER, Main.ROOT_PASSWORD);
-            root.setAdmin(true);
-            db.setApplicationUser(root);
-            try {
+        try (MongoDbConnector db = new MongoDbConnector()) {
+            if (db.getUser(Main.ROOT_USER, Main.ROOT_PASSWORD) == null) {
+                final User root = new User(Main.ROOT_USER, Main.ROOT_PASSWORD);
+                root.setAdmin(true);
+                db.setApplicationUser(root);
+
+                final List<User> existingUsers = db.getUsers();
                 db.insertUser(root);
-            } catch (final AuthorizationException e) {
-                Main.log.error("Unexpected Authorization exception while adding root user", e);
             }
+        } catch (final AuthorizationException e) {
+            Main.log.error("Unexpected Authorization exception while adding root user", e);
+            throw new RuntimeException("Unable to ensure admin user exists", e);
         }
     }
 
@@ -74,7 +76,6 @@ public class Main {
      * @throws AuthorizationException
      * @throws URISyntaxException
      * @throws UnknownHostException
-     * @throws IOException
      */
     public static void
             main(final String[] args) throws AuthorizationException, UnknownHostException, URISyntaxException {
