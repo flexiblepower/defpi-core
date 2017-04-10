@@ -19,6 +19,8 @@ import lombok.Getter;
 @Getter
 public class Process {
 
+    private String userName;
+
     private Service processService;
 
     private List<Connection> connections;

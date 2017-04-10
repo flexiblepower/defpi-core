@@ -19,14 +19,27 @@ import io.swagger.annotations.Api;
 public interface ServiceApi {
 
     @GET
-    public List<String> listServices();
+    public List<String> listRepositories();
 
     @GET
-    @Path("{image}/{tag}")
-    public Service listService(@PathParam("image") final String imageName, @PathParam("tag") final String tag);
+    @Path("{repository}")
+    public List<String> listServices(@PathParam("repository") final String repository);
+
+    @GET
+    @Path("{repository}/{service}")
+    public List<String> listTags(@PathParam("repository") final String repository,
+            @PathParam("service") final String serviceName);
+
+    @GET
+    @Path("{repository}/{service}/{tag}")
+    public Service getService(@PathParam("repository") final String repository,
+            @PathParam("service") final String serviceName,
+            @PathParam("tag") final String tag);
 
     @DELETE
-    @Path("{image}/{tag}")
-    public void deleteService(@PathParam("image") final String image, @PathParam("tag") final String tag);
+    @Path("{repository}/{service}/{tag}")
+    public void deleteService(@PathParam("repository") final String repository,
+            @PathParam("service") final String serviceName,
+            @PathParam("tag") final String tag);
 
 }

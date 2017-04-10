@@ -19,18 +19,28 @@ public class ServiceRestApi extends BaseApi implements ServiceApi {
     }
 
     @Override
-    public List<String> listServices() {
-        return this.registryConnector.getServices();
+    public List<String> listRepositories() {
+        return this.registryConnector.listRepositories();
     }
 
     @Override
-    public Service listService(final String imageName, final String tag) {
-        return this.registryConnector.getService(imageName, tag);
+    public List<String> listServices(final String repositoryName) {
+        return this.registryConnector.listServices(repositoryName);
     }
 
     @Override
-    public void deleteService(final String image, final String tag) {
-        this.registryConnector.deleteService(image, tag);
+    public List<String> listTags(final String repositoryName, final String serviceName) {
+        return this.registryConnector.listTags(repositoryName, serviceName);
+    }
+
+    @Override
+    public Service getService(final String repositoryName, final String imageName, final String tag) {
+        return this.registryConnector.getService(repositoryName, imageName, tag);
+    }
+
+    @Override
+    public void deleteService(final String repositoryName, final String image, final String tag) {
+        this.registryConnector.deleteService(repositoryName, image, tag);
     }
 
 }
