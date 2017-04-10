@@ -23,10 +23,19 @@ public class Service {
 
     private String name;
 
+    /**
+     * Def-pi interfaces
+     */
     private Set<Interface> interfaces;
 
+    /**
+     * Volume mappings
+     */
     private Set<String> mappings;
 
+    /**
+     * Physical ports to open
+     */
     private Set<String> ports;
 
     private String image;
