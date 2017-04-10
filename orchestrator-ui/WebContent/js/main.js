@@ -4,7 +4,7 @@ var myApp = angular.module('myApp', [ 'ng-admin' ]);
 // phase)
 
 myApp.config(function(RestangularProvider) {
-	var login = 'admin', password = '53cr3t', token = window.btoa(login + ':'
+	var login = 'admin', password = 'admin', token = window.btoa(login + ':'
 			+ password);
 	RestangularProvider.setDefaultHeaders({
 		'Accept': 'application/json',
@@ -22,7 +22,7 @@ myApp.config([
 			var user = nga.entity('user');
 
 			user.listView().fields(
-					[ nga.field('id'), nga.field('name'),
+					[ nga.field('id'), nga.field('username'),
 							nga.field('password'), nga.field('admin'),
 							nga.field('email') ]);
 
