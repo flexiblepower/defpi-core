@@ -1,7 +1,6 @@
 package org.flexiblepower.orchestrator;
 
 import java.io.Closeable;
-import java.util.Collection;
 import java.util.List;
 
 import org.bson.types.ObjectId;
@@ -303,7 +302,7 @@ public final class MongoDbConnector implements Closeable {
     /**
      * @return a list of all connections that are stored in the database
      */
-    public Collection<Connection> getConnections() {
+    public List<Connection> getConnections() {
         MongoDbConnector.log.debug("Listing all connections");
         return this.datastore.find(Connection.class).asList();
     }

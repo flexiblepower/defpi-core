@@ -2,6 +2,7 @@ package org.flexiblepower.orchestrator;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -16,14 +17,16 @@ import org.json.JSONObject;
 
 import com.google.gson.Gson;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RegistryConnector {
 
     public static final String REGISTRY_URL_KEY = "REGISTRY_URL";
-    public static final String REGISTRY_URL_DFLT = "hub.servicelab.org";
+    public static final String REGISTRY_URL_DFLT = "def-pi1.sensorlab.tno.nl:5000";
     public static final String REGISTRY_PREFIX = "dsefpi/";
+
     public static String registryUrl;
     public static String registryApiLink;
 
@@ -43,7 +46,9 @@ public class RegistryConnector {
         final WebTarget target = client.target(RegistryConnector.registryApiLink + "_catalog");
         final Response response = target.request().get();
 
-        return this.gson.fromJson(response.readEntity(String.class), List.class);
+        final String textResponse = response.readEntity(String.class);
+
+        return this.gson.fromJson(textResponse, Catalog.class).getRepositories();
     }
 
     public void deleteService(final String repository, final String tag) {
@@ -120,8 +125,7 @@ public class RegistryConnector {
      * @return
      */
     public List<Interface> getInterfaces() {
-        // TODO Auto-generated method stub
-        return null;
+        return new ArrayList<>();
     }
 
     /**
@@ -157,4 +161,12 @@ public class RegistryConnector {
     //
     // return Document.parse("{\"interfaces\": " + InitGson.create().toJson(serviceLabels.getInterfaces()) + "}");
     // }
+
+    @Getter
+    private final class Catalog {
+
+        private List<String> repositories;
+
+    }
+
 }

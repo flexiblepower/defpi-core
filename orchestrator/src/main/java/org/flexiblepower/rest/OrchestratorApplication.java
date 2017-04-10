@@ -14,10 +14,12 @@ import javax.ws.rs.core.MediaType;
 
 import org.glassfish.jersey.jackson.JacksonFeature;
 
+import io.swagger.annotations.BasicAuthDefinition;
 import io.swagger.annotations.Contact;
 import io.swagger.annotations.ExternalDocs;
 import io.swagger.annotations.Info;
 import io.swagger.annotations.License;
+import io.swagger.annotations.SecurityDefinition;
 import io.swagger.annotations.SwaggerDefinition;
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.listing.ApiListingResource;
@@ -40,8 +42,18 @@ import io.swagger.jaxrs.listing.SwaggerSerializers;
                                 license = @License(name = "Apache 2.0", url = "http://www.apache.org")),
                    consumes = {MediaType.APPLICATION_JSON},
                    produces = {MediaType.APPLICATION_JSON},
-                   externalDocs = @ExternalDocs(value = "Flexiblepower.io", url = "http://flexiblepower.github.io/"))
+                   externalDocs = @ExternalDocs(value = "Flexiblepower.io", url = "http://flexiblepower.github.io/"),
+                   securityDefinition = @SecurityDefinition(basicAuthDefinions = {
+                           @BasicAuthDefinition(key = OrchestratorApplication.USER_AUTHENTICATION,
+                                                description = "This operation will only have effect for the logged in user."),
+                           @BasicAuthDefinition(key = OrchestratorApplication.ADMIN_AUTHENTICATION,
+                                                description = "This operation can only be performed by an administrator.")}))
 public class OrchestratorApplication extends Application {
+
+    public final static String USER_AUTHENTICATION = "UserSecurity";
+    public final static String ADMIN_AUTHENTICATION = "AdminSecurity";
+
+    public final static String UNAUTHORIZED_MESSAGE = "The user is not authorized to perform this operation";
 
     public OrchestratorApplication(final URI publishURI) {
         final BeanConfig beanConfig = new BeanConfig();

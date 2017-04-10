@@ -18,8 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class UserRestApi extends BaseApi implements UserApi {
 
-    private static final String USER_NOT_FOUND_MESSAGE = "User not found";
-
     protected UserRestApi(@Context final HttpHeaders httpHeaders, @Context final SecurityContext securityContext) {
         super(httpHeaders, securityContext);
     }
@@ -43,7 +41,7 @@ public class UserRestApi extends BaseApi implements UserApi {
     public User getUserById(final String userId) throws AuthorizationException, InvalidObjectIdException {
         final User ret = this.db.getUser(userId);
         if (ret == null) {
-            throw new ApiException(Status.NOT_FOUND, UserRestApi.USER_NOT_FOUND_MESSAGE);
+            throw new ApiException(Status.NOT_FOUND, UserApi.USER_NOT_FOUND_MESSAGE);
         } else {
             return ret;
         }

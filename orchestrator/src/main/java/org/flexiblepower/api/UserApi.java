@@ -32,11 +32,11 @@ public interface UserApi {
     @Produces(MediaType.TEXT_PLAIN)
     @ApiOperation(value = "Create user",
                   notes = "Create a new user",
-                  response = User.class,
+                  response = String.class,
                   authorizations = {@Authorization(value = "AdminSecurity")})
-    @ApiResponses(value = {@ApiResponse(code = 201, message = "New user created", response = User.class),
-            @ApiResponse(code = 200, message = "Unexpected error", response = User.class)})
-    public String createUser(final User newUser) throws AuthorizationException;
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "New user created", response = String.class)})
+    public String createUser(@ApiParam(value = "The new user to add", required = true) final User newUser)
+            throws AuthorizationException;
 
     @DELETE
     @Path("/{user_id}")
@@ -45,8 +45,8 @@ public interface UserApi {
                   notes = "Delete the user with the provided Id",
                   response = User.class,
                   authorizations = {@Authorization(value = "AdminSecurity")})
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "User data", response = User.class),
-            @ApiResponse(code = 404, message = UserApi.USER_NOT_FOUND_MESSAGE, response = User.class)})
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "User data", response = String.class),
+            @ApiResponse(code = 404, message = UserApi.USER_NOT_FOUND_MESSAGE, response = String.class)})
     public String deleteUser(
             @ApiParam(value = "The id of the user that needs to be deleted",
                       required = true) @PathParam("user_id") final String userId)

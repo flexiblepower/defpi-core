@@ -22,12 +22,17 @@ public class InterfaceRestApi extends BaseApi implements InterfaceApi {
     }
 
     @Override
-    public List<Interface> listProtos() {
+    public List<Interface> listInterfaces() {
         return this.registryConnector.getInterfaces();
     }
 
     @Override
-    public Response download(final String sha256) {
+    public String newInterface(final Interface itf) {
+        return this.registryConnector.addInterface(itf);
+    }
+
+    @Override
+    public Response downloadInterface(final String sha256) {
         final Interface itf = this.registryConnector.getInterface(sha256);
         if (itf == null) {
             return Response.status(Status.NOT_FOUND).build();
@@ -35,11 +40,6 @@ public class InterfaceRestApi extends BaseApi implements InterfaceApi {
         final ResponseBuilder builder = Response.ok(itf);
         builder.header("Content-Disposition", "attachment; filename=\"message.proto\"");
         return builder.build();
-    }
-
-    @Override
-    public String newInterface(final Interface itf) {
-        return this.registryConnector.addInterface(itf);
     }
 
     @Override

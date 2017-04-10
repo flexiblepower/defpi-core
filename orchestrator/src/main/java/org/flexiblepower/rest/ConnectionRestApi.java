@@ -1,6 +1,6 @@
 package org.flexiblepower.rest;
 
-import java.util.Collection;
+import java.util.List;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -21,7 +21,7 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
     }
 
     @Override
-    public Collection<Connection> listConnections() {
+    public List<Connection> listConnections() {
         return this.db.getConnections();
     }
 
