@@ -12,7 +12,6 @@ import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
 
-import org.flexiblepower.api.ServiceApi;
 import org.flexiblepower.model.Interface;
 import org.flexiblepower.model.Service;
 import org.json.JSONObject;
@@ -23,7 +22,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class RegistryConnector implements ServiceApi {
+public class RegistryConnector {
 
     public static final String REGISTRY_URL_KEY = "REGISTRY_URL";
     public static final String REGISTRY_URL_DFLT = "def-pi1.sensorlab.tno.nl:5000";
@@ -41,7 +40,6 @@ public class RegistryConnector implements ServiceApi {
         this.registryApiLink = "https://" + registryUrl + "/v2/";
     }
 
-    @Override
     public List<String> listRepositories() {
         final String textResponse = this.queryRegistry("_catalog");
         final List<String> allServices = this.gson.fromJson(textResponse, Catalog.class).getRepositories();
@@ -57,7 +55,6 @@ public class RegistryConnector implements ServiceApi {
         return new ArrayList<>(ret);
     }
 
-    @Override
     public List<String> listServices(final String repository) {
         final String textResponse = this.queryRegistry("_catalog");
         final List<String> allServices = this.gson.fromJson(textResponse, Catalog.class).getRepositories();
@@ -76,13 +73,11 @@ public class RegistryConnector implements ServiceApi {
         }
     }
 
-    @Override
     public List<String> listTags(final String repository, final String serviceName) {
         final String textResponse = this.queryRegistry(repository + "/" + serviceName + "/tags/list");
         return this.gson.fromJson(textResponse, TagList.class).getTags();
     }
 
-    @Override
     public void deleteService(final String repository, final String serviceName, final String tag) {
         String queryPath = repository + "/" + serviceName + "/manifests/";
 
@@ -112,7 +107,6 @@ public class RegistryConnector implements ServiceApi {
 
     }
 
-    @Override
     @SuppressWarnings("unchecked")
     public Service getService(final String repository, final String serviceName, final String tag) {
 

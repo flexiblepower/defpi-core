@@ -12,6 +12,7 @@ import java.util.Set;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.MediaType;
 
+import org.flexiblepower.api.OrchestratorApi;
 import org.glassfish.jersey.jackson.JacksonFeature;
 
 import io.swagger.annotations.BasicAuthDefinition;
@@ -43,17 +44,12 @@ import io.swagger.jaxrs.listing.SwaggerSerializers;
                    consumes = {MediaType.APPLICATION_JSON},
                    produces = {MediaType.APPLICATION_JSON},
                    externalDocs = @ExternalDocs(value = "Flexiblepower.io", url = "http://flexiblepower.github.io/"),
-                   securityDefinition = @SecurityDefinition(basicAuthDefinions = {
-                           @BasicAuthDefinition(key = OrchestratorApplication.USER_AUTHENTICATION,
+                   securityDefinition = @SecurityDefinition(basicAuthDefinitions = {
+                           @BasicAuthDefinition(key = OrchestratorApi.USER_AUTHENTICATION,
                                                 description = "This operation will only have effect for the logged in user."),
-                           @BasicAuthDefinition(key = OrchestratorApplication.ADMIN_AUTHENTICATION,
+                           @BasicAuthDefinition(key = OrchestratorApi.ADMIN_AUTHENTICATION,
                                                 description = "This operation can only be performed by an administrator.")}))
 public class OrchestratorApplication extends Application {
-
-    public final static String USER_AUTHENTICATION = "UserSecurity";
-    public final static String ADMIN_AUTHENTICATION = "AdminSecurity";
-
-    public final static String UNAUTHORIZED_MESSAGE = "The user is not authorized to perform this operation";
 
     public OrchestratorApplication(final URI publishURI) {
         final BeanConfig beanConfig = new BeanConfig();

@@ -5,6 +5,7 @@ import java.util.List;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -14,7 +15,6 @@ import javax.ws.rs.core.MediaType;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.model.Connection;
-import org.flexiblepower.rest.OrchestratorApplication;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -35,14 +35,12 @@ public interface ConnectionApi {
     @ApiOperation(nickname = "listConnections",
                   value = "List connections",
                   notes = "List all existing connections",
-                  response = Connection.class,
-                  responseContainer = "List",
-                  authorizations = {@Authorization(value = OrchestratorApplication.USER_AUTHENTICATION)})
+                  authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
     @ApiResponses(value = {@ApiResponse(code = 200,
                                         message = "An array of Connections",
                                         response = Connection.class,
                                         responseContainer = "List")})
-    public List<Connection> listConnections() throws AuthorizationException;
+    public List<Connection> listConnections();
 
     @POST
     @Produces(MediaType.TEXT_PLAIN)
@@ -50,29 +48,33 @@ public interface ConnectionApi {
     @ApiOperation(nickname = "newConnection",
                   value = "Create a new connection",
                   notes = "Creates a new connection between two processes",
-                  authorizations = {@Authorization(value = OrchestratorApplication.USER_AUTHENTICATION)})
+                  authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
     @ApiResponses(value = {@ApiResponse(code = 200, message = "The id of the new connection", response = String.class),
-            @ApiResponse(code = 405, message = OrchestratorApplication.UNAUTHORIZED_MESSAGE),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE),
             @ApiResponse(code = 404, message = ConnectionApi.INTERFACE_NOT_FOUND_MESSAGE)})
-    public String
-            newConnection(@ApiParam(name = "connection",
-                                    value = "The new connection to insert",
-                                    required = true) final Connection connection)
-                    throws AuthorizationException;
+    public String newConnection(
+            @ApiParam(name = "connection",
+                      value = "The new connection to insert",
+                      required = true) final Connection connection)
+            throws AuthorizationException,
+            NotFoundException;
 
     @DELETE
     @Path("{id}")
     @ApiOperation(nickname = "deleteConnection",
                   value = "Remove a connection",
                   notes = "Removes an existing connection between two processes",
-                  authorizations = {@Authorization(value = OrchestratorApplication.USER_AUTHENTICATION)})
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "Connection deleted"),
-            @ApiResponse(code = 405, message = OrchestratorApplication.UNAUTHORIZED_MESSAGE),
-            @ApiResponse(code = 404, message = ConnectionApi.INTERFACE_NOT_FOUND_MESSAGE)})
+                  code = 204,
+                  authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
+    @ApiResponses(value = {@ApiResponse(code = 204, message = "Connection deleted"),
+            @ApiResponse(code = 400, message = InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE),
+            @ApiResponse(code = 404, message = ConnectionApi.INTERFACE_NOT_FOUND_MESSAGE),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public void deleteConnection(
             @ApiParam(name = "connectionId",
                       value = "The id of the connection to remove",
                       required = true) @PathParam("id") final String id)
             throws AuthorizationException,
-            InvalidObjectIdException;
+            InvalidObjectIdException,
+            NotFoundException;
 }

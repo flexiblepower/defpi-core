@@ -5,6 +5,7 @@ import java.util.List;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -14,7 +15,6 @@ import javax.ws.rs.core.Response;
 
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.model.Interface;
-import org.flexiblepower.rest.OrchestratorApplication;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -34,12 +34,12 @@ public interface InterfaceApi {
     @ApiOperation(nickname = "listInterfaces",
                   value = "List all interfaces",
                   notes = "List all interfaces that are available",
-                  response = Interface.class,
-                  responseContainer = "List",
-                  authorizations = {@Authorization(value = OrchestratorApplication.USER_AUTHENTICATION)})
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "The list of interfaces"),
-            @ApiResponse(code = 405, message = OrchestratorApplication.UNAUTHORIZED_MESSAGE)})
-    public List<Interface> listInterfaces() throws AuthorizationException;
+                  authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
+    @ApiResponses(value = {@ApiResponse(code = 200,
+                                        message = "The list of interfaces",
+                                        response = Interface.class,
+                                        responseContainer = "List")})
+    public List<Interface> listInterfaces();
 
     @POST
     @Produces(MediaType.TEXT_PLAIN)
@@ -47,10 +47,10 @@ public interface InterfaceApi {
     @ApiOperation(nickname = "newInterface",
                   value = "Add new interface",
                   notes = "Add a new interface to the registry",
-                  authorizations = {@Authorization(value = OrchestratorApplication.ADMIN_AUTHENTICATION)})
+                  authorizations = {@Authorization(value = OrchestratorApi.ADMIN_AUTHENTICATION)})
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "The sha256 hash of the new interface", response = String.class),
-            @ApiResponse(code = 405, message = OrchestratorApplication.UNAUTHORIZED_MESSAGE)})
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public String newInterface(
             @ApiParam(name = "interface", value = "The interface to add", required = true) final Interface itf)
             throws AuthorizationException;
@@ -61,15 +61,16 @@ public interface InterfaceApi {
     @ApiOperation(nickname = "downloadInterface",
                   value = "Download interface",
                   notes = "Downloads the interface with the provided hash",
-                  authorizations = {@Authorization(value = OrchestratorApplication.USER_AUTHENTICATION)})
+                  authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
     @ApiResponses(value = {@ApiResponse(code = 200, message = "The interface", response = Interface.class),
-            @ApiResponse(code = 405, message = OrchestratorApplication.UNAUTHORIZED_MESSAGE),
-            @ApiResponse(code = 404, message = InterfaceApi.INTERFACE_NOT_FOUND_MESSAGE)})
-    public Response
-            downloadInterface(@ApiParam(name = "sha256",
-                                        value = "The sha256 hash of the interface to download",
-                                        required = true) @PathParam("sha256") final String sha256)
-                    throws AuthorizationException;
+            @ApiResponse(code = 404, message = InterfaceApi.INTERFACE_NOT_FOUND_MESSAGE),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
+    public Response downloadInterface(
+            @ApiParam(name = "sha256",
+                      value = "The sha256 hash of the interface to download",
+                      required = true) @PathParam("sha256") final String sha256)
+            throws AuthorizationException,
+            NotFoundException;
 
     @DELETE
     @Path("{sha256}")
@@ -77,12 +78,14 @@ public interface InterfaceApi {
                   value = "Delete interface",
                   notes = "Delete the interface with the provided hash",
                   code = 204,
-                  authorizations = {@Authorization(value = OrchestratorApplication.ADMIN_AUTHENTICATION)})
+                  authorizations = {@Authorization(value = OrchestratorApi.ADMIN_AUTHENTICATION)})
     @ApiResponses(value = {@ApiResponse(code = 204, message = "The interface was deleted"),
-            @ApiResponse(code = 405, message = OrchestratorApplication.UNAUTHORIZED_MESSAGE),
-            @ApiResponse(code = 404, message = InterfaceApi.INTERFACE_NOT_FOUND_MESSAGE)})
-    public void
-            deleteInterface(@ApiParam(name = "sha256",
-                                      value = "The sha256 hash of the interface to delete",
-                                      required = true) @PathParam("sha256") final String sha256)throws AuthorizationException;
+            @ApiResponse(code = 404, message = InterfaceApi.INTERFACE_NOT_FOUND_MESSAGE),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
+    public void deleteInterface(
+            @ApiParam(name = "sha256",
+                      value = "The sha256 hash of the interface to delete",
+                      required = true) @PathParam("sha256") final String sha256)
+            throws AuthorizationException,
+            NotFoundException;
 }

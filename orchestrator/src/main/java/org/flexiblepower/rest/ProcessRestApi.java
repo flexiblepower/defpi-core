@@ -7,6 +7,7 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.SecurityContext;
 
 import org.flexiblepower.api.ProcessApi;
+import org.flexiblepower.model.Process;
 import org.flexiblepower.orchestrator.DockerConnector;
 
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +24,7 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
     @Override
     public List<Process> listProcesses() {
         ProcessRestApi.log.info("REST");
-        return this.dockerConnector.getProcesses();
+        return this.dockerConnector.listProcesses();
     }
 
     @Override
@@ -32,9 +33,14 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
     }
 
     @Override
-    public String newProcess(final String json) {
-        ProcessRestApi.log.info("newContainer(): " + json);
-        return this.dockerConnector.newProcess(json);
+    public String newProcess(final Process process) {
+        ProcessRestApi.log.info("newContainer(): " + process);
+        return this.dockerConnector.newProcess(process);
+    }
+
+    @Override
+    public void removeProcess(final String uuid) {
+        this.dockerConnector.removeProcess(uuid);
     }
 
     // try {

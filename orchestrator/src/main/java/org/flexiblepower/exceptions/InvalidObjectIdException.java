@@ -19,14 +19,14 @@ public class InvalidObjectIdException extends Exception {
      */
     private static final long serialVersionUID = 5363064629938233350L;
 
-    private static final String DEFAULT_MESSAGE = "The provided id is not a valid ObjectId";
+    public static final String INVALID_OBJECT_ID_MESSAGE = "The provided id is not a valid ObjectId";
 
     public InvalidObjectIdException() {
-        super(InvalidObjectIdException.DEFAULT_MESSAGE);
+        super(InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE);
     }
 
     public InvalidObjectIdException(final String id) {
-        super(InvalidObjectIdException.DEFAULT_MESSAGE + " (" + id + ")");
+        super(InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE + " (" + id + ")");
     }
 
 }

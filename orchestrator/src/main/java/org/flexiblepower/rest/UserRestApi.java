@@ -31,14 +31,13 @@ public class UserRestApi extends BaseApi implements UserApi {
     }
 
     @Override
-    public String deleteUser(final String userId) throws AuthorizationException, InvalidObjectIdException {
+    public void deleteUser(final String userId) throws AuthorizationException, InvalidObjectIdException {
         UserRestApi.log.debug("Received call to delete user {}", userId);
         this.db.deleteUser(userId);
-        return userId;
     }
 
     @Override
-    public User getUserById(final String userId) throws AuthorizationException, InvalidObjectIdException {
+    public User getUser(final String userId) throws AuthorizationException, InvalidObjectIdException {
         final User ret = this.db.getUser(userId);
         if (ret == null) {
             throw new ApiException(Status.NOT_FOUND, UserApi.USER_NOT_FOUND_MESSAGE);

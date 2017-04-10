@@ -7,6 +7,8 @@ package org.flexiblepower.orchestrator;
 
 import java.util.List;
 
+import org.flexiblepower.model.Process;
+
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.DockerCertificateException;
@@ -24,7 +26,7 @@ public class DockerConnector {
     // private static final String CERT_PATH = "C:\\Users\\leeuwencjv\\.docker\\machine\\machines\\default";
     private static final String DOCKER_HOST_KEY = "DOCKER_HOST";
 
-    public static DockerClient init() throws DockerCertificateException, DockerException, InterruptedException {
+    public static DockerClient init() throws DockerCertificateException {
         final String dockerHost = System.getenv(DockerConnector.DOCKER_HOST_KEY);
         if (dockerHost == null) {
             return DefaultDockerClient.fromEnv().build();
@@ -37,8 +39,15 @@ public class DockerConnector {
     /**
      * @return
      */
-    public List<Process> getProcesses() {
+    public List<Process> listProcesses() {
         // TODO Auto-generated method stub
+        try {
+            DockerConnector.init().listContainers();
+        } catch (DockerException | InterruptedException | DockerCertificateException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
         return null;
     }
 
@@ -46,8 +55,14 @@ public class DockerConnector {
      * @param json
      * @return
      */
-    public String newProcess(final String json) {
-        // TODO Auto-generated method stub
+    public String newProcess(final Process process) {
+        try {
+            DockerConnector.init().createContainer(null);
+        } catch (DockerException | InterruptedException | DockerCertificateException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
         return null;
     }
 
@@ -56,8 +71,29 @@ public class DockerConnector {
      * @return
      */
     public Process getProcess(final String uuid) {
-        // TODO Auto-generated method stub
+        try {
+            DockerConnector.init().inspectContainer(uuid);
+        } catch (DockerException | InterruptedException | DockerCertificateException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
         return null;
+    }
+
+    /**
+     * @param uuid
+     * @return
+     */
+    public void removeProcess(final String uuid) {
+
+        try {
+            DockerConnector.init().removeContainer(uuid);
+        } catch (DockerException | InterruptedException | DockerCertificateException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
     }
 
 }

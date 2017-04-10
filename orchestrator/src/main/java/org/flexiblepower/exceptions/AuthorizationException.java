@@ -19,10 +19,10 @@ public class AuthorizationException extends Exception {
      */
     private static final long serialVersionUID = 6350891352054597536L;
 
-    private static final String DEFAULT_MESSAGE = "The current user is not allowed to use this functionality";
+    public final static String UNAUTHORIZED_MESSAGE = "The user is not authorized to perform this operation";
 
     public AuthorizationException() {
-        super(AuthorizationException.DEFAULT_MESSAGE);
+        super(AuthorizationException.UNAUTHORIZED_MESSAGE);
     }
 
 }
