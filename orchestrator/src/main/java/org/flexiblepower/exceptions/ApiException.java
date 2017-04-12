@@ -88,10 +88,10 @@ public class ApiException extends WebApplicationException {
                     .append(cause.getMessage())
                     .append("</summary><pre style='color: gray'>")
                     .append(sw.toString())
-                    .append("</pre>");
+                    .append("</pre></details>");
         }
 
-        sb.append("</details></body></html>");
+        sb.append("</body></html>");
 
         return sb.toString();
     }

@@ -12,7 +12,7 @@ package org.flexiblepower.exceptions;
  * @version 0.1
  * @since Apr 6, 2017
  */
-public class InvalidObjectIdException extends Exception {
+public class InvalidObjectIdException extends InvalidInputException {
 
     /**
      *

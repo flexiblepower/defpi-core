@@ -65,7 +65,7 @@ public class RegistryConnector {
             final Set<String> ret = new HashSet<>();
             for (final String service : allServices) {
                 if (service.startsWith(repository)) {
-                    ret.add(service.substring(service.indexOf("/") + 1));
+                    ret.add(service);
                 }
             }
 
@@ -111,11 +111,13 @@ public class RegistryConnector {
     public Service getService(final String repository, final String serviceName, final String tag) {
 
         final String textResponse = this.queryRegistry(repository + "/" + serviceName + "/manifests/" + tag);
+        final JSONObject jsonResponse = new JSONObject(textResponse);
 
         final JSONObject v1Compatibility = new JSONObject(
-                new JSONObject(textResponse).getJSONArray("history").getJSONObject(0).getString("v1Compatibility"));
+                jsonResponse.getJSONArray("history").getJSONObject(0).getString("v1Compatibility"));
 
         final String created = v1Compatibility.getString("created");
+
         final JSONObject labels = v1Compatibility.getJSONObject("config").getJSONObject("Labels");
         final Set<Interface> interfaces = this.gson.fromJson(labels.getString("org.flexiblepower.interfaces"),
                 Set.class);
@@ -124,6 +126,9 @@ public class RegistryConnector {
 
         final Service service = new Service();
         service.setName(labels.getString("org.flexiblepower.serviceName"));
+        service.setRegistry(RegistryConnector.REGISTRY_URL_DFLT);
+        service.setImage(jsonResponse.getString("name"));
+        service.setTag(jsonResponse.getString("tag"));
         service.setInterfaces(interfaces);
         service.setCreated(created);
         service.setMappings(mappings);

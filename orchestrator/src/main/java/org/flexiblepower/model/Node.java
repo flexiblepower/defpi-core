@@ -23,7 +23,7 @@ import lombok.RequiredArgsConstructor;
  */
 @Getter
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-public abstract class Node {
+public class Node {
 
     @Id
     @JsonIgnore

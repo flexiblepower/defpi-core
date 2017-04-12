@@ -13,9 +13,8 @@ import javax.ws.rs.core.MediaType;
 
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
+import org.flexiblepower.exceptions.NotFoundException;
 import org.flexiblepower.model.User;
-
-import com.spotify.docker.client.exceptions.NotFoundException;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

@@ -10,6 +10,9 @@ import org.flexiblepower.api.ServiceApi;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.orchestrator.RegistryConnector;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class ServiceRestApi extends BaseApi implements ServiceApi {
 
     protected final RegistryConnector registryConnector = new RegistryConnector();
@@ -20,11 +23,13 @@ public class ServiceRestApi extends BaseApi implements ServiceApi {
 
     @Override
     public List<String> listRepositories() {
+        ServiceRestApi.log.info("Listing all repositories");
         return this.registryConnector.listRepositories();
     }
 
     @Override
     public List<String> listServices(final String repositoryName) {
+        ServiceRestApi.log.info("Listing all services in repository {}", repositoryName);
         return this.registryConnector.listServices(repositoryName);
     }
 

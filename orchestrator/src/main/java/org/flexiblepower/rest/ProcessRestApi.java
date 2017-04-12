@@ -7,6 +7,7 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.SecurityContext;
 
 import org.flexiblepower.api.ProcessApi;
+import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.orchestrator.DockerConnector;
 
@@ -28,7 +29,7 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
     }
 
     @Override
-    public Process getProcess(final String uuid) {
+    public Process getProcess(final String uuid) throws ProcessNotFoundException {
         return this.dockerConnector.getProcess(uuid);
     }
 
@@ -39,7 +40,7 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
     }
 
     @Override
-    public void removeProcess(final String uuid) {
+    public void removeProcess(final String uuid) throws ProcessNotFoundException {
         this.dockerConnector.removeProcess(uuid);
     }
 

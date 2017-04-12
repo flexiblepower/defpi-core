@@ -27,12 +27,15 @@ public abstract class BaseApi {
 
     protected final MongoDbConnector db = new MongoDbConnector();
 
+    protected final User loggedInUser;
+
     protected BaseApi(final HttpHeaders httpHeaders, final SecurityContext securityContext) {
         final String authPrefix = "Basic ";
 
         String authString = httpHeaders.getHeaderString("Authorization");
         if ((authString == null) || !authString.startsWith(authPrefix)) {
             BaseApi.log.warn("Client is not using basic authentication, not authenticated");
+            this.loggedInUser = null;
             return;
         }
 
@@ -41,11 +44,12 @@ public abstract class BaseApi {
         final String[] credentials = new String(Base64.getDecoder().decode(authString)).split(":");
         if ((credentials.length != 2)) {
             BaseApi.log.warn("Unable to parse authentication string, not authenticated");
+            this.loggedInUser = null;
             return;
         }
 
-        final User loggedInUser = this.db.getUser(credentials[0], credentials[1]);
-        this.db.setApplicationUser(loggedInUser);
+        this.loggedInUser = this.db.getUser(credentials[0], credentials[1]);
+        this.db.setApplicationUser(this.loggedInUser);
         BaseApi.log.debug("User {} logged in", credentials[0]);
     }
 

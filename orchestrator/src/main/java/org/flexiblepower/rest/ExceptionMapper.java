@@ -12,7 +12,8 @@ import javax.ws.rs.core.Response.Status;
 
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.AuthorizationException;
-import org.flexiblepower.exceptions.InvalidObjectIdException;
+import org.flexiblepower.exceptions.InvalidInputException;
+import org.flexiblepower.exceptions.NotFoundException;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -38,15 +39,19 @@ public class ExceptionMapper implements javax.ws.rs.ext.ExceptionMapper<Exceptio
         } else if (AuthorizationException.class.isAssignableFrom(exception.getClass())) {
             ExceptionMapper.log.warn("Unauthorized call to API", exception);
             return Response.status(Status.UNAUTHORIZED)
-                    .entity(ApiException
-                            .createErrorPage("Unauthorized", "You are not authorized to perform this operation", null))
+                    .entity(ApiException.createErrorPage("Unauthorized", exception.getMessage(), null))
                     .type(MediaType.TEXT_HTML)
                     .build();
-        } else if (InvalidObjectIdException.class.isAssignableFrom(exception.getClass())) {
-            ExceptionMapper.log.warn("Invalid objectId provided", exception);
+        } else if (InvalidInputException.class.isAssignableFrom(exception.getClass())) {
+            ExceptionMapper.log.warn("Invalid input provided", exception);
             return Response.status(Status.BAD_REQUEST)
-                    .entity(ApiException
-                            .createErrorPage("Invalid objectId", "The id you provided is not a valid object id", null))
+                    .entity(ApiException.createErrorPage("Invalid input", exception.getMessage(), null))
+                    .type(MediaType.TEXT_HTML)
+                    .build();
+        } else if (NotFoundException.class.isAssignableFrom(exception.getClass())) {
+            ExceptionMapper.log.warn("Object not found", exception);
+            return Response.status(Status.NOT_FOUND)
+                    .entity(ApiException.createErrorPage("Resource not found", exception.getMessage(), null))
                     .type(MediaType.TEXT_HTML)
                     .build();
         } else {
