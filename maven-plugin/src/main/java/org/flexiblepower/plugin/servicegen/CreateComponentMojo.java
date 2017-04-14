@@ -212,15 +212,20 @@ public class CreateComponentMojo extends AbstractMojo {
     private void createFolderStructure() {
         this.getLog().info("Creating folder structure");
         this.sourceFolder = new File("src/main/java/" + this.servicePackage.replace('.', '/'));
+
         this.sourceHandlerFolder = new File(this.sourceFolder.getPath() + "/handlers");
         this.sourceHandlerFolder.mkdirs();
+
         this.descriptorProtobufFolder = new File(this.resourceDir.getPath() + "/protobuf");
         this.descriptorProtobufFolder.mkdirs();
+
         this.descriptorXSDFolder = new File(this.resourceDir.getPath() + "/xsd");
         this.descriptorXSDFolder.mkdirs();
-        this.dockerFolder = new File("docker/");
-        this.dockerARMFolder = new File("docker-arm/");
+
+        this.dockerFolder = new File(this.resourceDir.getPath() + "/docker/");
         this.dockerFolder.mkdirs();
+
+        this.dockerARMFolder = new File(this.resourceDir.getPath() + "/docker-arm/");
         this.dockerARMFolder.mkdirs();
     }
 
@@ -238,12 +243,14 @@ public class CreateComponentMojo extends AbstractMojo {
     private void createDescriptors(final Map<String, Descriptor> descriptors)
             throws IOException, ParserConfigurationException, SAXException, XPathExpressionException {
         this.getLog().info("Creating descriptors");
+
         for (final Entry<String, Descriptor> descriptorEntry : descriptors.entrySet()) {
             final String name = descriptorEntry.getKey();
             final Descriptor descriptor = descriptorEntry.getValue();
             if (descriptor.getUrl() != null) {
                 this.downloadDescriptor(name, descriptor);
             }
+
             if (descriptor.getSource().equals("protobuf")) {
                 final Path filePath = Paths.get(this.resourceDir.getPath() + "/" + descriptor.getFile());
                 this.appendDescriptor(name, descriptor, filePath, this.descriptorProtobufFolder.toPath());
@@ -256,10 +263,10 @@ public class CreateComponentMojo extends AbstractMojo {
                 final Path output = Paths.get(this.descriptorXSDFolder.getPath() + "/" + descriptor.getFile());
                 Files.copy(filePath, output, StandardCopyOption.REPLACE_EXISTING);
                 this.hashes.put(name, this.fileToSHA256(filePath.toFile()));
-                System.out.println("------");
             }
         }
-        System.out.println(Arrays.toString(this.hashes.entrySet().toArray()));
+
+        this.getLog().info("Generated descriptors: " + Arrays.toString(this.hashes.entrySet().toArray()));
     }
 
     /**
