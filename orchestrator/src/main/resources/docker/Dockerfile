@@ -1,5 +1,5 @@
 FROM java:alpine
 
-ADD packaged-jar-with-dependencies.jar domain.crt /
+ADD packaged-jar-with-dependencies.jar /
 
 ENTRYPOINT ["java", "-jar", "/packaged-jar-with-dependencies.jar"]

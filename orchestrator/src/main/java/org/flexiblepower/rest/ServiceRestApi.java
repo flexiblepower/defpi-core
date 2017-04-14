@@ -7,12 +7,12 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.SecurityContext;
 
 import org.flexiblepower.api.ServiceApi;
+import org.flexiblepower.exceptions.AuthorizationException;
+import org.flexiblepower.exceptions.RepositoryNotFoundException;
+import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.orchestrator.RegistryConnector;
 
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
 public class ServiceRestApi extends BaseApi implements ServiceApi {
 
     protected final RegistryConnector registryConnector = new RegistryConnector();
@@ -23,28 +23,30 @@ public class ServiceRestApi extends BaseApi implements ServiceApi {
 
     @Override
     public List<String> listRepositories() {
-        ServiceRestApi.log.info("Listing all repositories");
         return this.registryConnector.listRepositories();
     }
 
     @Override
-    public List<String> listServices(final String repositoryName) {
-        ServiceRestApi.log.info("Listing all services in repository {}", repositoryName);
+    public List<String> listServices(final String repositoryName) throws RepositoryNotFoundException {
         return this.registryConnector.listServices(repositoryName);
     }
 
     @Override
-    public List<String> listTags(final String repositoryName, final String serviceName) {
+    public List<String> listTags(final String repositoryName, final String serviceName)
+            throws ServiceNotFoundException {
         return this.registryConnector.listTags(repositoryName, serviceName);
     }
 
     @Override
-    public Service getService(final String repositoryName, final String imageName, final String tag) {
+    public Service getService(final String repositoryName, final String imageName, final String tag)
+            throws ServiceNotFoundException {
         return this.registryConnector.getService(repositoryName, imageName, tag);
     }
 
     @Override
-    public void deleteService(final String repositoryName, final String image, final String tag) {
+    public void deleteService(final String repositoryName, final String image, final String tag)
+            throws ServiceNotFoundException,
+            AuthorizationException {
         this.registryConnector.deleteService(repositoryName, image, tag);
     }
 

@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<artifactId>service-parent</artifactId>
+	<packaging>pom</packaging>
+
+	<parent>
+		<groupId>org.flexiblepower</groupId>
+		<artifactId>defpi-parent</artifactId>
+		<version>0.1.1-SNAPSHOT</version>
+		<relativePath>..</relativePath>
+	</parent>
+
+	<properties>
+		<protobuf.classifier>linux-x86_64</protobuf.classifier>
+
+		<mainClass>${project.groupId}.${project.artifactId}.ServiceImpl</mainClass>
+
+		<!-- protobuf paths -->
+		<protobuf.input.directory>${project.resourcedir}/protobuf</protobuf.input.directory>
+		<protobuf.output.directory>${project.basedir}/src/main/java</protobuf.output.directory>
+
+		<!-- XSD paths -->
+		<xsd.input.directory>${project.resourcedir}/xsd</xsd.input.directory>
+		<xsd.output.package>${project.groupId}.${project.artifactId}.xml</xsd.output.package>
+		<xsd.output.directory>${project.basedir}/src/main/java</xsd.output.directory>
+
+		<!-- library versions -->
+		<build-helper-maven-plugin.version>1.9.1</build-helper-maven-plugin.version>
+		<maven-antrun-plugin.version>1.8</maven-antrun-plugin.version>
+		<maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
+		<os-maven-plugin.version>1.4.1.Final</os-maven-plugin.version>
+		<jaxb2.version>2.2</jaxb2.version>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.flexiblepower</groupId>
+			<artifactId>service</artifactId>
+			<version>1.2.0-SNAPSHOT</version>
+		</dependency>
+	</dependencies>
+
+	<profiles>
+		<profile>
+			<id>codegen</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.flexiblepower</groupId>
+						<artifactId>create-service-maven-plugin</artifactId>
+						<version>0.2.2-SNAPSHOT</version>
+						<executions>
+							<execution>
+								<id>generate</id>
+								<phase>generate-sources</phase>
+								<goals>
+									<goal>create</goal>
+								</goals>
+								<configuration>
+									<skip>true</skip>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-dependency-plugin</artifactId>
+						<version>${maven-dependency-plugin.version}</version>
+						<executions>
+							<execution>
+								<id>copy-protoc</id>
+								<phase>generate-sources</phase>
+								<goals>
+									<goal>copy</goal>
+								</goals>
+								<configuration>
+									<artifactItems>
+										<artifactItem>
+											<groupId>com.google.protobuf</groupId>
+											<artifactId>protoc</artifactId>
+											<version>${protobuf.version}</version>
+											<classifier>${protobuf.classifier}</classifier>
+											<type>exe</type>
+											<overWrite>true</overWrite>
+											<outputDirectory>${project.build.directory}</outputDirectory>
+										</artifactItem>
+									</artifactItems>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<!-- compile proto buffer files using copied protoc binary -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-antrun-plugin</artifactId>
+						<version>${maven-antrun-plugin.version}</version>
+						<executions>
+							<execution>
+								<id>exec-protoc</id>
+								<phase>generate-sources</phase>
+								<configuration>
+									<target>
+										<property name="protoc.filename"
+											value="protoc-${protobuf.version}-${protobuf.classifier}.exe" />
+										<property name="protoc.filepath"
+											value="${project.build.directory}/${protoc.filename}" />
+										<chmod file="${protoc.filepath}" perm="ugo+rx" />
+										<mkdir dir="${protobuf.output.directory}" />
+										<path id="protobuf.input.filepaths.path">
+											<fileset dir="${protobuf.input.directory}">
+												<include name="**/*.proto" />
+											</fileset>
+										</path>
+										<pathconvert pathsep=" " property="protobuf.input.filepaths"
+											refid="protobuf.input.filepaths.path" />
+										<exec executable="${protoc.filepath}" failonerror="true">
+											<arg value="-I" />
+											<arg value="${protobuf.input.directory}" />
+											<arg value="--java_out" />
+											<arg value="${protobuf.output.directory}" />
+											<arg line="${protobuf.input.filepaths}" />
+										</exec>
+									</target>
+								</configuration>
+								<goals>
+									<goal>run</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>jaxb2-maven-plugin</artifactId>
+						<version>${jaxb2.version}</version>
+						<executions>
+							<execution>
+								<id>xjc</id>
+								<goals>
+									<goal>xjc</goal>
+								</goals>
+								<phase>generate-sources</phase>
+							</execution>
+						</executions>
+						<dependencies>
+							<dependency>
+								<groupId>net.java.dev.jaxb2-commons</groupId>
+								<artifactId>jaxb-fluent-api</artifactId>
+								<version>2.1.8</version>
+								<exclusions>
+									<exclusion>
+										<groupId>com.sun.xml</groupId>
+										<artifactId>jaxb-xjc</artifactId>
+									</exclusion>
+								</exclusions>
+							</dependency>
+							<dependency>
+								<groupId>org.jvnet.jaxb2_commons</groupId>
+								<artifactId>jaxb2-basics</artifactId>
+								<version>0.6.4</version>
+								<exclusions>
+									<exclusion>
+										<groupId>com.sun.xml</groupId>
+										<artifactId>jaxb-xjc</artifactId>
+									</exclusion>
+								</exclusions>
+							</dependency>
+						</dependencies>
+						<configuration>
+							<!-- The package of your generated sources -->
+							<packageName>${xsd.output.package}</packageName>
+							<outputDirectory>${xsd.output.directory}</outputDirectory>
+							<clearOutputDir>false</clearOutputDir>
+							<generateEpisode>false</generateEpisode>
+							<sources>
+								<source>${xsd.input.directory}</source>
+							</sources>
+							<failOnNoSchemas>false</failOnNoSchemas>
+							<extension>true</extension>
+							<arguments>-Xfluent-api</arguments>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+</project>

@@ -1,17 +1,21 @@
 package org.flexiblepower.orchestrator;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
+import org.flexiblepower.exceptions.ApiException;
+import org.flexiblepower.exceptions.RepositoryNotFoundException;
+import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Interface;
 import org.flexiblepower.model.Service;
 import org.json.JSONObject;
@@ -25,11 +29,9 @@ import lombok.extern.slf4j.Slf4j;
 public class RegistryConnector {
 
     public static final String REGISTRY_URL_KEY = "REGISTRY_URL";
-    public static final String REGISTRY_URL_DFLT = "def-pi1.sensorlab.tno.nl:5000";
-    public static final String REGISTRY_PREFIX = "dsefpi/";
+    private static final String REGISTRY_URL_DFLT = "def-pi1.sensorlab.tno.nl:5000";
 
     private final String registryApiLink;
-
     private final Gson gson = new Gson();
 
     public RegistryConnector() {
@@ -41,76 +43,88 @@ public class RegistryConnector {
     }
 
     public List<String> listRepositories() {
-        final String textResponse = this.queryRegistry("_catalog");
-        final List<String> allServices = this.gson.fromJson(textResponse, Catalog.class).getRepositories();
-
+        RegistryConnector.log.info("Listing all repositories");
         final Set<String> ret = new HashSet<>();
-        for (final String service : allServices) {
-            final int p = service.indexOf("/");
-            if (p > 0) {
-                ret.add(service.substring(0, p));
+        try {
+            final String textResponse = RegistryConnector.queryRegistry(this.buildUrl("_catalog"));
+            final List<String> allServices = this.gson.fromJson(textResponse, Catalog.class).getRepositories();
+
+            for (final String service : allServices) {
+                final int p = service.indexOf("/");
+                if (p > 0) {
+                    ret.add(service.substring(0, p));
+                }
             }
+        } catch (final ServiceNotFoundException e) {
+            // Error obtaining list from registry, no worries, return empty list
         }
 
         return new ArrayList<>(ret);
     }
 
-    public List<String> listServices(final String repository) {
-        final String textResponse = this.queryRegistry("_catalog");
-        final List<String> allServices = this.gson.fromJson(textResponse, Catalog.class).getRepositories();
-
-        if ((repository == null) || repository.isEmpty() || repository.equals("all") || repository.equals("*")) {
-            return allServices;
-        } else {
-            final Set<String> ret = new HashSet<>();
-            for (final String service : allServices) {
-                if (service.startsWith(repository)) {
-                    ret.add(service);
-                }
-            }
-
-            return new ArrayList<>(ret);
-        }
-    }
-
-    public List<String> listTags(final String repository, final String serviceName) {
-        final String textResponse = this.queryRegistry(repository + "/" + serviceName + "/tags/list");
-        return this.gson.fromJson(textResponse, TagList.class).getTags();
-    }
-
-    public void deleteService(final String repository, final String serviceName, final String tag) {
-        String queryPath = repository + "/" + serviceName + "/manifests/";
-
+    public List<String> listServices(final String repository) throws RepositoryNotFoundException {
         try {
-            queryPath = URLEncoder.encode(queryPath, "UTF-8");
-        } catch (final UnsupportedEncodingException e) {
-            RegistryConnector.log.warn("Unable to encode URL, assuming it is well-formed");
+            RegistryConnector.log.info("Listing services in repository {}", repository);
+            final String textResponse = RegistryConnector.queryRegistry(this.buildUrl("_catalog"));
+            final List<String> allServices = this.gson.fromJson(textResponse, Catalog.class).getRepositories();
+
+            if ((repository == null) || repository.isEmpty() || repository.equals("all") || repository.equals("*")) {
+                // If the requested repository is null, empty, "all" or "*", we want to return any service we found
+                return allServices;
+            } else {
+                final Set<String> ret = new HashSet<>();
+                for (final String service : allServices) {
+                    if (service.startsWith(repository)) {
+                        ret.add(service);
+                    }
+                }
+
+                return new ArrayList<>(ret);
+            }
+        } catch (final ServiceNotFoundException e) {
+            throw new RepositoryNotFoundException(repository);
         }
+    }
 
-        final String url = this.registryApiLink + queryPath + tag;
+    public List<String> listTags(final String repository, final String serviceName) throws ServiceNotFoundException {
+        RegistryConnector.log.info("Listing tags from service {}/{}", repository, serviceName);
+        final String textResponse = RegistryConnector
+                .queryRegistry(this.buildUrl(repository, serviceName, "tags", "list"));
+        final List<String> ret = this.gson.fromJson(textResponse, TagList.class).getTags();
+        return ret == null ? Collections.emptyList() : ret;
+    }
 
-        RegistryConnector.log.debug("Requesting URL {}", url);
-        final Client client = ClientBuilder.newClient();
-        final WebTarget target = client.target(url);
-        final Response response = target.request()
+    public void deleteService(final String repository, final String serviceName, final String tag)
+            throws ServiceNotFoundException {
+        RegistryConnector.log.info("Deleting image from service {}/{}:{}", repository, serviceName, tag);
+
+        // First get the digest, because we MUST send that to delete it
+        final URI getUri = this.buildUrl(repository, serviceName, "manifests", tag);
+        RegistryConnector.log.debug("Requesting URL {}", getUri);
+        final Response response = ClientBuilder.newClient()
+                .target(getUri)
+                .request()
                 .accept("application/vnd.docker.distribution.manifest.v2+json")
                 .head();
+        RegistryConnector.validateResponse(response);
         final String digest = response.getHeaderString("Docker-Content-Digest");
-        RegistryConnector.log.info("Tag digest: " + digest);
 
-        final String url2 = this.registryApiLink + queryPath + digest;
-        RegistryConnector.log.debug("Deleting URL {}", url2);
-        final WebTarget target2 = client.target(url2);
-        final Response response2 = target2.request().delete();
-        RegistryConnector.log.info(
-                "Delete response: " + response2.getStatus() + "  -  " + response2.getStatusInfo().getReasonPhrase());
+        // Now we have the digest, so we can delete it.
+        final URI deleteUri = this.buildUrl(repository, serviceName, "manifests", digest);
+        RegistryConnector.log.debug("Requesting URL {} (DELETE)", deleteUri);
+        final Response response2 = ClientBuilder.newClient().target(deleteUri).request().delete();
+        RegistryConnector.validateResponse(response2);
+        RegistryConnector.log
+                .debug("Delete response: {} ({})", response2.getStatusInfo().getReasonPhrase(), response2.getStatus());
 
     }
 
     @SuppressWarnings("unchecked")
-    public Service getService(final String repository, final String serviceName, final String tag) {
-
-        final String textResponse = this.queryRegistry(repository + "/" + serviceName + "/manifests/" + tag);
+    public Service getService(final String repository, final String serviceName, final String tag)
+            throws ServiceNotFoundException {
+        RegistryConnector.log.info("Obtaining service {}/{}:{}", repository, serviceName, tag);
+        final URI url = this.buildUrl(repository, serviceName, "manifests", tag);
+        final String textResponse = RegistryConnector.queryRegistry(url);
         final JSONObject jsonResponse = new JSONObject(textResponse);
 
         final JSONObject v1Compatibility = new JSONObject(
@@ -136,28 +150,42 @@ public class RegistryConnector {
         return service;
     }
 
-    /**
-     * @param string
-     * @return
-     */
-    private String queryRegistry(final String path) {
-        String encoded_path = "/" + path;
+    private URI buildUrl(final String... pathParams) {
+        final StringBuilder pathBuilder = new StringBuilder();
+        String url = this.registryApiLink;
         try {
-            encoded_path = URLEncoder.encode(path, "UTF-8");
+            for (final String p : pathParams) {
+                pathBuilder.append(URLEncoder.encode(p, "UTF-8")).append('/');
+            }
+            url += pathBuilder.toString();
         } catch (final UnsupportedEncodingException e) {
             RegistryConnector.log.warn("Unable to encode URL, assuming it is well-formed");
+            url += String.join("/", pathParams);
         }
+        return URI.create(url);
+    }
 
-        final Client client = ClientBuilder.newClient();
-        final String url = this.registryApiLink + encoded_path;
-        RegistryConnector.log.debug("Requesting {}", url);
-
-        final WebTarget target = client.target(url);
-        final Response response = target.request().get();
+    private static String queryRegistry(final URI uri) throws ServiceNotFoundException {
+        RegistryConnector.log.debug("Requesting {}", uri);
+        final Response response = ClientBuilder.newClient().target(uri).request().get();
+        RegistryConnector.validateResponse(response);
 
         final String ret = response.readEntity(String.class);
         RegistryConnector.log.debug("Received response: {}", ret);
         return ret;
+    }
+
+    /**
+     * @param response
+     * @throws ServiceNotFoundException
+     */
+    private static void validateResponse(final Response response) throws ServiceNotFoundException {
+        if (response.getStatusInfo().equals(Status.NOT_FOUND)) {
+            throw new ServiceNotFoundException(response.getLocation());
+        } else if (response.getStatusInfo().getFamily() != Status.Family.SUCCESSFUL) {
+            RegistryConnector.log.error("Unexpected respose: {}", response);
+            throw new ApiException(response.getStatus(), "Error obtaining service from registry");
+        }
     }
 
     /**

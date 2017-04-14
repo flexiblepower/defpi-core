@@ -2,26 +2,25 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>org.flexiblepower</groupId>
 	<artifactId>create-service-maven-plugin</artifactId>
-	<version>0.1.0-SNAPSHOT</version>
+	<version>0.2.2-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>
+	<name>Service creation Maven Plugin</name>
 
-	<name>create-service-maven-plugin Maven Plugin</name>
+	<parent>
+		<groupId>org.flexiblepower</groupId>
+		<artifactId>master</artifactId>
+		<version>0.1.0-SNAPSHOT</version>
+		<relativePath>../master</relativePath>
+	</parent>
 
 	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-		<!-- protobuf paths -->
-		<resources>${project.basedir}/src/main/resources</resources>
-
 		<!-- library versions -->
 		<build-helper-maven-plugin.version>1.9.1</build-helper-maven-plugin.version>
 		<maven-antrun-plugin.version>1.8</maven-antrun-plugin.version>
 		<maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
 		<maven-shade-plugin.version>2.4.2</maven-shade-plugin.version>
 		<os-maven-plugin.version>1.4.1.Final</os-maven-plugin.version>
-		<protobuf.version>3.0.0-beta-1</protobuf.version>
 	</properties>
 
 	<dependencies>
@@ -36,7 +35,6 @@
 			<version>3.2</version>
 			<scope>provided</scope>
 		</dependency>
-
 		<dependency>
 			<groupId>org.apache.maven</groupId>
 			<artifactId>maven-project</artifactId>
@@ -61,26 +59,16 @@
 			<artifactId>javaparser</artifactId>
 			<version>1.0.11</version>
 		</dependency>
-
 	</dependencies>
+	
 	<build>
 		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>2.5.1</version>
-				<inherited>true</inherited>
-				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
-				</configuration>
-			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-plugin-plugin</artifactId>
 				<version>3.2</version>
 				<configuration>
-					<goalPrefix>create-service-maven-plugin</goalPrefix>
+					<goalPrefix>create-service</goalPrefix>
 					<skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
 				</configuration>
 				<executions>
@@ -94,4 +82,5 @@
 			</plugin>
 		</plugins>
 	</build>
+
 </project>

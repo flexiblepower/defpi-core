@@ -1,4 +1,4 @@
-package org.flexiblepower.create_service_maven_plugin;
+package org.flexiblepower.plugin.servicegen;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -10,6 +10,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Scanner;
+
+import org.flexiblepower.plugin.servicegen.model.Interface;
+import org.flexiblepower.plugin.servicegen.model.Service;
+import org.flexiblepower.plugin.servicegen.model.Type;
 
 public class Templates {
 
@@ -23,9 +27,9 @@ public class Templates {
         String result = "";
         try {
             final URL url = this.getClass().getClassLoader().getResource(name + "Template.tpl");
-            final Scanner scanner = new Scanner(url.openStream());
-            result = scanner.useDelimiter("\\A").next();
-            scanner.close();
+            try (final Scanner scanner = new Scanner(url.openStream())) {
+                result = scanner.useDelimiter("\\A").next();
+            }
         } catch (final IOException e) {
             e.printStackTrace();
         }
@@ -40,12 +44,12 @@ public class Templates {
             handlerReplace.put("subscribe", this.getHash(i.getSubscribe()));
             handlerReplace.put("publish", this.getHash(i.getPublish()));
             handlerReplace.put("package", this.servicePackage);
-            handlers += this.replaceMap(this.getTemplate("Handler"), handlerReplace);
+            handlers += Templates.replaceMap(this.getTemplate("Handler"), handlerReplace);
         }
         final Map<String, String> replace = new HashMap<>();
         replace.put("package", this.servicePackage);
         replace.put("handlers", handlers);
-        return this.replaceMap(this.getTemplate("ServiceImplementation"), replace);
+        return Templates.replaceMap(this.getTemplate("ServiceImplementation"), replace);
     }
 
     public String parseFactory(final Interface i) {
@@ -61,7 +65,7 @@ public class Templates {
         if (i.getPublish() != null) {
             replace.put("publishHandler", "new " + i.getClassPrefix() + "PublishHandler(s)");
         }
-        return this.replaceMap(this.getTemplate("Factory"), replace);
+        return Templates.replaceMap(this.getTemplate("Factory"), replace);
     }
 
     public String parseSubscribeHandler(final Interface i) {
@@ -89,7 +93,7 @@ public class Templates {
         subscribeClasses = subscribeClasses.substring(0, subscribeClasses.length() - 2);
         replace.put("subscribeClasses", subscribeClasses);
         replace.put("imports", imports);
-        return this.replaceMap(this.getTemplate("SubscribeHandler"), replace);
+        return Templates.replaceMap(this.getTemplate("SubscribeHandler"), replace);
     }
 
     public String parsePublishHandler(final Interface i) {
@@ -117,7 +121,7 @@ public class Templates {
         publishClasses = publishClasses.substring(0, publishClasses.length() - 2);
         replace.put("publishClasses", publishClasses);
         replace.put("imports", imports);
-        return this.replaceMap(this.getTemplate("PublishHandler"), replace);
+        return Templates.replaceMap(this.getTemplate("PublishHandler"), replace);
     }
 
     public String parseDockerfile(final String platform, final Service service) {
@@ -157,16 +161,17 @@ public class Templates {
         replace.put("name", service.getName());
         replace.put("interfaces", interfaces);
         replace.put("mappings", mappings);
-        return this.replaceMap(this.getTemplate("Dockerfile"), replace);
+        return Templates.replaceMap(this.getTemplate("Dockerfile"), replace);
     }
 
-    private String replaceMap(String template, final Map<String, String> replace) {
+    private static String replaceMap(final String template, final Map<String, String> replace) {
+        String ret = template;
         for (final Entry<String, String> entry : replace.entrySet()) {
             if (entry.getValue() != null) {
-                template = template.replace("{{" + entry.getKey() + "}}", entry.getValue());
+                ret = ret.replace("{{" + entry.getKey() + "}}", entry.getValue());
             }
         }
-        return template;
+        return ret;
     }
 
     private String getHash(final List<Type> keys) {

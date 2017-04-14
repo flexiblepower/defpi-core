@@ -7,6 +7,8 @@ package org.flexiblepower.model;
 
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -46,6 +48,7 @@ public class Service {
 
     private String created;
 
+    @JsonIgnore
     public String getFullImageName() {
         return this.registry + "/" + this.image + ":" + this.tag;
     }

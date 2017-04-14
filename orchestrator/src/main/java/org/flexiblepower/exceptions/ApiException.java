@@ -67,6 +67,10 @@ public class ApiException extends WebApplicationException {
         this(status, String.format("%s (%d)", status.getReasonPhrase(), status.getStatusCode()), message, null);
     }
 
+    public ApiException(final int status, final String message) {
+        this(Status.fromStatusCode(status), message);
+    }
+
     public static String createErrorPage(final String title, final String message, final Throwable cause) {
         final StringBuilder sb = new StringBuilder();
 

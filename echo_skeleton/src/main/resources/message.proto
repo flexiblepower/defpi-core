@@ -1,0 +1,4 @@
+message Message {
+  required string str = 1;
+  required int32 counter = 2;
+}

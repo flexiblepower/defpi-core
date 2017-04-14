@@ -11,6 +11,8 @@ import javax.ws.rs.core.MediaType;
 
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.NotFoundException;
+import org.flexiblepower.exceptions.RepositoryNotFoundException;
+import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Service;
 
 import io.swagger.annotations.Api;
@@ -24,9 +26,6 @@ import io.swagger.annotations.Authorization;
 @Path("service")
 @Produces(MediaType.APPLICATION_JSON)
 public interface ServiceApi {
-
-    static final String REPOSITORY_NOT_FOUND_MESSAGE = "Repository not found";
-    static final String SERVICE_NOT_FOUND_MESSAGE = "Service not found";
 
     @GET
     @ApiOperation(nickname = "listRepositories",
@@ -50,7 +49,7 @@ public interface ServiceApi {
                          message = "An array of services",
                          response = String.class,
                          responseContainer = "List"),
-            @ApiResponse(code = 404, message = ServiceApi.REPOSITORY_NOT_FOUND_MESSAGE)})
+            @ApiResponse(code = 404, message = RepositoryNotFoundException.REPOSITORY_NOT_FOUND_MESSAGE)})
     public List<String>
             listServices(
                     @ApiParam(name = "repository",
@@ -66,7 +65,7 @@ public interface ServiceApi {
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "An array of tags", response = String.class, responseContainer = "List"),
-            @ApiResponse(code = 404, message = ServiceApi.SERVICE_NOT_FOUND_MESSAGE)})
+            @ApiResponse(code = 404, message = ServiceNotFoundException.SERVICE_NOT_FOUND_MESSAGE)})
     public List<String> listTags(
             @ApiParam(name = "repository",
                       value = "The repository to list",
@@ -84,7 +83,7 @@ public interface ServiceApi {
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "The definition of the service", response = Service.class),
-            @ApiResponse(code = 404, message = ServiceApi.SERVICE_NOT_FOUND_MESSAGE)})
+            @ApiResponse(code = 404, message = ServiceNotFoundException.SERVICE_NOT_FOUND_MESSAGE)})
     public Service getService(
             @ApiParam(name = "repository",
                       value = "The repository where the service is",
@@ -103,7 +102,7 @@ public interface ServiceApi {
                   code = 204,
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
     @ApiResponses(value = {@ApiResponse(code = 204, message = "Service deleted"),
-            @ApiResponse(code = 404, message = ServiceApi.SERVICE_NOT_FOUND_MESSAGE),
+            @ApiResponse(code = 404, message = ServiceNotFoundException.SERVICE_NOT_FOUND_MESSAGE),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public void deleteService(
             @ApiParam(name = "repository",

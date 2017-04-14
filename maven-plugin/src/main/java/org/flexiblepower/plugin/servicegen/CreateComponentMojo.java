@@ -1,4 +1,4 @@
-package org.flexiblepower.create_service_maven_plugin;
+package org.flexiblepower.plugin.servicegen;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -59,6 +59,10 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.StringUtils;
+import org.flexiblepower.plugin.servicegen.model.Descriptor;
+import org.flexiblepower.plugin.servicegen.model.Interface;
+import org.flexiblepower.plugin.servicegen.model.Service;
+import org.flexiblepower.plugin.servicegen.model.Type;
 import org.xml.sax.SAXException;
 import org.yaml.snakeyaml.TypeDescription;
 import org.yaml.snakeyaml.Yaml;
@@ -80,7 +84,7 @@ public class CreateComponentMojo extends AbstractMojo {
     /**
      * Folder where the service.yml and descriptor/xsd files are located
      */
-    @Parameter(property = "resources", required = true)
+    @Parameter(property = "project.resourcedir", required = true)
     private File resourceDir;
 
     @Component
@@ -179,25 +183,27 @@ public class CreateComponentMojo extends AbstractMojo {
      * @throws FileNotFoundException
      *             service.yml is not found in the resource directory
      */
-    private Service readServiceYaml() throws FileNotFoundException {
-        final InputStream input = new FileInputStream(new File(this.resourceDir.getPath() + "/service.yml"));
-
+    private Service readServiceYaml() throws IOException {
         final Constructor constructor = new Constructor(Service.class);
 
         final TypeDescription interfaceDescription = new TypeDescription(Service.class);
         interfaceDescription.putListPropertyType("interfaces", Interface.class);
+
         final TypeDescription descriptorsDescription = new TypeDescription(Service.class);
         descriptorsDescription.putMapPropertyType("descriptors", String.class, Descriptor.class);
+
         final TypeDescription typesDescription = new TypeDescription(Interface.class);
         typesDescription.putListPropertyType("subscribe", Type.class);
         typesDescription.putListPropertyType("publish", Type.class);
+
         constructor.addTypeDescription(interfaceDescription);
         constructor.addTypeDescription(descriptorsDescription);
         constructor.addTypeDescription(typesDescription);
-        final Yaml yaml = new Yaml(constructor);
-        final Service service = (Service) yaml.load(input);
 
-        return service;
+        final Yaml yaml = new Yaml(constructor);
+        try (InputStream input = new FileInputStream(new File(this.resourceDir.getPath() + "/service.yml"))) {
+            return (Service) yaml.load(input);
+        }
     }
 
     /**
@@ -229,10 +235,8 @@ public class CreateComponentMojo extends AbstractMojo {
      * @throws SAXException
      * @throws XPathExpressionException
      */
-    private void createDescriptors(final Map<String, Descriptor> descriptors) throws IOException,
-            ParserConfigurationException,
-            SAXException,
-            XPathExpressionException {
+    private void createDescriptors(final Map<String, Descriptor> descriptors)
+            throws IOException, ParserConfigurationException, SAXException, XPathExpressionException {
         this.getLog().info("Creating descriptors");
         for (final Entry<String, Descriptor> descriptorEntry : descriptors.entrySet()) {
             final String name = descriptorEntry.getKey();
@@ -273,22 +277,24 @@ public class CreateComponentMojo extends AbstractMojo {
      *            Folder the altered descriptor file should be stored.
      * @throws IOException
      */
-    private void
-            appendDescriptor(final String name, final Descriptor descriptor, final Path filePath, final Path outputPath)
-                    throws IOException {
+    private void appendDescriptor(final String name,
+            final Descriptor descriptor,
+            final Path filePath,
+            final Path outputPath) throws IOException {
         this.getLog().info("Modifying descriptor");
         if (!this.hashes.containsKey(name)) {
             this.hashes.put(name, this.fileToSHA256(filePath.toFile()));
         }
         final Path output = Paths.get(outputPath + "/" + descriptor.getFile());
         Files.copy(filePath, output, StandardCopyOption.REPLACE_EXISTING);
-        final Scanner scanner = new Scanner(new FileInputStream(filePath.toFile()), "UTF-8");
-        Files.write(output,
-                ("syntax = \"proto2\";" + "\n\n" + "option java_package = \"" + this.servicePackage + ".protobuf\";\n"
-                        + "option java_outer_classname = \"" + name + "Proto\";\n\n"
-                        + scanner.useDelimiter("\\A").next()).getBytes(),
-                StandardOpenOption.CREATE);
-        scanner.close();
+
+        try (final Scanner scanner = new Scanner(new FileInputStream(filePath.toFile()), "UTF-8")) {
+            Files.write(output,
+                    ("syntax = \"proto2\";" + "\n\n" + "option java_package = \"" + this.servicePackage
+                            + ".protobuf\";\n" + "option java_outer_classname = \"" + name + "Proto\";\n\n"
+                            + scanner.useDelimiter("\\A").next()).getBytes(),
+                    StandardOpenOption.CREATE);
+        }
     }
 
     /**
@@ -302,8 +308,8 @@ public class CreateComponentMojo extends AbstractMojo {
      * @throws MalformedURLException
      * @throws IOException
      */
-    private void downloadDescriptor(final String name, final Descriptor descriptor) throws MalformedURLException,
-            IOException {
+    private void downloadDescriptor(final String name, final Descriptor descriptor)
+            throws MalformedURLException, IOException {
         this.getLog().info("Downloading descriptor");
         descriptor.setUpload(false);
         if (descriptor.getSource().equals("protobuf")) {
@@ -330,12 +336,16 @@ public class CreateComponentMojo extends AbstractMojo {
      */
     private void uploadDescriptor(final String name, final File file) throws ClientProtocolException, IOException {
         this.getLog().info("Uploading descriptor");
+        @SuppressWarnings("resource")
         final HttpClient client = HttpClientBuilder.create().build();
         final HttpPost request = new HttpPost(CreateComponentMojo.messageRepositoryLink);
         final String json = "{\"name\": \"%s\", \"sha256\": \"%s\", \"descriptor\": \"%s\"}";
-        final Scanner scanner = new Scanner(new FileInputStream(file), "UTF-8");
-        final String fileContent = scanner.useDelimiter("\\A").next();
-        scanner.close();
+
+        String fileContent;
+        try (Scanner scanner = new Scanner(new FileInputStream(file), "UTF-8")) {
+            fileContent = scanner.useDelimiter("\\A").next();
+        }
+
         final HttpEntity entity = EntityBuilder.create()
                 .setText(String.format(json, name, this.hashes.get(name), StringUtils.escape(fileContent)))
                 .build();
@@ -345,6 +355,7 @@ public class CreateComponentMojo extends AbstractMojo {
 
         final HttpResponse r = client.execute(request);
         this.getLog().info("Descriptor uploaded (" + r.getStatusLine().getStatusCode() + ")");
+
     }
 
     /**
@@ -353,6 +364,7 @@ public class CreateComponentMojo extends AbstractMojo {
      *
      * @throws IOException
      */
+    @SuppressWarnings("synthetic-access")
     private void findExistingFactories() throws IOException {
         this.getLog().info("Finding existing factories");
         CompilationUnit cu;
@@ -374,6 +386,7 @@ public class CreateComponentMojo extends AbstractMojo {
     private class AnnotationVisitor extends VoidVisitorAdapter<File> {
 
         @Override
+        @SuppressWarnings("synthetic-access")
         public void visit(final ClassOrInterfaceDeclaration n, final File file) {
             if (n.getAnnotations() != null) {
                 for (final AnnotationExpr annotation : n.getAnnotations()) {
@@ -464,9 +477,8 @@ public class CreateComponentMojo extends AbstractMojo {
      */
     private String fileToSHA256(final File file) {
         this.getLog().info("Hashing file");
-        try {
+        try (final FileInputStream fis = new FileInputStream(file)) {
             final MessageDigest md = MessageDigest.getInstance("SHA-256");
-            final FileInputStream fis = new FileInputStream(file);
             final byte[] dataBytes = new byte[1024];
 
             int nread = 0;
