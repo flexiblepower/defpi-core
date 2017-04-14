@@ -108,8 +108,26 @@
 							<goals>
 								<goal>push</goal>
 							</goals>
+						</execution>
+						<execution>
+							<id>build-image-arm</id>
+							<phase>package</phase>
+							<goals>
+								<goal>build</goal>
+							</goals>
 							<configuration>
-								<imageName>${imageName}</imageName>
+								<dockerDirectory>${project.resourcedir}/docker-arm</dockerDirectory>
+								<imageName>${imageName}-arm</imageName>
+							</configuration>
+						</execution>
+						<execution>
+							<id>push-image-arm</id>
+							<phase>deploy</phase>
+							<goals>
+								<goal>push</goal>
+							</goals>
+							<configuration>
+								<imageName>${imageName}-arm</imageName>
 							</configuration>
 						</execution>
 					</executions>
