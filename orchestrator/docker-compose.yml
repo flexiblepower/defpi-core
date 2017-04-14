@@ -1,5 +1,5 @@
 orchestrator:
-  image: def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator
+  image: def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator:0.1.1-SNAPSHOT
   ports:
     - 0.0.0.0:8080:8080
   volumes:
@@ -10,6 +10,6 @@ orchestrator:
     - MONGO_HOST=mongo
     - MONGO_DATABASE=def-pi
     - MONGO_PORT=27017
-    - REGISTRY_URL=hub.servicelab.org
+    - REGISTRY_URL=def-pi1.sensorlab.tno.nl
 mongo:
   image: mongo

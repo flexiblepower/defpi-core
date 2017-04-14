@@ -14,10 +14,8 @@
 	</parent>
 
 	<properties>
-		<registry>def-pi1.sensorlab.tno.nl:5000</registry>
-		<name>${project.artifactId}</name>
-		
-		<imageName>${registry}/services/${name}:${project.version}</imageName>
+		<registry>def-pi1.sensorlab.tno.nl:5000</registry>	
+		<imageName>${registry}/services/${project.artifactId}:${project.version}</imageName>
 		
 		<!-- Resource dir for Docker and protobuf -->
 		<project.resourcedir>${project.basedir}/src/main/resources</project.resourcedir>

@@ -114,8 +114,9 @@ public class RegistryConnector {
         RegistryConnector.log.debug("Requesting URL {} (DELETE)", deleteUri);
         final Response response2 = ClientBuilder.newClient().target(deleteUri).request().delete();
         RegistryConnector.validateResponse(response2);
-        RegistryConnector.log
-                .debug("Delete response: {} ({})", response2.getStatusInfo().getReasonPhrase(), response2.getStatus());
+        RegistryConnector.log.debug("Delete response: {} ({})",
+                response2.getStatusInfo().getReasonPhrase(),
+                response2.getStatus());
 
     }
 
@@ -181,9 +182,9 @@ public class RegistryConnector {
      */
     private static void validateResponse(final Response response) throws ServiceNotFoundException {
         if (response.getStatusInfo().equals(Status.NOT_FOUND)) {
-            throw new ServiceNotFoundException(response.getLocation());
+            throw new ServiceNotFoundException();
         } else if (response.getStatusInfo().getFamily() != Status.Family.SUCCESSFUL) {
-            RegistryConnector.log.error("Unexpected respose: {}", response);
+            RegistryConnector.log.error("Unexpected response: {}", response);
             throw new ApiException(response.getStatus(), "Error obtaining service from registry");
         }
     }
