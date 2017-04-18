@@ -53,7 +53,8 @@ License URL: http://creativecommons.org/licenses/by/3.0/
         if (e) {
             e.prevenDefault();
         }
-        window.localStorage.setItem('efpi_orchestrator_login', document.getElementById('username').value);
+        window.localStorage.setItem('efpi_orchestrator_username', document.getElementById('username').value);
+        window.localStorage.setItem('efpi_orchestrator_password', document.getElementById('password').value);
         window.location.href = "./index.html";
         return false;
     }

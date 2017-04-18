@@ -1,9 +1,10 @@
 package org.flexiblepower.rest;
 
-import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 
@@ -12,6 +13,7 @@ import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.model.User;
+import org.flexiblepower.orchestrator.MongoDbConnector;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -23,11 +25,12 @@ public class UserRestApi extends BaseApi implements UserApi {
     }
 
     @Override
-    public String createUser(final User newUser) throws AuthorizationException {
+    public User createUser(final User newUser) throws AuthorizationException {
         UserRestApi.log.debug("Received call to create new User");
         // Update the password to store it encrypted
-        newUser.setPassword(newUser.getPassword());
-        return this.db.insertUser(newUser);
+        newUser.setPasswordHash();
+        this.db.saveUser(newUser);
+        return newUser;
     }
 
     @Override
@@ -47,7 +50,37 @@ public class UserRestApi extends BaseApi implements UserApi {
     }
 
     @Override
-    public List<User> listUsers() throws AuthorizationException {
-        return this.db.getUsers();
+    public User updateUser(final String userId, final User updatedUser) throws AuthorizationException {
+        UserRestApi.log.debug("Received call to update user");
+        if ((updatedUser.getId() == null) || (userId == null) || !userId.equals(updatedUser.getId().toString())) {
+            throw new ApiException(Status.BAD_REQUEST, "No or wrong id provided");
+        }
+        final User ret = this.db.getUser(updatedUser.getId());
+        if (ret == null) {
+            throw new ApiException(Status.NOT_FOUND, UserApi.USER_NOT_FOUND_MESSAGE);
+        }
+        if (!ret.getUsername().equals(updatedUser.getUsername())) {
+            throw new ApiException(Status.BAD_REQUEST, "Name cannot be changed");
+        }
+        if ((updatedUser.getPassword() != null) && !updatedUser.getPassword().isEmpty()) {
+            updatedUser.setPassword(updatedUser.getPassword());
+        }
+        ret.setAdmin(updatedUser.isAdmin());
+        ret.setEmail(updatedUser.getEmail());
+        this.db.saveUser(ret);
+        return ret;
+    }
+
+    @Override
+    public Response listUsers(final int page,
+            final int perPage,
+            final String sortDir,
+            final String sortField,
+            final String filters) throws AuthorizationException {
+        final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
+        return Response.status(Status.OK.getStatusCode())
+                .header("X-Total-Count", Integer.toString(this.db.totalCount(User.class, filter)))
+                .entity(this.db.list(User.class, page, perPage, sortDir, sortField, filter))
+                .build();
     }
 }

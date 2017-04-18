@@ -1,15 +1,17 @@
 package org.flexiblepower.api;
 
-import java.util.List;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
@@ -31,7 +33,7 @@ public interface UserApi {
     static final String USER_NOT_FOUND_MESSAGE = "User not found";
 
     @POST
-    @Produces(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "createUser",
                   value = "Create user",
@@ -40,12 +42,29 @@ public interface UserApi {
                   authorizations = {@Authorization(value = OrchestratorApi.ADMIN_AUTHENTICATION)})
     @ApiResponses(value = {@ApiResponse(code = 200, message = "New user created", response = String.class),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public String createUser(@ApiParam(value = "The new user to add", required = true) final User newUser)
+    public User createUser(@ApiParam(value = "The new user to add", required = true) final User newUser)
+            throws AuthorizationException;
+
+    @PUT
+    @Path("/{user_id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @ApiOperation(nickname = "updateUser",
+                  value = "Update user",
+                  notes = "Update a user",
+                  response = String.class,
+                  authorizations = {@Authorization(value = OrchestratorApi.ADMIN_AUTHENTICATION)})
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "User updated", response = String.class),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
+    public User updateUser(
+            @ApiParam(value = "The id of the user that needs to be deleted",
+                      required = true) @PathParam("user_id") final String userId,
+            @ApiParam(value = "The user to update", required = true) final User updatedUser)
             throws AuthorizationException;
 
     @DELETE
     @Path("/{user_id}")
-    @Produces(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "deleteUser",
                   value = "Delete user",
                   notes = "Delete the user with the provided Id",
@@ -58,9 +77,7 @@ public interface UserApi {
     public void deleteUser(
             @ApiParam(value = "The id of the user that needs to be deleted",
                       required = true) @PathParam("user_id") final String userId)
-            throws AuthorizationException,
-            InvalidObjectIdException,
-            NotFoundException;
+            throws AuthorizationException, InvalidObjectIdException, NotFoundException;
 
     @GET
     @Path("/{user_id}")
@@ -75,9 +92,7 @@ public interface UserApi {
     public User
             getUser(@ApiParam(value = "The id of the User that needs to be fetched",
                               required = true) @PathParam("user_id") final String userId)
-                    throws AuthorizationException,
-                    InvalidObjectIdException,
-                    NotFoundException;
+                    throws AuthorizationException, InvalidObjectIdException, NotFoundException;
 
     @GET
     @ApiOperation(nickname = "listUsers",
@@ -87,5 +102,9 @@ public interface UserApi {
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "An array of Users", response = User.class, responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public List<User> listUsers() throws AuthorizationException;
+    public Response listUsers(@QueryParam("_page") @DefaultValue("1") int page,
+            @QueryParam("_perPage") @DefaultValue("1000") int perPage,
+            @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
+            @QueryParam("_sortField") @DefaultValue("id") String sortField,
+            @QueryParam("_filters") @DefaultValue("{}") String filters) throws AuthorizationException;
 }

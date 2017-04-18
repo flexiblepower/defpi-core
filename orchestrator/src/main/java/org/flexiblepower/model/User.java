@@ -40,9 +40,11 @@ public class User {
     @Getter
     @JsonProperty("username")
     @Indexed(options = @IndexOptions(unique = true))
-    private String name = null;
+    private String username = null;
 
     private String password = null;
+
+    private String passwordHash = null;
 
     @Setter
     private String email = null;
@@ -55,12 +57,21 @@ public class User {
     }
 
     public User(final String userName, final String userPass) {
-        this.name = userName;
-        this.setPassword(userPass);
+        this.username = userName;
+        this.password = userPass;
+        this.setPasswordHash();
     }
 
     public void setPassword(final String password) {
-        this.password = User.computeUserPass(this.name, password);
+        this.password = password;
+        this.setPasswordHash();
+    }
+
+    public void setPasswordHash() {
+        if (this.password != null) {
+            this.passwordHash = User.computeUserPass(this.username, this.password);
+            this.password = null;
+        }
     }
 
     /*
@@ -70,7 +81,7 @@ public class User {
      */
     @Override
     public String toString() {
-        return "User [id=" + this.id + ", name=" + this.name + (this.email != null ? ", email=" + this.email : "")
+        return "User [id=" + this.id + ", name=" + this.username + (this.email != null ? ", email=" + this.email : "")
                 + (this.admin ? " (admin)" : "") + "]";
     }
 

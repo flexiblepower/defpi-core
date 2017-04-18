@@ -2,6 +2,8 @@ package org.flexiblepower.orchestrator;
 
 import java.io.Closeable;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.AuthorizationException;
@@ -15,6 +17,8 @@ import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
 import org.mongodb.morphia.query.Query;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.mongodb.MongoClient;
 
 import lombok.extern.slf4j.Slf4j;
@@ -91,6 +95,38 @@ public final class MongoDbConnector implements Closeable {
         }
     }
 
+    public <T> List<T> list(final Class<T> type,
+            final int page,
+            final int perPage,
+            final String sortDir,
+            final String sortField,
+            final Map<String, Object> filter) {
+        final String sortSign = ("DESC".equals(sortDir)) ? "-" : "";
+        Query<T> query = this.datastore.createQuery(type);
+        query.disableValidation();
+        for (final Entry<String, Object> e : filter.entrySet()) {
+            query.filter(e.getKey(), e.getValue());
+        }
+        query = query.order(sortSign + sortField).offset((page - 1) * perPage).limit(perPage);
+        return query.asList();
+    }
+
+    public <T> int totalCount(final Class<T> type, final Map<String, Object> filter) {
+        final Query<T> query = this.datastore.createQuery(type);
+        query.disableValidation();
+        for (final Entry<String, Object> e : filter.entrySet()) {
+            query.filter(e.getKey(), e.getValue());
+        }
+        return (int) query.countAll();
+    }
+
+    public static Map<String, Object> parseFilters(final String filters) {
+        final Gson gson = new GsonBuilder().create();
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> filter = gson.fromJson(filters, Map.class);
+        return filter;
+    }
+
     /**
      * Private function that throws an exception if the string is not a valid ObjectId, and returns the corresponding
      * ObjectId otherwise.
@@ -154,10 +190,23 @@ public final class MongoDbConnector implements Closeable {
      * @throws InvalidObjectIdException
      */
     public User getUser(final String userId) throws AuthorizationException, InvalidObjectIdException {
-        MongoDbConnector.log.debug("Searching user with id {}", userId);
-        this.assertUserIsAdmin();
         final ObjectId id = MongoDbConnector.stringToObjectId(userId);
-        return this.datastore.get(User.class, id);
+        return this.getUser(id);
+    }
+
+    /**
+     * Get a user object from the database that has the provided userId, or null if no such user exists. This function
+     * can only be used by a users with administrator rights.
+     *
+     * @param userId
+     * @return the user stored with the provided Id, or null
+     * @throws AuthorizationException
+     * @throws InvalidObjectIdException
+     */
+    public User getUser(final ObjectId userId) throws AuthorizationException {
+        MongoDbConnector.log.debug("Searching user with id {}", userId.toString());
+        this.assertUserIsAdmin();
+        return this.datastore.get(User.class, userId);
     }
 
     /**
@@ -177,8 +226,8 @@ public final class MongoDbConnector implements Closeable {
         }
 
         final Query<User> query = this.datastore.find(User.class);
-        query.and(query.criteria("name").equal(username),
-                query.criteria("password").equal(User.computeUserPass(username, password)));
+        query.and(query.criteria("username").equal(username),
+                query.criteria("passwordHash").equal(User.computeUserPass(username, password)));
         return query.get();
     }
 
@@ -204,8 +253,8 @@ public final class MongoDbConnector implements Closeable {
      * @return the userId of the inserted user
      * @throws AuthorizationException if the current logged in user does not have admin rights
      */
-    public String insertUser(final User user) throws AuthorizationException {
-        MongoDbConnector.log.debug("Adding new user: {}", user);
+    public String saveUser(final User user) throws AuthorizationException {
+        MongoDbConnector.log.debug("Saving user: {}", user);
         this.assertUserIsAdmin();
         return this.datastore.save(user).getId().toString();
     }

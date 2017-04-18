@@ -57,11 +57,12 @@ public class Main {
         try (MongoDbConnector db = new MongoDbConnector()) {
             if (db.getUser(Main.ROOT_USER, Main.ROOT_PASSWORD) == null) {
                 final User root = new User(Main.ROOT_USER, Main.ROOT_PASSWORD);
+                root.setPasswordHash();
                 root.setAdmin(true);
                 db.setApplicationUser(root);
 
                 final List<User> existingUsers = db.getUsers();
-                db.insertUser(root);
+                db.saveUser(root);
             }
         } catch (final AuthorizationException e) {
             Main.log.error("Unexpected Authorization exception while adding root user", e);
@@ -77,8 +78,8 @@ public class Main {
      * @throws URISyntaxException
      * @throws UnknownHostException
      */
-    public static void
-            main(final String[] args) throws AuthorizationException, UnknownHostException, URISyntaxException {
+    public static void main(final String[] args)
+            throws AuthorizationException, UnknownHostException, URISyntaxException {
         Main.ensureAdminUserExists();
         Main.startServer();
         // final Services services = new Services(null);
