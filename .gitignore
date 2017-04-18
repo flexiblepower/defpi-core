@@ -5,7 +5,7 @@ bin_test
 generated
 target
 RemoteSystemsTempFiles
-build
+*/build/
 .recommenders/
 .metadata
 Servers/
