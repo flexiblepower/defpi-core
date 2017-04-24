@@ -39,7 +39,7 @@
 		<repository>
 			<id>def-pi-release</id>
 			<name>def-pi release repository</name>
-			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-release-local</url>
+			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-release</url>
 			<snapshots>
 				<enabled>false</enabled>
 			</snapshots>
@@ -48,7 +48,7 @@
 		<repository>
 			<id>def-pi-snapshot</id>
 			<name>def-pi snapshot repository</name>
-			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-snapshot-local</url>
+			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-snapshot</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
@@ -67,6 +67,13 @@
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 			<version>${slf4j.version}</version>
+		</dependency>
+		
+		<dependency>
+		    <groupId>junit</groupId>
+		    <artifactId>junit</artifactId>
+		    <version>4.12</version>
+		    <scope>test</scope>
 		</dependency>
 	</dependencies>
 
