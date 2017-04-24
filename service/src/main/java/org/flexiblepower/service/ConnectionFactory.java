@@ -18,7 +18,7 @@ public abstract class ConnectionFactory {
     /**
      * The service that created this instance of the ConnectionFactory
      */
-    private final Service service;
+    private final AbstractService service;
 
     public abstract SubscribeHandler<?> newSubscribeHandler(ServiceSession session);
 

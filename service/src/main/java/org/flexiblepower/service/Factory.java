@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
  * @author Maarten Kollenstart
  *
  * Annotation for the ConnectionFactory that indicates which interface
- * it will implement. Which will be used by Service to find the 
+ * it will implement. Which will be used by AbstractService to find the 
  * correct Factory by reflection
  */
 @Documented
