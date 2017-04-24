@@ -22,7 +22,10 @@ import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.exceptions.ServiceNotFoundException;
 import com.spotify.docker.client.messages.swarm.ContainerSpec;
+import com.spotify.docker.client.messages.swarm.EndpointSpec;
+import com.spotify.docker.client.messages.swarm.EndpointSpec.Builder;
 import com.spotify.docker.client.messages.swarm.Placement;
+import com.spotify.docker.client.messages.swarm.PortConfig;
 import com.spotify.docker.client.messages.swarm.Service;
 import com.spotify.docker.client.messages.swarm.ServiceSpec;
 import com.spotify.docker.client.messages.swarm.TaskSpec;
@@ -61,7 +64,7 @@ public class DockerConnector {
 
         try {
             final List<Service> serviceList = DockerConnector.init().listServices();
-            serviceList.forEach((service) -> ret.add(DockerConnector.service2Process(service)));
+            serviceList.forEach((service) -> ret.add(DockerConnector.dockerService2Process(service)));
         } catch (DockerException | InterruptedException | DockerCertificateException e) {
             throw new ApiException(e);
         }
@@ -91,7 +94,7 @@ public class DockerConnector {
     public Process getProcess(final String uuid) throws ProcessNotFoundException {
         try {
             final Service service = DockerConnector.init().inspectService(uuid);
-            return DockerConnector.service2Process(service);
+            return DockerConnector.dockerService2Process(service);
         } catch (final ServiceNotFoundException e) {
             DockerConnector.log.error("Could not find process with id {]", uuid);
             throw new ProcessNotFoundException(uuid);
@@ -106,7 +109,7 @@ public class DockerConnector {
      * @param service
      * @return
      */
-    static Process service2Process(final Service service) {
+    static Process dockerService2Process(final Service service) {
         final Process process = new Process();
         process.setId(service.id());
 
@@ -143,7 +146,22 @@ public class DockerConnector {
                 .create(Arrays.asList("node.hostname == " + process.getRunningNode().getHostname()));
         final TaskSpec taskTemplate = TaskSpec.builder().containerSpec(processSpec).placement(placement).build();
 
-        return ServiceSpec.builder().name(serviceName).labels(serviceLabels).taskTemplate(taskTemplate).build();
+        final Builder endpointSpec = EndpointSpec.builder();
+
+        for (final String port : process.getProcessService().getPorts()) {
+            // TODO: Check if the syntax is as we expect.
+            final int pos = port.indexOf(':');
+            final Integer src = Integer.parseInt(port.substring(0, pos));
+            final Integer dst = Integer.parseInt(port.substring(pos + 1));
+            endpointSpec.addPort(PortConfig.builder().publishedPort(src).targetPort(dst).build());
+        }
+
+        return ServiceSpec.builder()
+                .name(serviceName)
+                .labels(serviceLabels)
+                .taskTemplate(taskTemplate)
+                .endpointSpec(endpointSpec.build())
+                .build();
     }
 
     /**
