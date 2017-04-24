@@ -13,7 +13,7 @@ import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Interface;
 import org.flexiblepower.model.Process;
-import org.flexiblepower.protos.SessionProto.Session;
+import org.flexiblepower.proto.ServiceProto.ConnectionMessage;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Socket;
 
@@ -81,16 +81,16 @@ public class ConnectionManager {
 
         final UUID id = UUID.randomUUID();
 
-        final Session session = Session.newBuilder()
-                .setId(id.toString())
-                .setMode(Session.ModeType.CREATE)
-                .setAddress(address2)
-                .setPort(port1)
-                .setSubscribeHash(interfaceFrom.getPublishHash())
-                .setPublishHash(interfaceTo.getSubscribeHash())
+        final ConnectionMessage connection = ConnectionMessage.newBuilder()
+                .setConnectionId(id.toString())
+                .setMode(ConnectionMessage.ModeType.CREATE)
+                .setTargetAddress(address2)
+                .setListenPort(port1)
+                .setReceiveHash(interfaceFrom.getPublishHash())
+                .setSendHash(interfaceTo.getSubscribeHash())
                 .build();
 
-        if (ConnectionManager.sendStartSession(processFrom.getRunningNode().getHostname(), session) != 0) {
+        if (ConnectionManager.sendStartSession(processFrom.getRunningNode().getHostname(), connection) != 0) {
             throw new IOException("No response received from client");
         }
     }
@@ -103,7 +103,7 @@ public class ConnectionManager {
      * @param session
      * @return
      */
-    static int sendStartSession(final String ip, final Session session) {
+    static int sendStartSession(final String ip, final ConnectionMessage session) {
         final String uri = String.format("tcp://%s:%d", ip, ConnectionManager.MANAGEMENT_PORT);
         ConnectionManager.log.info("Sending session {} to {}", session, uri);
 

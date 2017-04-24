@@ -6,8 +6,10 @@ import org.mongodb.morphia.annotations.Id;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+@AllArgsConstructor
 @Getter
 @Entity
 public class Connection {
@@ -16,10 +18,10 @@ public class Connection {
     @JsonIgnore
     private final ObjectId id = null;
 
-    private final String process1 = null;
-    private final String process2 = null;
+    private final String process1;
+    private final String process2;
 
-    private final String interface1 = null;
-    private final String interface2 = null;
+    private final String interface1;
+    private final String interface2;
 
 }

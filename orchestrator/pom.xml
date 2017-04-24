@@ -33,6 +33,11 @@
 	</dependencyManagement>
 
 	<dependencies>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+		</dependency>
+	
 		<!-- Jetty HTTP server hosting the UI -->
 		<dependency>
 			<groupId>org.glassfish.jersey.core</groupId>

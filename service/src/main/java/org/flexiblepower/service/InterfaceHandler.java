@@ -1,17 +1,10 @@
 package org.flexiblepower.service;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
-
 /**
  * @author Maarten Kollenstart
  *
  *         Standard container class for a set of hashes and a factory
  */
-@Getter
-@Setter
-@AllArgsConstructor
 public class InterfaceHandler {
 
     /**
@@ -27,4 +20,39 @@ public class InterfaceHandler {
      * the InterfaceHandler
      */
     private final ConnectionFactory connectionFactory;
+
+    /**
+     * @param subscribeHash
+     * @param publishHash
+     * @param connectionFactory
+     */
+    public InterfaceHandler(final String subscribeHash,
+            final String publishHash,
+            final ConnectionFactory connectionFactory) {
+        super();
+        this.subscribeHash = subscribeHash;
+        this.publishHash = publishHash;
+        this.connectionFactory = connectionFactory;
+    }
+
+    /**
+     * @return the subscribeHash
+     */
+    public String getSubscribeHash() {
+        return this.subscribeHash;
+    }
+
+    /**
+     * @return the publishHash
+     */
+    public String getPublishHash() {
+        return this.publishHash;
+    }
+
+    /**
+     * @return the connectionFactory
+     */
+    public ConnectionFactory getConnectionFactory() {
+        return this.connectionFactory;
+    }
 }

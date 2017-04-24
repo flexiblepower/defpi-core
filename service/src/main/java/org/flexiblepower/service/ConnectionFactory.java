@@ -1,19 +1,27 @@
 package org.flexiblepower.service;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
-
 /**
  * @author Maarten Kollenstart
  *
  *         Abstract connection factory, implementations of this class must be able to
  *         create subscribehandlers and publishhandlers.
  */
-@Getter
-@Setter
-@AllArgsConstructor
 public abstract class ConnectionFactory {
+
+    /**
+     * @return the service
+     */
+    public Service getService() {
+        return this.service;
+    }
+
+    /**
+     * @param service
+     */
+    public ConnectionFactory(final Service service) {
+        super();
+        this.service = service;
+    }
 
     /**
      * The service that created this instance of the ConnectionFactory

@@ -1,0 +1,46 @@
+syntax = "proto2";
+
+package message;
+
+option java_package = "org.flexiblepower.proto";
+option java_outer_classname = "ServiceProto";
+
+enum ProcessState {
+  STARTING = 0;
+  INITIALIZING = 1;
+  RUNNING = 2;
+  SUSPENDED = 3;
+  TERMINATED = 4;
+}
+
+message GoToProcessStateMessage {
+  required string processId = 1;
+  required ProcessState targetState = 2;
+}
+
+message ProcessStateUpdateMessage {
+  required string processId = 1;
+  required ProcessState state = 2;
+  optional bytes stateData = 3;
+}
+
+message SetConfigMessage {
+  required string processId = 1;
+  required bool isUpdate = 2; 
+  map<string, string> config = 3;
+}
+
+message ConnectionMessage {
+  enum ModeType {
+    CREATE = 0;
+    SUSPEND = 1;
+    RESUME = 2;
+    TERMINATE = 3;
+  }
+  required ModeType mode = 1;
+  required string connectionId = 2;
+  optional string targetAddress = 3;
+  optional int32 listenPort = 4;
+  optional string receiveHash = 5;
+  optional string sendHash = 6;
+}
