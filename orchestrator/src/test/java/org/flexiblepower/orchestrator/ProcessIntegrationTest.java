@@ -13,8 +13,6 @@ import java.util.UUID;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
-import org.flexiblepower.model.Node;
-import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.model.User;
@@ -63,11 +61,11 @@ public class ProcessIntegrationTest {
 
         final User user = new User(ProcessIntegrationTest.TEST_USER, UUID.randomUUID().toString());
 
-        final Node node = new PrivateNode(InetAddress.getLocalHost().getHostName(), user.getUsername());
+        final String localhostName = InetAddress.getLocalHost().getHostName();
 
         ProcessIntegrationTest.service = service;
-        ProcessIntegrationTest.processId1 = ProcessIntegrationTest.connector.newProcess(service, user, node);
-        ProcessIntegrationTest.processId2 = ProcessIntegrationTest.connector.newProcess(service, user, node);
+        ProcessIntegrationTest.processId1 = ProcessIntegrationTest.connector.newProcess(service, user, localhostName);
+        ProcessIntegrationTest.processId2 = ProcessIntegrationTest.connector.newProcess(service, user, localhostName);
     }
 
     @Test
