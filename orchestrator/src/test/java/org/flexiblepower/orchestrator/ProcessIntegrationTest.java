@@ -5,21 +5,27 @@
  */
 package org.flexiblepower.orchestrator;
 
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.UUID;
 
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
+import org.flexiblepower.model.Connection;
+import org.flexiblepower.model.Node;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Service;
-import org.flexiblepower.proto.ServiceProto.ConnectionMessage;
+import org.flexiblepower.model.User;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * ProcessIntegrationTest
@@ -28,48 +34,65 @@ import com.spotify.docker.client.exceptions.DockerException;
  * @version 0.1
  * @since Apr 24, 2017
  */
+@Slf4j
 public class ProcessIntegrationTest {
 
     private static final RegistryConnector registry = new RegistryConnector();
     private static final DockerConnector connector = new DockerConnector();
+    private final ConnectionManager manager = new ConnectionManager();
 
-    private static String processId;
+    private static final String TEST_USER = "Maarten2";
+
+    private static String processId1;
+    private static String processId2;
+    private static Service service;
 
     @BeforeClass
-    public static void startClass()
-            throws ServiceNotFoundException, DockerException, InterruptedException, DockerCertificateException {
+    public static void startClass() throws ServiceNotFoundException,
+            DockerException,
+            InterruptedException,
+            DockerCertificateException,
+            UnknownHostException {
+        try {
+            ProcessIntegrationTest.connector.newNetwork("user-net");
+        } catch (final Exception e) {
+            // Error creating network, probably already exists
+        }
+
         final Service service = ProcessIntegrationTest.registry.getService("services", "echo", "0.0.1");
 
-        System.out.println(DockerConnector.init().listNodes());
+        final User user = new User(ProcessIntegrationTest.TEST_USER, UUID.randomUUID().toString());
 
-        final Process process = new Process();
-        process.setProcessService(service);
-        process.setUserName("TestUser3");
-        process.setRunningNode(new PrivateNode("def-pi1", process.getUserName()));
+        final Node node = new PrivateNode(InetAddress.getLocalHost().getHostName(), user.getUsername());
 
-        System.out.println(ProcessIntegrationTest.connector.listProcesses());
-
-        ProcessIntegrationTest.processId = ProcessIntegrationTest.connector.newProcess(process);
-        System.out.println(ProcessIntegrationTest.processId);
+        ProcessIntegrationTest.service = service;
+        ProcessIntegrationTest.processId1 = ProcessIntegrationTest.connector.newProcess(service, user, node);
+        ProcessIntegrationTest.processId2 = ProcessIntegrationTest.connector.newProcess(service, user, node);
     }
 
     @Test
-    public void connect() {
-        final ConnectionMessage connection = ConnectionMessage.newBuilder()
-                .setConnectionId(UUID.randomUUID().toString())
-                .setMode(ConnectionMessage.ModeType.CREATE)
-                .setTargetAddress("tcp://localhost:5051")
-                .setListenPort(5025)
-                .setReceiveHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
-                .setSendHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
-                .build();
+    public void connect() throws ProcessNotFoundException, IOException, InterruptedException, ServiceNotFoundException {
+        final Process process1 = ProcessIntegrationTest.connector.getProcess(ProcessIntegrationTest.processId1);
+        final Process process2 = ProcessIntegrationTest.connector.getProcess(ProcessIntegrationTest.processId2);
 
-        Assert.assertEquals(0, ConnectionManager.sendStartSession("localhost", connection));
+        final Connection connection = new Connection(process1.getId(),
+                process2.getId(),
+                ProcessIntegrationTest.service.getInterfaces().iterator().next().getName(),
+                ProcessIntegrationTest.service.getInterfaces().iterator().next().getName());
+
+        this.manager.addConnection(connection);
+
+        Thread.sleep(100);
     }
 
     @AfterClass
     public static void stopProcess() throws ProcessNotFoundException {
-        // ProcessIntegrationTest.connector.removeProcess(ProcessIntegrationTest.processId);
+        if (ProcessIntegrationTest.processId1 != null) {
+            ProcessIntegrationTest.connector.removeProcess(ProcessIntegrationTest.processId1);
+        }
+        if (ProcessIntegrationTest.processId2 != null) {
+            ProcessIntegrationTest.connector.removeProcess(ProcessIntegrationTest.processId2);
+        }
     }
 
 }

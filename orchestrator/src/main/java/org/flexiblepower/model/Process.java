@@ -11,7 +11,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Proces
+ * Process
  *
  * @author coenvl
  * @version 0.1
@@ -25,9 +25,9 @@ public class Process {
 
     private String userName;
 
-    private Service processService;
+    private String processService;
 
-    private Node runningNode;
+    private String runningNode;
 
     private List<Connection> connections;
 

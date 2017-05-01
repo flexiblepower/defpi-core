@@ -22,6 +22,7 @@ import lombok.Setter;
  * @author leeuwencjv
  * @version 0.1
  * @since 20 mrt. 2017
+ * @see #Interface
  */
 @Getter
 @Entity
@@ -33,9 +34,9 @@ public class InterfaceVersion {
     @JsonProperty("version_name")
     private final String versionName;
 
-    @JsonProperty("accepts_hash")
+    @JsonProperty("receives_hash")
     @Setter
-    private String acceptsHash;
+    private String receivesHash;
 
     @JsonProperty("sends_hash")
     @Setter

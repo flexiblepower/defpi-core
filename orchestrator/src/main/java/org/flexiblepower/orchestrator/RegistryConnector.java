@@ -6,6 +6,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -33,6 +34,8 @@ public class RegistryConnector {
 
     private final String registryApiLink;
     private final Gson gson = new Gson();
+
+    private final Set<Interface> interfaceCache = new HashSet<>();
 
     public RegistryConnector() {
         String registryUrl = System.getenv(RegistryConnector.REGISTRY_URL_KEY);
@@ -120,11 +123,25 @@ public class RegistryConnector {
 
     }
 
-    @SuppressWarnings("unchecked")
+    public Service getService(final String fullImageName) throws ServiceNotFoundException {
+        RegistryConnector.log.info("Obtaining service {}", fullImageName);
+        final int p1 = fullImageName.lastIndexOf('/');
+        final int p2 = fullImageName.lastIndexOf(':');
+
+        return this.getService(fullImageName.substring(0, p1),
+                fullImageName.substring(p1 + 1, p2),
+                fullImageName.substring(p2 + 1));
+    }
+
     public Service getService(final String repository, final String serviceName, final String tag)
             throws ServiceNotFoundException {
         RegistryConnector.log.info("Obtaining service {}/{}:{}", repository, serviceName, tag);
         final URI url = this.buildUrl(repository, serviceName, "manifests", tag);
+        return this.getService(url);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Service getService(final URI url) throws ServiceNotFoundException {
         final String textResponse = RegistryConnector.queryRegistry(url);
         final JSONObject jsonResponse = new JSONObject(textResponse);
 
@@ -134,10 +151,18 @@ public class RegistryConnector {
         final String created = v1Compatibility.getString("created");
 
         final JSONObject labels = v1Compatibility.getJSONObject("config").getJSONObject("Labels");
-        final Set<Interface> interfaces = this.gson.fromJson(labels.getString("org.flexiblepower.interfaces"),
-                Set.class);
+
+        final Set<Interface> interfaces = new LinkedHashSet<>();
+        final Set<Object> set = this.gson.fromJson(labels.getString("org.flexiblepower.interfaces"), Set.class);
+        for (final Object obj : set) {
+            interfaces.add(this.gson.fromJson(this.gson.toJson(obj), Interface.class));
+        }
+
         final Set<String> mappings = this.gson.fromJson(labels.getString("org.flexiblepower.mappings"), Set.class);
         final Set<String> ports = this.gson.fromJson(labels.getString("org.flexiblepower.ports"), Set.class);
+
+        // Add interfaces to the cache
+        this.interfaceCache.addAll(interfaces);
 
         final Service service = new Service();
         service.setName(labels.getString("org.flexiblepower.serviceName"));
@@ -172,7 +197,7 @@ public class RegistryConnector {
         RegistryConnector.validateResponse(response);
 
         final String ret = response.readEntity(String.class);
-        RegistryConnector.log.debug("Received response: {}", ret);
+        RegistryConnector.log.trace("Received response: {}", ret);
         return ret;
     }
 
@@ -193,7 +218,8 @@ public class RegistryConnector {
      * @return
      */
     public List<Interface> getInterfaces() {
-        return new ArrayList<>();
+        // TODO: find ALL interfaces
+        return new ArrayList<>(this.interfaceCache);
     }
 
     /**
@@ -201,7 +227,6 @@ public class RegistryConnector {
      * @return
      */
     public Interface getInterface(final String sha256) {
-        // TODO Auto-generated method stub
         return null;
     }
 

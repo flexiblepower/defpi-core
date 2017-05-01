@@ -70,4 +70,16 @@ public class Service {
         this.setTag(fullname.substring(pTag + 1, pHash));
     }
 
+    /**
+     * @param interfaceName
+     */
+    public final Interface getInterface(final String interfaceName) {
+        for (final Interface itf : this.interfaces) {
+            if (itf.getName().equals(interfaceName)) {
+                return itf;
+            }
+        }
+        return null;
+    }
+
 }

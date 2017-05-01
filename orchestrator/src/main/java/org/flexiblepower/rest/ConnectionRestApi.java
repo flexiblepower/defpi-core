@@ -10,6 +10,7 @@ import javax.ws.rs.core.SecurityContext;
 import org.flexiblepower.api.ConnectionApi;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
+import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.orchestrator.ConnectionManager;
 
@@ -36,7 +37,7 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
         ConnectionRestApi.log.info("newConnection(): " + connection);
         try {
             this.connections.addConnection(connection);
-        } catch (final IOException e) {
+        } catch (final IOException | ServiceNotFoundException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }

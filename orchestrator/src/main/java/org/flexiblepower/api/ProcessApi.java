@@ -15,6 +15,7 @@ import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.NotFoundException;
 import org.flexiblepower.model.Process;
+import org.flexiblepower.model.Service;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -35,10 +36,11 @@ public interface ProcessApi {
                   value = "List processes",
                   notes = "List all processes that are currently running",
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
-    @ApiResponses(value = {@ApiResponse(code = 200,
-                                        message = "An array of Processes",
-                                        response = Process.class,
-                                        responseContainer = "List")})
+    @ApiResponses(value = {
+            @ApiResponse(code = 200,
+                         message = "An array of Processes",
+                         response = Process.class,
+                         responseContainer = "List")})
     public List<org.flexiblepower.model.Process> listProcesses();
 
     @GET
@@ -56,9 +58,7 @@ public interface ProcessApi {
             @ApiParam(name = "processId",
                       value = "The id of the process",
                       required = true) @PathParam("processId") final String uuid)
-            throws AuthorizationException,
-            NotFoundException,
-            InvalidObjectIdException;
+            throws AuthorizationException, NotFoundException, InvalidObjectIdException;
 
     @POST
     @Produces(MediaType.TEXT_PLAIN)
@@ -69,9 +69,11 @@ public interface ProcessApi {
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
     @ApiResponses(value = {@ApiResponse(code = 200, message = "Id of the new process", response = String.class),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public String newProcess(
-            @ApiParam(name = "process", value = "The new process to add", required = true) final Process process)
-            throws AuthorizationException;
+    public String
+            newProcess(@ApiParam(name = "service",
+                                 value = "The service definition of the new process to add",
+                                 required = true) final Service service)
+                    throws AuthorizationException;
 
     @DELETE
     @Path("{processId}")
@@ -87,7 +89,6 @@ public interface ProcessApi {
             @ApiParam(name = "process",
                       value = "The id of process to remove",
                       required = true) @PathParam("processId") final String uuid)
-            throws AuthorizationException,
-            NotFoundException;
+            throws AuthorizationException, NotFoundException;
 
 }
