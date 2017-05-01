@@ -5,7 +5,10 @@
  */
 package org.flexiblepower.model;
 
+import org.bson.types.ObjectId;
 import org.mongodb.morphia.annotations.Entity;
+
+import lombok.Getter;
 
 /**
  * PublicNode
@@ -15,14 +18,18 @@ import org.mongodb.morphia.annotations.Entity;
  * @since 20 mrt. 2017
  */
 @Entity
+@Getter
 public class PublicNode extends Node {
 
+    private ObjectId nodePoolId;
+
     public PublicNode() {
-        this(null);
+        // for Morphia
     }
 
-    public PublicNode(final String hostname) {
-        super(hostname);
+    public PublicNode(final UnidentifiedNode unidentifiedNode, final NodePool nodePool) {
+        super(unidentifiedNode.getDockerId(), unidentifiedNode.getHostname());
+        this.nodePoolId = nodePool.getId();
     }
 
 }

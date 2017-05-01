@@ -7,6 +7,8 @@ package org.flexiblepower.model;
 
 import org.mongodb.morphia.annotations.Entity;
 
+import lombok.Getter;
+
 /**
  * UnidentifiedNode
  *
@@ -15,14 +17,14 @@ import org.mongodb.morphia.annotations.Entity;
  * @since 20 mrt. 2017
  */
 @Entity
+@Getter
 public class UnidentifiedNode extends Node {
 
     public UnidentifiedNode() {
-        this(null);
+        // for Morphia
     }
 
-    public UnidentifiedNode(final String hostname) {
-        super(hostname);
+    public UnidentifiedNode(final String dockerId, final String hostname) {
+        super(dockerId, hostname);
     }
-
 }

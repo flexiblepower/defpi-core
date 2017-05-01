@@ -14,7 +14,6 @@ import java.util.UUID;
 
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
-import org.flexiblepower.model.Node;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.User;
 
@@ -94,9 +93,11 @@ public class DockerConnector {
      * @param json
      * @return
      */
-    public String newProcess(final org.flexiblepower.model.Service service, final User user, final Node host) {
+    public String newProcess(final org.flexiblepower.model.Service service,
+            final User user,
+            final String localhostName) {
         try {
-            final ServiceSpec serviceSpec = DockerConnector.createServiceSpec(service, user, host);
+            final ServiceSpec serviceSpec = DockerConnector.createServiceSpec(service, user, localhostName);
             final String id = this.client.createService(serviceSpec).id();
             DockerConnector.log.info("Created process with Id {}", id);
             return id;
@@ -151,6 +152,20 @@ public class DockerConnector {
         } catch (DockerException | InterruptedException e) {
             DockerConnector.log.error("Error while listing networks: {}", e.getMessage());
             DockerConnector.log.trace("Error while listing networks", e);
+            throw new ApiException(e);
+        }
+    }
+
+    /**
+     * @return
+     */
+    public List<com.spotify.docker.client.messages.swarm.Node> listNodes() {
+        try {
+            final List<com.spotify.docker.client.messages.swarm.Node> nodes = this.client.listNodes();
+            return nodes;
+        } catch (DockerException | InterruptedException e) {
+            DockerConnector.log.error("Error while listing nodes: {}", e.getMessage());
+            DockerConnector.log.trace("Error while listing nodes", e);
             throw new ApiException(e);
         }
     }
@@ -216,7 +231,7 @@ public class DockerConnector {
      */
     static ServiceSpec createServiceSpec(final org.flexiblepower.model.Service service,
             final User user,
-            final Node host) {
+            final String host) {
         // Create a name for the service by removing blanks from process name
         String serviceName = service.getName() + UUID.randomUUID().getLeastSignificantBits();
         serviceName = serviceName.replaceAll("\\h", "");
@@ -226,12 +241,12 @@ public class DockerConnector {
         final Map<String, String> serviceLabels = new HashMap<>();
         serviceLabels.put(DockerConnector.SERVICE_LABEL_KEY, service.getImage() + ":" + service.getTag());
         serviceLabels.put(DockerConnector.USER_LABEL_KEY, user.getUsername());
-        serviceLabels.put(DockerConnector.NODE_ID_LABEL_KEY, host.getHostname());
+        serviceLabels.put(DockerConnector.NODE_ID_LABEL_KEY, host);
 
         // Create the task template based on the process image
         final String dockerImage = service.getFullImageName();
         final ContainerSpec processSpec = ContainerSpec.builder().image(dockerImage).build();
-        final Placement placement = Placement.create(Arrays.asList("node.hostname == " + host.getHostname()));
+        final Placement placement = Placement.create(Arrays.asList("node.hostname == " + host));
         final TaskSpec taskTemplate = TaskSpec.builder().containerSpec(processSpec).placement(placement).build();
 
         // Add the ports to the specification

@@ -5,14 +5,16 @@
  */
 package org.flexiblepower.model;
 
+import java.util.Date;
+
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.annotations.Id;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
-import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
 /**
  * Node
@@ -22,12 +24,52 @@ import lombok.RequiredArgsConstructor;
  * @since 20 mrt. 2017
  */
 @Getter
-@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-public class Node {
+public abstract class Node {
+
+    public static enum DockerNodeStatus {
+        MISSING,
+        UNKNOWN,
+        DOWN,
+        READY,
+        DISCONNECTED;
+
+        public static DockerNodeStatus fromString(final String text) {
+            for (final DockerNodeStatus s : DockerNodeStatus.values()) {
+                if (s.toString().equalsIgnoreCase(text)) {
+                    return s;
+                }
+            }
+            return null;
+        }
+    }
 
     @Id
-    @JsonIgnore
-    protected ObjectId id = null;
-    protected final String hostname;
+    @JsonSerialize(using = ToStringSerializer.class)
+    protected ObjectId id;
+
+    protected String dockerId;
+
+    @Setter
+    protected String hostname;
+
+    /**
+     * The last time the status was retrieved from docker
+     */
+    @Setter
+    protected Date lastSync;
+
+    @Setter
+    protected DockerNodeStatus status;
+
+    public Node() {
+        // for Morphia
+    }
+
+    public Node(final String dockerId, final String hostname) {
+        this.dockerId = dockerId;
+        this.hostname = hostname;
+        this.status = DockerNodeStatus.UNKNOWN;
+        this.lastSync = new Date(); // now
+    }
 
 }

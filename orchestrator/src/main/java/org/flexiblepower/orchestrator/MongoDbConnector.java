@@ -9,9 +9,7 @@ import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.model.Connection;
-import org.flexiblepower.model.Node;
-import org.flexiblepower.model.PrivateNode;
-import org.flexiblepower.model.PublicNode;
+import org.flexiblepower.model.UnidentifiedNode;
 import org.flexiblepower.model.User;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
@@ -84,17 +82,6 @@ public final class MongoDbConnector implements Closeable {
         this.client.close();
     }
 
-    /**
-     * Private function that only throws an exception if the current logged in user is not an admin.
-     *
-     * @throws AuthorizationException
-     */
-    private void assertUserIsAdmin() throws AuthorizationException {
-        if ((this.appUser == null) || !this.appUser.isAdmin()) {
-            throw new AuthorizationException();
-        }
-    }
-
     public <T> List<T> list(final Class<T> type,
             final int page,
             final int perPage,
@@ -111,6 +98,14 @@ public final class MongoDbConnector implements Closeable {
         return query.asList();
     }
 
+    public <T> List<T> list(final Class<T> type) {
+        return this.datastore.find(type).asList();
+    }
+
+    public <T> T get(final Class<T> type, final ObjectId id) {
+        return this.datastore.get(type, id);
+    }
+
     public <T> int totalCount(final Class<T> type, final Map<String, Object> filter) {
         final Query<T> query = this.datastore.createQuery(type);
         query.disableValidation();
@@ -125,6 +120,14 @@ public final class MongoDbConnector implements Closeable {
         @SuppressWarnings("unchecked")
         final Map<String, Object> filter = gson.fromJson(filters, Map.class);
         return filter;
+    }
+
+    public void save(final Object entity) {
+        this.datastore.save(entity);
+    }
+
+    public void delete(final Object entity) {
+        this.datastore.delete(entity);
     }
 
     /**
@@ -176,7 +179,6 @@ public final class MongoDbConnector implements Closeable {
      */
     public List<User> getUsers() throws AuthorizationException {
         MongoDbConnector.log.debug("Listing all users {}");
-        this.assertUserIsAdmin();
         return this.datastore.find(User.class).asList();
     }
 
@@ -205,7 +207,6 @@ public final class MongoDbConnector implements Closeable {
      */
     public User getUser(final ObjectId userId) throws AuthorizationException {
         MongoDbConnector.log.debug("Searching user with id {}", userId.toString());
-        this.assertUserIsAdmin();
         return this.datastore.get(User.class, userId);
     }
 
@@ -255,7 +256,6 @@ public final class MongoDbConnector implements Closeable {
      */
     public String saveUser(final User user) throws AuthorizationException {
         MongoDbConnector.log.debug("Saving user: {}", user);
-        this.assertUserIsAdmin();
         return this.datastore.save(user).getId().toString();
     }
 
@@ -269,83 +269,8 @@ public final class MongoDbConnector implements Closeable {
      */
     public void deleteUser(final String userId) throws AuthorizationException, InvalidObjectIdException {
         MongoDbConnector.log.debug("Removing user with id {}", userId);
-        this.assertUserIsAdmin();
         final ObjectId id = MongoDbConnector.stringToObjectId(userId);
         this.datastore.delete(User.class, id);
-    }
-
-    /**
-     * @return a list of all nodes that are stored in the database.
-     */
-    public List<Node> getNodes() {
-        MongoDbConnector.log.debug("Listing all nodes");
-        return this.datastore.find(Node.class).asList();
-    }
-
-    /**
-     * @return a list of all public nodes that are stored in the database
-     */
-    public List<PublicNode> getPublicNodes() {
-        MongoDbConnector.log.debug("Listing all public nodes");
-        return this.datastore.find(PublicNode.class).asList();
-    }
-
-    /**
-     * @return a list of all private nodes that are stored in the database.
-     */
-    public List<PrivateNode> getPrivateNodes() {
-        MongoDbConnector.log.debug("Listing all private nodes");
-        // TODO: List only the private nodes from the current user OR all private nodes if the user is admin
-        return this.datastore.find(PrivateNode.class).asList();
-    }
-
-    /**
-     * Returns the public node that is stored in the database with the provided id, or null if no such node exists.
-     *
-     * @param nodeId
-     * @return the public node that has the provided id, or null
-     * @throws InvalidObjectIdException
-     */
-    public PublicNode getPublicNode(final String nodeId) throws InvalidObjectIdException {
-        MongoDbConnector.log.debug("Searching PublicNode with id {}", nodeId);
-        final ObjectId id = MongoDbConnector.stringToObjectId(nodeId);
-        return this.datastore.get(PublicNode.class, id);
-    }
-
-    /**
-     * Returns the private node that is stored in the database with the provided id, or null if no such node exists.
-     *
-     * @param nodeId
-     * @return the private node that has the provided id, or null
-     * @throws InvalidObjectIdException
-     */
-    public PrivateNode getPrivateNode(final String nodeId) throws InvalidObjectIdException {
-        MongoDbConnector.log.debug("Searching PrivateNode with id {}", nodeId);
-        final ObjectId id = MongoDbConnector.stringToObjectId(nodeId);
-        return this.datastore.get(PrivateNode.class, id);
-    }
-
-    /**
-     * Insert the provided node (public or private) in the database.
-     *
-     * @param node
-     * @return the id of the newly inserted node
-     */
-    public String insertNode(final Node node) {
-        MongoDbConnector.log.debug("Adding new node: {}", node);
-        return this.datastore.save(node).getId().toString();
-    }
-
-    /**
-     * Removes the node (either public or private) that has the provided id from the database.
-     *
-     * @param nodeId
-     * @throws InvalidObjectIdException
-     */
-    public void deleteNode(final String nodeId) throws InvalidObjectIdException {
-        MongoDbConnector.log.debug("Deleting node with id {}", nodeId);
-        final ObjectId id = MongoDbConnector.stringToObjectId(nodeId);
-        this.datastore.delete(Node.class, id);
     }
 
     /**
@@ -354,6 +279,12 @@ public final class MongoDbConnector implements Closeable {
     public List<Connection> getConnections() {
         MongoDbConnector.log.debug("Listing all connections");
         return this.datastore.find(Connection.class).asList();
+    }
+
+    public UnidentifiedNode getUnidentifiedNodeByDockerId(final String dockerId) {
+        final Query<UnidentifiedNode> q = this.datastore.find(UnidentifiedNode.class);
+        q.criteria("dockerId").equal(dockerId);
+        return q.get();
     }
 
     /**

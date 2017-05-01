@@ -10,6 +10,8 @@ import java.util.Base64;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.SecurityContext;
 
+import org.flexiblepower.exceptions.ApiException;
+import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.MongoDbConnector;
 
@@ -25,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class BaseApi {
 
+    @Deprecated // Alleen toegang via managers, niet direct!
     protected final MongoDbConnector db = new MongoDbConnector();
 
     protected final User loggedInUser;
@@ -51,6 +54,17 @@ public abstract class BaseApi {
         this.loggedInUser = this.db.getUser(credentials[0], credentials[1]);
         this.db.setApplicationUser(this.loggedInUser);
         BaseApi.log.debug("User {} logged in", credentials[0]);
+    }
+
+    /**
+     * Protected function that only throws an exception if the current logged in user is not an admin.
+     *
+     * @throws AuthorizationException
+     */
+    protected void assertUserIsAdmin() throws ApiException {
+        if ((this.loggedInUser == null) || !this.loggedInUser.isAdmin()) {
+            throw new ApiException(new AuthorizationException());
+        }
     }
 
 }
