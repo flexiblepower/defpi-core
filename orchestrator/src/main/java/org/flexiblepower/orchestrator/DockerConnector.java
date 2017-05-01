@@ -14,7 +14,6 @@ import java.util.Map;
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Process;
-import org.flexiblepower.model.UnidentifiedNode;
 
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
@@ -27,6 +26,7 @@ import com.spotify.docker.client.messages.swarm.ContainerSpec;
 import com.spotify.docker.client.messages.swarm.EndpointSpec;
 import com.spotify.docker.client.messages.swarm.EndpointSpec.Builder;
 import com.spotify.docker.client.messages.swarm.NetworkAttachmentConfig;
+import com.spotify.docker.client.messages.swarm.Node;
 import com.spotify.docker.client.messages.swarm.Placement;
 import com.spotify.docker.client.messages.swarm.PortConfig;
 import com.spotify.docker.client.messages.swarm.Service;
@@ -154,6 +154,20 @@ public class DockerConnector {
     }
 
     /**
+     * @return
+     */
+    public List<Node> listNodes() {
+        try {
+            final List<Node> nodes = this.client.listNodes();
+            return nodes;
+        } catch (DockerException | InterruptedException e) {
+            DockerConnector.log.error("Error while listing nodes: {}", e.getMessage());
+            DockerConnector.log.trace("Error while listing nodes", e);
+            throw new ApiException(e);
+        }
+    }
+
+    /**
      * @param networkName
      * @return
      */
@@ -204,7 +218,7 @@ public class DockerConnector {
         if (serviceLabels != null) {
             process.setUserName(serviceLabels.get(DockerConnector.USER_LABEL_KEY));
         }
-        process.setRunningNode(new UnidentifiedNode("NOT DEFINED YET"));
+        process.setRunningNode(null);
 
         return process;
     }

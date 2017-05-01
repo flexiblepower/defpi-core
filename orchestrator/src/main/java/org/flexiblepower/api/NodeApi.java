@@ -4,16 +4,22 @@ import java.util.List;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
+import org.flexiblepower.exceptions.NodePoolNotFoundException;
 import org.flexiblepower.exceptions.NotFoundException;
+import org.flexiblepower.model.NodePool;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.PublicNode;
 import org.flexiblepower.model.UnidentifiedNode;
@@ -45,12 +51,11 @@ public interface NodeApi {
             @ApiResponse(code = 200, message = "Private node succesfully created", response = String.class),
             @ApiResponse(code = 404, message = NodeApi.UNIDENTIFIED_NODE_NOT_FOUND_MESSAGE),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public String createPrivateNode(
+    public PrivateNode createPrivateNode(
             @ApiParam(name = "newNode",
                       value = "The definition of the node to create",
                       required = true) final PrivateNode newNode)
-            throws AuthorizationException,
-            NotFoundException;
+            throws AuthorizationException, NotFoundException;
 
     @POST
     @Path("/public")
@@ -64,12 +69,11 @@ public interface NodeApi {
             @ApiResponse(code = 200, message = "Public node succesfully created", response = String.class),
             @ApiResponse(code = 404, message = NodeApi.UNIDENTIFIED_NODE_NOT_FOUND_MESSAGE),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public String createPublicNode(
+    public PublicNode createPublicNode(
             @ApiParam(name = "newNode",
                       value = "The definition of the node to create",
                       required = true) final PublicNode newNode)
-            throws AuthorizationException,
-            NotFoundException;
+            throws AuthorizationException, NotFoundException;
 
     @DELETE
     @Path("/private/{node_id}")
@@ -85,9 +89,7 @@ public interface NodeApi {
     public void deletePrivateNode(
             @ApiParam(value = "The id of the Node that needs to be deleted",
                       required = true) @PathParam("node_id") final String nodeId)
-            throws AuthorizationException,
-            NotFoundException,
-            InvalidObjectIdException;
+            throws AuthorizationException, NotFoundException, InvalidObjectIdException;
 
     @DELETE
     @Path("/public/{node_id}")
@@ -105,9 +107,7 @@ public interface NodeApi {
             deletePublicNode(
                     @ApiParam(value = "The id of the Node that needs to be feleted",
                               required = true) @PathParam("node_id") final String nodeId)
-                    throws AuthorizationException,
-                    NotFoundException,
-                    InvalidObjectIdException;
+                    throws AuthorizationException, NotFoundException, InvalidObjectIdException;
 
     @GET
     @Path("/private/{node_id}")
@@ -123,8 +123,7 @@ public interface NodeApi {
     public PrivateNode getPrivateNode(
             @ApiParam(value = "The id of the Node that needs to be fetched",
                       required = true) @PathParam("node_id") final String nodeId)
-            throws NotFoundException,
-            InvalidObjectIdException;
+            throws NotFoundException, InvalidObjectIdException;
 
     @GET
     @Path("/public/{node_id}")
@@ -139,8 +138,7 @@ public interface NodeApi {
     public PublicNode getPublicNode(
             @ApiParam(value = "The id of the Node that needs to be fetched",
                       required = true) @PathParam("node_id") final String nodeId)
-            throws NotFoundException,
-            InvalidObjectIdException;
+            throws NotFoundException, InvalidObjectIdException;
 
     @GET
     @Path("/private")
@@ -166,10 +164,11 @@ public interface NodeApi {
                   response = PublicNode.class,
                   responseContainer = "List",
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
-    @ApiResponses(value = {@ApiResponse(code = 200,
-                                        message = "List all public nodes",
-                                        response = PublicNode.class,
-                                        responseContainer = "List")})
+    @ApiResponses(value = {
+            @ApiResponse(code = 200,
+                         message = "List all public nodes",
+                         response = PublicNode.class,
+                         responseContainer = "List")})
     public List<PublicNode> listPublicNodes();
 
     @GET
@@ -188,4 +187,86 @@ public interface NodeApi {
                          responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public List<UnidentifiedNode> listUnidentifiedNodes() throws AuthorizationException;
+
+    @POST
+    @Path("/nodepool")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @ApiOperation(nickname = "createNodePool",
+                  value = "Create NodePool",
+                  notes = "Create a new NodePool",
+                  response = String.class,
+                  authorizations = {@Authorization(value = OrchestratorApi.ADMIN_AUTHENTICATION)})
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "New NodePool created", response = String.class),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
+    public NodePool
+            createNodePool(@ApiParam(value = "The new NodePool to add", required = true) final NodePool newNodePool)
+                    throws AuthorizationException;
+
+    @PUT
+    @Path("/nodepool/{nodepool_id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @ApiOperation(nickname = "updateNodePool",
+                  value = "Update NodePool",
+                  notes = "Update a NodePool",
+                  response = String.class,
+                  authorizations = {@Authorization(value = OrchestratorApi.ADMIN_AUTHENTICATION)})
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "NodePool updated", response = String.class),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
+    public NodePool updateNodePool(
+            @ApiParam(value = "The id of the NodePool that needs to be deleted",
+                      required = true) @PathParam("nodepool_id") final String nodePoolId,
+            @ApiParam(value = "The NodePool to update", required = true) final NodePool updatedNodePool)
+            throws AuthorizationException, NodePoolNotFoundException;
+
+    @DELETE
+    @Path("/nodepool/{nodepool_id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ApiOperation(nickname = "deleteNodePool",
+                  value = "Delete NodePool",
+                  notes = "Delete the NodePool with the provided Id",
+                  code = 204,
+                  authorizations = {@Authorization(value = OrchestratorApi.ADMIN_AUTHENTICATION)})
+    @ApiResponses(value = {@ApiResponse(code = 204, message = "NodePool deleted"),
+            @ApiResponse(code = 400, message = InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE),
+            @ApiResponse(code = 404, message = UserApi.USER_NOT_FOUND_MESSAGE),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
+    public void deleteNodePool(
+            @ApiParam(value = "The id of the NodePool that needs to be deleted",
+                      required = true) @PathParam("nodepool_id") final String nodePoolId)
+            throws AuthorizationException, InvalidObjectIdException, NotFoundException;
+
+    @GET
+    @Path("/nodepool/{nodepool_id}")
+    @ApiOperation(nickname = "getNodePool",
+                  value = "Get NodePool data",
+                  notes = "Get data of the NodePool with the provided Id",
+                  authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "NodePool data", response = NodePool.class),
+            @ApiResponse(code = 400, message = InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE),
+            @ApiResponse(code = 404, message = UserApi.USER_NOT_FOUND_MESSAGE),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
+    public NodePool getNodePool(
+            @ApiParam(value = "The id of the NodePool that needs to be fetched",
+                      required = true) @PathParam("nodepool_id") final String nodePoolId)
+            throws AuthorizationException, InvalidObjectIdException, NotFoundException;
+
+    @GET
+    @Path("/nodepool")
+    @ApiOperation(nickname = "listNodePools",
+                  value = "List NodePools",
+                  notes = "List all registered NodePools",
+                  authorizations = {@Authorization(value = OrchestratorApi.ADMIN_AUTHENTICATION)})
+    @ApiResponses(value = {
+            @ApiResponse(code = 200,
+                         message = "An array of NodePool",
+                         response = NodePool.class,
+                         responseContainer = "List"),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
+    public Response listNodePools(@QueryParam("_page") @DefaultValue("1") int page,
+            @QueryParam("_perPage") @DefaultValue("1000") int perPage,
+            @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
+            @QueryParam("_sortField") @DefaultValue("id") String sortField,
+            @QueryParam("_filters") @DefaultValue("{}") String filters) throws AuthorizationException;
 }

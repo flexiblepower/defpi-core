@@ -25,6 +25,11 @@ myApp
 					var user = nga.entity('user');
 					var process = nga.entity('process');
 					var service = nga.entity('service');
+					var nodepool = nga.entity('nodepool').url("node/nodepool");
+					var puno = nga.entity('node.public').label('Public Nodes');
+					var un = nga.entity('node.unidentified').label(
+							'Unidentified Nodes').url('node/unidentified')
+							.readOnly();
 
 					// Views
 
@@ -63,10 +68,56 @@ myApp
 
 					service.listView().fields([ nga.field('name') ]);
 
+					nodepool.listView().url("node/nodepool").fields(
+							[ nga.field('name').isDetailLink(true) ]);
+
+					nodepool.creationView().url("node/nodepool").fields(
+							nga.field('name'));
+
+					nodepool.editionView().url(function(id) {
+						return "node/nodepool/" + id
+					}).fields(nga.field('name'));
+
+					puno.listView().url("node/public").fields(
+							[
+									nga.field('id').isDetailLink(true),
+									nga.field('dockerId'),
+									nga.field('hostname'),
+									nga.field('status'),
+									nga.field('lastSync'),
+									nga.field('nodePoolId', 'reference').label(
+											'NodePool').targetEntity(nodepool)
+											.targetField('name') ]);
+
+					puno.creationView().url("node/public").fields(
+							[
+									nga.field('dockerId', 'reference')
+											.targetEntity(un).targetField(
+													nga.field('dockerId'))
+											.label('Unidentified Node')
+											.validation({
+												required : true
+											}),
+									nga.field('nodePoolId', 'reference')
+											.targetEntity(nodepool)
+											.targetField(nga.field('name'))
+											.label('NodePool').validation({
+												required : true
+											}) ]);
+
+					un.listView().fields(
+							[ nga.field('id').isDetailLink(true),
+									nga.field('dockerId'),
+									nga.field('hostname'), nga.field('status'),
+									nga.field('lastSync') ]);
+
 					// Add entities
 					admin.addEntity(user);
 					admin.addEntity(process);
 					admin.addEntity(service);
+					admin.addEntity(nodepool);
+					admin.addEntity(un);
+					admin.addEntity(puno);
 
 					// Menu
 					admin
@@ -86,7 +137,22 @@ myApp
 											nga
 													.menu(service)
 													.icon(
-															'<span class="glyphicon glyphicon-play-circle"></span>')));
+															'<span class="glyphicon glyphicon-play-circle"></span>'))
+									.addChild(
+											nga
+													.menu(nodepool)
+													.icon(
+															'<span class="glyphicon glyphicon-cloud"></span>'))
+									.addChild(
+											nga
+													.menu(puno)
+													.icon(
+															'<span class="glyphicon glyphicon-hdd"></span>'))
+									.addChild(
+											nga
+													.menu(un)
+													.icon(
+															'<span class="glyphicon glyphicon-hdd"></span>')));
 
 					var customHeaderTemplate = '<div class="navbar-header"><button type="button" class="navbar-toggle"ng-click="isCollapsed = !isCollapsed"><span class="icon-bar"></span> <span class="icon-bar"></span> <spanclass="icon-bar"></span></button><a class="navbar-brand" href="#" ng-click="appController.displayHome()">EF-Pi Orchestrator</a></div><ul class="nav navbar-top-links navbar-right hidden-xs"><li><a href="#" onclick="logout()"><iclass="fa fa-sign-out fa-fw"></i>Logout</a></li></ul>';
 
