@@ -187,6 +187,16 @@ public class NodeManager {
         return publicNode;
     }
 
+    public void deletePublicNode(final PublicNode publicNode) {
+        this.db.delete(publicNode);
+        this.syncAllNodes();
+    }
+
+    public void deletePrivateNode(final PrivateNode privateNode) {
+        this.db.delete(privateNode);
+        this.syncAllNodes();
+    }
+
     public NodePool saveNodePool(final NodePool newNodePool) {
         if ((newNodePool.getName() == null) || newNodePool.getName().isEmpty()) {
             throw new IllegalArgumentException("Name cannot be empty");

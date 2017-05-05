@@ -9,7 +9,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 
-import org.apache.commons.lang.NotImplementedException;
 import org.bson.types.ObjectId;
 import org.flexiblepower.api.NodeApi;
 import org.flexiblepower.exceptions.ApiException;
@@ -40,7 +39,8 @@ public class NodeRestApi extends BaseApi implements NodeApi {
     @Override
     public PrivateNode createPrivateNode(final PrivateNode newNode) throws AuthorizationException {
         this.assertUserIsAdmin();
-        final UnidentifiedNode un = this.nodeManager.getUnidentifiedNodeByDockerId(newNode.getDockerId());
+        // TODO this is a hack. The UI gives the id of the Unidentified node, not of the dockerId...
+        final UnidentifiedNode un = this.nodeManager.getUnidentifiedNode(new ObjectId(newNode.getDockerId()));
         if (un == null) {
             throw new ApiException(404, "Node could not be found");
         }
@@ -55,7 +55,8 @@ public class NodeRestApi extends BaseApi implements NodeApi {
     @Override
     public PublicNode createPublicNode(final PublicNode newNode) {
         this.assertUserIsAdmin();
-        final UnidentifiedNode un = this.nodeManager.getUnidentifiedNodeByDockerId(newNode.getDockerId());
+        // TODO this is a hack. The UI gives the id of the Unidentified node, not of the dockerId...
+        final UnidentifiedNode un = this.nodeManager.getUnidentifiedNode(new ObjectId(newNode.getDockerId()));
         if (un == null) {
             throw new ApiException(404, "Node could not be found");
         }
@@ -70,13 +71,29 @@ public class NodeRestApi extends BaseApi implements NodeApi {
     @Override
     public void deletePrivateNode(final String nodeId) throws InvalidObjectIdException {
         this.assertUserIsAdmin();
-        throw new NotImplementedException(); // TODO
+        try {
+            final PrivateNode privateNode = this.nodeManager.getPrivateNode(new ObjectId(nodeId));
+            if (privateNode == null) {
+                throw new ApiException(404, "Private Node could not be found");
+            }
+            this.nodeManager.deletePrivateNode(privateNode);
+        } catch (final IllegalArgumentException e) {
+            throw new ApiException(400, "Not a valid identified");
+        }
     }
 
     @Override
     public void deletePublicNode(final String nodeId) throws InvalidObjectIdException {
         this.assertUserIsAdmin();
-        throw new NotImplementedException(); // TODO
+        try {
+            final PublicNode publicNode = this.nodeManager.getPublicNode(new ObjectId(nodeId));
+            if (publicNode == null) {
+                throw new ApiException(404, "Private Node could not be found");
+            }
+            this.nodeManager.deletePublicNode(publicNode);
+        } catch (final IllegalArgumentException e) {
+            throw new ApiException(400, "Not a valid identified");
+        }
     }
 
     @Override

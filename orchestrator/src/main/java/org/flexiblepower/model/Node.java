@@ -10,6 +10,7 @@ import java.util.Date;
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.annotations.Id;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
@@ -45,6 +46,7 @@ public abstract class Node {
 
     @Id
     @JsonSerialize(using = ToStringSerializer.class)
+    @JsonDeserialize(using = ObjectIdDeserializer.class)
     protected ObjectId id;
 
     protected String dockerId;

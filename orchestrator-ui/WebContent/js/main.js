@@ -25,11 +25,11 @@ myApp
 					var user = nga.entity('user');
 					var process = nga.entity('process');
 					var service = nga.entity('service');
-					var nodepool = nga.entity('nodepool').url("node/nodepool");
-					var puno = nga.entity('node.public').label('Public Nodes');
-					var un = nga.entity('node.unidentified').label(
-							'Unidentified Nodes').url('node/unidentified')
-							.readOnly();
+					var nodepool = nga.entity('nodepool');
+					var puno = nga.entity('publicnode').label('Public Nodes');
+					var prno = nga.entity('privatenode').label('Private Nodes');
+					var un = nga.entity('unidentifiednode').label(
+							'Unidentified Nodes').readOnly();
 
 					// Views
 
@@ -68,28 +68,28 @@ myApp
 
 					service.listView().fields([ nga.field('name') ]);
 
-					nodepool.listView().url("node/nodepool").fields(
+					nodepool.listView().fields(
 							[ nga.field('name').isDetailLink(true) ]);
 
-					nodepool.creationView().url("node/nodepool").fields(
-							nga.field('name'));
+					nodepool.creationView().fields(nga.field('name'));
 
-					nodepool.editionView().url(function(id) {
-						return "node/nodepool/" + id
-					}).fields(nga.field('name'));
+					nodepool.editionView().fields(nga.field('name'));
 
-					puno.listView().url("node/public").fields(
+					puno.listView().fields(
 							[
 									nga.field('id').isDetailLink(true),
 									nga.field('dockerId'),
 									nga.field('hostname'),
 									nga.field('status'),
 									nga.field('lastSync'),
-									nga.field('nodePoolId', 'reference').label(
-											'NodePool').targetEntity(nodepool)
-											.targetField('name') ]);
+									nga.field('nodePoolId', 'reference')
+											.targetEntity(nodepool)
+											.targetField(nga.field('name'))
+											.label('Nodepool') ]);
 
-					puno.creationView().url("node/public").fields(
+					puno.showView().fields(puno.listView().fields());
+
+					puno.creationView().fields(
 							[
 									nga.field('dockerId', 'reference')
 											.targetEntity(un).targetField(
@@ -111,6 +111,42 @@ myApp
 									nga.field('hostname'), nga.field('status'),
 									nga.field('lastSync') ]);
 
+					prno.listView().fields(
+							[
+									nga.field('id').isDetailLink(true),
+									nga.field('dockerId'),
+									nga.field('hostname'),
+									nga.field('status'),
+									nga.field('lastSync'),
+									nga.field('userId', 'reference')
+											.targetEntity(user).targetField(
+													nga.field('username'))
+											.label('User') ]);
+
+					prno.showView().fields(prno.listView().fields());
+
+					prno.creationView().fields(
+							[
+									nga.field('dockerId', 'reference')
+											.targetEntity(un).targetField(
+													nga.field('dockerId'))
+											.label('Unidentified Node')
+											.validation({
+												required : true
+											}),
+									nga.field('userId', 'reference')
+											.targetEntity(user).targetField(
+													nga.field('username'))
+											.label('User').validation({
+												required : true
+											}) ]);
+
+					un.listView().fields(
+							[ nga.field('id').isDetailLink(true),
+									nga.field('dockerId'),
+									nga.field('hostname'), nga.field('status'),
+									nga.field('lastSync') ]);
+
 					// Add entities
 					admin.addEntity(user);
 					admin.addEntity(process);
@@ -118,6 +154,7 @@ myApp
 					admin.addEntity(nodepool);
 					admin.addEntity(un);
 					admin.addEntity(puno);
+					admin.addEntity(prno);
 
 					// Menu
 					admin
@@ -146,6 +183,11 @@ myApp
 									.addChild(
 											nga
 													.menu(puno)
+													.icon(
+															'<span class="glyphicon glyphicon-hdd"></span>'))
+									.addChild(
+											nga
+													.menu(prno)
 													.icon(
 															'<span class="glyphicon glyphicon-hdd"></span>'))
 									.addChild(

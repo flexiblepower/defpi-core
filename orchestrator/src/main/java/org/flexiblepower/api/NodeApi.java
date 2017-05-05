@@ -32,7 +32,7 @@ import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 
 @Api("Node")
-@Path("node")
+@Path("/")
 public interface NodeApi {
 
     final static String PRIVATE_NODE_NOT_FOUND_MESSAGE = "Private node not found";
@@ -40,8 +40,8 @@ public interface NodeApi {
     final static String UNIDENTIFIED_NODE_NOT_FOUND_MESSAGE = "Unidentified node not found";
 
     @POST
-    @Path("/private")
-    @Produces(MediaType.TEXT_PLAIN)
+    @Path("/privatenode")
+    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "createPrivateNode",
                   value = "Create a new private node",
@@ -58,9 +58,9 @@ public interface NodeApi {
             throws AuthorizationException, NotFoundException;
 
     @POST
-    @Path("/public")
-    @Produces(MediaType.TEXT_PLAIN)
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Path("/publicnode")
+    // @Produces(MediaType.APPLICATION_JSON)
+    // @Consumes(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "createPublicNode",
                   value = "Create a new public node",
                   notes = "Create a public node based on the id of an unidentified node",
@@ -76,7 +76,7 @@ public interface NodeApi {
             throws AuthorizationException, NotFoundException;
 
     @DELETE
-    @Path("/private/{node_id}")
+    @Path("/privatenode/{node_id}")
     @ApiOperation(nickname = "deletePrivateNode",
                   value = "Remove a private node",
                   notes = "Remove a private node and make it unidentified again",
@@ -92,7 +92,7 @@ public interface NodeApi {
             throws AuthorizationException, NotFoundException, InvalidObjectIdException;
 
     @DELETE
-    @Path("/public/{node_id}")
+    @Path("/publicnode/{node_id}")
     @ApiOperation(nickname = "deletePublicNode",
                   value = "Remove a public node",
                   notes = "Remove a public node and make it unidentified again",
@@ -110,7 +110,7 @@ public interface NodeApi {
                     throws AuthorizationException, NotFoundException, InvalidObjectIdException;
 
     @GET
-    @Path("/private/{node_id}")
+    @Path("/privatenode/{node_id}")
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "getPrivateNode",
                   value = "Find a private node",
@@ -126,7 +126,7 @@ public interface NodeApi {
             throws NotFoundException, InvalidObjectIdException;
 
     @GET
-    @Path("/public/{node_id}")
+    @Path("/publicnode/{node_id}")
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "getPublicNode",
                   value = "Find a public node",
@@ -141,7 +141,7 @@ public interface NodeApi {
             throws NotFoundException, InvalidObjectIdException;
 
     @GET
-    @Path("/private")
+    @Path("/privatenode")
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "listPrivateNodes",
                   value = "List private nodes",
@@ -156,7 +156,7 @@ public interface NodeApi {
     public List<PrivateNode> listPrivateNodes();
 
     @GET
-    @Path("/public")
+    @Path("/publicnode")
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "listPublicNodes",
                   value = "List public nodes",
@@ -172,7 +172,7 @@ public interface NodeApi {
     public List<PublicNode> listPublicNodes();
 
     @GET
-    @Path("/unidentified")
+    @Path("/unidentifiednode")
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "listUnidentifiedNodes",
                   value = "List unidentified nodes",
