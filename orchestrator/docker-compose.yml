@@ -13,3 +13,9 @@ orchestrator:
     - REGISTRY_URL=def-pi1.sensorlab.tno.nl
 mongo:
   image: mongo
+orchestrator-ui:
+  image: def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator-ui
+  ports:
+    - 0.0.0.0:8081:80
+  environment:
+    - ORCHESTARTOR_URL=http://def-pi1.sensorlab.tno.nl:8080/
