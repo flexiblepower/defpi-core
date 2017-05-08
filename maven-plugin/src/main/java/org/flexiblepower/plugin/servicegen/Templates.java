@@ -11,8 +11,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Scanner;
 
-import org.flexiblepower.plugin.servicegen.model.Interface;
-import org.flexiblepower.plugin.servicegen.model.Service;
+import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
+import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
 import org.flexiblepower.plugin.servicegen.model.Type;
 
 public class Templates {
@@ -36,9 +36,9 @@ public class Templates {
         return result;
     }
 
-    public String parseServiceImplementation(final List<Interface> interfaces) {
+    public String parseServiceImplementation(final Set<InterfaceDescription> interfaces) {
         String handlers = "";
-        for (final Interface i : interfaces) {
+        for (final InterfaceDescription i : interfaces) {
             final Map<String, String> handlerReplace = new HashMap<>();
             handlerReplace.put("name", i.getName());
             handlerReplace.put("subscribe", this.getHash(i.getSubscribe()));
@@ -52,7 +52,7 @@ public class Templates {
         return Templates.replaceMap(this.getTemplate("ServiceImplementation"), replace);
     }
 
-    public String parseFactory(final Interface i) {
+    public String parseFactory(final InterfaceDescription i) {
         final HashMap<String, String> replace = new HashMap<>();
         replace.put("package", this.servicePackage);
         replace.put("name", i.getClassPrefix());
@@ -68,7 +68,7 @@ public class Templates {
         return Templates.replaceMap(this.getTemplate("Factory"), replace);
     }
 
-    public String parseSubscribeHandler(final Interface i) {
+    public String parseSubscribeHandler(final InterfaceDescription i) {
         final HashMap<String, String> replace = new HashMap<>();
         replace.put("package", this.servicePackage);
         replace.put("name", i.getClassPrefix());
@@ -96,7 +96,7 @@ public class Templates {
         return Templates.replaceMap(this.getTemplate("SubscribeHandler"), replace);
     }
 
-    public String parsePublishHandler(final Interface i) {
+    public String parsePublishHandler(final InterfaceDescription i) {
         final HashMap<String, String> replace = new HashMap<>();
         replace.put("package", this.servicePackage);
         replace.put("name", i.getClassPrefix());
@@ -124,10 +124,10 @@ public class Templates {
         return Templates.replaceMap(this.getTemplate("PublishHandler"), replace);
     }
 
-    public String parseDockerfile(final String platform, final Service service) {
+    public String parseDockerfile(final String platform, final ServiceDescription service) {
         final String interfaceTemplate = "{\"name\":\"%s\",\"cardinality\":%d,\"autoConnect\":%s,\"subscribeHash\":\"%s\",\"publishHash\":\"%s\"},";
         String interfaces = "[";
-        for (final Interface i : service.getInterfaces()) {
+        for (final InterfaceDescription i : service.getInterfaces()) {
             interfaces += String.format(interfaceTemplate,
                     i.getName(),
                     i.getCardinality(),

@@ -17,7 +17,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Scanner;
@@ -60,13 +59,12 @@ import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.StringUtils;
 import org.flexiblepower.plugin.servicegen.model.Descriptor;
-import org.flexiblepower.plugin.servicegen.model.Interface;
-import org.flexiblepower.plugin.servicegen.model.Service;
-import org.flexiblepower.plugin.servicegen.model.Type;
+import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
+import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription;
+import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
 import org.xml.sax.SAXException;
-import org.yaml.snakeyaml.TypeDescription;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import japa.parser.JavaParser;
 import japa.parser.ParseException;
@@ -80,7 +78,8 @@ import japa.parser.ast.visitor.VoidVisitorAdapter;
 @Mojo(name = "create", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
 public class CreateComponentMojo extends AbstractMojo {
 
-    private static final String messageRepositoryLink = "http://efpi-rd1.sensorlab.tno.nl/descriptors";
+    // private static final String messageRepositoryLink = "http://efpi-rd1.sensorlab.tno.nl/descriptors";
+
     /**
      * Folder where the service.yml and descriptor/xsd files are located
      */
@@ -144,30 +143,36 @@ public class CreateComponentMojo extends AbstractMojo {
     @Override
     public void execute() throws MojoExecutionException {
         try {
-            final Service service = this.readServiceYaml();
+            final ServiceDescription service = this.readServiceYaml();
             this.servicePackage = this.project.getGroupId() + "." + this.project.getArtifactId();
             this.templates.servicePackage = this.servicePackage;
             this.createFolderStructure();
 
-            final Map<String, Descriptor> descriptors = service.getDescriptors();
+            final Set<InterfaceDescription> interfaces = service.getInterfaces();
 
-            this.createDescriptors(descriptors);
+            // this.createDescriptors(descriptors);
 
-            descriptors.put(null, new Descriptor());
-            for (final Interface i : service.getInterfaces()) {
-                for (final Type type : i.getPublish()) {
-                    type.setDescriptorObject(descriptors.get(type.getDescriptor()));
-                }
-                for (final Type type : i.getSubscribe()) {
-                    type.setDescriptorObject(descriptors.get(type.getDescriptor()));
+            // descriptors.put(null, new Descriptor());
+            for (final InterfaceDescription iface : service.getInterfaces()) {
+                for (final InterfaceVersionDescription versionedIface : iface.getInterfaceVersions()) {
+                    for (final String sendType : versionedIface.getSends()) {
+                        this.addSendsObject(versionedIface.getType(), versionedIface.getLocation(), sendType);
+                    }
+
+                    for (final String receivesType : versionedIface.getReceives()) {
+                        this.addReceivesObject(versionedIface.getType(), versionedIface.getLocation(), receivesType);
+                    }
                 }
             }
+
             this.templates.hashes = this.hashes;
+
             try {
                 this.findExistingFactories();
             } catch (final Exception e) {
                 this.getLog().info("Couldn't parse existing files in the handler package");
             }
+
             this.createStubs(service.getInterfaces());
             this.createDockerfile(service);
 
@@ -177,32 +182,39 @@ public class CreateComponentMojo extends AbstractMojo {
     }
 
     /**
-     * Reads and parses the service yaml into a Service object
+     * Reads and parses the service yaml into a ServiceDescription object
      *
-     * @return Service object containing the data of the yaml
+     * @return ServiceDescription object containing the data of the yaml
      * @throws FileNotFoundException
      *             service.yml is not found in the resource directory
      */
-    private Service readServiceYaml() throws IOException {
-        final Constructor constructor = new Constructor(Service.class);
+    private ServiceDescription readServiceYaml() throws IOException {
+        final ObjectMapper mapper = new ObjectMapper();
 
-        final TypeDescription interfaceDescription = new TypeDescription(Service.class);
-        interfaceDescription.putListPropertyType("interfaces", Interface.class);
-
-        final TypeDescription descriptorsDescription = new TypeDescription(Service.class);
-        descriptorsDescription.putMapPropertyType("descriptors", String.class, Descriptor.class);
-
-        final TypeDescription typesDescription = new TypeDescription(Interface.class);
-        typesDescription.putListPropertyType("subscribe", Type.class);
-        typesDescription.putListPropertyType("publish", Type.class);
-
-        constructor.addTypeDescription(interfaceDescription);
-        constructor.addTypeDescription(descriptorsDescription);
-        constructor.addTypeDescription(typesDescription);
-
-        final Yaml yaml = new Yaml(constructor);
+        /*
+         * final Constructor constructor = new Constructor(ServiceDescription.class);
+         * 
+         * final TypeDescription interfaceDescription = new TypeDescription(ServiceDescription.class);
+         * interfaceDescription.putListPropertyType("interfaces", InterfaceDescription.class);
+         * 
+         * final TypeDescription descriptorsDescription = new TypeDescription(ServiceDescription.class);
+         * descriptorsDescription.putMapPropertyType("descriptors", String.class, Descriptor.class);
+         * 
+         * final TypeDescription typesDescription = new TypeDescription(InterfaceDescription.class);
+         * typesDescription.putListPropertyType("subscribe", Type.class);
+         * typesDescription.putListPropertyType("publish", Type.class);
+         * 
+         * constructor.addTypeDescription(interfaceDescription);
+         * constructor.addTypeDescription(descriptorsDescription);
+         * constructor.addTypeDescription(typesDescription);
+         * 
+         * final Yaml yaml = new Yaml(constructor);
+         */
         try (InputStream input = new FileInputStream(new File(this.resourceDir.getPath() + "/service.yml"))) {
-            return (Service) yaml.load(input);
+
+            return mapper.readValue(input, ServiceDescription.class);
+
+            // return (ServiceDescription) yaml.load(input);
         }
     }
 
@@ -419,7 +431,7 @@ public class CreateComponentMojo extends AbstractMojo {
      *            List of interfaces for which stubs should be created.
      * @throws IOException
      */
-    private void createStubs(final List<Interface> interfaces) throws IOException {
+    private void createStubs(final Set<InterfaceDescription> interfaces) throws IOException {
         this.getLog().info("Creating stubs");
         final Path serviceImpl = Paths.get(this.sourceFolder.getPath() + "/ServiceImpl.java");
         serviceImpl.toFile().delete();
@@ -427,7 +439,7 @@ public class CreateComponentMojo extends AbstractMojo {
                 this.templates.parseServiceImplementation(interfaces).getBytes(),
                 StandardOpenOption.CREATE);
 
-        for (final Interface i : interfaces) {
+        for (final InterfaceDescription i : interfaces) {
             if (!this.existingFactories.contains(i.getName())) {
                 final File factory = new File(
                         this.sourceFolder.getPath() + "/handlers/" + i.getClassPrefix() + "Factory.java");
@@ -462,10 +474,10 @@ public class CreateComponentMojo extends AbstractMojo {
      * Create the Dockerfile
      *
      * @param service
-     *            The current Service object
+     *            The current ServiceDescription object
      * @throws IOException
      */
-    private void createDockerfile(final Service service) throws IOException {
+    private void createDockerfile(final ServiceDescription service) throws IOException {
         this.getLog().info("Creating Dockerfiles");
         Files.write(Paths.get(this.dockerFolder.getPath() + "/Dockerfile"),
                 this.templates.parseDockerfile("x86", service).getBytes(),

@@ -64,6 +64,11 @@
 			<artifactId>javaparser</artifactId>
 			<version>1.0.11</version>
 		</dependency>
+		
+		<dependency>
+			<groupId>org.flexiblepower</groupId>
+			<artifactId>api</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>
