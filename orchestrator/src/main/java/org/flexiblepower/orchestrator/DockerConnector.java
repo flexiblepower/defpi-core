@@ -47,6 +47,7 @@ public class DockerConnector {
 
     // private static final String CERT_PATH = "C:\\Users\\leeuwencjv\\.docker\\machine\\machines\\default";
     private static final String DOCKER_HOST_KEY = "DOCKER_HOST";
+
     private static final String SERVICE_LABEL_KEY = "service.name";
     private static final String USER_LABEL_KEY = "user.id";
     private static final String NODE_ID_LABEL_KEY = "node.id";

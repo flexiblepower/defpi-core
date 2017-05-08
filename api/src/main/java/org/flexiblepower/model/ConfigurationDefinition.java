@@ -5,7 +5,6 @@
  */
 package org.flexiblepower.model;
 
-import java.util.Map;
 import java.util.Set;
 
 /**

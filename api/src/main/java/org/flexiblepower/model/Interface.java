@@ -48,12 +48,6 @@ public class Interface {
     @JsonProperty("autoConnect")
     private boolean autoConnect;
 
-    @JsonProperty("publishHash")
-    private String publishHash;
-
-    @JsonProperty("subscribeHash")
-    private String subscribeHash;
-
     public Interface(final String name) {
         this.id = new ObjectId(UUID.randomUUID().toString());
         this.name = name;

@@ -41,6 +41,8 @@ public class ProcessIntegrationTest {
 
     private static final String TEST_USER = "Maarten2";
 
+    private static String hostname1;
+    private static String hostname2;
     private static String processId1;
     private static String processId2;
     private static Service service;
@@ -62,10 +64,16 @@ public class ProcessIntegrationTest {
         final User user = new User(ProcessIntegrationTest.TEST_USER, UUID.randomUUID().toString());
 
         final String localhostName = InetAddress.getLocalHost().getHostName();
+        ProcessIntegrationTest.hostname1 = "def-pi1";
+        ProcessIntegrationTest.hostname2 = "def-pi2";
 
         ProcessIntegrationTest.service = service;
-        ProcessIntegrationTest.processId1 = ProcessIntegrationTest.connector.newProcess(service, user, localhostName);
-        ProcessIntegrationTest.processId2 = ProcessIntegrationTest.connector.newProcess(service, user, localhostName);
+        ProcessIntegrationTest.processId1 = ProcessIntegrationTest.connector.newProcess(service,
+                user,
+                ProcessIntegrationTest.hostname1);
+        ProcessIntegrationTest.processId2 = ProcessIntegrationTest.connector.newProcess(service,
+                user,
+                ProcessIntegrationTest.hostname2);
     }
 
     @Test
