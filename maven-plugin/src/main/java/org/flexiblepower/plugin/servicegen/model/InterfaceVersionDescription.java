@@ -34,33 +34,33 @@ public class InterfaceVersionDescription {
      * (Required)
      */
     @JsonProperty("versionName")
-    public String versionName;
+    private String versionName;
 
     /**
      * (Required)
      */
     @JsonProperty("type")
-    public InterfaceVersionDescription.Type type;
+    private InterfaceVersionDescription.Type type;
 
     /**
      * (Required)
      */
     @JsonProperty("location")
-    public String location;
+    private String location;
 
     /**
      * (Required)
      */
     @JsonProperty("sends")
     @JsonDeserialize(as = java.util.LinkedHashSet.class)
-    public Set<String> sends = null;
+    private final Set<String> sends = null;
 
     /**
      * (Required)
      */
     @JsonProperty("receives")
     @JsonDeserialize(as = java.util.LinkedHashSet.class)
-    public Set<String> receives = null;
+    private final Set<String> receives = null;
 
     public enum Type {
 

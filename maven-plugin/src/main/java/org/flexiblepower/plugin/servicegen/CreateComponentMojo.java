@@ -5,8 +5,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,20 +16,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Scanner;
 import java.util.Set;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPathExpressionException;
-
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.EntityBuilder;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.HttpClientBuilder;
 
 /*
  * Copyright 2001-2005 The Apache Software Foundation.
@@ -56,11 +45,9 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
-import org.codehaus.plexus.util.FileUtils;
-import org.codehaus.plexus.util.StringUtils;
-import org.flexiblepower.plugin.servicegen.model.Descriptor;
 import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription;
+import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription.Type;
 import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
 import org.xml.sax.SAXException;
 
@@ -84,7 +71,7 @@ public class CreateComponentMojo extends AbstractMojo {
      * Folder where the service.yml and descriptor/xsd files are located
      */
     @Parameter(property = "project.resourcedir", required = true)
-    private File resourceDir;
+    private String resourceDir;
 
     @Component
     private MavenProject project;
@@ -106,30 +93,34 @@ public class CreateComponentMojo extends AbstractMojo {
     private final Set<String> existingFactories = new HashSet<>();
 
     /**
+     * Main resources path, from parameter
+     */
+    private Path resourcePath;
+    /**
      * Main java source folder
      */
-    private File sourceFolder;
+    private Path sourceFolder;
     /**
      * Java source folder for service handlers
      */
-    private File sourceHandlerFolder;
+    private Path sourceHandlerFolder;
     /**
      * Folder to store altered protobuf descriptor files
      */
-    private File descriptorProtobufFolder;
+    private Path descriptorProtobufFolder;
     /**
      * Folder to store xsd descriptor files
      */
-    private File descriptorXSDFolder;
+    private Path descriptorXSDFolder;
     /**
      * Folder where the Dockerfile is located
      */
-    private File dockerFolder;
+    private Path dockerFolder;
 
     /**
      * Folder where the ARM Dockerfile is located
      */
-    private File dockerARMFolder;
+    private Path dockerARMFolder;
 
     /**
      * Templates for code generation
@@ -143,28 +134,17 @@ public class CreateComponentMojo extends AbstractMojo {
     @Override
     public void execute() throws MojoExecutionException {
         try {
-            final ServiceDescription service = this.readServiceYaml();
+            this.resourcePath = Paths.get(this.resourceDir);
             this.servicePackage = this.project.getGroupId() + "." + this.project.getArtifactId();
-            this.templates.servicePackage = this.servicePackage;
+
+            final ServiceDescription service = this.readServiceDefinition();
             this.createFolderStructure();
 
-            final Set<InterfaceDescription> interfaces = service.getInterfaces();
+            // Add descriptors and related hashes
+            this.createDescriptors(service.getInterfaces());
 
-            // this.createDescriptors(descriptors);
-
-            // descriptors.put(null, new Descriptor());
-            for (final InterfaceDescription iface : service.getInterfaces()) {
-                for (final InterfaceVersionDescription versionedIface : iface.getInterfaceVersions()) {
-                    for (final String sendType : versionedIface.getSends()) {
-                        this.addSendsObject(versionedIface.getType(), versionedIface.getLocation(), sendType);
-                    }
-
-                    for (final String receivesType : versionedIface.getReceives()) {
-                        this.addReceivesObject(versionedIface.getType(), versionedIface.getLocation(), receivesType);
-                    }
-                }
-            }
-
+            // Build templates
+            this.templates.servicePackage = this.servicePackage;
             this.templates.hashes = this.hashes;
 
             try {
@@ -188,57 +168,29 @@ public class CreateComponentMojo extends AbstractMojo {
      * @throws FileNotFoundException
      *             service.yml is not found in the resource directory
      */
-    private ServiceDescription readServiceYaml() throws IOException {
-        final ObjectMapper mapper = new ObjectMapper();
+    private ServiceDescription readServiceDefinition() throws IOException {
+        final File inputFile = this.resourcePath.resolve("service.json").toFile();
+        this.getLog().info(String.format("Reading service definition from %s", inputFile));
 
-        /*
-         * final Constructor constructor = new Constructor(ServiceDescription.class);
-         * 
-         * final TypeDescription interfaceDescription = new TypeDescription(ServiceDescription.class);
-         * interfaceDescription.putListPropertyType("interfaces", InterfaceDescription.class);
-         * 
-         * final TypeDescription descriptorsDescription = new TypeDescription(ServiceDescription.class);
-         * descriptorsDescription.putMapPropertyType("descriptors", String.class, Descriptor.class);
-         * 
-         * final TypeDescription typesDescription = new TypeDescription(InterfaceDescription.class);
-         * typesDescription.putListPropertyType("subscribe", Type.class);
-         * typesDescription.putListPropertyType("publish", Type.class);
-         * 
-         * constructor.addTypeDescription(interfaceDescription);
-         * constructor.addTypeDescription(descriptorsDescription);
-         * constructor.addTypeDescription(typesDescription);
-         * 
-         * final Yaml yaml = new Yaml(constructor);
-         */
-        try (InputStream input = new FileInputStream(new File(this.resourceDir.getPath() + "/service.yml"))) {
-
-            return mapper.readValue(input, ServiceDescription.class);
-
-            // return (ServiceDescription) yaml.load(input);
+        try (InputStream input = new FileInputStream(inputFile)) {
+            return (new ObjectMapper()).readValue(input, ServiceDescription.class);
         }
     }
 
     /**
      * Makes the folders for the generated files
+     *
+     * @throws IOException
      */
-    private void createFolderStructure() {
+    private void createFolderStructure() throws IOException {
         this.getLog().info("Creating folder structure");
-        this.sourceFolder = new File("src/main/java/" + this.servicePackage.replace('.', '/'));
+        this.sourceFolder = Paths.get("src", "main", "java", this.servicePackage.replace('.', '/'));
 
-        this.sourceHandlerFolder = new File(this.sourceFolder.getPath() + "/handlers");
-        this.sourceHandlerFolder.mkdirs();
-
-        this.descriptorProtobufFolder = new File(this.resourceDir.getPath() + "/protobuf");
-        this.descriptorProtobufFolder.mkdirs();
-
-        this.descriptorXSDFolder = new File(this.resourceDir.getPath() + "/xsd");
-        this.descriptorXSDFolder.mkdirs();
-
-        this.dockerFolder = new File(this.resourceDir.getPath() + "/docker/");
-        this.dockerFolder.mkdirs();
-
-        this.dockerARMFolder = new File(this.resourceDir.getPath() + "/docker-arm/");
-        this.dockerARMFolder.mkdirs();
+        this.sourceHandlerFolder = Files.createDirectories(this.sourceFolder.resolve("handlers"));
+        this.descriptorProtobufFolder = Files.createDirectories(this.resourcePath.resolve("protobuf"));
+        this.descriptorXSDFolder = Files.createDirectories(this.resourcePath.resolve("xsd"));
+        this.dockerFolder = Files.createDirectories(this.resourcePath.resolve("docker"));
+        this.dockerARMFolder = Files.createDirectories(this.resourcePath.resolve("docker-arm"));
     }
 
     /**
@@ -252,33 +204,41 @@ public class CreateComponentMojo extends AbstractMojo {
      * @throws SAXException
      * @throws XPathExpressionException
      */
-    private void createDescriptors(final Map<String, Descriptor> descriptors)
+    private void createDescriptors(final Set<InterfaceDescription> interfaces)
             throws IOException, ParserConfigurationException, SAXException, XPathExpressionException {
         this.getLog().info("Creating descriptors");
 
-        for (final Entry<String, Descriptor> descriptorEntry : descriptors.entrySet()) {
-            final String name = descriptorEntry.getKey();
-            final Descriptor descriptor = descriptorEntry.getValue();
-            if (descriptor.getUrl() != null) {
-                this.downloadDescriptor(name, descriptor);
-            }
+        for (final InterfaceDescription iface : interfaces) {
+            for (final InterfaceVersionDescription versionDescription : iface.getInterfaceVersions()) {
+                // final Descriptor descriptor = versionDescription.get;
+                // if (descriptor.getUrl() != null) {
+                // this.downloadDescriptor(name, descriptor);
+                // }
 
-            if (descriptor.getSource().equals("protobuf")) {
-                final Path filePath = Paths.get(this.resourceDir.getPath() + "/" + descriptor.getFile());
-                this.appendDescriptor(name, descriptor, filePath, this.descriptorProtobufFolder.toPath());
-                if (descriptor.isUpload()) {
-                    this.uploadDescriptor(name, filePath.toFile());
+                final String fullName = String.format("%s", CreateComponentMojo.toObjectName(iface));
+                // versionDescription.getVersionName());
+                final Path inputPath = this.resourcePath.resolve(versionDescription.getLocation());
+                final Path outputPath = this.descriptorProtobufFolder.resolve(versionDescription.getLocation());
+
+                if (versionDescription.getType().equals(Type.PROTO)) {
+                    this.appendDescriptor(fullName, inputPath, outputPath);
+                    // if (descriptor.isUpload()) {
+                    // this.uploadDescriptor(name, filePath.toFile());
+                    // }
+                } else if (versionDescription.getType().equals(Type.XSD)) {
+                    this.getLog().info("Reading xsd descriptor");
+                    Files.copy(inputPath, outputPath, StandardCopyOption.REPLACE_EXISTING);
                 }
-            } else if (descriptor.getSource().equals("xsd")) {
-                System.out.println("Reading xsd descriptor");
-                final Path filePath = Paths.get(this.resourceDir.getPath() + "/" + descriptor.getFile());
-                final Path output = Paths.get(this.descriptorXSDFolder.getPath() + "/" + descriptor.getFile());
-                Files.copy(filePath, output, StandardCopyOption.REPLACE_EXISTING);
-                this.hashes.put(name, this.fileToSHA256(filePath.toFile()));
+
+                if (!this.hashes.containsKey(fullName)) {
+                    this.hashes.put(fullName, this.fileToSHA256(outputPath));
+                }
+
             }
         }
 
         this.getLog().info("Generated descriptors: " + Arrays.toString(this.hashes.entrySet().toArray()));
+
     }
 
     /**
@@ -296,19 +256,12 @@ public class CreateComponentMojo extends AbstractMojo {
      *            Folder the altered descriptor file should be stored.
      * @throws IOException
      */
-    private void appendDescriptor(final String name,
-            final Descriptor descriptor,
-            final Path filePath,
-            final Path outputPath) throws IOException {
+    private void appendDescriptor(final String name, final Path filePath, final Path outputPath) throws IOException {
         this.getLog().info("Modifying descriptor");
-        if (!this.hashes.containsKey(name)) {
-            this.hashes.put(name, this.fileToSHA256(filePath.toFile()));
-        }
-        final Path output = Paths.get(outputPath + "/" + descriptor.getFile());
-        Files.copy(filePath, output, StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(filePath, outputPath, StandardCopyOption.REPLACE_EXISTING);
 
         try (final Scanner scanner = new Scanner(new FileInputStream(filePath.toFile()), "UTF-8")) {
-            Files.write(output,
+            Files.write(outputPath,
                     ("syntax = \"proto2\";" + "\n\n" + "option java_package = \"" + this.servicePackage
                             + ".protobuf\";\n" + "option java_outer_classname = \"" + name + "Proto\";\n\n"
                             + scanner.useDelimiter("\\A").next()).getBytes(),
@@ -327,21 +280,22 @@ public class CreateComponentMojo extends AbstractMojo {
      * @throws MalformedURLException
      * @throws IOException
      */
-    private void downloadDescriptor(final String name, final Descriptor descriptor)
-            throws MalformedURLException, IOException {
-        this.getLog().info("Downloading descriptor");
-        descriptor.setUpload(false);
-        if (descriptor.getSource().equals("protobuf")) {
-            descriptor.setFile(name + ".proto");
-        } else if (descriptor.getSource().equals("xsd")) {
-            descriptor.setFile(name + ".xsd");
-        }
-        final String hash = descriptor.getUrl().substring(descriptor.getUrl().lastIndexOf('/') + 1);
-        this.hashes.put(name, hash);
-        FileUtils.copyURLToFile(new URL(descriptor.getUrl()),
-                new File(this.resourceDir.getPath() + "/" + descriptor.getFile()));
-        this.getLog().info("Descriptor downloaded from: " + descriptor.getUrl());
-    }
+    /*
+     * private void downloadDescriptor(final String name, final Descriptor descriptor)
+     * throws MalformedURLException, IOException {
+     * this.getLog().info("Downloading descriptor");
+     * descriptor.setUpload(false);
+     * if (descriptor.getSource().equals("protobuf")) {
+     * descriptor.setFile(name + ".proto");
+     * } else if (descriptor.getSource().equals("xsd")) {
+     * descriptor.setFile(name + ".xsd");
+     * }
+     * final String hash = descriptor.getUrl().substring(descriptor.getUrl().lastIndexOf('/') + 1);
+     * this.hashes.put(name, hash);
+     * FileUtils.copyURLToFile(new URL(descriptor.getUrl()), this.resourcePath.resolve(descriptor.getFile()).toFile());
+     * this.getLog().info("Descriptor downloaded from: " + descriptor.getUrl());
+     * }
+     */
 
     /**
      * Upload the descriptor file to the registry.
@@ -353,29 +307,31 @@ public class CreateComponentMojo extends AbstractMojo {
      * @throws ClientDescriptorcolException
      * @throws IOException
      */
-    private void uploadDescriptor(final String name, final File file) throws ClientProtocolException, IOException {
-        this.getLog().info("Uploading descriptor");
-        @SuppressWarnings("resource")
-        final HttpClient client = HttpClientBuilder.create().build();
-        final HttpPost request = new HttpPost(CreateComponentMojo.messageRepositoryLink);
-        final String json = "{\"name\": \"%s\", \"sha256\": \"%s\", \"descriptor\": \"%s\"}";
-
-        String fileContent;
-        try (Scanner scanner = new Scanner(new FileInputStream(file), "UTF-8")) {
-            fileContent = scanner.useDelimiter("\\A").next();
-        }
-
-        final HttpEntity entity = EntityBuilder.create()
-                .setText(String.format(json, name, this.hashes.get(name), StringUtils.escape(fileContent)))
-                .build();
-        request.setEntity(entity);
-        request.setHeader("Accept", "application/json");
-        request.setHeader("Content-Type", "application/json");
-
-        final HttpResponse r = client.execute(request);
-        this.getLog().info("Descriptor uploaded (" + r.getStatusLine().getStatusCode() + ")");
-
-    }
+    /*
+     * private void uploadDescriptor(final String name, final File file) throws ClientProtocolException, IOException {
+     * this.getLog().info("Uploading descriptor");
+     *
+     * @SuppressWarnings("resource")
+     * final HttpClient client = HttpClientBuilder.create().build();
+     * final HttpPost request = new HttpPost(CreateComponentMojo.messageRepositoryLink);
+     * final String json = "{\"name\": \"%s\", \"sha256\": \"%s\", \"descriptor\": \"%s\"}";
+     *
+     * String fileContent;
+     * try (Scanner scanner = new Scanner(new FileInputStream(file), "UTF-8")) {
+     * fileContent = scanner.useDelimiter("\\A").next();
+     * }
+     *
+     * final HttpEntity entity = EntityBuilder.create()
+     * .setText(String.format(json, name, this.hashes.get(name), StringUtils.escape(fileContent)))
+     * .build();
+     * request.setEntity(entity);
+     * request.setHeader("Accept", "application/json");
+     * request.setHeader("Content-Type", "application/json");
+     *
+     * final HttpResponse r = client.execute(request);
+     * this.getLog().info("Descriptor uploaded (" + r.getStatusLine().getStatusCode() + ")");
+     * }
+     */
 
     /**
      * Find existing factories in the handler package. This is done by parsing
@@ -387,12 +343,12 @@ public class CreateComponentMojo extends AbstractMojo {
     private void findExistingFactories() throws IOException {
         this.getLog().info("Finding existing factories");
         CompilationUnit cu;
-        for (final File f : this.sourceHandlerFolder.listFiles()) {
+        for (final Path f : this.sourceHandlerFolder) {
             try {
-                cu = JavaParser.parse(f);
-                new AnnotationVisitor().visit(cu, f);
+                cu = JavaParser.parse(f.toFile());
+                new AnnotationVisitor().visit(cu, f.toFile());
             } catch (final ParseException e) {
-                this.getLog().info("File " + f.getAbsolutePath() + " could not be parsed, file excluded");
+                this.getLog().info(String.format("File %s could not be parsed, file excluded", f));
             }
         }
         this.getLog().info("Existing factories: " + this.existingFactories);
@@ -433,7 +389,7 @@ public class CreateComponentMojo extends AbstractMojo {
      */
     private void createStubs(final Set<InterfaceDescription> interfaces) throws IOException {
         this.getLog().info("Creating stubs");
-        final Path serviceImpl = Paths.get(this.sourceFolder.getPath() + "/ServiceImpl.java");
+        final Path serviceImpl = this.sourceFolder.resolve("ServiceImpl.java");
         serviceImpl.toFile().delete();
         Files.write(serviceImpl,
                 this.templates.parseServiceImplementation(interfaces).getBytes(),
@@ -441,23 +397,21 @@ public class CreateComponentMojo extends AbstractMojo {
 
         for (final InterfaceDescription i : interfaces) {
             if (!this.existingFactories.contains(i.getName())) {
-                final File factory = new File(
-                        this.sourceFolder.getPath() + "/handlers/" + i.getClassPrefix() + "Factory.java");
-                final File subscribeHandler = new File(
-                        this.sourceFolder.getPath() + "/handlers/" + i.getClassPrefix() + "SubscribeHandler.java");
-                final File publishHandler = new File(
-                        this.sourceFolder.getPath() + "/handlers/" + i.getClassPrefix() + "PublishHandler.java");
+                final Path factory = this.sourceHandlerFolder
+                        .resolve(CreateComponentMojo.toObjectName(i) + "Factory.java");
+                final Path subscribeHandler = this.sourceHandlerFolder
+                        .resolve(CreateComponentMojo.toObjectName(i) + "SubscribeHandler.java");
+                final Path publishHandler = this.sourceHandlerFolder
+                        .resolve(CreateComponentMojo.toObjectName(i) + "PublishHandler.java");
                 try {
-                    Files.write(factory.toPath(),
-                            this.templates.parseFactory(i).getBytes(),
-                            StandardOpenOption.CREATE_NEW);
-                    if (i.getSubscribe() != null) {
-                        Files.write(subscribeHandler.toPath(),
+                    Files.write(factory, this.templates.parseFactory(i).getBytes(), StandardOpenOption.CREATE_NEW);
+                    if (i.getInterfaceVersions().iterator().next().getReceives() != null) {
+                        Files.write(subscribeHandler,
                                 this.templates.parseSubscribeHandler(i).getBytes(),
                                 StandardOpenOption.CREATE_NEW);
                     }
-                    if (i.getPublish() != null) {
-                        Files.write(publishHandler.toPath(),
+                    if (i.getInterfaceVersions().iterator().next().getSends() != null) {
+                        Files.write(publishHandler,
                                 this.templates.parsePublishHandler(i).getBytes(),
                                 StandardOpenOption.CREATE_NEW);
                     }
@@ -471,6 +425,31 @@ public class CreateComponentMojo extends AbstractMojo {
     }
 
     /**
+     * @param i
+     * @return
+     */
+    static String toObjectName(final InterfaceDescription i) {
+        return CreateComponentMojo.camelCaps(i.getName());
+    }
+
+    /**
+     * @param i
+     * @return
+     */
+    static String camelCaps(final String str) {
+        final StringBuilder ret = new StringBuilder();
+
+        for (final String word : str.split(" ")) {
+            if (!word.isEmpty()) {
+                ret.append(Character.toUpperCase(word.charAt(0)));
+                ret.append(word.substring(1).toLowerCase());
+            }
+        }
+
+        return ret.toString();
+    }
+
+    /**
      * Create the Dockerfile
      *
      * @param service
@@ -479,10 +458,10 @@ public class CreateComponentMojo extends AbstractMojo {
      */
     private void createDockerfile(final ServiceDescription service) throws IOException {
         this.getLog().info("Creating Dockerfiles");
-        Files.write(Paths.get(this.dockerFolder.getPath() + "/Dockerfile"),
+        Files.write(this.dockerFolder.resolve("Dockerfile"),
                 this.templates.parseDockerfile("x86", service).getBytes(),
                 StandardOpenOption.CREATE);
-        Files.write(Paths.get(this.dockerARMFolder.getPath() + "/Dockerfile"),
+        Files.write(this.dockerARMFolder.resolve("Dockerfile"),
                 this.templates.parseDockerfile("arm", service).getBytes(),
                 StandardOpenOption.CREATE);
     }
@@ -493,10 +472,13 @@ public class CreateComponentMojo extends AbstractMojo {
      * @param file
      *            File to be hashed
      * @return
+     * @throws IOException
+     * @throws FileNotFoundException
+     * @throws NoSuchAlgorithmException
      */
-    private String fileToSHA256(final File file) {
+    private String fileToSHA256(final Path file) throws FileNotFoundException, IOException {
         this.getLog().info("Hashing file");
-        try (final FileInputStream fis = new FileInputStream(file)) {
+        try (final FileInputStream fis = new FileInputStream(file.toFile())) {
             final MessageDigest md = MessageDigest.getInstance("SHA-256");
             final byte[] dataBytes = new byte[1024];
 
@@ -510,15 +492,21 @@ public class CreateComponentMojo extends AbstractMojo {
             for (final byte mdbyte : mdbytes) {
                 sb.append(Integer.toString((mdbyte & 0xff) + 0x100, 16).substring(1));
             }
-            fis.close();
             return sb.toString();
-        } catch (final NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (final FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (final IOException e) {
-            e.printStackTrace();
         }
-        return "";
+        /*
+         * } catch (final NoSuchAlgorithmException e) {
+         * e.printStackTrace();
+         * } catch (final FileNotFoundException e) {
+         * e.printStackTrace();
+         * } catch (final IOException e) {
+         * e.printStackTrace();
+         * }
+         *
+         * return "";
+         */ catch (final NoSuchAlgorithmException e) {
+            throw new IOException("Error while computing hash for file " + file, e);
+        }
     }
 }
+//

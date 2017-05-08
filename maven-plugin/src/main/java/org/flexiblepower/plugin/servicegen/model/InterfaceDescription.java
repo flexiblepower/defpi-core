@@ -25,22 +25,22 @@ public class InterfaceDescription {
      * (Required)
      */
     @JsonProperty("name")
-    public String name;
+    private String name;
 
     /**
      * (Required)
      */
     @JsonProperty("allowMultiple")
-    public boolean allowMultiple;
+    private boolean allowMultiple;
 
     /**
      * (Required)
      */
     @JsonProperty("autoConnect")
-    public boolean autoConnect;
+    private boolean autoConnect;
 
     @JsonProperty("interfaceVersions")
     @JsonDeserialize(as = java.util.LinkedHashSet.class)
-    public Set<InterfaceVersionDescription> interfaceVersions = null;
+    private final Set<InterfaceVersionDescription> interfaceVersions = null;
 
 }

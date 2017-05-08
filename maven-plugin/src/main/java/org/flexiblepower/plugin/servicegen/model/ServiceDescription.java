@@ -25,14 +25,15 @@ public class ServiceDescription {
      * (Required)
      */
     @JsonProperty("name")
-    public String name;
+    private String name;
+
     /**
      * (Required)
      */
     @JsonProperty("version")
-    public String version;
+    private String version;
 
     @JsonProperty("interfaces")
     @JsonDeserialize(as = java.util.LinkedHashSet.class)
-    public Set<InterfaceDescription> interfaces = null;
+    private final Set<InterfaceDescription> interfaces = null;
 }
