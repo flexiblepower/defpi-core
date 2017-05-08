@@ -27,51 +27,51 @@ import lombok.Setter;
 @Getter
 public abstract class Node {
 
-    public static enum DockerNodeStatus {
-        MISSING,
-        UNKNOWN,
-        DOWN,
-        READY,
-        DISCONNECTED;
+	public static enum DockerNodeStatus {
+		MISSING, UNKNOWN, DOWN, READY, DISCONNECTED;
 
-        public static DockerNodeStatus fromString(final String text) {
-            for (final DockerNodeStatus s : DockerNodeStatus.values()) {
-                if (s.toString().equalsIgnoreCase(text)) {
-                    return s;
-                }
-            }
-            return null;
-        }
-    }
+		public static DockerNodeStatus fromString(final String text) {
+			for (final DockerNodeStatus s : DockerNodeStatus.values()) {
+				if (s.toString().equalsIgnoreCase(text)) {
+					return s;
+				}
+			}
+			return UNKNOWN;
+		}
+	}
 
-    @Id
-    @JsonSerialize(using = ToStringSerializer.class)
-    @JsonDeserialize(using = ObjectIdDeserializer.class)
-    protected ObjectId id;
+	@Id
+	@JsonSerialize(using = ToStringSerializer.class)
+	@JsonDeserialize(using = ObjectIdDeserializer.class)
+	protected ObjectId id;
 
-    protected String dockerId;
+	protected String dockerId;
 
-    @Setter
-    protected String hostname;
+	@Setter
+	protected String hostname;
 
-    /**
-     * The last time the status was retrieved from docker
-     */
-    @Setter
-    protected Date lastSync;
+	/**
+	 * The last time the status was retrieved from docker
+	 */
+	@Setter
+	protected Date lastSync;
 
-    @Setter
-    protected DockerNodeStatus status;
+	@Setter
+	protected DockerNodeStatus status;
 
-    public Node() {
-        // for Morphia
-    }
+	@Setter
+	protected Architecture architecture;
 
-    public Node(final String dockerId, final String hostname) {
-        this.dockerId = dockerId;
-        this.hostname = hostname;
-        this.status = DockerNodeStatus.UNKNOWN;
-        this.lastSync = new Date(); // now
-    }
+	public Node() {
+		// for Morphia
+	}
+
+	public Node(final String dockerId, final String hostname, Architecture architecture) {
+		this.dockerId = dockerId;
+		this.hostname = hostname;
+		this.status = DockerNodeStatus.UNKNOWN;
+		this.architecture = architecture;
+		this.lastSync = new Date(); // now
+	}
 
 }

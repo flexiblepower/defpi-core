@@ -80,6 +80,7 @@ myApp
 									nga.field('id').isDetailLink(true),
 									nga.field('dockerId'),
 									nga.field('hostname'),
+									nga.field('architecture'),
 									nga.field('status'),
 									nga.field('lastSync'),
 									nga.field('nodePoolId', 'reference')
@@ -105,17 +106,12 @@ myApp
 												required : true
 											}) ]);
 
-					un.listView().fields(
-							[ nga.field('id').isDetailLink(true),
-									nga.field('dockerId'),
-									nga.field('hostname'), nga.field('status'),
-									nga.field('lastSync') ]);
-
 					prno.listView().fields(
 							[
 									nga.field('id').isDetailLink(true),
 									nga.field('dockerId'),
 									nga.field('hostname'),
+									nga.field('architecture'),
 									nga.field('status'),
 									nga.field('lastSync'),
 									nga.field('userId', 'reference')
@@ -141,11 +137,14 @@ myApp
 												required : true
 											}) ]);
 
-					un.listView().fields(
-							[ nga.field('id').isDetailLink(true),
-									nga.field('dockerId'),
-									nga.field('hostname'), nga.field('status'),
-									nga.field('lastSync') ]);
+					un.listView()
+							.fields(
+									[ nga.field('id').isDetailLink(true),
+											nga.field('dockerId'),
+											nga.field('hostname'),
+											nga.field('architecture'),
+											nga.field('status'),
+											nga.field('lastSync') ]);
 
 					// Add entities
 					admin.addEntity(user);

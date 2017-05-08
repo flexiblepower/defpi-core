@@ -5,9 +5,11 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.ws.rs.client.ClientBuilder;
@@ -17,6 +19,7 @@ import javax.ws.rs.core.Response.Status;
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.RepositoryNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
+import org.flexiblepower.model.Architecture;
 import org.flexiblepower.model.Interface;
 import org.flexiblepower.model.Service;
 import org.json.JSONObject;
@@ -158,22 +161,35 @@ public class RegistryConnector {
             interfaces.add(this.gson.fromJson(this.gson.toJson(obj), Interface.class));
         }
 
-        final Set<String> mappings = this.gson.fromJson(labels.getString("org.flexiblepower.mappings"), Set.class);
-        final Set<String> ports = this.gson.fromJson(labels.getString("org.flexiblepower.ports"), Set.class);
+        // final Set<String> mappings = this.gson.fromJson(labels.getString("org.flexiblepower.mappings"), Set.class);
+        // final Set<String> ports = this.gson.fromJson(labels.getString("org.flexiblepower.ports"), Set.class);
 
         // Add interfaces to the cache
         this.interfaceCache.addAll(interfaces);
 
-        final Service service = new Service();
-        service.setName(labels.getString("org.flexiblepower.serviceName"));
-        service.setRegistry(RegistryConnector.REGISTRY_URL_DFLT);
-        service.setImage(jsonResponse.getString("name"));
-        service.setTag(jsonResponse.getString("tag"));
-        service.setInterfaces(interfaces);
-        service.setCreated(created);
-        service.setMappings(mappings);
-        service.setPorts(ports);
-        return service;
+        // TODO retrieve all architectures
+        final Map<Architecture, String> tags = new HashMap<>();
+        tags.put(Architecture.X86_64, jsonResponse.getString("tag"));
+
+        return Service.builder()
+                .name(labels.getString("org.flexiblepower.serviceName"))
+                .registry(RegistryConnector.REGISTRY_URL_DFLT)
+                .image(jsonResponse.getString("name"))
+                .tags(tags)
+                .interfaces(interfaces)
+                .created(created)
+                .build();
+        //
+        // final Service service = new Service();
+        // service.setName(labels.getString("org.flexiblepower.serviceName"));
+        // service.setRegistry(RegistryConnector.REGISTRY_URL_DFLT);
+        // service.setImage(jsonResponse.getString("name"));
+        // service.setTag(jsonResponse.getString("tag"));
+        // service.setInterfaces(interfaces);
+        // service.setCreated(created);
+        // service.setMappings(mappings);
+        // service.setPorts(ports);
+        // return service;
     }
 
     private URI buildUrl(final String... pathParams) {
@@ -214,38 +230,22 @@ public class RegistryConnector {
         }
     }
 
-    /**
-     * @return
-     */
-    public List<Interface> getInterfaces() {
-        // TODO: find ALL interfaces
-        return new ArrayList<>(this.interfaceCache);
-    }
-
-    /**
-     * @param sha256
-     * @return
-     */
-    public Interface getInterface(final String sha256) {
-        return null;
-    }
-
-    /**
-     * @param itf
-     * @return
-     */
-    public String addInterface(final Interface itf) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    /**
-     * @param sha256
-     */
-    public void deleteInterface(final String sha256) {
-        // TODO Auto-generated method stub
-
-    }
+    //
+    // /**
+    // * @return
+    // */
+    // public List<Interface> getInterfaces() {
+    // // TODO: find ALL interfaces
+    // return new ArrayList<>(this.interfaceCache);
+    // }
+    //
+    // /**
+    // * @param sha256
+    // * @return
+    // */
+    // public Interface getInterface(final String sha256) {
+    // return null;
+    // }
 
     @Getter
     private final class Catalog {

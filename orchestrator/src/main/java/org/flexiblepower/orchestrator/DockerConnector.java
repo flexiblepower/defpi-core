@@ -14,6 +14,7 @@ import java.util.UUID;
 
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
+import org.flexiblepower.model.Architecture;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.User;
 
@@ -28,7 +29,6 @@ import com.spotify.docker.client.messages.swarm.EndpointSpec;
 import com.spotify.docker.client.messages.swarm.EndpointSpec.Builder;
 import com.spotify.docker.client.messages.swarm.NetworkAttachmentConfig;
 import com.spotify.docker.client.messages.swarm.Placement;
-import com.spotify.docker.client.messages.swarm.PortConfig;
 import com.spotify.docker.client.messages.swarm.Service;
 import com.spotify.docker.client.messages.swarm.ServiceSpec;
 import com.spotify.docker.client.messages.swarm.TaskSpec;
@@ -233,6 +233,7 @@ public class DockerConnector {
     static ServiceSpec createServiceSpec(final org.flexiblepower.model.Service service,
             final User user,
             final String host) {
+        final Architecture architecture = Architecture.X86_64; // TODO should pick the one from host
         // Create a name for the service by removing blanks from process name
         String serviceName = service.getName() + UUID.randomUUID().getLeastSignificantBits();
         serviceName = serviceName.replaceAll("\\h", "");
@@ -240,27 +241,30 @@ public class DockerConnector {
 
         // Create labels to add to the container
         final Map<String, String> serviceLabels = new HashMap<>();
-        serviceLabels.put(DockerConnector.SERVICE_LABEL_KEY, service.getImage() + ":" + service.getTag());
+        serviceLabels.put(DockerConnector.SERVICE_LABEL_KEY,
+                service.getImage() + ":" + service.getTags().get(architecture));
+        // TODO get tag depending on platform
         serviceLabels.put(DockerConnector.USER_LABEL_KEY, user.getUsername());
         serviceLabels.put(DockerConnector.NODE_ID_LABEL_KEY, host);
 
         // Create the task template based on the process image
-        final String dockerImage = service.getFullImageName();
+        final String dockerImage = service.getFullImageName(architecture);
         final ContainerSpec processSpec = ContainerSpec.builder().image(dockerImage).build();
         final Placement placement = Placement.create(Arrays.asList("node.hostname == " + host));
         final TaskSpec taskTemplate = TaskSpec.builder().containerSpec(processSpec).placement(placement).build();
 
         // Add the ports to the specification
         final Builder endpointSpec = EndpointSpec.builder();
-        for (final String port : service.getPorts()) {
-            final int pos = port.indexOf(':');
-            if (pos < 0) {
-                throw new IllegalArgumentException("Port has invalid syntax, expecting port:port");
-            }
-            final Integer src = Integer.parseInt(port.substring(0, pos));
-            final Integer dst = Integer.parseInt(port.substring(pos + 1));
-            endpointSpec.addPort(PortConfig.builder().publishedPort(src).targetPort(dst).build());
-        }
+        // TODO do we still need ports?
+        // for (final String port : service.getPorts()) {
+        // final int pos = port.indexOf(':');
+        // if (pos < 0) {
+        // throw new IllegalArgumentException("Port has invalid syntax, expecting port:port");
+        // }
+        // final Integer src = Integer.parseInt(port.substring(0, pos));
+        // final Integer dst = Integer.parseInt(port.substring(pos + 1));
+        // endpointSpec.addPort(PortConfig.builder().publishedPort(src).targetPort(dst).build());
+        // }
 
         // Add the network attachment to place process in user network
         final NetworkAttachmentConfig usernet = NetworkAttachmentConfig.builder()

@@ -20,11 +20,11 @@ import lombok.Getter;
 @Getter
 public class UnidentifiedNode extends Node {
 
-    public UnidentifiedNode() {
-        // for Morphia
-    }
+	public UnidentifiedNode() {
+		// for Morphia
+	}
 
-    public UnidentifiedNode(final String dockerId, final String hostname) {
-        super(dockerId, hostname);
-    }
+	public UnidentifiedNode(final String dockerId, final String hostname, Architecture architecture) {
+		super(dockerId, hostname, architecture);
+	}
 }

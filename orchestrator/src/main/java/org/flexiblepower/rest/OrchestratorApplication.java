@@ -67,7 +67,7 @@ public class OrchestratorApplication extends Application {
 
         // Add resources for the model
         resources.add(ConnectionRestApi.class);
-        resources.add(InterfaceRestApi.class);
+        // resources.add(InterfaceRestApi.class);
         resources.add(NodeRestApi.class);
         resources.add(ProcessRestApi.class);
         resources.add(ServiceRestApi.class);

@@ -5,16 +5,11 @@
  */
 package org.flexiblepower.model;
 
-import java.util.UUID;
+import org.mongodb.morphia.annotations.Embedded;
 
-import org.bson.types.ObjectId;
-import org.mongodb.morphia.annotations.Entity;
-import org.mongodb.morphia.annotations.Id;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
 /**
  * InterfaceVersion
@@ -25,26 +20,15 @@ import lombok.Setter;
  * @see #Interface
  */
 @Getter
-@Entity
+@Embedded
+@AllArgsConstructor
+@NoArgsConstructor
 public class InterfaceVersion {
 
-    @Id
-    private final ObjectId id;
+	private String versionName = null;
 
-    @JsonProperty("version_name")
-    private final String versionName;
+	private String receivesHash = null;
 
-    @JsonProperty("receives_hash")
-    @Setter
-    private String receivesHash;
-
-    @JsonProperty("sends_hash")
-    @Setter
-    private String sendsHash;
-
-    public InterfaceVersion(final String name) {
-        this.id = new ObjectId(UUID.randomUUID().toString());
-        this.versionName = name;
-    }
+	private String sendsHash = null;
 
 }

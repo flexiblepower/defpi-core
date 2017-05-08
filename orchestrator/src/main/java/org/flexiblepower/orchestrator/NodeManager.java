@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.bson.types.ObjectId;
+import org.flexiblepower.model.Architecture;
 import org.flexiblepower.model.Node.DockerNodeStatus;
 import org.flexiblepower.model.NodePool;
 import org.flexiblepower.model.PrivateNode;
@@ -65,6 +66,7 @@ public class NodeManager {
                 // TODO status
                 pn.setStatus(DockerNodeStatus.UNKNOWN);
                 pn.setHostname(node.description().hostname());
+                pn.setArchitecture(Architecture.fromString(node.description().platform().architecture()));
             }
             pn.setLastSync(new Date());
             dockerNodes.remove(pn.getDockerId());
@@ -80,6 +82,7 @@ public class NodeManager {
                 // TODO status
                 pn.setStatus(DockerNodeStatus.UNKNOWN);
                 pn.setHostname(node.description().hostname());
+                pn.setArchitecture(Architecture.fromString(node.description().platform().architecture()));
             }
             pn.setLastSync(new Date());
             dockerNodes.remove(pn.getDockerId());
@@ -104,7 +107,9 @@ public class NodeManager {
 
         // All nodes that are left are new Unidentified Nodes
         for (final Node n : dockerNodes.values()) {
-            final UnidentifiedNode unidentifiedNode = new UnidentifiedNode(n.id(), n.description().hostname());
+            final UnidentifiedNode unidentifiedNode = new UnidentifiedNode(n.id(),
+                    n.description().hostname(),
+                    Architecture.fromString(n.description().platform().architecture()));
             this.db.save(unidentifiedNode);
         }
     }

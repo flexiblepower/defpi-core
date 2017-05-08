@@ -25,17 +25,17 @@ import lombok.Getter;
 @Getter
 public class PublicNode extends Node {
 
-    @JsonSerialize(using = ToStringSerializer.class)
-    @JsonDeserialize(using = ObjectIdDeserializer.class)
-    private ObjectId nodePoolId;
+	@JsonSerialize(using = ToStringSerializer.class)
+	@JsonDeserialize(using = ObjectIdDeserializer.class)
+	private ObjectId nodePoolId;
 
-    public PublicNode() {
-        // for Morphia
-    }
+	public PublicNode() {
+		// for Morphia
+	}
 
-    public PublicNode(final UnidentifiedNode unidentifiedNode, final NodePool nodePool) {
-        super(unidentifiedNode.getDockerId(), unidentifiedNode.getHostname());
-        this.nodePoolId = nodePool.getId();
-    }
+	public PublicNode(final UnidentifiedNode unidentifiedNode, final NodePool nodePool) {
+		super(unidentifiedNode.getDockerId(), unidentifiedNode.getHostname(), unidentifiedNode.getArchitecture());
+		this.nodePoolId = nodePool.getId();
+	}
 
 }
