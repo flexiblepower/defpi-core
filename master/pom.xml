@@ -13,11 +13,13 @@
 		<java.target>1.8</java.target>
 
 		<slf4j.version>1.7.25</slf4j.version>
+		<jackson.version>2.8.4</jackson.version>
 	</properties>
 
 	<modules>
 		<module>defpi-parent</module>
 		<module>../maven-plugin</module>
+		<module>../api</module>
 	</modules>
 
 	<!-- Where to push the maven compiled jars -->
@@ -39,7 +41,7 @@
 		<repository>
 			<id>def-pi-release</id>
 			<name>def-pi release repository</name>
-			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-release-local</url>
+			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-release</url>
 			<snapshots>
 				<enabled>false</enabled>
 			</snapshots>
@@ -48,25 +50,68 @@
 		<repository>
 			<id>def-pi-snapshot</id>
 			<name>def-pi snapshot repository</name>
-			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-snapshot-local</url>
+			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-snapshot</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
 		</repository>
 	</repositories>
 
-	<dependencies>
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<version>1.16.8</version>
-			<scope>provided</scope>
-		</dependency>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.projectlombok</groupId>
+				<artifactId>lombok</artifactId>
+				<version>1.16.8</version>
+				<scope>provided</scope>
+			</dependency>
+			
+			<dependency>
+				<groupId>org.glassfish.jersey</groupId>
+				<artifactId>jersey-bom</artifactId>
+				<version>2.25.1</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			
+			<dependency>
+		    	<groupId>com.fasterxml.jackson.core</groupId>
+		    	<artifactId>jackson-databind</artifactId>
+		    	<version>2.8.7</version>
+			</dependency>
+			
+			<dependency>
+				<groupId>org.mongodb</groupId>
+				<artifactId>bson</artifactId>
+				<version>3.4.2</version>
+			</dependency>
+		
+			<dependency>
+				<groupId>org.mongodb.morphia</groupId>
+				<artifactId>morphia</artifactId>
+				<version>1.3.2</version>
+			</dependency>
+			
+			<dependency>
+				<groupId>org.flexiblepower</groupId>
+				<artifactId>api</artifactId>
+				<version>0.1.0-SNAPSHOT</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
+	<dependencies>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 			<version>${slf4j.version}</version>
+		</dependency>
+		
+		<dependency>
+		    <groupId>junit</groupId>
+		    <artifactId>junit</artifactId>
+		    <version>4.12</version>
+		    <scope>test</scope>
 		</dependency>
 	</dependencies>
 

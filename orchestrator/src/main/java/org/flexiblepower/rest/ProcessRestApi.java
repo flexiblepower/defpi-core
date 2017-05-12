@@ -9,6 +9,7 @@ import javax.ws.rs.core.SecurityContext;
 import org.flexiblepower.api.ProcessApi;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Process;
+import org.flexiblepower.model.Service;
 import org.flexiblepower.orchestrator.DockerConnector;
 
 import lombok.extern.slf4j.Slf4j;
@@ -34,9 +35,9 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
     }
 
     @Override
-    public String newProcess(final Process process) {
-        ProcessRestApi.log.info("newContainer(): " + process);
-        return this.dockerConnector.newProcess(process);
+    public String newProcess(final Service service) {
+        ProcessRestApi.log.info("newContainer(): " + service);
+        return this.dockerConnector.newProcess(service, this.loggedInUser, null);
     }
 
     @Override

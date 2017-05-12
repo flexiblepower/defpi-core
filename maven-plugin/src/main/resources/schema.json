@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "definitions": {},
+  "type": "object",
+  "id": "http://flexiblepower.org/service.json",
+  "properties": {
+    "name": {
+      "$ref": "#/definitions/name"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^([0-9]+\\.)*[0-9]+(-[0-9a-zA-Z]*)?$"
+    },
+    "interfaces": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "$ref": "#/definitions/name"
+          },
+          "allowMultiple": {
+            "type": "boolean"
+          },
+          "autoConnect": {
+            "type": "boolean"
+          },
+          "interfaceVersions": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "properties": {
+                "versionName": {
+                  "$ref": "#/definitions/name"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "xsd",
+                    "proto"
+                  ]
+                },
+                "location": {
+                  "type": "string"
+                },
+                "sends": {
+                  "$ref": "#/definitions/messageArray"
+                },
+                "receives": {
+                  "$ref": "#/definitions/messageArray"
+                }
+              },
+              "required": [
+                "versionName",
+                "type",
+                "location",
+                "sends",
+                "receives"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "allowMultiple",
+          "autoConnect",
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "name",
+    "version"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "messageArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 64,
+      "minLength": 4
+    }
+  }
+}

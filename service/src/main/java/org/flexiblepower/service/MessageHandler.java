@@ -25,4 +25,5 @@ public interface MessageHandler {
     void resumeAfterInterrupt();
 
     void terminated();
+
 }

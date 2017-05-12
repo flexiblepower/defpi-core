@@ -12,7 +12,7 @@ package org.flexiblepower.service;
  * @version 0.1
  * @since Apr 24, 2017
  */
-interface Connection {
+public interface Connection {
 
     public static enum ConnectionState {
         STARTING,
@@ -22,7 +22,8 @@ interface Connection {
         TERMINATED;
     }
 
-    void send(Object message);
+    public void send(byte[] message);
 
-    ConnectionState getState();
+    public ConnectionState getState();
+
 }

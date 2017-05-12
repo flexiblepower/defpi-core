@@ -1,5 +1,6 @@
 package org.flexiblepower.rest;
 
+import java.io.IOException;
 import java.util.List;
 
 import javax.ws.rs.core.Context;
@@ -8,16 +9,22 @@ import javax.ws.rs.core.SecurityContext;
 
 import org.flexiblepower.api.ConnectionApi;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
+import org.flexiblepower.exceptions.ProcessNotFoundException;
+import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
+import org.flexiblepower.orchestrator.ConnectionManager;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ConnectionRestApi extends BaseApi implements ConnectionApi {
 
+    private final ConnectionManager connections;
+
     protected ConnectionRestApi(@Context final HttpHeaders httpHeaders,
             @Context final SecurityContext securityContext) {
         super(httpHeaders, securityContext);
+        this.connections = new ConnectionManager();
     }
 
     @Override
@@ -26,8 +33,15 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
     }
 
     @Override
-    public String newConnection(final Connection connection) {
+    public String newConnection(final Connection connection) throws ProcessNotFoundException {
         ConnectionRestApi.log.info("newConnection(): " + connection);
+        try {
+            this.connections.addConnection(connection);
+        } catch (final IOException | ServiceNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
         return this.db.insertConnection(connection);
     }
 

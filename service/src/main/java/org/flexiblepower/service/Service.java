@@ -11,6 +11,8 @@ import java.util.Properties;
 /**
  * Service
  *
+ * The class implementing the service *must* have a no-args constructor
+ *
  * @author coenvl
  * @version 0.1
  * @since Apr 24, 2017
@@ -24,7 +26,7 @@ public interface Service {
      *
      * @param state
      */
-    public void resumeFrom(Serializable state);
+    public void resumeFrom(Object state);
 
     /**
      * This function is called after the constructor (or after the {@link #resumeFrom(Serializable)} if applicable),
@@ -54,6 +56,8 @@ public interface Service {
      */
     public void terminate();
 
-    MessageHandlerFactory getMessageHandlerFactory();
+    // Set<MessageHandler> getMessageHandlers();
+
+    // MessageHandlerFactory getMessageHandlerFactory();
 
 }
