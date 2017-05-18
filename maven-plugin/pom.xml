@@ -3,14 +3,14 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<artifactId>create-service-maven-plugin</artifactId>
-	<version>0.2.2-SNAPSHOT</version>
+	<version>0.2.3-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>
 	<name>Service creation Maven Plugin</name>
 
 	<parent>
 		<groupId>org.flexiblepower</groupId>
 		<artifactId>master</artifactId>
-		<version>0.1.0-SNAPSHOT</version>
+		<version>0.2.0-SNAPSHOT</version>
 		<relativePath>../master</relativePath>
 	</parent>
 

@@ -10,16 +10,18 @@ import com.google.protobuf.GeneratedMessage;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Parser;
 
-public class ProtobufMessageSerializer<T extends GeneratedMessage> implements MessageSerializer<T> {
+public class ProtobufMessageSerializer implements MessageSerializer<GeneratedMessage> {
 
-    private final List<Parser<T>> parsers = new ArrayList<>();
+    private final List<Parser<? extends GeneratedMessage>> parsers = new ArrayList<>();
     private final DescriptorType type = DescriptorType.PROTOBUF;
 
-    public ProtobufMessageSerializer(final Class<T>... classes) {
+    @Override
+    public void addMessageClass(final Class<?> cls) {
         try {
-            for (final Class<T> cls : classes) {
-                this.parsers.add((Parser<T>) cls.getMethod("parser").invoke(null));
-            }
+            @SuppressWarnings("unchecked")
+            final Parser<? extends GeneratedMessage> parser = (Parser<? extends GeneratedMessage>) cls
+                    .getMethod("parser").invoke(null);
+            this.parsers.add(parser);
         } catch (IllegalAccessException
                 | IllegalArgumentException
                 | InvocationTargetException
@@ -38,10 +40,10 @@ public class ProtobufMessageSerializer<T extends GeneratedMessage> implements Me
     }
 
     @Override
-    public T deserialize(final byte[] data) throws SerializationException {
+    public GeneratedMessage deserialize(final byte[] data) throws SerializationException {
         for (final Parser<? extends GeneratedMessage> parser : this.parsers) {
             try {
-                return (T) parser.parseFrom(data);
+                return parser.parseFrom(data);
             } catch (final InvalidProtocolBufferException e) {
                 // Incorrect parser for this message
             }

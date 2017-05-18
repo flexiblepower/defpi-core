@@ -8,7 +8,6 @@ package org.flexiblepower.service;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Properties;
-import java.util.Set;
 
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.flexiblepower.service.exceptions.SerializationException;
@@ -48,8 +47,8 @@ public class ServiceManager {
     private final Service service;
     private final JavaIOSerializer serializer = new JavaIOSerializer();
 
-    ServiceManager(final Service service, final Set<MessageHandlerWrapper> messagehandlers) {
-        this.connectionManager = new ConnectionManager(service, messagehandlers);
+    ServiceManager(final Service service) {
+        this.connectionManager = new ConnectionManager();
         this.service = service;
         this.managementSocket = ZMQ.context(1).socket(ZMQ.REP);
 
@@ -174,7 +173,7 @@ public class ServiceManager {
         ServiceManager.log.trace("Received message: {}", msg);
 
         try {
-            final Object state = this.serializer.deserialize(msg.getStateData().toByteArray());
+            final Serializable state = this.serializer.deserialize(msg.getStateData().toByteArray());
             this.service.resumeFrom(state);
         } catch (final Exception e) {
             throw new ServiceInvocationException("Error while resuming process", e);

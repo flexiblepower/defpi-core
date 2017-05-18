@@ -10,6 +10,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 
 import org.flexiblepower.service.exceptions.SerializationException;
 
@@ -20,12 +21,12 @@ import org.flexiblepower.service.exceptions.SerializationException;
  * @version 0.1
  * @since May 10, 2017
  */
-public class JavaIOSerializer implements MessageSerializer<Object> {
+public class JavaIOSerializer implements MessageSerializer<Serializable> {
 
     private static final DescriptorType type = DescriptorType.JAVAOBJECT;
 
     @Override
-    public byte[] serialize(final Object obj) throws SerializationException {
+    public byte[] serialize(final Serializable obj) throws SerializationException {
         try (
                 final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 final ObjectOutputStream oos = new ObjectOutputStream(baos)) {
@@ -37,11 +38,11 @@ public class JavaIOSerializer implements MessageSerializer<Object> {
     }
 
     @Override
-    public Object deserialize(final byte[] ba) throws SerializationException {
+    public Serializable deserialize(final byte[] ba) throws SerializationException {
         try (
                 final ByteArrayInputStream bais = new ByteArrayInputStream(ba);
                 final ObjectInputStream oos = new ObjectInputStream(bais)) {
-            return oos.readObject();
+            return (Serializable) oos.readObject();
         } catch (ClassNotFoundException | IOException e) {
             throw new SerializationException(e);
         }
@@ -55,6 +56,16 @@ public class JavaIOSerializer implements MessageSerializer<Object> {
     @Override
     public DescriptorType getType() {
         return JavaIOSerializer.type;
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see org.flexiblepower.service.serializers.MessageSerializer#addMessageClass(java.lang.Class)
+     */
+    @Override
+    public void addMessageClass(final Class<?> clazz) {
+        // It's okay do nothing
     }
 
 }

@@ -13,6 +13,8 @@ public interface MessageSerializer<T> {
 
     DescriptorType getType();
 
+    public void addMessageClass(Class<?> clazz);
+
     public T deserialize(byte[] data) throws SerializationException;
 
     public byte[] serialize(T object) throws SerializationException;

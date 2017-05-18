@@ -5,7 +5,6 @@
  */
 package org.flexiblepower.service;
 
-import java.util.HashSet;
 import java.util.Set;
 
 import org.flexiblepower.service.exceptions.ServiceInvocationException;
@@ -33,9 +32,8 @@ public final class ServiceMain {
         final Service service = ServiceMain.getService();
         ServiceMain.log.info("Started service {}", service);
 
-        final Set<MessageHandlerWrapper> messageHandlers = ServiceMain.getMessageHandlers();
-
-        final ServiceManager manager = new ServiceManager(service, messageHandlers);
+        @SuppressWarnings("unused")
+        final ServiceManager manager = new ServiceManager(service);
     }
 
     /**
@@ -69,29 +67,33 @@ public final class ServiceMain {
      * @return
      * @throws ServiceInvocationException
      */
-    private static Set<MessageHandlerWrapper> getMessageHandlers() throws ServiceInvocationException {
-        final Reflections reflections = new Reflections("org.flexiblepower");
-        final Set<Class<? extends MessageHandlerWrapper>> set = reflections.getSubTypesOf(MessageHandlerWrapper.class);
+    // private static Set<MessageHandler> getMessageHandlers() throws ServiceInvocationException {
+    // final Reflections reflections = new Reflections("org.flexiblepower");
+    // final Set<Class<? extends MessageHandler>> set = reflections.getSubTypesOf(MessageHandler.class);
+    //
+    // // Remove our abstract implementation which is not meant to be instantiated, but not necessarily used
+    // set.remove(AbstractMessageHandler.class);
+    //
+    // if (set.isEmpty()) {
+    // ServiceMain.log
+    // .warn("No message handlers have been found, service will not be able to respond to messages");
+    // } else {
+    // ServiceMain.log.info("Found {} message handlers: {}", set.size(), set);
+    // }
+    //
+    // final Set<MessageHandler> ret = new HashSet<>();
+    // for (final Class<? extends MessageHandler> handlerClass : set) {
+    // try {
+    // ret.add(handlerClass.newInstance());
+    // } catch (InstantiationException | IllegalAccessException e) {
+    // throw new ServiceInvocationException("Unable to start service of type " + handlerClass, e);
+    // }
+    // }
+    //
+    // return ret;
+    // }
 
-        if (set.isEmpty()) {
-            ServiceMain.log
-                    .warn("No message handlers have been found, service will not be able to respond to messages");
-        } else {
-            ServiceMain.log.info("Found {} message handlers: {}", set.size(), set);
-        }
-
-        final Set<MessageHandlerWrapper> ret = new HashSet<>();
-        for (final Class<? extends MessageHandlerWrapper> handlerClass : set) {
-            try {
-                ret.add(handlerClass.newInstance());
-            } catch (InstantiationException | IllegalAccessException e) {
-                throw new ServiceInvocationException("Unable to start service of type " + handlerClass, e);
-            }
-        }
-
-        return ret;
-    }
-
+    @SuppressWarnings("unused")
     public static void main(final String[] args) throws ServiceInvocationException {
         // Launch new service
         new ServiceMain();

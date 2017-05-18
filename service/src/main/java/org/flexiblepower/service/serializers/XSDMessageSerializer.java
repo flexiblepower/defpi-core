@@ -25,10 +25,9 @@ public class XSDMessageSerializer implements MessageSerializer<Object> {
     private Marshaller marshaller;
     private Unmarshaller unmarshaller;
 
-    public XSDMessageSerializer(final Class<?>... classes) {
-        for (final Class<?> cls : classes) {
-            this.classes.put(cls.getName(), cls);
-        }
+    @Override
+    public void addMessageClass(final Class<?> cls) {
+        this.classes.put(cls.getName(), cls);
     }
 
     @Override

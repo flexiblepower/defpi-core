@@ -7,7 +7,6 @@ package org.flexiblepower.service;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.flexiblepower.service.proto.ServiceProto.ConnectionMessage;
@@ -21,21 +20,19 @@ import org.slf4j.LoggerFactory;
  * @version 0.1
  * @since May 10, 2017
  */
+/**
+ * ConnectionManager
+ *
+ * @author coenvl
+ * @version 0.1
+ * @since May 18, 2017
+ */
 public class ConnectionManager {
 
     private static final Logger log = LoggerFactory.getLogger(ConnectionManager.class);
-    private final Map<String, ManagedConnection> connections = new HashMap<>();
-    private final Service service;
-    private final Set<MessageHandlerWrapper> messageHandlers;
+    private static final Map<String, ConnectionHandlerFactory> connectionHandlers = new HashMap<>();
 
-    /**
-     * @param service
-     * @param messagehandlers
-     */
-    public ConnectionManager(final Service service, final Set<MessageHandlerWrapper> messageHandlers) {
-        this.service = service;
-        this.messageHandlers = messageHandlers;
-    }
+    private final Map<String, ManagedConnection> connections = new HashMap<>();
 
     /**
      * @param parseFrom
@@ -73,25 +70,34 @@ public class ConnectionManager {
      */
     private void createConnection(final ConnectionMessage message) throws ConnectionModificationException {
         // First find the correct handler to attach to the connection
-        final MessageHandlerWrapper handler = this.getMessageHandler(message.getReceiveHash());
+        final String key = ConnectionManager.handlerKey(message.getReceiveHash(), message.getSendHash());
+        final ConnectionHandlerFactory chf = ConnectionManager.connectionHandlers.get(key);
 
-        final ManagedConnection connection = new ManagedConnection(message.getListenPort(), message.getTargetAddress());
-        this.connections.put(message.getConnectionId(), connection);
-        connection.addHandler(handler);
+        if (chf == null) {
+            ConnectionManager.log.error(
+                    "Request for connection with unknown hashes {}, did you register service with {}.registerHandlers?",
+                    key,
+                    ConnectionManager.class.getSimpleName());
+            throw new ConnectionModificationException("Unknown connection handling hash: " + key);
+        } else {
+            this.connections.put(message.getConnectionId(),
+                    new ManagedConnection(message.getListenPort(), message.getTargetAddress(), chf.build()));
+        }
     }
 
     /**
-     * @param receiveHash
-     * @throws ConnectionModificationException
+     * @param connectionHandlerFactory
      */
-    private MessageHandlerWrapper getMessageHandler(final String receiveHash) throws ConnectionModificationException {
+    public static void registerHandlers(final Class<? extends ConnectionHandler> clazz,
+            final ConnectionHandlerFactory connectionHandlerFactory) {
+        final InterfaceInfo info = clazz.getAnnotation(InterfaceInfo.class);
+        final String key = ConnectionManager.handlerKey(info.receivesHash(), info.sendsHash());
+        ConnectionManager.connectionHandlers.put(key, connectionHandlerFactory);
+        ConnectionManager.log.debug("Registered {} for type {}", connectionHandlerFactory, key);
+    }
 
-        for (final MessageHandlerWrapper mhw : this.messageHandlers) {
-            if (mhw.getHandlesHash().equals(receiveHash)) {
-                return mhw;
-            }
-        }
-        throw new ConnectionModificationException("Unknown handling hash: " + receiveHash);
+    private static String handlerKey(final String receivesHash, final String sendsHash) {
+        return receivesHash + "/" + sendsHash;
     }
 
 }

@@ -4,7 +4,7 @@
 
 	<groupId>org.flexiblepower</groupId>
 	<artifactId>master</artifactId>
-	<version>0.1.0-SNAPSHOT</version>
+	<version>0.2.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<properties>
@@ -13,6 +13,7 @@
 		<java.target>1.8</java.target>
 
 		<jackson.version>2.8.4</jackson.version>
+		<defpi.version>0.2.0-SNAPSHOT</defpi.version>
 	</properties>
 
 	<modules>
@@ -94,7 +95,7 @@
 			<dependency>
 				<groupId>org.flexiblepower</groupId>
 				<artifactId>api</artifactId>
-				<version>0.1.0-SNAPSHOT</version>
+				<version>${defpi.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

@@ -6,7 +6,6 @@
 package org.flexiblepower.service;
 
 import java.io.Serializable;
-import java.util.HashSet;
 import java.util.Properties;
 
 import org.junit.Test;
@@ -26,7 +25,7 @@ public class ServiceTest implements Service {
 
     @Test
     public void runTest() {
-        final ServiceManager mgr = new ServiceManager(this, new HashSet<>());
+        final ServiceManager mgr = new ServiceManager(this);
     }
 
     /*
@@ -35,7 +34,7 @@ public class ServiceTest implements Service {
      * @see org.flexiblepower.service.Service#resumeFrom(java.lang.Object)
      */
     @Override
-    public void resumeFrom(final Object state) {
+    public void resumeFrom(final Serializable state) {
         ServiceTest.log.info("ResumeFrom is called!");
     }
 

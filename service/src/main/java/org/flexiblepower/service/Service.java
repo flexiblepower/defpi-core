@@ -26,7 +26,7 @@ public interface Service {
      *
      * @param state
      */
-    public void resumeFrom(Object state);
+    public void resumeFrom(Serializable state);
 
     /**
      * This function is called after the constructor (or after the {@link #resumeFrom(Serializable)} if applicable),
@@ -55,9 +55,5 @@ public interface Service {
      * Marks that this process is about to be terminated. This means the object *will* be destroyed.
      */
     public void terminate();
-
-    // Set<MessageHandler> getMessageHandlers();
-
-    // MessageHandlerFactory getMessageHandlerFactory();
 
 }
