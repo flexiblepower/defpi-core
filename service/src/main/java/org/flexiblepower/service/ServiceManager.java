@@ -7,6 +7,7 @@ package org.flexiblepower.service;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.channels.ClosedSelectorException;
 import java.util.Properties;
 
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
@@ -23,6 +24,8 @@ import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Socket;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+
+import zmq.ZError;
 
 /**
  * ServiceManager
@@ -41,6 +44,8 @@ public class ServiceManager {
 
     // private final Class<? extends Service> serviceClass;
     private boolean configured;
+    private volatile boolean keepThreadAlive;
+    private final Thread managerThread;
 
     private final ConnectionManager connectionManager;
     private final Socket managementSocket;
@@ -51,35 +56,60 @@ public class ServiceManager {
         this.connectionManager = new ConnectionManager();
         this.service = service;
         this.managementSocket = ZMQ.context(1).socket(ZMQ.REP);
+        this.managementSocket.setReceiveTimeOut(1000);
 
         // Because when this exists, it is initializing
         this.configured = false;
-        this.start();
-    }
-
-    private void start() {
-        final Thread t = new Thread(() -> {
+        this.keepThreadAlive = true;
+        this.managerThread = new Thread(() -> {
             final String listenAddr = "tcp://*:" + ServiceManager.MANAGEMENT_PORT;
             ServiceManager.log.info("Start listening thread on {}", listenAddr);
             this.managementSocket.bind(listenAddr);
-            while (true) {
-                final byte[] data = this.managementSocket.recv(0);
+
+            while (this.keepThreadAlive) {
                 try {
-                    this.managementSocket.send(this.handleServiceMessage(data));
+                    final byte[] data = this.managementSocket.recv();
+                    if (data != null) {
+                        this.managementSocket.send(this.handleServiceMessage(data));
+                    }
+                } catch (final ClosedSelectorException | ZError.IOException e) {
+                    // Do nothing, we are stopped
+                    ServiceManager.log.info("Stopping thread");
+                    break;
                 } catch (final Exception e) {
                     ServiceManager.log.error("Exception handling message: {}", e.getMessage());
                     ServiceManager.log.trace("Exception handing message", e);
                     this.managementSocket.send(ServiceManager.FAILURE);
                 }
             }
+            ServiceManager.log.debug("end");
         }, "ServiceManager thread");
 
+        this.managerThread.start();
+    }
+
+    /**
+     * Wait for the service management thread to stop
+     *
+     * @param force to enforce that the service thread will actually stop asap.
+     */
+    void join(final boolean force) {
         try {
-            t.start();
-            t.join();
+            ServiceManager.log.info("Waiting for service thread to stop...");
+            if (force) {
+                this.keepThreadAlive = false;
+                this.managerThread.interrupt();
+                this.managementSocket.close();
+                ServiceManager.log.debug("Force closed, now joining thread");
+            }
+            this.managerThread.join();
         } catch (final InterruptedException e) {
             ServiceManager.log.info("Interuption exception received, stopping...");
         }
+    }
+
+    void join() {
+        this.join(false);
     }
 
     /**
@@ -154,6 +184,7 @@ public class ServiceManager {
 
         case TERMINATED:
             this.service.terminate();
+            this.keepThreadAlive = false;
             return null;
 
         case STARTING:

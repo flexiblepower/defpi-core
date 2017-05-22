@@ -11,9 +11,12 @@ import java.lang.reflect.Method;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.flexiblepower.service.exceptions.SerializationException;
 import org.flexiblepower.service.serializers.MessageSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Context;
 import org.zeromq.ZMQ.Socket;
+import org.zeromq.ZMQException;
 
 /**
  * ManagedConnection
@@ -24,9 +27,13 @@ import org.zeromq.ZMQ.Socket;
  */
 final class ManagedConnection implements Connection {
 
-    private static final int REQUEST_TIMEOUT = 2000;
+    private static final Logger log = LoggerFactory.getLogger(ManagedConnection.class);
+
+    private static final int SEND_TIMEOUT = 2000;
+    private static final int RECEIVE_TIMEOUT = 1000;
 
     private ConnectionState state;
+    private volatile boolean keepThreadAlive;
 
     private final Context zmqContext;
     private final Socket subscribeSocket;
@@ -45,16 +52,23 @@ final class ManagedConnection implements Connection {
             throws ConnectionModificationException {
         this.handler = handler;
         InterfaceInfo info = null;
-        for (final Class<?> itf : handler.getClass().getInterfaces()) {
-            if (itf.isAnnotationPresent(InterfaceInfo.class)) {
-                info = itf.getAnnotation(InterfaceInfo.class);
-                break;
+
+        if (handler.getClass().isAnnotationPresent(InterfaceInfo.class)) {
+            info = handler.getClass().getAnnotation(InterfaceInfo.class);
+        } else {
+            for (final Class<?> itf : handler.getClass().getInterfaces()) {
+                if (itf.isAnnotationPresent(InterfaceInfo.class)) {
+                    info = itf.getAnnotation(InterfaceInfo.class);
+                    break;
+                }
             }
         }
+
         if (info == null) {
             throw new ConnectionModificationException("No interface information found on connection handler");
         }
 
+        // Add serializer to the connection
         try {
             this.serializer = info.receiveSerializer().newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
@@ -68,45 +82,61 @@ final class ManagedConnection implements Connection {
         this.state = ConnectionState.STARTING;
         this.zmqContext = ZMQ.context(1);
 
+        ManagedConnection.log.debug("Creating publishSocket to {}", targetAddress);
         this.publishSocket = this.zmqContext.socket(ZMQ.PUB);
-        this.publishSocket.setSendTimeOut(ManagedConnection.REQUEST_TIMEOUT);
+        this.publishSocket.setSendTimeOut(ManagedConnection.SEND_TIMEOUT);
         this.publishSocket.connect(targetAddress);
 
+        final String listenAddress = "tcp://*:" + listenPort;
+        ManagedConnection.log.debug("Creating subscribeSocket listening on port {}", listenAddress);
         this.subscribeSocket = this.zmqContext.socket(ZMQ.SUB);
-        this.subscribeSocket.bind("tcp://*:" + listenPort);
+        this.subscribeSocket.bind(listenAddress);
+        this.subscribeSocket.setReceiveTimeOut(ManagedConnection.RECEIVE_TIMEOUT);
         this.subscribeSocket.subscribe("".getBytes());
+        this.keepThreadAlive = true;
 
         final Thread t = new Thread(() -> {
-            final byte[] buff = this.subscribeSocket.recv(0);
-            // for (final ConnectionHandler handler : this.handlers) {
-            this.handleByteArray(buff);
-            // }
-        });
+            while (this.keepThreadAlive) {
+                try {
+                    this.handleByteArray(this.subscribeSocket.recv());
+                } catch (final ZMQException e) {
+                    if (e.getErrorCode() == 156384765) {
+                        ManagedConnection.log.info("Socket closed, stopping thread");
+                        break;
+                    }
+                } catch (final Exception e) {
+                    ManagedConnection.log.error("Exception handling message: {}", e.getMessage());
+                    ManagedConnection.log.trace("Exception handing message", e);
+                }
+            }
+            ManagedConnection.log.debug("end");
+        }, "Managed " + info.name() + " handler thread");
+
         t.start();
     }
 
     /**
      * @param buff
+     * @throws InvocationTargetException
+     * @throws IllegalArgumentException
+     * @throws IllegalAccessException
+     * @throws SerializationException
      */
-    private void handleByteArray(final byte[] buff) {
-        try {
-            final Object message = this.serializer.deserialize(buff);
-
-            final Class<?> messageType = message.getClass();
-            final Method[] allMethods = this.handler.getClass().getMethods();
-            for (final Method method : allMethods) {
-                if ((method.getParameterCount() == 1) && method.getParameterTypes()[0].equals(messageType)) {
-                    method.invoke(message);
-                }
-            }
-
-        } catch (final SerializationException
-                | IllegalAccessException
-                | IllegalArgumentException
-                | InvocationTargetException e) {
-            e.printStackTrace();
+    private void handleByteArray(final byte[] buff)
+            throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, SerializationException {
+        if (buff == null) {
+            return;
         }
 
+        final Object message = this.serializer.deserialize(buff);
+
+        final Class<?> messageType = message.getClass();
+        final Method[] allMethods = this.handler.getClass().getMethods();
+        for (final Method method : allMethods) {
+            if ((method.getParameterCount() == 1) && method.getParameterTypes()[0].equals(messageType)) {
+                method.invoke(message);
+            }
+        }
     }
 
     /*
@@ -152,6 +182,7 @@ final class ManagedConnection implements Connection {
     }
 
     void close() {
+        this.keepThreadAlive = false;
         this.state = ConnectionState.TERMINATED;
 
         if (this.publishSocket != null) {

@@ -90,6 +90,10 @@ public class ConnectionManager {
      */
     public static void registerHandlers(final Class<? extends ConnectionHandler> clazz,
             final ConnectionHandlerFactory connectionHandlerFactory) {
+        if (!clazz.isAnnotationPresent(InterfaceInfo.class)) {
+            throw new RuntimeException(
+                    "ConnectionHandlerFactory must have the InterfaceInfo annotation to be able to register");
+        }
         final InterfaceInfo info = clazz.getAnnotation(InterfaceInfo.class);
         final String key = ConnectionManager.handlerKey(info.receivesHash(), info.sendsHash());
         ConnectionManager.connectionHandlers.put(key, connectionHandlerFactory);
