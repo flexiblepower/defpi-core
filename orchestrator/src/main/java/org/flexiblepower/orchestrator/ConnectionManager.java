@@ -40,7 +40,19 @@ public class ConnectionManager {
     private static final int MANAGEMENT_PORT = 4999;
 
     private final DockerConnector docker = new DockerConnector();
-    private final RegistryConnector registry = new RegistryConnector();
+
+    private static ConnectionManager instance = null;
+
+    private ConnectionManager() {
+
+    }
+
+    public static ConnectionManager getInstance() {
+        if (ConnectionManager.instance == null) {
+            ConnectionManager.instance = new ConnectionManager();
+        }
+        return ConnectionManager.instance;
+    }
 
     /**
      * @param connection
@@ -55,8 +67,8 @@ public class ConnectionManager {
         final Process process1 = this.docker.getProcess(connection.getProcess1());
         final Process process2 = this.docker.getProcess(connection.getProcess2());
 
-        final Service service1 = this.registry.getService(process1.getProcessService());
-        final Service service2 = this.registry.getService(process2.getProcessService());
+        final Service service1 = ServiceManager.getInstance().getService(process1.getServiceId());
+        final Service service2 = ServiceManager.getInstance().getService(process2.getServiceId());
 
         final Interface interface1 = service1.getInterface(connection.getInterface1());
         final Interface interface2 = service2.getInterface(connection.getInterface2());

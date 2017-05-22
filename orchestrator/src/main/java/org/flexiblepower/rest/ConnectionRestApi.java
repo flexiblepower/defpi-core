@@ -24,7 +24,7 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
     protected ConnectionRestApi(@Context final HttpHeaders httpHeaders,
             @Context final SecurityContext securityContext) {
         super(httpHeaders, securityContext);
-        this.connections = new ConnectionManager();
+        this.connections = ConnectionManager.getInstance();
     }
 
     @Override

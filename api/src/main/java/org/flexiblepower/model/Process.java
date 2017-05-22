@@ -21,14 +21,14 @@ import lombok.Setter;
 @Setter
 public class Process {
 
-    private String id;
+	private String id;
 
-    private String userName;
+	private String userName;
 
-    private String processService;
+	private String serviceId;
 
-    private String runningNode;
+	private String runningNode;
 
-    private List<Connection> connections;
+	private List<Connection> connections;
 
 }

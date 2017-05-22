@@ -7,47 +7,42 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.SecurityContext;
 
 import org.flexiblepower.api.ServiceApi;
-import org.flexiblepower.exceptions.AuthorizationException;
-import org.flexiblepower.exceptions.RepositoryNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Service;
-import org.flexiblepower.orchestrator.RegistryConnector;
+import org.flexiblepower.orchestrator.ServiceManager;
 
 public class ServiceRestApi extends BaseApi implements ServiceApi {
-
-    protected final RegistryConnector registryConnector = new RegistryConnector();
 
     protected ServiceRestApi(@Context final HttpHeaders httpHeaders, @Context final SecurityContext securityContext) {
         super(httpHeaders, securityContext);
     }
 
-    @Override
-    public List<String> listRepositories() {
-        return this.registryConnector.listRepositories();
-    }
+    // @Override
+    // public List<String> listRepositories() {
+    // return this.registryConnector.listRepositories();
+    // }
 
     @Override
-    public List<String> listServices(final String repositoryName) throws RepositoryNotFoundException {
-        return this.registryConnector.listServices(repositoryName);
+    public List<Service> listServices() {
+        return ServiceManager.getInstance().listServices();
     }
 
-    @Override
-    public List<String> listTags(final String repositoryName, final String serviceName)
-            throws ServiceNotFoundException {
-        return this.registryConnector.listTags(repositoryName, serviceName);
-    }
+    // @Override
+    // public List<String> listTags(final String repositoryName, final String serviceName)
+    // throws ServiceNotFoundException {
+    // return this.registryConnector.listTags(repositoryName, serviceName);
+    // }
 
     @Override
-    public Service getService(final String repositoryName, final String imageName, final String tag)
-            throws ServiceNotFoundException {
-        return this.registryConnector.getService(repositoryName, imageName, tag);
+    public Service getService(final String id) throws ServiceNotFoundException {
+        return ServiceManager.getInstance().getService(id);
     }
 
-    @Override
-    public void deleteService(final String repositoryName, final String image, final String tag)
-            throws ServiceNotFoundException,
-            AuthorizationException {
-        this.registryConnector.deleteService(repositoryName, image, tag);
-    }
+    // @Override
+    // public void deleteService(final String repositoryName, final String image, final String tag)
+    // throws ServiceNotFoundException,
+    // AuthorizationException {
+    // this.registryConnector.deleteService(repositoryName, image, tag);
+    // }
 
 }

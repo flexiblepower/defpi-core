@@ -217,7 +217,7 @@ public class DockerConnector {
             throw new ProcessNotFoundException("Missing labels for process " + service.id());
         }
 
-        process.setProcessService(serviceLabels.get(DockerConnector.SERVICE_LABEL_KEY));
+        process.setServiceId(serviceLabels.get(DockerConnector.SERVICE_LABEL_KEY));
         process.setUserName(serviceLabels.get(DockerConnector.USER_LABEL_KEY));
         process.setRunningNode(serviceLabels.get(DockerConnector.NODE_ID_LABEL_KEY));
 
@@ -242,7 +242,7 @@ public class DockerConnector {
         // Create labels to add to the container
         final Map<String, String> serviceLabels = new HashMap<>();
         serviceLabels.put(DockerConnector.SERVICE_LABEL_KEY,
-                service.getImage() + ":" + service.getTags().get(architecture));
+                service.getRegistry() + "/" + service.getId() + ":" + service.getTags().get(architecture));
         // TODO get tag depending on platform
         serviceLabels.put(DockerConnector.USER_LABEL_KEY, user.getUsername());
         serviceLabels.put(DockerConnector.NODE_ID_LABEL_KEY, host);

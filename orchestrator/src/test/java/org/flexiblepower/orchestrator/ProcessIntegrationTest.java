@@ -35,9 +35,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ProcessIntegrationTest {
 
-    private static final RegistryConnector registry = new RegistryConnector();
+    private static final ServiceManager registry = ServiceManager.getInstance();
     private static final DockerConnector connector = new DockerConnector();
-    private final ConnectionManager manager = new ConnectionManager();
+    private final ConnectionManager manager = ConnectionManager.getInstance();
 
     private static final String TEST_USER = "Maarten2";
 
@@ -59,7 +59,7 @@ public class ProcessIntegrationTest {
             // Error creating network, probably already exists
         }
 
-        final Service service = ProcessIntegrationTest.registry.getService("services", "echo", "0.0.1");
+        final Service service = ProcessIntegrationTest.registry.getService("echo:0.0.1");
 
         final User user = new User(ProcessIntegrationTest.TEST_USER, UUID.randomUUID().toString());
 
