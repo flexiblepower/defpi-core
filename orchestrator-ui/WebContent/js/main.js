@@ -66,7 +66,34 @@ myApp
 									nga.field('processService'),
 									nga.field('runningNode.id') ]);
 
-					service.listView().fields([ nga.field('name') ]);
+					service.listView().fields(
+							[ nga.field('id').isDetailLink(true),
+									nga.field('name'), nga.field('version'),
+									nga.field('created', 'datetime') ]);
+
+					service
+							.showView()
+							.fields(
+									[
+											nga.field('id'),
+											nga.field('name'),
+											nga.field('version'),
+											nga.field('created', 'datetime'),
+											nga
+													.field('interfaces',
+															'embedded_list')
+													.targetFields(
+															[
+																	nga
+																			.field('name'),
+																	nga
+																			.field(
+																					'allowMultiple',
+																					'boolean'),
+																	nga
+																			.field(
+																					'autoConnect',
+																					'boolean') ]) ]);
 
 					nodepool.listView().fields(
 							[ nga.field('name').isDetailLink(true) ]);
@@ -82,7 +109,7 @@ myApp
 									nga.field('hostname'),
 									nga.field('architecture'),
 									nga.field('status'),
-									nga.field('lastSync'),
+									nga.field('lastSync', 'datetime'),
 									nga.field('nodePoolId', 'reference')
 											.targetEntity(nodepool)
 											.targetField(nga.field('name'))
@@ -113,7 +140,7 @@ myApp
 									nga.field('hostname'),
 									nga.field('architecture'),
 									nga.field('status'),
-									nga.field('lastSync'),
+									nga.field('lastSync', 'datetime'),
 									nga.field('userId', 'reference')
 											.targetEntity(user).targetField(
 													nga.field('username'))
@@ -137,14 +164,13 @@ myApp
 												required : true
 											}) ]);
 
-					un.listView()
-							.fields(
-									[ nga.field('id').isDetailLink(true),
-											nga.field('dockerId'),
-											nga.field('hostname'),
-											nga.field('architecture'),
-											nga.field('status'),
-											nga.field('lastSync') ]);
+					un.listView().fields(
+							[ nga.field('id').isDetailLink(true),
+									nga.field('dockerId'),
+									nga.field('hostname'),
+									nga.field('architecture'),
+									nga.field('status'),
+									nga.field('lastSync', 'datetime') ]);
 
 					// Add entities
 					admin.addEntity(user);

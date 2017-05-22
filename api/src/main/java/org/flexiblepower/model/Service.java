@@ -1,5 +1,6 @@
 package org.flexiblepower.model;
 
+import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 
@@ -42,15 +43,17 @@ public class Service {
 
 	private String registry;
 
-	private String image;
+	private String id;
 
 	// private String tag;
 
-	private String created;
+	private String version;
+
+	private Date created;
 
 	private Map<Architecture, String> tags;
 
-	public Service(String name, Set<Interface> interfaces, String fullname, String created) {
+	public Service(String name, Set<Interface> interfaces, String fullname, String version, Date created) {
 		this.name = name;
 		this.interfaces = interfaces;
 
@@ -59,16 +62,18 @@ public class Service {
 		final int pHash = fullname.indexOf('@', pTag);
 
 		this.registry = fullname.substring(0, pReg);
-		this.image = fullname.substring(pReg + 1, pTag);
+		this.id = fullname.substring(pReg + 1, pTag);
 		String tag = fullname.substring(pTag + 1, pHash);
 		this.tags.put(getArchitectureFromTag(tag), tag);
+
+		this.version = version;
 
 		this.created = created;
 	}
 
 	@JsonIgnore
 	public String getFullImageName(Architecture architecture) {
-		return this.registry + "/" + this.image + ":" + this.tags.get(architecture);
+		return this.registry + "/" + this.id + ":" + this.tags.get(architecture);
 	}
 
 	public static Architecture getArchitectureFromTag(String tag) {
@@ -76,9 +81,12 @@ public class Service {
 			return Architecture.ARM;
 		} else if (tag.endsWith("-x86")) {
 			return Architecture.X86;
-		} else {
-			// This seems to be the default
+		} else if (!tag.contains("-")) {
+			// 64bit is default
 			return Architecture.X86_64;
+		} else {
+			// There is an architecture defined, but we don't know it
+			return Architecture.UNKNOWN;
 		}
 	}
 
