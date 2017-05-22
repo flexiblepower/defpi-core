@@ -104,4 +104,13 @@ public class ConnectionManager {
         return receivesHash + "/" + sendsHash;
     }
 
+    /**
+     *
+     */
+    public void close() {
+        for (final ManagedConnection conn : this.connections.values()) {
+            conn.close();
+        }
+    }
+
 }

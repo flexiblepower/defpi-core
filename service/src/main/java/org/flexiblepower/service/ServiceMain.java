@@ -32,8 +32,8 @@ public final class ServiceMain {
         final Service service = ServiceMain.getService();
         ServiceMain.log.info("Started service {}", service);
 
-        @SuppressWarnings("unused")
         final ServiceManager manager = new ServiceManager(service);
+        manager.join();
     }
 
     /**

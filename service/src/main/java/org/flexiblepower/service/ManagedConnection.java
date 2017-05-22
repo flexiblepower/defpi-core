@@ -89,10 +89,10 @@ final class ManagedConnection implements Connection {
 
         final String listenAddress = "tcp://*:" + listenPort;
         ManagedConnection.log.debug("Creating subscribeSocket listening on port {}", listenAddress);
-        this.subscribeSocket = this.zmqContext.socket(ZMQ.SUB);
+        this.subscribeSocket = this.zmqContext.socket(ZMQ.PULL);
         this.subscribeSocket.bind(listenAddress);
         this.subscribeSocket.setReceiveTimeOut(ManagedConnection.RECEIVE_TIMEOUT);
-        this.subscribeSocket.subscribe("".getBytes());
+        // this.subscribeSocket.subscribe("".getBytes());
         this.keepThreadAlive = true;
 
         final Thread t = new Thread(() -> {
@@ -109,7 +109,7 @@ final class ManagedConnection implements Connection {
                     ManagedConnection.log.trace("Exception handing message", e);
                 }
             }
-            ManagedConnection.log.debug("end");
+            ManagedConnection.log.trace("End of thread");
         }, "Managed " + info.name() + " handler thread");
 
         t.start();
@@ -134,7 +134,7 @@ final class ManagedConnection implements Connection {
         final Method[] allMethods = this.handler.getClass().getMethods();
         for (final Method method : allMethods) {
             if ((method.getParameterCount() == 1) && method.getParameterTypes()[0].equals(messageType)) {
-                method.invoke(message);
+                method.invoke(this.handler, message);
             }
         }
     }

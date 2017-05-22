@@ -74,7 +74,7 @@ public class ServiceManager {
                     }
                 } catch (final ClosedSelectorException | ZError.IOException e) {
                     // Do nothing, we are stopped
-                    ServiceManager.log.info("Stopping thread");
+                    ServiceManager.log.info("Socket closed, stopping thread");
                     break;
                 } catch (final Exception e) {
                     ServiceManager.log.error("Exception handling message: {}", e.getMessage());
@@ -82,7 +82,7 @@ public class ServiceManager {
                     this.managementSocket.send(ServiceManager.FAILURE);
                 }
             }
-            ServiceManager.log.debug("end");
+            ServiceManager.log.trace("End of thread");
         }, "ServiceManager thread");
 
         this.managerThread.start();
@@ -184,6 +184,7 @@ public class ServiceManager {
 
         case TERMINATED:
             this.service.terminate();
+            this.connectionManager.close();
             this.keepThreadAlive = false;
             return null;
 
