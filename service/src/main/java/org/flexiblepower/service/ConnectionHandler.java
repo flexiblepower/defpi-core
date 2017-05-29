@@ -18,6 +18,12 @@ package org.flexiblepower.service;
  */
 public interface ConnectionHandler {
 
+    /**
+     * When this function is called, the connection has been initiated and both this process, and the receiving side are
+     * running.
+     *
+     * @param connection
+     */
     void onConnected(Connection connection);
 
     void onSuspend();

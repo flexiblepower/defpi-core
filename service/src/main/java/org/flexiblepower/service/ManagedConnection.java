@@ -29,6 +29,7 @@ final class ManagedConnection implements Connection {
 
     private static final Logger log = LoggerFactory.getLogger(ManagedConnection.class);
 
+    private static final String ACK_PREFIX = "@Defpi-0.2.1 connection ready";
     private static final int SEND_TIMEOUT = 2000;
     private static final int RECEIVE_TIMEOUT = 1000;
 
@@ -40,7 +41,9 @@ final class ManagedConnection implements Connection {
     private final Socket publishSocket;
 
     private final ConnectionHandler handler;
-    private final MessageSerializer<?> serializer;
+    private final MessageSerializer<Object> serializer;
+
+    private InterfaceInfo info = null;
 
     /**
      * @param targetAddress
@@ -51,31 +54,30 @@ final class ManagedConnection implements Connection {
     ManagedConnection(final int listenPort, final String targetAddress, final ConnectionHandler handler)
             throws ConnectionModificationException {
         this.handler = handler;
-        InterfaceInfo info = null;
 
         if (handler.getClass().isAnnotationPresent(InterfaceInfo.class)) {
-            info = handler.getClass().getAnnotation(InterfaceInfo.class);
+            this.info = handler.getClass().getAnnotation(InterfaceInfo.class);
         } else {
             for (final Class<?> itf : handler.getClass().getInterfaces()) {
                 if (itf.isAnnotationPresent(InterfaceInfo.class)) {
-                    info = itf.getAnnotation(InterfaceInfo.class);
+                    this.info = itf.getAnnotation(InterfaceInfo.class);
                     break;
                 }
             }
         }
 
-        if (info == null) {
+        if (this.info == null) {
             throw new ConnectionModificationException("No interface information found on connection handler");
         }
 
         // Add serializer to the connection
         try {
-            this.serializer = info.receiveSerializer().newInstance();
+            this.serializer = (MessageSerializer<Object>) this.info.serializer().newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
             throw new ConnectionModificationException("Unable to serializer instantiate connection");
         }
 
-        for (final Class<?> messageType : info.receiveTypes()) {
+        for (final Class<?> messageType : this.info.receiveTypes()) {
             this.serializer.addMessageClass(messageType);
         }
 
@@ -83,17 +85,25 @@ final class ManagedConnection implements Connection {
         this.zmqContext = ZMQ.context(1);
 
         ManagedConnection.log.debug("Creating publishSocket to {}", targetAddress);
-        this.publishSocket = this.zmqContext.socket(ZMQ.PUB);
+        this.publishSocket = this.zmqContext.socket(ZMQ.PUSH);
         this.publishSocket.setSendTimeOut(ManagedConnection.SEND_TIMEOUT);
+        this.publishSocket.bindToRandomPort("tcp://*");
+        this.publishSocket.setDelayAttachOnConnect(true);
         this.publishSocket.connect(targetAddress);
 
         final String listenAddress = "tcp://*:" + listenPort;
         ManagedConnection.log.debug("Creating subscribeSocket listening on port {}", listenAddress);
         this.subscribeSocket = this.zmqContext.socket(ZMQ.PULL);
-        this.subscribeSocket.bind(listenAddress);
         this.subscribeSocket.setReceiveTimeOut(ManagedConnection.RECEIVE_TIMEOUT);
+        this.subscribeSocket.bind(listenAddress);
         // this.subscribeSocket.subscribe("".getBytes());
         this.keepThreadAlive = true;
+
+        if (this.publishSocket.send(this.acknowledge())) {
+            ManagedConnection.log.debug("Succesfully sent acknowledge");
+        } else {
+            ManagedConnection.log.debug("Failed to send acknowledge");
+        }
 
         final Thread t = new Thread(() -> {
             while (this.keepThreadAlive) {
@@ -110,9 +120,44 @@ final class ManagedConnection implements Connection {
                 }
             }
             ManagedConnection.log.trace("End of thread");
-        }, "Managed " + info.name() + " handler thread");
+        }, "Managed " + this.info.name() + " handler thread");
 
         t.start();
+    }
+
+    /**
+     * @return a special series of bytes that indicate this connection is ready.
+     */
+    private byte[] acknowledge() {
+        final String ack = String.format("%s:%s/%s@%s",
+                ManagedConnection.ACK_PREFIX,
+                this.info.receivesHash(),
+                this.info.sendsHash(),
+                this.info.serializer());
+        return ack.getBytes();
+    }
+
+    private boolean handleAck(final byte[] barr) {
+        final String test = new String(barr);
+
+        final String expected = String.format("%s:%s/%s@%s",
+                ManagedConnection.ACK_PREFIX,
+                this.info.sendsHash(),
+                this.info.receivesHash(),
+                this.info.serializer());
+
+        if (test.startsWith(ManagedConnection.ACK_PREFIX)) {
+            ManagedConnection.log.debug("Received acknowledge string: {}", test);
+            if (test.equals(expected)) {
+                this.state = ConnectionState.CONNECTED;
+                ManagedConnection.log.debug("Updated state to {}, replying ack", this.state);
+                this.publishSocket.send(this.acknowledge());
+                return true;
+            } else {
+                ManagedConnection.log.warn("Unexpected ACK");
+            }
+        }
+        return false;
     }
 
     /**
@@ -125,6 +170,10 @@ final class ManagedConnection implements Connection {
     private void handleByteArray(final byte[] buff)
             throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, SerializationException {
         if (buff == null) {
+            return;
+        }
+
+        if ((this.state == ConnectionState.STARTING) && this.handleAck(buff)) {
             return;
         }
 
@@ -145,7 +194,7 @@ final class ManagedConnection implements Connection {
      * @see org.flexiblepower.service.Connection#send(java.lang.Object)
      */
     @Override
-    public void send(final byte[] message) {
+    public void send(final Object message) {
         if (message == null) {
             return;
         }
@@ -153,11 +202,13 @@ final class ManagedConnection implements Connection {
         if (this.getState().equals(ConnectionState.CONNECTED)) {
             try {
                 // Do the send
-                this.publishSocket.send(message);
+                this.publishSocket.send(this.serializer.serialize(message));
             } catch (final Exception e) {
                 this.state = ConnectionState.INTERRUPTED;
                 // TODO Recover from the Interrupted state (or via resume?)
             }
+        } else {
+            ManagedConnection.log.warn("Unable to send when connection state is {}!", this.state);
         }
     }
 

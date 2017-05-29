@@ -39,11 +39,11 @@ public class ServiceTest {
 
         final String uri = String.format("tcp://%s:%d", ServiceTest.TEST_HOST, 4999);
         ServiceTest.managementSocket = ZMQ.context(1).socket(ZMQ.REQ);
-        ServiceTest.managementSocket.setReceiveTimeOut(1000);
-        ServiceTest.managementSocket.setSendTimeOut(1000);
+        // ServiceTest.managementSocket.setReceiveTimeOut(1000);
+        // ServiceTest.managementSocket.setSendTimeOut(1000);
         ServiceTest.managementSocket.connect(uri.toString());
 
-        final ConnectionMessage connection = ConnectionMessage.newBuilder()
+        final ConnectionMessage createMsg = ConnectionMessage.newBuilder()
                 .setConnectionId("1")
                 .setMode(ConnectionMessage.ModeType.CREATE)
                 .setTargetAddress("tcp://localhost:5025")
@@ -52,16 +52,41 @@ public class ServiceTest {
                 .setSendHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
                 .build();
 
-        Assert.assertTrue(ServiceTest.managementSocket.send(connection.toByteArray()));
+        Assert.assertTrue(ServiceTest.managementSocket.send(createMsg.toByteArray()));
         Assert.assertArrayEquals(ServiceManager.SUCCESS, ServiceTest.managementSocket.recv());
+    }
+
+    @Test
+    public void testAck() throws InterruptedException {
+        final String uri = String.format("tcp://%s:%d", ServiceTest.TEST_HOST, 1234);
+        final Socket out = ZMQ.context(1).socket(ZMQ.PUSH);
+        out.setSendTimeOut(1000);
+        out.setDelayAttachOnConnect(true);
+        out.connect(uri.toString());
+
+        final String uri2 = String.format("tcp://*:%d", 5025);
+        final Socket in = ZMQ.context(1).socket(ZMQ.PULL);
+        // in.setReceiveTimeOut(1000);
+        in.bind(uri2.toString());
+        Thread.sleep(1000);
+
+        final String ack = String.format("%s:%s/%s@%s",
+                "@Defpi-0.2.1 connection ready",
+                "eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252",
+                "eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252",
+                JavaIOSerializer.class);
+
+        out.send(ack);
+        out.close();
+        Assert.assertArrayEquals(ack.getBytes(), in.recv());
     }
 
     @Test
     public void testSend() throws InterruptedException, SerializationException {
         final String uri = String.format("tcp://%s:%d", ServiceTest.TEST_HOST, 1234);
-        final Socket testSocket = ZMQ.context(2).socket(ZMQ.PUSH);
+        final Socket testSocket = ZMQ.context(1).socket(ZMQ.PAIR);
         // testSocket.setReceiveTimeOut(1000);
-        testSocket.setSendTimeOut(1000);
+        // testSocket.setSendTimeOut(1000);
         testSocket.connect(uri.toString());
 
         for (int i = 0; i <= 100; i++) {

@@ -33,12 +33,10 @@ public @interface InterfaceInfo {
 
     public String sendsHash();
 
-    public Class<? extends MessageSerializer<?>> receiveSerializer();
-
     public Class<?>[] receiveTypes();
 
-    public Class<? extends MessageSerializer<?>> sendSerializer();
-
     public Class<?>[] sendTypes();
+
+    public Class<? extends MessageSerializer<?>> serializer();
 
 }

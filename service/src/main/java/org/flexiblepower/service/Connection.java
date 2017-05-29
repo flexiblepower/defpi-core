@@ -22,7 +22,7 @@ public interface Connection {
         TERMINATED;
     }
 
-    public void send(byte[] message);
+    public void send(Object message);
 
     public ConnectionState getState();
 
