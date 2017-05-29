@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.Random;
 import java.util.UUID;
 
+import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
@@ -64,8 +65,8 @@ public class ConnectionManager {
     public void addConnection(final Connection connection)
             throws ProcessNotFoundException, IOException, ServiceNotFoundException {
         // TODO Auto-generated method stub
-        final Process process1 = this.docker.getProcess(connection.getProcess1());
-        final Process process2 = this.docker.getProcess(connection.getProcess2());
+        final Process process1 = ProcessManager.getInstance().getProcess(new ObjectId(connection.getProcess1()));
+        final Process process2 = ProcessManager.getInstance().getProcess(new ObjectId(connection.getProcess2()));
 
         final Service service1 = ServiceManager.getInstance().getService(process1.getServiceId());
         final Service service2 = ServiceManager.getInstance().getService(process2.getServiceId());
@@ -81,17 +82,17 @@ public class ConnectionManager {
                     final int port1 = 5000 + new Random().nextInt(5000);
                     final int port2 = 5000 + new Random().nextInt(5000);
 
-                    ConnectionManager.connect(process1.getRunningNode(),
+                    ConnectionManager.connect(process1.getRunningDockerNodeId(),
                             port1,
                             version1.getSendsHash(),
-                            process2.getRunningNode(),
+                            process2.getRunningDockerNodeId(),
                             port2,
                             version2.getReceivesHash());
 
-                    ConnectionManager.connect(process2.getRunningNode(),
+                    ConnectionManager.connect(process2.getRunningDockerNodeId(),
                             port2,
                             version2.getSendsHash(),
-                            process1.getRunningNode(),
+                            process1.getRunningDockerNodeId(),
                             port1,
                             version1.getReceivesHash());
                 }

@@ -6,43 +6,52 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.SecurityContext;
 
+import org.bson.types.ObjectId;
 import org.flexiblepower.api.ProcessApi;
+import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Process;
-import org.flexiblepower.model.Service;
-import org.flexiblepower.orchestrator.DockerConnector;
+import org.flexiblepower.orchestrator.ProcessManager;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ProcessRestApi extends BaseApi implements ProcessApi {
 
+    // TODO authentication etc
+
     protected ProcessRestApi(@Context final HttpHeaders httpHeaders, @Context final SecurityContext securityContext) {
         super(httpHeaders, securityContext);
     }
 
-    private final DockerConnector dockerConnector = new DockerConnector();
-
     @Override
     public List<Process> listProcesses() {
-        ProcessRestApi.log.info("REST");
-        return this.dockerConnector.listProcesses();
+        return ProcessManager.getInstance().listProcesses(); // TODO for the right user
     }
 
     @Override
     public Process getProcess(final String uuid) throws ProcessNotFoundException {
-        return this.dockerConnector.getProcess(uuid);
+        return ProcessManager.getInstance().getProcess(new ObjectId(uuid));
     }
 
     @Override
-    public String newProcess(final Service service) {
-        ProcessRestApi.log.info("newContainer(): " + service);
-        return this.dockerConnector.newProcess(service, this.loggedInUser, null);
+    public Process newProcess(final Process process) {
+        return ProcessManager.getInstance().createProcess(process);
+    }
+
+    @Override
+    public Process updateProcess(final String uuid, final Process process) throws AuthorizationException {
+        return ProcessManager.getInstance().updateProcess(process);
     }
 
     @Override
     public void removeProcess(final String uuid) throws ProcessNotFoundException {
-        this.dockerConnector.removeProcess(uuid);
+        final ProcessManager pm = ProcessManager.getInstance();
+        final Process process = pm.getProcess(new ObjectId(uuid));
+        if (process == null) {
+            throw new ProcessNotFoundException("Could not find process " + uuid);
+        }
+        pm.deleteProcess(process);
     }
 
     // try {

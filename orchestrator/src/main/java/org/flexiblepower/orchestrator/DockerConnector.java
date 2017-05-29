@@ -5,17 +5,21 @@
  */
 package org.flexiblepower.orchestrator;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Architecture;
+import org.flexiblepower.model.Node;
+import org.flexiblepower.model.NodePool;
 import org.flexiblepower.model.Process;
+import org.flexiblepower.model.PublicNode;
+import org.flexiblepower.model.Service;
 import org.flexiblepower.model.User;
 
 import com.spotify.docker.client.DefaultDockerClient;
@@ -29,7 +33,6 @@ import com.spotify.docker.client.messages.swarm.EndpointSpec;
 import com.spotify.docker.client.messages.swarm.EndpointSpec.Builder;
 import com.spotify.docker.client.messages.swarm.NetworkAttachmentConfig;
 import com.spotify.docker.client.messages.swarm.Placement;
-import com.spotify.docker.client.messages.swarm.Service;
 import com.spotify.docker.client.messages.swarm.ServiceSpec;
 import com.spotify.docker.client.messages.swarm.TaskSpec;
 
@@ -43,7 +46,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since 20 mrt. 2017
  */
 @Slf4j
-public class DockerConnector {
+class DockerConnector {
 
     // private static final String CERT_PATH = "C:\\Users\\leeuwencjv\\.docker\\machine\\machines\\default";
     private static final String DOCKER_HOST_KEY = "DOCKER_HOST";
@@ -72,33 +75,34 @@ public class DockerConnector {
         }
     }
 
-    /**
-     * @return
-     */
-    public List<Process> listProcesses() {
-        final List<Process> ret = new ArrayList<>();
-
-        try {
-            final List<Service> serviceList = this.client.listServices();
-            for (final Service service : serviceList) {
-                ret.add(DockerConnector.dockerService2Process(service));
-            }
-        } catch (DockerException | InterruptedException | ProcessNotFoundException e) {
-            throw new ApiException(e);
-        }
-
-        return ret;
-    }
+    // /**
+    // * @return
+    // */
+    // public List<Process> listProcesses() {
+    // final List<Process> ret = new ArrayList<>();
+    //
+    // try {
+    // final List<Service> serviceList = this.client.listServices();
+    // for (final Service service : serviceList) {
+    // ret.add(DockerConnector.dockerService2Process(service));
+    // }
+    // } catch (DockerException | InterruptedException | ProcessNotFoundException e) {
+    // throw new ApiException(e);
+    // }
+    //
+    // return ret;
+    // }
 
     /**
      * @param json
      * @return
      */
-    public String newProcess(final org.flexiblepower.model.Service service,
-            final User user,
-            final String localhostName) {
+    public String newProcess(final Process process, final User user) {
         try {
-            final ServiceSpec serviceSpec = DockerConnector.createServiceSpec(service, user, localhostName);
+            this.ensureUserNetworkExists(user);
+            final Service service = ServiceManager.getInstance().getService(process.getServiceId());
+            final Node node = DockerConnector.determineRunningNode(process);
+            final ServiceSpec serviceSpec = DockerConnector.createServiceSpec(service, user, node);
             final String id = this.client.createService(serviceSpec).id();
             DockerConnector.log.info("Created process with Id {}", id);
             return id;
@@ -109,34 +113,47 @@ public class DockerConnector {
         }
     }
 
-    /**
-     * @param uuid
-     * @return
-     * @throws ProcessNotFoundException
-     */
-    public Process getProcess(final String uuid) throws ProcessNotFoundException {
-        try {
-            final Service service = this.client.inspectService(uuid);
-            return DockerConnector.dockerService2Process(service);
-        } catch (DockerException | InterruptedException e) {
-            DockerConnector.log.error("Error while getting process: {}", e.getMessage());
-            DockerConnector.log.trace("Error while getting process", e);
-            throw new ApiException(e);
-        }
-    }
+    // /**
+    // * @param uuid
+    // * @return
+    // * @throws ProcessNotFoundException
+    // */
+    // public Process getProcess(final String uuid) throws ProcessNotFoundException {
+    // try {
+    // final com.spotify.docker.client.messages.swarm.Service service = this.client.inspectService(uuid);
+    // return DockerConnector.dockerService2Process(service);
+    // } catch (DockerException | InterruptedException e) {
+    // DockerConnector.log.error("Error while getting process: {}", e.getMessage());
+    // DockerConnector.log.trace("Error while getting process", e);
+    // throw new ApiException(e);
+    // }
+    // }
 
     /**
      * @param uuid
      * @return
      */
-    public void removeProcess(final String uuid) throws ProcessNotFoundException {
-        try {
-            this.client.removeService(uuid);
-        } catch (DockerException | InterruptedException e) {
-            DockerConnector.log.error("Error while removing process: {}", e.getMessage());
-            DockerConnector.log.trace("Error while removing process", e);
-            throw new ApiException(e);
+    public void removeProcess(final Process process) throws ProcessNotFoundException {
+        if (process.getDockerId() != null) {
+            try {
+                this.client.removeService(process.getDockerId());
+            } catch (DockerException | InterruptedException e) {
+                DockerConnector.log.error("Error while removing process: {}", e.getMessage());
+                DockerConnector.log.trace("Error while removing process", e);
+                throw new ApiException(e);
+            }
         }
+    }
+
+    public void ensureUserNetworkExists(final User user) {
+        // check if it exists
+        final String userNetworkName = user.getUsername() + "-net";
+        for (final String networkName : this.listNetworks().values()) {
+            if (networkName.equals(userNetworkName)) {
+                return;
+            }
+        }
+        this.newNetwork(userNetworkName);
     }
 
     /**
@@ -199,29 +216,43 @@ public class DockerConnector {
         }
     }
 
-    /**
-     * Internal function to translate a docker service to a def-pi process definition.
-     *
-     * @param service
-     * @return
-     * @throws ProcessNotFoundException
-     */
-    static Process dockerService2Process(final Service service) throws ProcessNotFoundException {
-        // Create the def-pi process
-        final Process process = new Process();
-        process.setId(service.id());
+    // /**
+    // * Internal function to translate a docker service to a def-pi process definition.
+    // *
+    // * @param service
+    // * @return
+    // * @throws ProcessNotFoundException
+    // */
+    // static Process dockerService2Process(final Service service) throws ProcessNotFoundException {
+    // // Create the def-pi process
+    // final Process process = new Process();
+    // process.setId(service.id());
+    //
+    // // Get additional information from the docker image labels
+    // final Map<String, String> serviceLabels = service.spec().labels();
+    // if (serviceLabels == null) {
+    // throw new ProcessNotFoundException("Missing labels for process " + service.id());
+    // }
+    //
+    // process.setServiceId(serviceLabels.get(DockerConnector.SERVICE_LABEL_KEY));
+    // process.setUserName(serviceLabels.get(DockerConnector.USER_LABEL_KEY));
+    // process.setRunningDockerNodeId(serviceLabels.get(DockerConnector.NODE_ID_LABEL_KEY));
+    //
+    // return process;
+    // }
 
-        // Get additional information from the docker image labels
-        final Map<String, String> serviceLabels = service.spec().labels();
-        if (serviceLabels == null) {
-            throw new ProcessNotFoundException("Missing labels for process " + service.id());
+    private static Node determineRunningNode(final Process process) {
+        final NodeManager nm = NodeManager.getInstance();
+        if (process.getNodePoolId() != null) {
+            // Get node from nodepool
+            final NodePool nodePool = nm.getNodePool(process.getNodePoolId());
+            final List<PublicNode> nodes = nm.getPublicNodesInNodePool(nodePool);
+            final Random r = new Random();
+            return nodes.get(r.nextInt(nodes.size()));
+        } else {
+            // get Private node
+            return nm.getPrivateNode(process.getPrivateNodeId());
         }
-
-        process.setServiceId(serviceLabels.get(DockerConnector.SERVICE_LABEL_KEY));
-        process.setUserName(serviceLabels.get(DockerConnector.USER_LABEL_KEY));
-        process.setRunningNode(serviceLabels.get(DockerConnector.NODE_ID_LABEL_KEY));
-
-        return process;
     }
 
     /**
@@ -230,10 +261,9 @@ public class DockerConnector {
      * @param process
      * @return
      */
-    static ServiceSpec createServiceSpec(final org.flexiblepower.model.Service service,
-            final User user,
-            final String host) {
-        final Architecture architecture = Architecture.X86_64; // TODO should pick the one from host
+    private static ServiceSpec createServiceSpec(final Service service, final User user, final Node node) {
+
+        final Architecture architecture = node.getArchitecture();
         // Create a name for the service by removing blanks from process name
         String serviceName = service.getName() + UUID.randomUUID().getLeastSignificantBits();
         serviceName = serviceName.replaceAll("\\h", "");
@@ -242,15 +272,16 @@ public class DockerConnector {
         // Create labels to add to the container
         final Map<String, String> serviceLabels = new HashMap<>();
         serviceLabels.put(DockerConnector.SERVICE_LABEL_KEY,
-                service.getRegistry() + "/" + service.getId() + ":" + service.getTags().get(architecture));
+                service.getRegistry() + "/" + ServiceManager.SERVICE_REPOSITORY + "/" + service.getId() + ":"
+                        + service.getTags().get(architecture));
         // TODO get tag depending on platform
         serviceLabels.put(DockerConnector.USER_LABEL_KEY, user.getUsername());
-        serviceLabels.put(DockerConnector.NODE_ID_LABEL_KEY, host);
+        serviceLabels.put(DockerConnector.NODE_ID_LABEL_KEY, node.getDockerId());
 
         // Create the task template based on the process image
         final String dockerImage = service.getFullImageName(architecture);
         final ContainerSpec processSpec = ContainerSpec.builder().image(dockerImage).build();
-        final Placement placement = Placement.create(Arrays.asList("node.hostname == " + host));
+        final Placement placement = Placement.create(Arrays.asList("node.hostname == " + node.getHostname()));
         final TaskSpec taskTemplate = TaskSpec.builder().containerSpec(processSpec).placement(placement).build();
 
         // Add the ports to the specification
@@ -268,7 +299,7 @@ public class DockerConnector {
 
         // Add the network attachment to place process in user network
         final NetworkAttachmentConfig usernet = NetworkAttachmentConfig.builder()
-                .target("user-net")
+                .target(user.getUsername() + "-net")
                 .aliases(serviceName)
                 .build();
 

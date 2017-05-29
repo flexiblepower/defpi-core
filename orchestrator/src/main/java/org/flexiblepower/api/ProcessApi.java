@@ -6,6 +6,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -15,7 +16,6 @@ import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.NotFoundException;
 import org.flexiblepower.model.Process;
-import org.flexiblepower.model.Service;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -60,19 +60,39 @@ public interface ProcessApi {
                       required = true) @PathParam("processId") final String uuid)
             throws AuthorizationException, NotFoundException, InvalidObjectIdException;
 
+    @PUT
+    @Path("{processId}")
+    @ApiOperation(nickname = "getProcess",
+                  value = "Get process data",
+                  notes = "Get the data of the process with the specified Id",
+                  authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Process with the specified Id", response = Process.class),
+            @ApiResponse(code = 400, message = InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE),
+            @ApiResponse(code = 404, message = ProcessApi.PROCESS_NOT_FOUND_MESSAGE),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
+    public Process updateProcess(
+            @ApiParam(name = "processId",
+                      value = "The id of the process",
+                      required = true) @PathParam("processId") final String uuid,
+            @ApiParam(name = "process",
+                      value = "The process definition of the new process to add",
+                      required = true) final Process process)
+            throws AuthorizationException;
+
     @POST
-    @Produces(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "newProcess",
                   value = "Create a process",
                   notes = "Create a new process",
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "Id of the new process", response = String.class),
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "Id of the new process", response = Process.class),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public String
-            newProcess(@ApiParam(name = "service",
-                                 value = "The service definition of the new process to add",
-                                 required = true) final Service service)
+    public Process
+            newProcess(@ApiParam(name = "process",
+                                 value = "The process definition of the new process to add",
+                                 required = true) final Process process)
                     throws AuthorizationException;
 
     @DELETE
