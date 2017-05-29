@@ -62,9 +62,32 @@ myApp
 									} ]) ]);
 
 					process.listView().fields(
-							[ nga.field('id'), nga.field('userName'),
-									nga.field('processService'),
-									nga.field('runningNode.id') ]);
+							[ nga.field('id'), nga.field('state'),
+									nga.field('userId'),
+									nga.field('serviceId'),
+									nga.field('nodePoolId'),
+									nga.field('privateNodeId'),
+									nga.field('dockerId'),
+									nga.field('runningDockerNodeId') ]);
+
+					process.creationView().fields(
+							[
+									nga.field('userId', 'reference')
+											.targetEntity(user).targetField(
+													nga.field('username'))
+											.label('User'),
+									nga.field('serviceId', 'reference')
+											.targetEntity(service).targetField(
+													nga.field('id')).label(
+													'Service'),
+									nga.field('nodePoolId', 'reference')
+											.targetEntity(nodepool)
+											.targetField(nga.field('name'))
+											.label('NodePool'),
+									nga.field('privateNodeId', 'reference')
+											.targetEntity(prno).targetField(
+													nga.field('dockerId'))
+											.label('PrivateNode') ]);
 
 					service.listView().fields(
 							[ nga.field('id').isDetailLink(true),

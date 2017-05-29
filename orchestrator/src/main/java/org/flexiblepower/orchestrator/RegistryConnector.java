@@ -249,6 +249,7 @@ public class RegistryConnector {
                 serviceBuilder.created(new Date(0));
             }
             final String image = jsonResponse.getString("name");
+            serviceBuilder.repository(ServiceManager.SERVICE_REPOSITORY);
             serviceBuilder.id(image.substring(image.indexOf("/") + 1) + ":" + version);
             serviceBuilder.name(labels.getString("org.flexiblepower.serviceName"));
 

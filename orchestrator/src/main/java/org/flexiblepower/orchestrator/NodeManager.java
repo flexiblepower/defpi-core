@@ -5,6 +5,7 @@
  */
 package org.flexiblepower.orchestrator;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -152,6 +153,16 @@ public class NodeManager {
     public UnidentifiedNode getUnidentifiedNodeByDockerId(final String dockerId) {
         this.syncAllNodes();
         return this.db.getUnidentifiedNodeByDockerId(dockerId);
+    }
+
+    public List<PublicNode> getPublicNodesInNodePool(final NodePool nodePool) {
+        final List<PublicNode> result = new ArrayList<>();
+        for (final PublicNode pn : this.getPublicNodes()) {
+            if (nodePool.getId().equals(pn.getNodePoolId())) {
+                result.add(pn);
+            }
+        }
+        return result;
     }
 
     public List<PublicNode> getPublicNodes() {

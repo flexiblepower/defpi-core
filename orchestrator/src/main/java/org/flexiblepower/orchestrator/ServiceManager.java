@@ -40,11 +40,14 @@ public class ServiceManager {
         return this.registryConnectior.listRepositories();
     }
 
-    public Service getService(final String id) throws ServiceNotFoundException {
+    public Service getService(final String id) {
         try {
             return this.registryConnectior.getService(ServiceManager.SERVICE_REPOSITORY, id);
         } catch (final RepositoryNotFoundException e) {
             // Can't happen
+            return null;
+        } catch (final ServiceNotFoundException e) {
+            // Can happen
             return null;
         }
     }

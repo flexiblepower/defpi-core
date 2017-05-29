@@ -5,6 +5,9 @@ import org.mongodb.morphia.annotations.Entity;
 import org.mongodb.morphia.annotations.Id;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -14,14 +17,14 @@ import lombok.Getter;
 @Entity
 public class Connection {
 
-    @Id
-    @JsonIgnore
-    private final ObjectId id = null;
+	@Id
+	@JsonIgnore
+	private final ObjectId id = null;
 
-    private final String process1;
-    private final String process2;
+	private final String process1;
+	private final String process2;
 
-    private final String interface1;
-    private final String interface2;
+	private final String interface1;
+	private final String interface2;
 
 }

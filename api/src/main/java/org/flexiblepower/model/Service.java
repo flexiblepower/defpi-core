@@ -43,6 +43,8 @@ public class Service {
 
 	private String registry;
 
+	private String repository;
+
 	private String id;
 
 	// private String tag;
@@ -73,7 +75,12 @@ public class Service {
 
 	@JsonIgnore
 	public String getFullImageName(Architecture architecture) {
-		return this.registry + "/" + this.id + ":" + this.tags.get(architecture);
+		return this.registry + "/" + this.repository + "/" + getImageName() + ":" + this.tags.get(architecture);
+	}
+
+	@JsonIgnore
+	public String getImageName() {
+		return this.id.split(":")[0];
 	}
 
 	public static Architecture getArchitectureFromTag(String tag) {

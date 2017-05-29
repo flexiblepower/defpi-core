@@ -9,6 +9,7 @@ import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.model.Connection;
+import org.flexiblepower.model.Process;
 import org.flexiblepower.model.UnidentifiedNode;
 import org.flexiblepower.model.User;
 import org.mongodb.morphia.Datastore;
@@ -205,7 +206,7 @@ public final class MongoDbConnector implements Closeable {
      * @throws AuthorizationException
      * @throws InvalidObjectIdException
      */
-    public User getUser(final ObjectId userId) throws AuthorizationException {
+    public User getUser(final ObjectId userId) {
         MongoDbConnector.log.debug("Searching user with id {}", userId.toString());
         return this.datastore.get(User.class, userId);
     }
@@ -230,6 +231,12 @@ public final class MongoDbConnector implements Closeable {
         query.and(query.criteria("username").equal(username),
                 query.criteria("passwordHash").equal(User.computeUserPass(username, password)));
         return query.get();
+    }
+
+    public List<Process> listProcessesForUser(final User user) {
+        final Query<Process> query = this.datastore.find(Process.class);
+        query.criteria("userId").equal(user.getId());
+        return query.asList();
     }
 
     /**
