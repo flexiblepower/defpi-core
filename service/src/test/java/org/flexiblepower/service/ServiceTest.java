@@ -1,21 +1,27 @@
 /**
- * File ServiceTest.java
+ * File this.java
  *
  * Copyright 2017 TNO
  */
 package org.flexiblepower.service;
 
+import java.io.Serializable;
+import java.net.UnknownHostException;
+
 import org.flexiblepower.service.exceptions.SerializationException;
-import org.flexiblepower.service.proto.ServiceProto.ConnectionMessage;
 import org.flexiblepower.service.proto.ServiceProto.GoToProcessStateMessage;
 import org.flexiblepower.service.proto.ServiceProto.ProcessState;
+import org.flexiblepower.service.proto.ServiceProto.ResumeProcessMessage;
 import org.flexiblepower.service.serializers.JavaIOSerializer;
-import org.junit.AfterClass;
+import org.flexiblepower.service.serializers.MessageSerializer;
+import org.junit.After;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Socket;
+
+import com.google.protobuf.ByteString;
 
 /**
  * ServiceTest
@@ -29,129 +35,92 @@ public class ServiceTest {
     // private static final String TEST_HOST = "172.17.0.2";
     private static final String TEST_HOST = "localhost";
 
-    private static ServiceManager manager;
+    private final TestService testService = new TestService();
+    private final MessageSerializer<Serializable> serializer = new JavaIOSerializer();
+    private ServiceManager manager;
+    private Socket managementSocket;
 
-    private static Socket managementSocket;
+    @Before
+    public void init() throws InterruptedException, UnknownHostException {
+        this.manager = new ServiceManager(this.testService);
 
-    @BeforeClass
-    public static void init() throws InterruptedException {
-        ServiceTest.manager = new ServiceManager(new TestService());
-
-        final String uri = String.format("tcp://%s:%d", ServiceTest.TEST_HOST, 4999);
-        ServiceTest.managementSocket = ZMQ.context(1).socket(ZMQ.REQ);
-        // ServiceTest.managementSocket.setReceiveTimeOut(1000);
-        // ServiceTest.managementSocket.setSendTimeOut(1000);
-        ServiceTest.managementSocket.connect(uri.toString());
-
-        final ConnectionMessage createMsg = ConnectionMessage.newBuilder()
-                .setConnectionId("1")
-                .setMode(ConnectionMessage.ModeType.CREATE)
-                .setTargetAddress("tcp://localhost:5025")
-                .setListenPort(1234)
-                .setReceiveHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
-                .setSendHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
-                .build();
-
-        Assert.assertTrue(ServiceTest.managementSocket.send(createMsg.toByteArray()));
-        Assert.assertArrayEquals(ServiceManager.SUCCESS, ServiceTest.managementSocket.recv());
+        final String uri = String.format("tcp://%s:%d", ServiceTest.TEST_HOST, ServiceManager.MANAGEMENT_PORT);
+        this.managementSocket = ZMQ.context(1).socket(ZMQ.REQ);
+        this.managementSocket.setReceiveTimeOut(1000);
+        this.managementSocket.connect(uri.toString());
     }
 
-    @Test
-    public void testAck() throws InterruptedException {
-        final String uri = String.format("tcp://%s:%d", ServiceTest.TEST_HOST, 1234);
-        final Socket out = ZMQ.context(1).socket(ZMQ.PUSH);
-        out.setSendTimeOut(1000);
-        out.setDelayAttachOnConnect(true);
-        out.connect(uri.toString());
-
-        final String uri2 = String.format("tcp://*:%d", 5025);
-        final Socket in = ZMQ.context(1).socket(ZMQ.PULL);
-        // in.setReceiveTimeOut(1000);
-        in.bind(uri2.toString());
-        Thread.sleep(1000);
-
-        final String ack = String.format("%s:%s/%s@%s",
-                "@Defpi-0.2.1 connection ready",
-                "eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252",
-                "eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252",
-                JavaIOSerializer.class);
-
-        out.send(ack);
-        out.close();
-        Assert.assertArrayEquals(ack.getBytes(), in.recv());
+    @Test(timeout = 5000)
+    public void runResume() throws SerializationException {
+        Assert.assertTrue(this.managementSocket.send(ResumeProcessMessage.newBuilder()
+                .setProcessId("NotImportant")
+                .setStateData(ByteString.copyFrom(this.serializer.serialize(TestService.class)))
+                .build()
+                .toByteArray()));
+        Assert.assertArrayEquals(ServiceManager.SUCCESS, this.managementSocket.recv());
     }
 
-    @Test
-    public void testSend() throws InterruptedException, SerializationException {
-        final String uri = String.format("tcp://%s:%d", ServiceTest.TEST_HOST, 1234);
-        final Socket testSocket = ZMQ.context(1).socket(ZMQ.PAIR);
-        // testSocket.setReceiveTimeOut(1000);
-        // testSocket.setSendTimeOut(1000);
-        testSocket.connect(uri.toString());
-
-        for (int i = 0; i <= 100; i++) {
-            Assert.assertTrue(testSocket.send((new JavaIOSerializer()).serialize("THIS IS A TEST " + i)));
-        }
-        Thread.sleep(100);
-    }
-
-    @Test
+    @Test(timeout = 5000)
     public void runStart() {
-        Assert.assertTrue(ServiceTest.managementSocket.send(GoToProcessStateMessage.newBuilder()
+        Assert.assertTrue(this.managementSocket.send(GoToProcessStateMessage.newBuilder()
                 .setProcessId("haha")
                 .setTargetState(ProcessState.STARTING)
                 .build()
                 .toByteArray()));
-        Assert.assertArrayEquals(ServiceManager.FAILURE, ServiceTest.managementSocket.recv());
+        Assert.assertArrayEquals(ServiceManager.FAILURE, this.managementSocket.recv());
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void runInit() {
-        Assert.assertTrue(ServiceTest.managementSocket.send(GoToProcessStateMessage.newBuilder()
+        Assert.assertTrue(this.managementSocket.send(GoToProcessStateMessage.newBuilder()
                 .setProcessId("")
                 .setTargetState(ProcessState.INITIALIZING)
                 .build()
                 .toByteArray()));
-        Assert.assertArrayEquals(ServiceManager.FAILURE, ServiceTest.managementSocket.recv());
+        Assert.assertArrayEquals(ServiceManager.FAILURE, this.managementSocket.recv());
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void runRun() {
-        Assert.assertTrue(ServiceTest.managementSocket.send(GoToProcessStateMessage.newBuilder()
+        Assert.assertTrue(this.managementSocket.send(GoToProcessStateMessage.newBuilder()
                 .setProcessId("")
                 .setTargetState(ProcessState.RUNNING)
                 .build()
                 .toByteArray()));
-        Assert.assertArrayEquals(ServiceManager.SUCCESS, ServiceTest.managementSocket.recv());
+        Assert.assertArrayEquals(ServiceManager.SUCCESS, this.managementSocket.recv());
+        Assert.assertEquals("init", this.testService.getState());
     }
 
-    @Test
-    public void runSuspend() {
-        Assert.assertTrue(ServiceTest.managementSocket.send(GoToProcessStateMessage.newBuilder()
+    @Test(timeout = 5000)
+    public void runSuspend() throws SerializationException {
+        Assert.assertTrue(this.managementSocket.send(GoToProcessStateMessage.newBuilder()
                 .setProcessId("")
                 .setTargetState(ProcessState.SUSPENDED)
                 .build()
                 .toByteArray()));
-        Assert.assertArrayEquals(ServiceManager.SUCCESS, ServiceTest.managementSocket.recv());
+        final byte[] barr = this.managementSocket.recv();
+        Assert.assertEquals(TestService.class, this.serializer.deserialize(barr));
+        Assert.assertEquals("suspend", this.testService.getState());
     }
 
-    @AfterClass
-    public static void stop() throws InterruptedException {
-        Assert.assertTrue(ServiceTest.managementSocket.send(ConnectionMessage.newBuilder()
-                .setConnectionId("1")
-                .setMode(ConnectionMessage.ModeType.TERMINATE)
-                .build()
-                .toByteArray()));
-        Assert.assertArrayEquals(ServiceManager.SUCCESS, ServiceTest.managementSocket.recv());
-
-        Assert.assertTrue(ServiceTest.managementSocket.send(GoToProcessStateMessage.newBuilder()
+    @Test(timeout = 5000)
+    public void runTerminate() {
+        Assert.assertTrue(this.managementSocket.send(GoToProcessStateMessage.newBuilder()
                 .setProcessId("Irrelevant")
                 .setTargetState(ProcessState.TERMINATED)
                 .build()
                 .toByteArray()));
-        Assert.assertArrayEquals(ServiceManager.SUCCESS, ServiceTest.managementSocket.recv());
+        Assert.assertArrayEquals(ServiceManager.SUCCESS, this.managementSocket.recv());
+        Assert.assertEquals("terminate", this.testService.getState());
+    }
 
-        ServiceTest.manager.join();
+    @After
+    public void stop() throws InterruptedException {
+        if (this.manager != null) {
+            this.manager.close();
+            this.manager = null;
+        }
+        Thread.sleep(100);
     }
 
 }

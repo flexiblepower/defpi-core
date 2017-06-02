@@ -4,10 +4,13 @@ import java.io.Serializable;
 import java.util.Properties;
 
 import org.flexiblepower.echo.handlers.Echo101ConnectionHandler;
+import org.flexiblepower.service.Connection;
 import org.flexiblepower.service.ConnectionManager;
 import org.flexiblepower.service.Service;
 
 public class EchoService implements Service {
+	
+	int counter = 0;
 	
 	public EchoService() {
 		ConnectionManager.registerHandlers(Echo101ConnectionHandler.class, new EchoConnectionHandlerFactory(this));
@@ -39,6 +42,13 @@ public class EchoService implements Service {
 	@Override
 	public void terminate() {
 		// TODO Auto-generated method stub
+	}
+
+	public void startSendingThread(Connection connection) {
+		Thread t = new Thread(() -> {
+			connection.send("I am alive! (" + counter++ + ")");
+		});
+		t.start();
 	}
 
 	

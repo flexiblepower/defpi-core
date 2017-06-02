@@ -5,6 +5,7 @@
  */
 package org.flexiblepower.service;
 
+import java.io.Closeable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -25,13 +26,13 @@ import org.zeromq.ZMQException;
  * @version 0.1
  * @since May 12, 2017
  */
-final class ManagedConnection implements Connection {
+final class ManagedConnection implements Connection, Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(ManagedConnection.class);
 
     private static final String ACK_PREFIX = "@Defpi-0.2.1 connection ready";
-    private static final int SEND_TIMEOUT = 2000;
-    private static final int RECEIVE_TIMEOUT = 1000;
+    private static final int SEND_TIMEOUT = 1000;
+    private static final int RECEIVE_TIMEOUT = 100;
 
     private ConnectionState state;
     private volatile boolean keepThreadAlive;
@@ -39,6 +40,7 @@ final class ManagedConnection implements Connection {
     private final Context zmqContext;
     private final Socket subscribeSocket;
     private final Socket publishSocket;
+    private final Thread connectionThread;
 
     private final ConnectionHandler handler;
     private final MessageSerializer<Object> serializer;
@@ -54,21 +56,7 @@ final class ManagedConnection implements Connection {
     ManagedConnection(final int listenPort, final String targetAddress, final ConnectionHandler handler)
             throws ConnectionModificationException {
         this.handler = handler;
-
-        if (handler.getClass().isAnnotationPresent(InterfaceInfo.class)) {
-            this.info = handler.getClass().getAnnotation(InterfaceInfo.class);
-        } else {
-            for (final Class<?> itf : handler.getClass().getInterfaces()) {
-                if (itf.isAnnotationPresent(InterfaceInfo.class)) {
-                    this.info = itf.getAnnotation(InterfaceInfo.class);
-                    break;
-                }
-            }
-        }
-
-        if (this.info == null) {
-            throw new ConnectionModificationException("No interface information found on connection handler");
-        }
+        this.info = ManagedConnection.getInfoFromHandler(handler);
 
         // Add serializer to the connection
         try {
@@ -86,8 +74,8 @@ final class ManagedConnection implements Connection {
 
         ManagedConnection.log.debug("Creating publishSocket to {}", targetAddress);
         this.publishSocket = this.zmqContext.socket(ZMQ.PUSH);
-        this.publishSocket.setSendTimeOut(ManagedConnection.SEND_TIMEOUT);
-        this.publishSocket.bindToRandomPort("tcp://*");
+        this.publishSocket.setSendTimeOut(0); // ManagedConnection.SEND_TIMEOUT);
+        // this.publishSocket.bindToRandomPort("tcp://*");
         this.publishSocket.setDelayAttachOnConnect(true);
         this.publishSocket.connect(targetAddress);
 
@@ -96,8 +84,6 @@ final class ManagedConnection implements Connection {
         this.subscribeSocket = this.zmqContext.socket(ZMQ.PULL);
         this.subscribeSocket.setReceiveTimeOut(ManagedConnection.RECEIVE_TIMEOUT);
         this.subscribeSocket.bind(listenAddress);
-        // this.subscribeSocket.subscribe("".getBytes());
-        this.keepThreadAlive = true;
 
         if (this.publishSocket.send(this.acknowledge())) {
             ManagedConnection.log.debug("Succesfully sent acknowledge");
@@ -105,7 +91,8 @@ final class ManagedConnection implements Connection {
             ManagedConnection.log.debug("Failed to send acknowledge");
         }
 
-        final Thread t = new Thread(() -> {
+        this.keepThreadAlive = true;
+        this.connectionThread = new Thread(() -> {
             while (this.keepThreadAlive) {
                 try {
                     this.handleByteArray(this.subscribeSocket.recv());
@@ -122,7 +109,26 @@ final class ManagedConnection implements Connection {
             ManagedConnection.log.trace("End of thread");
         }, "Managed " + this.info.name() + " handler thread");
 
-        t.start();
+        this.connectionThread.start();
+    }
+
+    /**
+     * @param handler
+     * @return
+     * @throws ConnectionModificationException
+     */
+    private static InterfaceInfo getInfoFromHandler(final ConnectionHandler handler)
+            throws ConnectionModificationException {
+        if (handler.getClass().isAnnotationPresent(InterfaceInfo.class)) {
+            return handler.getClass().getAnnotation(InterfaceInfo.class);
+        } else {
+            for (final Class<?> itf : handler.getClass().getInterfaces()) {
+                if (itf.isAnnotationPresent(InterfaceInfo.class)) {
+                    return itf.getAnnotation(InterfaceInfo.class);
+                }
+            }
+        }
+        throw new ConnectionModificationException("No interface information found on connection handler");
     }
 
     /**
@@ -150,6 +156,7 @@ final class ManagedConnection implements Connection {
             ManagedConnection.log.debug("Received acknowledge string: {}", test);
             if (test.equals(expected)) {
                 this.state = ConnectionState.CONNECTED;
+                this.handler.onConnected(this);
                 ManagedConnection.log.debug("Updated state to {}, replying ack", this.state);
                 this.publishSocket.send(this.acknowledge());
                 return true;
@@ -223,18 +230,31 @@ final class ManagedConnection implements Connection {
     }
 
     public void resume() {
-        // if (this.state.equals(ConnectionState.SUSPENDED)) {
+        final ConnectionState previous = this.state;
         this.state = ConnectionState.CONNECTED;
-        // }
+        if (previous.equals(ConnectionState.SUSPENDED)) {
+            this.handler.resumeAfterSuspend();
+        } else if (previous.equals(ConnectionState.INTERRUPTED)) {
+            this.handler.resumeAfterInterrupt();
+        }
     }
 
     public void suspend() {
         this.state = ConnectionState.SUSPENDED;
+        this.handler.onSuspend();
     }
 
-    void close() {
+    @Override
+    public void close() {
         this.keepThreadAlive = false;
         this.state = ConnectionState.TERMINATED;
+        this.handler.terminated();
+
+        try {
+            this.connectionThread.join();
+        } catch (final InterruptedException e) {
+            // Do nothing
+        }
 
         if (this.publishSocket != null) {
             this.publishSocket.close();

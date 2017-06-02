@@ -5,6 +5,7 @@
  */
 package org.flexiblepower.service;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.channels.ClosedSelectorException;
@@ -34,7 +35,7 @@ import zmq.ZError;
  * @version 0.1
  * @since May 10, 2017
  */
-public class ServiceManager {
+public class ServiceManager implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(ServiceManager.class);
 
@@ -55,17 +56,17 @@ public class ServiceManager {
     ServiceManager(final Service service) {
         this.connectionManager = new ConnectionManager();
         this.service = service;
+
+        final String listenAddr = "tcp://*:" + ServiceManager.MANAGEMENT_PORT;
+        ServiceManager.log.info("Start listening thread on {}", listenAddr);
         this.managementSocket = ZMQ.context(1).socket(ZMQ.REP);
-        this.managementSocket.setReceiveTimeOut(1000);
+        this.managementSocket.setReceiveTimeOut(100);
+        this.managementSocket.bind(listenAddr);
 
         // Because when this exists, it is initializing
         this.configured = false;
         this.keepThreadAlive = true;
         this.managerThread = new Thread(() -> {
-            final String listenAddr = "tcp://*:" + ServiceManager.MANAGEMENT_PORT;
-            ServiceManager.log.info("Start listening thread on {}", listenAddr);
-            this.managementSocket.bind(listenAddr);
-
             while (this.keepThreadAlive) {
                 try {
                     final byte[] data = this.managementSocket.recv();
@@ -73,8 +74,9 @@ public class ServiceManager {
                         this.managementSocket.send(this.handleServiceMessage(data));
                     }
                 } catch (final ClosedSelectorException | ZError.IOException e) {
-                    // Do nothing, we are stopped
-                    ServiceManager.log.info("Socket closed, stopping thread");
+                    // Socket is closed, we are stopped
+                    ServiceManager.log.warn(
+                            "************************* Socket forcibly closed, stopping thread ************************");
                     break;
                 } catch (final Exception e) {
                     ServiceManager.log.error("Exception handling message: {}", e.getMessage());
@@ -89,27 +91,27 @@ public class ServiceManager {
     }
 
     /**
-     * Wait for the service management thread to stop
-     *
-     * @param force to enforce that the service thread will actually stop asap.
+     * Wait for the service management thread to stop. This function is called when we want to have the main thread wait
+     * for the message handler thread to finish. i.e.
+     * wait until a nice terminate message has arrived.
      */
-    void join(final boolean force) {
+    void join() {
         try {
             ServiceManager.log.info("Waiting for service thread to stop...");
-            if (force) {
-                this.keepThreadAlive = false;
-                this.managerThread.interrupt();
-                this.managementSocket.close();
-                ServiceManager.log.debug("Force closed, now joining thread");
+            if (this.managerThread.isAlive()) {
+                this.managerThread.join();
             }
-            this.managerThread.join();
         } catch (final InterruptedException e) {
             ServiceManager.log.info("Interuption exception received, stopping...");
         }
     }
 
-    void join() {
-        this.join(false);
+    @Override
+    public void close() {
+        this.keepThreadAlive = false;
+        this.join();
+        this.managementSocket.close();
+        this.connectionManager.close();
     }
 
     /**
@@ -153,6 +155,7 @@ public class ServiceManager {
         try {
             final ConnectionMessage msg = ConnectionMessage.parseFrom(data);
             this.connectionManager.handleConnectionMessage(msg);
+            ServiceManager.log.debug("Succesfully handled connection message, returing SUCCESS");
             return ServiceManager.SUCCESS;
         } catch (final InvalidProtocolBufferException e) {
             // Not this type of message, try next

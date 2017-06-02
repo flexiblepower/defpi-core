@@ -29,6 +29,8 @@ import org.slf4j.LoggerFactory;
 public class TestService implements Service, ConnectionHandlerFactory, ConnectionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(TestService.class);
+    private int counter = 0;
+    private String state = "";
 
     public TestService() {
         ConnectionManager.registerHandlers(TestService.class, this);
@@ -52,7 +54,7 @@ public class TestService implements Service, ConnectionHandlerFactory, Connectio
     @Override
     public void init(final Properties props) {
         TestService.log.info("Init is called!");
-
+        this.state = "init";
     }
 
     /*
@@ -63,7 +65,7 @@ public class TestService implements Service, ConnectionHandlerFactory, Connectio
     @Override
     public void modify(final Properties props) {
         TestService.log.info("Modify is called!");
-
+        this.state = "modify";
     }
 
     /*
@@ -74,7 +76,8 @@ public class TestService implements Service, ConnectionHandlerFactory, Connectio
     @Override
     public Serializable suspend() {
         TestService.log.info("Suspend is called!");
-        return null;
+        this.state = "suspend";
+        return this.getClass();
     }
 
     /*
@@ -85,7 +88,7 @@ public class TestService implements Service, ConnectionHandlerFactory, Connectio
     @Override
     public void terminate() {
         TestService.log.info("Terminate is called!");
-
+        this.state = "terminate";
     }
 
     /*
@@ -106,6 +109,7 @@ public class TestService implements Service, ConnectionHandlerFactory, Connectio
     @Override
     public void onConnected(final Connection connection) {
         TestService.log.info("onConnect is called!");
+        this.state = "connected";
     }
 
     /*
@@ -116,6 +120,7 @@ public class TestService implements Service, ConnectionHandlerFactory, Connectio
     @Override
     public void onSuspend() {
         TestService.log.info("onSuspend is called!");
+        this.state = "connection-suspended";
     }
 
     /*
@@ -126,6 +131,7 @@ public class TestService implements Service, ConnectionHandlerFactory, Connectio
     @Override
     public void resumeAfterSuspend() {
         TestService.log.info("resumeAfterSuspend is called!");
+        this.state = "connection-resumed";
     }
 
     /*
@@ -136,6 +142,7 @@ public class TestService implements Service, ConnectionHandlerFactory, Connectio
     @Override
     public void onInterrupt() {
         TestService.log.info("onInterrupt is called!");
+        this.state = "connection-interrupted";
     }
 
     /*
@@ -146,6 +153,7 @@ public class TestService implements Service, ConnectionHandlerFactory, Connectio
     @Override
     public void resumeAfterInterrupt() {
         TestService.log.info("resumeAfterInterrupt is called!");
+        this.state = "connection-fixed";
     }
 
     /*
@@ -156,10 +164,24 @@ public class TestService implements Service, ConnectionHandlerFactory, Connectio
     @Override
     public void terminated() {
         TestService.log.info("terminated is called!");
+        this.state = "connection-terminated";
     }
 
     public void handleString(final String obj) {
+        this.counter++;
         TestService.log.info(" ********** HANDLING {} **************** ", obj);
+    }
+
+    public void resetCount() {
+        this.counter = 0;
+    }
+
+    public int getCounter() {
+        return this.counter;
+    }
+
+    public String getState() {
+        return this.state;
     }
 
 }

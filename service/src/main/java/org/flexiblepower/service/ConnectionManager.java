@@ -5,6 +5,7 @@
  */
 package org.flexiblepower.service;
 
+import java.io.Closeable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,7 +28,7 @@ import org.slf4j.LoggerFactory;
  * @version 0.1
  * @since May 18, 2017
  */
-public class ConnectionManager {
+public class ConnectionManager implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(ConnectionManager.class);
     private static final Map<String, ConnectionHandlerFactory> connectionHandlers = new HashMap<>();
@@ -43,7 +44,7 @@ public class ConnectionManager {
         ConnectionManager.log.info("Received ConnectionMessage for connection {} ({})",
                 message.getConnectionId(),
                 message.getMode());
-        ConnectionManager.log.trace("Received message: {}", message);
+        ConnectionManager.log.trace("Received message:\n{}", message);
 
         final String id = message.getConnectionId();
         switch (message.getMode()) {
@@ -82,6 +83,7 @@ public class ConnectionManager {
         } else {
             this.connections.put(message.getConnectionId(),
                     new ManagedConnection(message.getListenPort(), message.getTargetAddress(), chf.build()));
+            ConnectionManager.log.trace("Added connection {} to list", message.getConnectionId());
         }
     }
 
@@ -107,6 +109,7 @@ public class ConnectionManager {
     /**
      *
      */
+    @Override
     public void close() {
         for (final ManagedConnection conn : this.connections.values()) {
             conn.close();
