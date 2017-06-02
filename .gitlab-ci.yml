@@ -31,8 +31,6 @@ verify:jdk8:
   stage: test
   script:
     - 'mvn $MAVEN_CLI_OPTS verify'
-  except:
-    - master
 
 #deploy:jdk8:
 #  image: maven:3.3.9-jdk-8
