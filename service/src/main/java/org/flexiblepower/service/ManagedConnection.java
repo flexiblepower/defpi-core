@@ -31,8 +31,7 @@ final class ManagedConnection implements Connection, Closeable {
     private static final Logger log = LoggerFactory.getLogger(ManagedConnection.class);
 
     private static final String ACK_PREFIX = "@Defpi-0.2.1 connection ready";
-    private static final int SEND_TIMEOUT = 1000;
-    private static final int RECEIVE_TIMEOUT = 100;
+    private static final int RECEIVE_TIMEOUT = 10000;
 
     private ConnectionState state;
     private volatile boolean keepThreadAlive;
@@ -75,7 +74,6 @@ final class ManagedConnection implements Connection, Closeable {
         ManagedConnection.log.debug("Creating publishSocket to {}", targetAddress);
         this.publishSocket = this.zmqContext.socket(ZMQ.PUSH);
         this.publishSocket.setSendTimeOut(0); // ManagedConnection.SEND_TIMEOUT);
-        // this.publishSocket.bindToRandomPort("tcp://*");
         this.publishSocket.setDelayAttachOnConnect(true);
         this.publishSocket.connect(targetAddress);
 

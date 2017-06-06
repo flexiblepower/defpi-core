@@ -8,6 +8,7 @@ package org.flexiblepower.orchestrator;
 import java.util.List;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 import com.spotify.docker.client.exceptions.DockerCertificateException;
@@ -25,6 +26,12 @@ public class DockerConnectorTest {
 
     @Test
     public void runDockerConnectorTest() throws DockerException, InterruptedException, DockerCertificateException {
+        try {
+            DockerConnector.init().inspectSwarm();
+        } catch (final Exception e) {
+            Assume.assumeNoException(e);
+        }
+
         final List<Node> nodes = DockerConnector.init().listNodes();
         System.out.println(nodes);
         Assert.assertNotNull(nodes);

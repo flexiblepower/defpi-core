@@ -7,8 +7,7 @@ package org.flexiblepower.orchestrator;
 
 import java.util.UUID;
 
-import org.flexiblepower.proto.ServiceProto.ConnectionMessage;
-import org.junit.Assert;
+import org.flexiblepower.exceptions.ConnectionException;
 import org.junit.Test;
 
 import lombok.extern.slf4j.Slf4j;
@@ -23,20 +22,28 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ConnectionManagerTest {
 
+    private static final String TEST_HOST = "172.17.0.2";// "localhost";
+    private static final int TEST_SERVICE_LISTEN_PORT = 5020;
+    private static final int TEST_SERVICE_TARGET_PORT = 5025;
+    private static final String ECHO_HASH = "eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252";
+
+    private static final UUID TEST_CONNECTION_ID = UUID.randomUUID();
+
     @Test
-    public void tryConnect() {
-        final UUID id = UUID.randomUUID();
+    public void tryConnect() throws ConnectionException {
+        ConnectionManager.connect(ConnectionManagerTest.TEST_CONNECTION_ID.toString(),
+                ConnectionManagerTest.TEST_HOST,
+                ConnectionManagerTest.TEST_SERVICE_LISTEN_PORT,
+                ConnectionManagerTest.ECHO_HASH,
+                "172.17.0.1",
+                ConnectionManagerTest.TEST_SERVICE_TARGET_PORT,
+                ConnectionManagerTest.ECHO_HASH);
+    }
 
-        final ConnectionMessage connection = ConnectionMessage.newBuilder()
-                .setConnectionId(id.toString())
-                .setMode(ConnectionMessage.ModeType.CREATE)
-                .setTargetAddress("tcp://localhost:5051")
-                .setListenPort(5025)
-                .setReceiveHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
-                .setSendHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
-                .build();
-
-        Assert.assertEquals(0, ConnectionManager.sendStartSession("localhost", connection));
+    @Test
+    public void tryDisconnect() throws ConnectionException {
+        ConnectionManager.disconnect(ConnectionManagerTest.TEST_CONNECTION_ID.toString(),
+                ConnectionManagerTest.TEST_HOST);
     }
 
 }

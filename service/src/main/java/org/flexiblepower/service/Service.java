@@ -29,8 +29,9 @@ public interface Service {
     public void resumeFrom(Serializable state);
 
     /**
-     * This function is called after the constructor (or after the {@link #resumeFrom(Serializable)} if applicable),
-     * when the configuration is first available. This method is only called once.
+     * This function is called after the constructor (or immediately after the {@link #resumeFrom(Serializable)} if
+     * applicable), when the configuration is first available. This method is only called once, and after it, the
+     * service is considered to be "running".
      *
      * @see #modify(Properties props)
      * @param props

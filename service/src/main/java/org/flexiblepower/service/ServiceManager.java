@@ -39,6 +39,12 @@ public class ServiceManager implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(ServiceManager.class);
 
+    /**
+     * The receive timeout of the managementsocket also determines how often the thread "checks" if the keepalive
+     * boolean is still true
+     */
+    private static final int MANAGEMENT_SOCKET_RECEIVE_TIMEOUT = 10000;
+
     public static final byte[] SUCCESS = new byte[] {0};
     public static final byte[] FAILURE = new byte[] {1};
     public static final int MANAGEMENT_PORT = 4999;
@@ -60,7 +66,7 @@ public class ServiceManager implements Closeable {
         final String listenAddr = "tcp://*:" + ServiceManager.MANAGEMENT_PORT;
         ServiceManager.log.info("Start listening thread on {}", listenAddr);
         this.managementSocket = ZMQ.context(1).socket(ZMQ.REP);
-        this.managementSocket.setReceiveTimeOut(100);
+        this.managementSocket.setReceiveTimeOut(ServiceManager.MANAGEMENT_SOCKET_RECEIVE_TIMEOUT);
         this.managementSocket.bind(listenAddr);
 
         // Because when this exists, it is initializing
@@ -75,8 +81,7 @@ public class ServiceManager implements Closeable {
                     }
                 } catch (final ClosedSelectorException | ZError.IOException e) {
                     // Socket is closed, we are stopped
-                    ServiceManager.log.warn(
-                            "************************* Socket forcibly closed, stopping thread ************************");
+                    ServiceManager.log.warn("Socket forcibly closed, stopping thread");
                     break;
                 } catch (final Exception e) {
                     ServiceManager.log.error("Exception handling message: {}", e.getMessage());
@@ -124,12 +129,7 @@ public class ServiceManager implements Closeable {
             throws IOException, ServiceInvocationException, ConnectionModificationException {
         try {
             final GoToProcessStateMessage msg = GoToProcessStateMessage.parseFrom(data);
-            final Serializable response = this.handleGoToProcessStateMessage(msg);
-            if (response != null) {
-                return this.serializer.serialize(response);
-            } else {
-                return ServiceManager.SUCCESS;
-            }
+            return this.handleGoToProcessStateMessage(msg);
         } catch (final SerializationException e) {
             throw new ServiceInvocationException("Unable to serialize message response: " + e.getMessage(), e);
         } catch (final InvalidProtocolBufferException e) {
@@ -155,7 +155,6 @@ public class ServiceManager implements Closeable {
         try {
             final ConnectionMessage msg = ConnectionMessage.parseFrom(data);
             this.connectionManager.handleConnectionMessage(msg);
-            ServiceManager.log.debug("Succesfully handled connection message, returing SUCCESS");
             return ServiceManager.SUCCESS;
         } catch (final InvalidProtocolBufferException e) {
             // Not this type of message, try next
@@ -168,7 +167,7 @@ public class ServiceManager implements Closeable {
      * @param message
      * @throws ServiceInvocationException
      */
-    private Serializable handleGoToProcessStateMessage(final GoToProcessStateMessage message)
+    private byte[] handleGoToProcessStateMessage(final GoToProcessStateMessage message)
             throws ServiceInvocationException {
         ServiceManager.log.info("Received GoToProcessStateMessage for process {} -> {}",
                 message.getProcessId(),
@@ -180,16 +179,19 @@ public class ServiceManager implements Closeable {
             // This is basically a "force start" with no configuration
             this.service.init(new Properties());
             this.configured = true;
-            return null;
+            return ServiceManager.SUCCESS;
 
         case SUSPENDED:
-            return this.service.suspend();
+            final Serializable state = this.service.suspend();
+            this.connectionManager.close();
+            this.keepThreadAlive = false;
+            return this.serializer.serialize(state);
 
         case TERMINATED:
             this.service.terminate();
             this.connectionManager.close();
             this.keepThreadAlive = false;
-            return null;
+            return ServiceManager.SUCCESS;
 
         case STARTING:
         case INITIALIZING:

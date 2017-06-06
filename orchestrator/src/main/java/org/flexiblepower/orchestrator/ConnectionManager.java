@@ -7,9 +7,8 @@ package org.flexiblepower.orchestrator;
 
 import java.io.IOException;
 import java.util.Random;
-import java.util.UUID;
 
-import org.bson.types.ObjectId;
+import org.flexiblepower.exceptions.ConnectionException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
@@ -36,11 +35,9 @@ public class ConnectionManager {
     /**
      * Timeout of send/recv operations in milliseconds
      */
-    private static final int MANAGEMENT_SOCKET_SEND_TIMEOUT = 2000;
-    private static final int MANAGEMENT_SOCKET_RECV_TIMEOUT = 2000;
+    private static final int MANAGEMENT_SOCKET_SEND_TIMEOUT = 1000;
+    private static final int MANAGEMENT_SOCKET_RECV_TIMEOUT = 1000;
     private static final int MANAGEMENT_PORT = 4999;
-
-    private final DockerConnector docker = new DockerConnector();
 
     private static ConnectionManager instance = null;
 
@@ -62,11 +59,10 @@ public class ConnectionManager {
      * @throws IOException
      * @throws ServiceNotFoundException
      */
-    public void addConnection(final Connection connection)
-            throws ProcessNotFoundException, IOException, ServiceNotFoundException {
-        // TODO Auto-generated method stub
-        final Process process1 = ProcessManager.getInstance().getProcess(new ObjectId(connection.getProcess1()));
-        final Process process2 = ProcessManager.getInstance().getProcess(new ObjectId(connection.getProcess2()));
+    public boolean addConnection(final Connection connection)
+            throws ProcessNotFoundException, ConnectionException, ServiceNotFoundException {
+        final Process process1 = ProcessManager.getInstance().getProcess(connection.getProcess1());
+        final Process process2 = ProcessManager.getInstance().getProcess(connection.getProcess2());
 
         final Service service1 = ServiceManager.getInstance().getService(process1.getServiceId());
         final Service service2 = ServiceManager.getInstance().getService(process2.getServiceId());
@@ -82,37 +78,41 @@ public class ConnectionManager {
                     final int port1 = 5000 + new Random().nextInt(5000);
                     final int port2 = 5000 + new Random().nextInt(5000);
 
-                    ConnectionManager.connect(process1.getRunningDockerNodeId(),
+                    ConnectionManager.connect(connection.getId().toString(),
+                            process1.getRunningDockerNodeId(),
                             port1,
                             version1.getSendsHash(),
                             process2.getRunningDockerNodeId(),
                             port2,
                             version2.getReceivesHash());
 
-                    ConnectionManager.connect(process2.getRunningDockerNodeId(),
+                    ConnectionManager.connect(connection.getId().toString(),
+                            process2.getRunningDockerNodeId(),
                             port2,
                             version2.getSendsHash(),
                             process1.getRunningDockerNodeId(),
                             port1,
                             version1.getReceivesHash());
+
+                    return true;
                 }
             }
         }
+
+        return false;
     }
 
-    static void connect(final String sendingHost,
+    static void connect(final String id,
+            final String sendingHost,
             final int listeningPort,
             final String sendingHash,
             final String receivingHost,
             final int targetPort,
-            final String receivingHash) throws IOException {
-
+            final String receivingHash) throws ConnectionException {
         final String targetAddress = "tcp://" + receivingHost + ":" + targetPort;
 
-        final UUID id = UUID.randomUUID();
-
         final ConnectionMessage connection = ConnectionMessage.newBuilder()
-                .setConnectionId(id.toString())
+                .setConnectionId(id)
                 .setMode(ConnectionMessage.ModeType.CREATE)
                 .setTargetAddress(targetAddress)
                 .setListenPort(listeningPort)
@@ -120,8 +120,19 @@ public class ConnectionManager {
                 .setSendHash(sendingHash)
                 .build();
 
-        if (ConnectionManager.sendStartSession(sendingHost, connection) != 0) {
-            throw new IOException("No response received from client");
+        if (ConnectionManager.sendConnectionMessage(sendingHost, connection) != 0) {
+            throw new ConnectionException("No response received from client");
+        }
+    }
+
+    static void disconnect(final String id, final String sendingHost) throws ConnectionException {
+        final ConnectionMessage connection = ConnectionMessage.newBuilder()
+                .setConnectionId(id)
+                .setMode(ConnectionMessage.ModeType.TERMINATE)
+                .build();
+
+        if (ConnectionManager.sendConnectionMessage(sendingHost, connection) != 0) {
+            throw new ConnectionException("No response received from client");
         }
     }
 
@@ -133,11 +144,12 @@ public class ConnectionManager {
      * @param session
      * @return
      */
-    static int sendStartSession(final String ip, final ConnectionMessage session) {
+    static int sendConnectionMessage(final String ip, final ConnectionMessage session) {
         final String uri = String.format("tcp://%s:%d", ip, ConnectionManager.MANAGEMENT_PORT);
         ConnectionManager.log.info("Sending session {} to {}", session, uri);
 
         try (final Socket socket = ZMQ.context(1).socket(ZMQ.REQ)) {
+            socket.setDelayAttachOnConnect(true);
             socket.connect(uri.toString());
 
             // This should work okay

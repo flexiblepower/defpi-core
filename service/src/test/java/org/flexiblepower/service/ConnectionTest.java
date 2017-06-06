@@ -122,7 +122,7 @@ public class ConnectionTest {
             Assert.assertTrue(this.out.send((new JavaIOSerializer()).serialize("THIS IS A TEST " + i)));
         }
 
-        Thread.sleep(200);
+        Thread.sleep(1000);
         Assert.assertEquals(numTests, this.testService.getCounter());
     }
 

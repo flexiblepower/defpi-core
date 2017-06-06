@@ -102,7 +102,7 @@ public class ProcessManager {
         } else if (process.getPrivateNodeId() != null) {
             if (process.getNodePoolId() != null) {
                 throw new IllegalArgumentException("Either the nodepool or the privatenode should be set");
-            } else if (NodeManager.getInstance().getPrivateNode(process.getNodePoolId()) == null) {
+            } else if (NodeManager.getInstance().getPrivateNode(process.getPrivateNodeId()) == null) {
                 throw new IllegalArgumentException("Could not find NodePool");
             }
         } else if ((process.getPrivateNodeId() == null) && (process.getNodePoolId() == null)) {

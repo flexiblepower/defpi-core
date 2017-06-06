@@ -5,7 +5,17 @@
  */
 package org.flexiblepower.orchestrator;
 
+import java.net.InetAddress;
+import java.util.List;
+
+import org.flexiblepower.model.Connection;
+import org.flexiblepower.model.PrivateNode;
+import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Service;
+import org.flexiblepower.model.UnidentifiedNode;
+import org.flexiblepower.model.User;
+import org.junit.Assert;
+import org.junit.Test;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -19,48 +29,53 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ProcessIntegrationTest {
 
-    private static final ServiceManager registry = ServiceManager.getInstance();
-    private static final DockerConnector connector = new DockerConnector();
-    private final ConnectionManager manager = ConnectionManager.getInstance();
+    private static final String TEST_USER = "Coen";
+    private static final String TEST_PASS = "abc12345";
+    private static final String TEST_SERVICE = "echo:0.0.1";
 
-    private static final String TEST_USER = "Maarten2";
+    @Test
+    public void runTest() throws Exception {
+        /*
+         * try {
+         * ProcessIntegrationTest.connector.newNetwork("user-net");
+         * } catch (final Exception e) {
+         * // Error creating network, probably already exists
+         * }
+         */
 
-    private static String hostname1;
-    private static String hostname2;
-    private static String processId1;
-    private static String processId2;
-    private static Service service;
+        final NodeManager nm = NodeManager.getInstance();
+        final ProcessManager pm = ProcessManager.getInstance();
+        final ConnectionManager cm = ConnectionManager.getInstance();
+        final MongoDbConnector mdc = new MongoDbConnector();
 
-    // TODO change to new Process API
+        final Service service = ServiceManager.getInstance().getService("echo:0.0.1");
+        User user = mdc.getUser(ProcessIntegrationTest.TEST_USER, ProcessIntegrationTest.TEST_PASS);
 
-    // @BeforeClass
-    // public static void startClass() throws ServiceNotFoundException,
-    // DockerException,
-    // InterruptedException,
-    // DockerCertificateException,
-    // UnknownHostException {
-    // try {
-    // ProcessIntegrationTest.connector.newNetwork("user-net");
-    // } catch (final Exception e) {
-    // // Error creating network, probably already exists
-    // }
-    //
-    // final Service service = ProcessIntegrationTest.registry.getService("echo:0.0.1");
-    //
-    // final User user = new User(ProcessIntegrationTest.TEST_USER, UUID.randomUUID().toString());
-    //
-    // final String localhostName = InetAddress.getLocalHost().getHostName();
-    // ProcessIntegrationTest.hostname1 = "def-pi1";
-    // ProcessIntegrationTest.hostname2 = "def-pi2";
-    //
-    // ProcessIntegrationTest.service = service;
-    // ProcessIntegrationTest.processId1 = ProcessIntegrationTest.connector.newProcess(service,
-    // user,
-    // ProcessIntegrationTest.hostname1);
-    // ProcessIntegrationTest.processId2 = ProcessIntegrationTest.connector.newProcess(service,
-    // user,
-    // ProcessIntegrationTest.hostname2);
-    // }
+        if (user == null) {
+            final String uid = mdc.createNewUser(ProcessIntegrationTest.TEST_USER, ProcessIntegrationTest.TEST_PASS);
+            user = mdc.getUser(uid);
+        }
+
+        final List<UnidentifiedNode> nodeList = nm.getUnidentifiedNodes();
+        for (final UnidentifiedNode node : nodeList) {
+            nm.makeUnidentifiedNodePrivate(node, user);
+        }
+
+        final List<PrivateNode> myNodes = nm.getPrivateNodes();
+        final PrivateNode node1 = myNodes.get(0);
+        final PrivateNode node2 = myNodes.get(1 % myNodes.size());
+
+        final Process process1 = pm.createProcess(
+                Process.builder().serviceId(service.getId()).userId(user.getId()).privateNodeId(node1.getId()).build());
+
+        final Process process2 = pm.createProcess(
+                Process.builder().serviceId(service.getId()).userId(user.getId()).privateNodeId(node2.getId()).build());
+
+        final String localhostName = InetAddress.getLocalHost().getHostName();
+
+        Assert.assertTrue(cm.addConnection(new Connection(process1.getId(), process1.getId(), "Echo", "Echo")));
+    }
+
     //
     // @Test
     // public void connect() throws ProcessNotFoundException, IOException, InterruptedException,

@@ -1,6 +1,5 @@
 package org.flexiblepower.rest;
 
-import java.io.IOException;
 import java.util.List;
 
 import javax.ws.rs.core.Context;
@@ -8,6 +7,7 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.SecurityContext;
 
 import org.flexiblepower.api.ConnectionApi;
+import org.flexiblepower.exceptions.ConnectionException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
@@ -37,7 +37,7 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
         ConnectionRestApi.log.info("newConnection(): " + connection);
         try {
             this.connections.addConnection(connection);
-        } catch (final IOException | ServiceNotFoundException e) {
+        } catch (final ConnectionException | ServiceNotFoundException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
