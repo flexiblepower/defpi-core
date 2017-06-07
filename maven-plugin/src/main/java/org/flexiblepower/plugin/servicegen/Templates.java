@@ -5,29 +5,99 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.DateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Scanner;
 import java.util.Set;
 
+import org.flexiblepower.model.Interface;
+import org.flexiblepower.model.InterfaceVersion;
 import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription.Type;
 import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 public class Templates {
 
-    public String servicePackage;
-    public Map<String, String> hashes;
+    private final String servicePackage;
+    private final ServiceDescription serviceDescription;
+    private final Map<String, String> hashes;
+    private final ObjectMapper mapper = new ObjectMapper();
 
-    public Templates() {
+    public Templates(final String targetPackage, final ServiceDescription descr, final Map<String, String> hashes) {
+        this.servicePackage = targetPackage;
+        this.serviceDescription = descr;
+        this.hashes = hashes;
+    }
+
+    public String generateServiceImplementation() {
+        return Templates.replaceMap(this.getTemplate("ServiceImplementation"), this.getReplaceMap(null, null));
+    }
+
+    public String generateConnectionHandler(final InterfaceDescription itf, final InterfaceVersionDescription version) {
+        return this.generate("ConnectionHandler", itf, version);
+    }
+
+    public String generateConnectionHandlerImplementation(final InterfaceDescription itf,
+            final InterfaceVersionDescription version) {
+        return Templates.replaceMap(this.getTemplate("ConnectionHandlerImpl"), this.getReplaceMap(itf, version));
+    }
+
+    public String generateFactory(final InterfaceDescription itf, final InterfaceVersionDescription version) {
+        return Templates.replaceMap(this.getTemplate("Factory"), this.getReplaceMap(itf, version));
+    }
+
+    public String generateDockerfile(final String platform, final ServiceDescription service)
+            throws JsonProcessingException {
+        final Set<InterfaceDescription> input = service.getInterfaces();
+
+        final Set<Interface> serviceInterfaces = new HashSet<>();
+        for (final InterfaceDescription descr : input) {
+            final List<InterfaceVersion> versionList = new ArrayList<>();
+            for (final InterfaceVersionDescription ivd : descr.getInterfaceVersions()) {
+                final String sendHash = this.getHash(descr, ivd, ivd.getSends());
+                final String recvHash = this.getHash(descr, ivd, ivd.getReceives());
+                versionList.add(new InterfaceVersion(ivd.getVersionName(), recvHash, sendHash));
+            }
+            serviceInterfaces
+                    .add(new Interface(descr.getName(), versionList, descr.isAllowMultiple(), descr.isAutoConnect()));
+        }
+
+        final Map<String, String> replace = new HashMap<>();
+        if (platform.equals("x86")) {
+            replace.put("from", "java:alpine");
+        } else {
+            replace.put("from", "larmog/armhf-alpine-java:jdk-8u73");
+        }
+
+        replace.put("name", service.getName());
+        replace.put("interfaces", this.mapper.writeValueAsString(serviceInterfaces));
+
+        return Templates.replaceMap(this.getTemplate("Dockerfile"), replace);
+    }
+
+    private String generate(final String templateName,
+            final InterfaceDescription itf,
+            final InterfaceVersionDescription version) {
+        final String template = this.getTemplate(templateName);
+        final Map<String, String> replaceMap = this.getReplaceMap(itf, version);
+
+        return Templates.replaceMap(template, replaceMap);
     }
 
     private String getTemplate(final String name) {
         String result = "";
         try {
-            final URL url = this.getClass().getClassLoader().getResource(name + "Template.tpl");
+            final URL url = this.getClass().getClassLoader().getResource("templates/" + name + ".tpl");
             try (final Scanner scanner = new Scanner(url.openStream())) {
                 result = scanner.useDelimiter("\\A").next();
             }
@@ -37,138 +107,67 @@ public class Templates {
         return result;
     }
 
-    public String parseServiceImplementation(final Set<InterfaceDescription> interfaces) {
-        String handlers = "";
-        for (final InterfaceDescription i : interfaces) {
-            final Map<String, String> handlerReplace = new HashMap<>();
-            handlerReplace.put("name", i.getName());
-            handlerReplace.put("subscribe", this.getHash(i, i.getInterfaceVersions().iterator().next().getReceives()));
-            handlerReplace.put("publish", this.getHash(i, i.getInterfaceVersions().iterator().next().getSends()));
-            handlerReplace.put("package", this.servicePackage);
-            handlers += Templates.replaceMap(this.getTemplate("Handler"), handlerReplace);
-        }
+    private Map<String, String> getReplaceMap(final InterfaceDescription itf,
+            final InterfaceVersionDescription version) {
         final Map<String, String> replace = new HashMap<>();
-        replace.put("package", this.servicePackage);
-        replace.put("handlers", handlers);
-        return Templates.replaceMap(this.getTemplate("ServiceImplementation"), replace);
-    }
 
-    public String parseFactory(final InterfaceDescription i) {
-        final HashMap<String, String> replace = new HashMap<>();
+        // Generic stuff that is the same everywhere
         replace.put("package", this.servicePackage);
-        replace.put("name", CreateComponentMojo.toObjectName(i));
-        replace.put("interfaceName", i.getName());
-        replace.put("subscribeHandler", "null");
-        replace.put("publishHandler", "null");
-        if (i.getInterfaceVersions().iterator().next().getReceives() != null) {
-            replace.put("subscribeHandler", "new " + CreateComponentMojo.toObjectName(i) + "SubscribeHandler(s)");
-        }
-        if (i.getInterfaceVersions().iterator().next().getSends() != null) {
-            replace.put("publishHandler", "new " + CreateComponentMojo.toObjectName(i) + "PublishHandler(s)");
-        }
-        return Templates.replaceMap(this.getTemplate("Factory"), replace);
-    }
+        replace.put("username", System.getProperty("user.name"));
+        replace.put("date", DateFormat.getDateInstance().format(new Date()));
+        replace.put("generator", Templates.class.getPackage().toString());
 
-    public String parseSubscribeHandler(final InterfaceDescription i) {
-        final HashMap<String, String> replace = new HashMap<>();
-        replace.put("package", this.servicePackage);
-        replace.put("name", CreateComponentMojo.toObjectName(i));
-        String subscribeClasses = "";
-        String imports = "";
-        for (final InterfaceVersionDescription itf : i.getInterfaceVersions()) {
-            final Type type = itf.getType();
-            subscribeClasses += itf.getSends().iterator().next() + ".class, ";
-            if (type.equals(Type.PROTO)) {
-                replace.put("descriptorSource", "Protobuf");
-                replace.put("type", "GeneratedMessage");
-                imports += "import " + this.servicePackage + ".protobuf." + CreateComponentMojo.toObjectName(i)
-                        + "Proto." + itf.getReceives().iterator().next() + ";\n";
-            } else {
-                replace.put("descriptorSource", "XSD");
-                replace.put("type", "Object");
-                imports = "import " + this.servicePackage + ".xml.*;\n";
+        replace.put("service.class", Templates.serviceImplClass(this.serviceDescription));
+        replace.put("service.version", this.serviceDescription.getVersion());
+        replace.put("service.name", this.serviceDescription.getName());
+
+        if ((itf != null) && (version != null)) {
+            final String versionedName = Templates.camelCaps(itf.getName() + version.getVersionName());
+            replace.put("handler.class", Templates.connectionHandlerClass(itf, version));
+            replace.put("handlerimpl.class", Templates.connectionHandlerImplClass(itf, version));
+            replace.put("factory.class", Templates.factoryClass(itf, version));
+
+            replace.put("itf.name", itf.getName());
+            replace.put("itf.version", version.getVersionName());
+            replace.put("itf.receivesHash", this.getHash(itf, version, version.getReceives()));
+            replace.put("itf.receiveClasses", String.join(".class ", version.getReceives()));
+            replace.put("itf.sendClasses", String.join(".class ", version.getSends()));
+
+            // Add handler definitions and implementations for the connection handlers (and implementations
+            // respectively)
+            String handlers = "";
+            String handlerImpls = "";
+            for (final String type : version.getReceives()) {
+                final Map<String, String> handlerReplace = new HashMap<>();
+                handlerReplace.put("handle.type", type);
+                handlers += Templates.replaceMap(this.getTemplate("Handler"), handlerReplace);
+                handlerImpls += Templates.replaceMap(this.getTemplate("HandlerImpl"), handlerReplace);
             }
-        }
-        if (replace.get("descriptorSource").equals("Protobuf")) {
-            imports += "import com.google.protobuf.GeneratedMessage;\n";
-        }
-        subscribeClasses = subscribeClasses.substring(0, subscribeClasses.length() - 2);
-        replace.put("subscribeClasses", subscribeClasses);
-        replace.put("imports", imports);
-        return Templates.replaceMap(this.getTemplate("SubscribeHandler"), replace);
-    }
+            replace.put("handlers", handlers);
+            replace.put("handlerImpls", handlerImpls);
 
-    public String parsePublishHandler(final InterfaceDescription i) {
-        final HashMap<String, String> replace = new HashMap<>();
-        replace.put("package", this.servicePackage);
-        replace.put("name", CreateComponentMojo.toObjectName(i));
-        String publishClasses = "";
-        String imports = "";
-        for (final InterfaceVersionDescription itf : i.getInterfaceVersions()) {
-            final Type type = itf.getType();
-            publishClasses += itf.getSends().iterator().next() + ".class, ";
-            if (type.equals(InterfaceVersionDescription.Type.PROTO)) {
-                replace.put("descriptorSource", "Protobuf");
-                replace.put("type", "GeneratedMessage");
-                imports += "import " + this.servicePackage + ".protobuf." + CreateComponentMojo.toObjectName(i)
-                        + "Proto." + itf.getSends().iterator().next() + ";\n";
-            } else {
-                replace.put("descriptorSource", "XSD");
-                replace.put("type", "Object");
-                imports = "import " + this.servicePackage + ".xml.*;\n";
+            // Add imports for the handlers
+            String imports = "";
+            if (version.getType().equals(Type.PROTO)) {
+                replace.put("itf.serializer", "ProtobufMessageSerializer");
+
+                for (final String type : version.getReceives()) {
+                    imports += String.format("import %s.protobuf.%sProto.%s;\n",
+                            this.servicePackage,
+                            versionedName,
+                            type);
+                }
+            } else if (version.getType().equals(Type.XSD)) {
+                replace.put("itf.serializer", "XSDMessageSerializer");
+
+                for (final String type : version.getReceives()) {
+                    imports += String.format("import %s.xml.%s;\n", this.servicePackage, versionedName, type);
+                }
             }
+            replace.put("handler.imports", imports);
         }
-        if (replace.get("descriptorSource").equals("Protobuf")) {
-            imports += "import com.google.protobuf.GeneratedMessage;\n";
-        }
-        publishClasses = publishClasses.substring(0, publishClasses.length() - 2);
-        replace.put("publishClasses", publishClasses);
-        replace.put("imports", imports);
-        return Templates.replaceMap(this.getTemplate("PublishHandler"), replace);
-    }
 
-    public String parseDockerfile(final String platform, final ServiceDescription service) {
-        final String interfaceTemplate = "{\"name\":\"%s\",\"allowMultiple\":%b,\"autoConnect\":%b,\"subscribeHash\":\"%s\",\"publishHash\":\"%s\"},";
-        String interfaces = "[";
-        for (final InterfaceDescription i : service.getInterfaces()) {
-            interfaces += String.format(interfaceTemplate,
-                    i.getName(),
-                    i.isAllowMultiple(),
-                    i.isAutoConnect(),
-                    this.getHash(i, i.getInterfaceVersions().iterator().next().getReceives()),
-                    this.getHash(i, i.getInterfaceVersions().iterator().next().getSends()));
-        }
-        interfaces = interfaces.substring(0, interfaces.length() - 1).replace("\"", "\\\"") + "]";
-        /*
-         * String mappings = "[]";
-         * if (service.getMappings() != null) {
-         * mappings = "[";
-         * for (final String mapping : service.getMappings()) {
-         * mappings += "\"" + mapping + "\",";
-         * }
-         * mappings = mappings.substring(0, mappings.length() - 1).replace("\"", "\\\"") + "]";
-         * }
-         */
-
-        final Map<String, String> replace = new HashMap<>();
-        if (platform.equals("x86")) {
-            replace.put("from", "java:alpine");
-        } else {
-            replace.put("from", "larmog/armhf-alpine-java:jdk-8u73");
-        }
-        /*
-         * if ((service.getPorts() != null) && !service.getPorts().isEmpty()) {
-         * replace.put("ports", "EXPOSE " + String.join(" ", service.getPorts()) + "\n");
-         * replace.put("portsLabel", String.join(", ", service.getPorts()));
-         * } else {
-         * replace.put("ports", "");
-         * replace.put("portsLabel", "");
-         * }
-         */
-        replace.put("name", service.getName());
-        replace.put("interfaces", interfaces);
-        // replace.put("mappings", mappings);
-        return Templates.replaceMap(this.getTemplate("Dockerfile"), replace);
+        return replace;
     }
 
     private static String replaceMap(final String template, final Map<String, String> replace) {
@@ -181,16 +180,53 @@ public class Templates {
         return ret;
     }
 
-    private String getHash(final InterfaceDescription i, final Set<String> set) {
-        final String descriptor = CreateComponentMojo.toObjectName(i);
-        if (this.hashes.containsKey(descriptor)) {
-            String baseHash = this.hashes.get(descriptor);
+    private String getHash(final InterfaceDescription itf,
+            final InterfaceVersionDescription vitf,
+            final Set<String> set) {
+        final String versionedName = itf.getName() + vitf.getVersionName();
+        if (this.hashes.containsKey(versionedName)) {
+            String baseHash = this.hashes.get(itf);
             for (final String key : set) {
                 baseHash += ";" + key;
             }
             return Templates.SHA256(baseHash);
         }
         return "";
+    }
+
+    public static String serviceImplClass(final ServiceDescription d) {
+        return Templates.camelCaps(d.getName());
+    }
+
+    public static String connectionHandlerClass(final InterfaceDescription itf,
+            final InterfaceVersionDescription version) {
+        return Templates.camelCaps(itf.getName() + version.getVersionName() + "ConnectionHandler");
+    }
+
+    public static String connectionHandlerImplClass(final InterfaceDescription itf,
+            final InterfaceVersionDescription version) {
+        return Templates.camelCaps(itf.getName() + version.getVersionName() + "ConnectionHandlerImpl");
+    }
+
+    public static String factoryClass(final InterfaceDescription itf, final InterfaceVersionDescription version) {
+        return Templates.camelCaps(itf.getName() + version.getVersionName() + "ConnectionHandlerFactory");
+    }
+
+    /**
+     * @param i
+     * @return
+     */
+    static String camelCaps(final String str) {
+        final StringBuilder ret = new StringBuilder();
+
+        for (final String word : str.split(" ")) {
+            if (!word.isEmpty()) {
+                ret.append(Character.toUpperCase(word.charAt(0)));
+                ret.append(word.substring(1).toLowerCase());
+            }
+        }
+
+        return ret.toString();
     }
 
     public static String SHA256(final String body) {
