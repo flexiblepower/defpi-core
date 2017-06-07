@@ -1,0 +1,9 @@
+syntax = "proto2";
+
+option java_package = "org.flexiblepower.echo.protobuf";
+option java_outer_classname = "EchoInterfaceProto";
+
+message Msg {
+  required string str = 1;
+  required int32 counter = 2;
+}

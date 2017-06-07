@@ -24,7 +24,6 @@ public class Connection {
 	@JsonSerialize(using = ToStringSerializer.class)
 	@JsonDeserialize(using = ObjectIdDeserializer.class)
 	private final ObjectId process1;
-	
 
 	@JsonSerialize(using = ToStringSerializer.class)
 	@JsonDeserialize(using = ObjectIdDeserializer.class)
