@@ -52,7 +52,7 @@
 					<plugin>
 						<groupId>org.flexiblepower</groupId>
 						<artifactId>create-service-maven-plugin</artifactId>
-						<version>0.2.2-SNAPSHOT</version>
+						<version>0.3.0-SNAPSHOT</version>
 						<executions>
 							<execution>
 								<id>generate</id>

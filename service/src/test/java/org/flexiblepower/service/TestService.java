@@ -33,7 +33,7 @@ public class TestService implements Service, ConnectionHandlerFactory, Connectio
     private String state = "";
 
     public TestService() {
-        ConnectionManager.registerHandlers(TestService.class, this);
+        ConnectionManager.registerConnectionHandlerFactory(TestService.class, this);
     }
 
     /*
@@ -167,7 +167,7 @@ public class TestService implements Service, ConnectionHandlerFactory, Connectio
         this.state = "connection-terminated";
     }
 
-    public void handleString(final String obj) {
+    public void handleStringMessage(final String obj) {
         this.counter++;
         TestService.log.info(" ********** HANDLING {} **************** ", obj);
     }

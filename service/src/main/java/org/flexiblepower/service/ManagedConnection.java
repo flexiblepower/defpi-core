@@ -31,7 +31,7 @@ final class ManagedConnection implements Connection, Closeable {
     private static final Logger log = LoggerFactory.getLogger(ManagedConnection.class);
 
     private static final String ACK_PREFIX = "@Defpi-0.2.1 connection ready";
-    private static final int RECEIVE_TIMEOUT = 10000;
+    private static final int RECEIVE_TIMEOUT = 100;
 
     private ConnectionState state;
     private volatile boolean keepThreadAlive;
@@ -70,16 +70,18 @@ final class ManagedConnection implements Connection, Closeable {
 
         this.state = ConnectionState.STARTING;
         this.zmqContext = ZMQ.context(1);
+        this.publishSocket = this.zmqContext.socket(ZMQ.PUSH);
+        this.subscribeSocket = this.zmqContext.socket(ZMQ.PULL);
+
+        // this.connectionThread = new Thread(() -> {
 
         ManagedConnection.log.debug("Creating publishSocket to {}", targetAddress);
-        this.publishSocket = this.zmqContext.socket(ZMQ.PUSH);
         this.publishSocket.setSendTimeOut(0); // ManagedConnection.SEND_TIMEOUT);
         this.publishSocket.setDelayAttachOnConnect(true);
         this.publishSocket.connect(targetAddress);
 
         final String listenAddress = "tcp://*:" + listenPort;
         ManagedConnection.log.debug("Creating subscribeSocket listening on port {}", listenAddress);
-        this.subscribeSocket = this.zmqContext.socket(ZMQ.PULL);
         this.subscribeSocket.setReceiveTimeOut(ManagedConnection.RECEIVE_TIMEOUT);
         this.subscribeSocket.bind(listenAddress);
 
@@ -90,6 +92,7 @@ final class ManagedConnection implements Connection, Closeable {
         }
 
         this.keepThreadAlive = true;
+
         this.connectionThread = new Thread(() -> {
             while (this.keepThreadAlive) {
                 try {
@@ -187,7 +190,8 @@ final class ManagedConnection implements Connection, Closeable {
         final Class<?> messageType = message.getClass();
         final Method[] allMethods = this.handler.getClass().getMethods();
         for (final Method method : allMethods) {
-            if ((method.getParameterCount() == 1) && method.getParameterTypes()[0].equals(messageType)) {
+            if ((method.getName().startsWith("handle")) && (method.getName().endsWith("Message"))
+                    && (method.getParameterCount() == 1) && method.getParameterTypes()[0].equals(messageType)) {
                 method.invoke(this.handler, message);
             }
         }

@@ -90,7 +90,7 @@ public class ConnectionManager implements Closeable {
     /**
      * @param connectionHandlerFactory
      */
-    public static void registerHandlers(final Class<? extends ConnectionHandler> clazz,
+    public static void registerConnectionHandlerFactory(final Class<? extends ConnectionHandler> clazz,
             final ConnectionHandlerFactory connectionHandlerFactory) {
         if (!clazz.isAnnotationPresent(InterfaceInfo.class)) {
             throw new RuntimeException(

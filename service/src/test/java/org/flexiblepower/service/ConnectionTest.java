@@ -16,6 +16,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.zeromq.ZMQ;
+import org.zeromq.ZMQ.Context;
 import org.zeromq.ZMQ.Socket;
 
 /**
@@ -47,7 +48,8 @@ public class ConnectionTest {
         final String managementURI = String.format("tcp://%s:%d",
                 ConnectionTest.TEST_HOST,
                 ServiceManager.MANAGEMENT_PORT);
-        this.managementSocket = ZMQ.context(1).socket(ZMQ.REQ);
+        final Context ctx = ZMQ.context(1);
+        this.managementSocket = ctx.socket(ZMQ.REQ);
         this.managementSocket.setReceiveTimeOut(1000);
         this.managementSocket.connect(managementURI.toString());
 
@@ -68,16 +70,16 @@ public class ConnectionTest {
         final String serviceURI = String.format("tcp://%s:%d",
                 ConnectionTest.TEST_HOST,
                 ConnectionTest.TEST_SERVICE_LISTEN_PORT);
-        this.out = ZMQ.context(1).socket(ZMQ.PUSH);
-        this.out.setSendTimeOut(0); // 1000);
+        this.out = ctx.socket(ZMQ.PUSH);
+        this.out.setSendTimeOut(0);
         this.out.setDelayAttachOnConnect(true);
         this.out.connect(serviceURI.toString());
 
         final String listenURI = String.format("tcp://*:%d", ConnectionTest.TEST_SERVICE_TARGET_PORT);
-        this.in = ZMQ.context(1).socket(ZMQ.PULL);
+        this.in = ctx.socket(ZMQ.PULL);
         this.in.setReceiveTimeOut(200);
         this.in.bind(listenURI.toString());
-        Thread.sleep(100); // Allow remote thread to process the connection message
+        Thread.sleep(500); // Allow remote thread to process the connection message
     }
 
     @Test(timeout = 5000)

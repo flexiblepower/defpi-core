@@ -43,7 +43,7 @@ public class ServiceManager implements Closeable {
      * The receive timeout of the managementsocket also determines how often the thread "checks" if the keepalive
      * boolean is still true
      */
-    private static final int MANAGEMENT_SOCKET_RECEIVE_TIMEOUT = 10000;
+    private static final int MANAGEMENT_SOCKET_RECEIVE_TIMEOUT = 100;
 
     public static final byte[] SUCCESS = new byte[] {0};
     public static final byte[] FAILURE = new byte[] {1};
@@ -55,17 +55,19 @@ public class ServiceManager implements Closeable {
     private final Thread managerThread;
 
     private final ConnectionManager connectionManager;
-    private final Socket managementSocket;
     private final Service service;
     private final JavaIOSerializer serializer = new JavaIOSerializer();
+    private final Socket managementSocket;
 
-    ServiceManager(final Service service) {
+    public ServiceManager(final Service service) {
         this.connectionManager = new ConnectionManager();
         this.service = service;
+        this.managementSocket = ZMQ.context(1).socket(ZMQ.REP);
 
+        // this.managerThread = new Thread(() -> {
         final String listenAddr = "tcp://*:" + ServiceManager.MANAGEMENT_PORT;
         ServiceManager.log.info("Start listening thread on {}", listenAddr);
-        this.managementSocket = ZMQ.context(1).socket(ZMQ.REP);
+
         this.managementSocket.setReceiveTimeOut(ServiceManager.MANAGEMENT_SOCKET_RECEIVE_TIMEOUT);
         this.managementSocket.bind(listenAddr);
 
