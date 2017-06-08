@@ -1,0 +1,41 @@
+{
+  "name": "Echo Service",
+  "version": "0.0.1-SNAPSHOT",
+  "interfaces": [
+    {
+      "name": "Echo Interface",
+      "autoConnect": false,
+      "allowMultiple": false,
+      "interfaceVersions": [
+        {
+          "versionName": "v0.0.1",
+          "type": "proto",
+          "location": "echoProtocol.proto",
+          "sends": ["Msg"],
+          "receives": ["Msg"]
+        }
+      ]
+    },
+    {
+      "name": "Dropback Interface",
+      "autoConnect": false,
+      "allowMultiple": true,
+      "interfaceVersions": [
+        {
+          "versionName": "v0.0.1",
+          "type": "proto",
+          "location": "echoProtocol.proto",
+          "sends": [],
+          "receives": ["Msg"]
+        },
+        {
+          "versionName": "v0.0.2",
+          "type": "proto",
+          "location": "echoProtocol2.proto",
+          "sends": [],
+          "receives": ["Msg"]
+        }
+      ]
+    }
+  ]
+}

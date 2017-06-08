@@ -6,11 +6,11 @@ package {{package}};
 import java.io.Serializable;
 import java.util.Properties;
 
-import org.flexiblepower.service.Connection;
 import org.flexiblepower.service.ConnectionManager;
 import org.flexiblepower.service.Service;
+{{service.imports}}
 
-import {{package}}.handlers.{{handler.class}};
+import javax.annotation.Generated;
 
 /**
  * {{service.class}} provides an implementation of the {{service.name}} service
@@ -19,11 +19,11 @@ import {{package}}.handlers.{{handler.class}};
  * @version {{service.version}}
  * @since {{date}}
  */
- @Generated({{generator}})
+@Generated("{{generator}}")
 public class {{service.class}} implements Service {
 	
 	public {{service.class}}() {
-		ConnectionManager.registerConnectionHandlerFactory({{handler.class}}.class, new {{factory.class}}());
+{{service.registerFactories}}
 	}
 	
 	@Override

@@ -6,9 +6,7 @@ package {{package}}.handlers;
 import org.flexiblepower.service.Connection;
 import {{package}}.handlers.{{handler.class}};
 {{handler.imports}}
-
 import javax.annotation.Generated;
-
 
 /**
  * {{handlerImpl.class}}
@@ -17,10 +15,10 @@ import javax.annotation.Generated;
  * @version {{itf.version}}
  * @since {{date}}
  */
- @Generated({{generator}})
+@Generated("{{generator}}")
 public class {{handlerImpl.class}} implements {{handler.class}} {
 
-	{{handlerImpls}}
+{{handlerImpls}}
 
 	@Override
 	public void onConnected(Connection connection) {

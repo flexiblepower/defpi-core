@@ -7,9 +7,7 @@ import org.flexiblepower.service.ConnectionHandler;
 import org.flexiblepower.service.InterfaceInfo;
 import org.flexiblepower.service.serializers.{{itf.serializer}};
 {{handler.imports}}
-
 import javax.annotation.Generated;
-
 
 /**
  * {{handler.class}}
@@ -18,14 +16,14 @@ import javax.annotation.Generated;
  * @version {{itf.version}}
  * @since {{date}}
  */
- @Generated({{generator}})
+@Generated("{{generator}}")
 @InterfaceInfo(name = "{{itf.name}}", version = "{{itf.version}}", 
 		receivesHash = "{{itf.receivesHash}}", 
 		sendsHash = "{{itf.sendsHash}}", 
 		serializer = {{itf.serializer}}.class, 
-		receiveTypes = { {{itf.receiveClasses}}}, sendTypes = { {{itf.sendClasses}}})
+		receiveTypes = { {{itf.receiveClasses}} }, sendTypes = { {{itf.sendClasses}} })
 public interface {{handler.class}} extends ConnectionHandler {
 
-	{{handlers}}
+{{handlers}}
 
 }

@@ -1,12 +1,10 @@
 package org.flexiblepower.plugin.servicegen;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URL;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,6 +24,13 @@ import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+/**
+ * Templates
+ *
+ * @author coenvl
+ * @version 0.1
+ * @since Jun 8, 2017
+ */
 public class Templates {
 
     private final String servicePackage;
@@ -39,23 +44,71 @@ public class Templates {
         this.hashes = hashes;
     }
 
+    /**
+     * @return
+     */
     public String generateServiceImplementation() {
-        return Templates.replaceMap(this.getTemplate("ServiceImplementation"), this.getReplaceMap(null, null));
+        final Map<String, String> replace = this.getReplaceMap(null, null);
+
+        String factoryRegistration = "";
+        String imports = "";
+        for (final InterfaceDescription itf : this.serviceDescription.getInterfaces()) {
+            for (final InterfaceVersionDescription version : itf.getInterfaceVersions()) {
+                factoryRegistration += String.format(
+                        "        ConnectionManager.registerConnectionHandlerFactory(\n" + "             %s.class,\n"
+                                + "                new %s());\n",
+                        PluginUtils.connectionHandlerClass(itf, version),
+                        PluginUtils.factoryClass(itf, version));
+                imports += String.format("import %s.handlers.%s;\n",
+                        this.servicePackage,
+                        PluginUtils.connectionHandlerClass(itf, version));
+                imports += String.format("import %s.handlers.%s;\n",
+                        this.servicePackage,
+                        PluginUtils.factoryClass(itf, version));
+            }
+        }
+        replace.put("service.registerFactories", factoryRegistration);
+        replace.put("service.imports", imports);
+
+        return Templates.replaceMap(this.getTemplate("ServiceImplementation"), replace);
     }
 
+    /**
+     * @param itf
+     * @param version
+     * @return
+     */
     public String generateConnectionHandler(final InterfaceDescription itf, final InterfaceVersionDescription version) {
         return this.generate("ConnectionHandler", itf, version);
     }
 
+    /**
+     * @param itf
+     * @param version
+     * @return
+     */
     public String generateConnectionHandlerImplementation(final InterfaceDescription itf,
             final InterfaceVersionDescription version) {
-        return Templates.replaceMap(this.getTemplate("ConnectionHandlerImpl"), this.getReplaceMap(itf, version));
+        return this.generate("ConnectionHandlerImpl", itf, version);
     }
 
+    /**
+     * @param itf
+     * @param version
+     * @return
+     */
     public String generateFactory(final InterfaceDescription itf, final InterfaceVersionDescription version) {
-        return Templates.replaceMap(this.getTemplate("Factory"), this.getReplaceMap(itf, version));
+        return this.generate("Factory", itf, version);
     }
 
+    /**
+     * Generate the docker file for this service
+     *
+     * @param platform
+     * @param service
+     * @return
+     * @throws JsonProcessingException
+     */
     public String generateDockerfile(final String platform, final ServiceDescription service)
             throws JsonProcessingException {
         final Set<InterfaceDescription> input = service.getInterfaces();
@@ -79,12 +132,22 @@ public class Templates {
             replace.put("from", "larmog/armhf-alpine-java:jdk-8u73");
         }
 
-        replace.put("name", service.getName());
-        replace.put("interfaces", this.mapper.writeValueAsString(serviceInterfaces));
+        replace.put("service.name", service.getName());
+        final String interfaces = this.mapper.writeValueAsString(serviceInterfaces);
+        final String encoded = Base64.getEncoder().encodeToString(interfaces.getBytes());
+        replace.put("interfaces", encoded);
 
         return Templates.replaceMap(this.getTemplate("Dockerfile"), replace);
     }
 
+    /**
+     * Generate a file based on the template and the provided interface description and version description
+     *
+     * @param templateName
+     * @param itf
+     * @param version
+     * @return
+     */
     private String generate(final String templateName,
             final InterfaceDescription itf,
             final InterfaceVersionDescription version) {
@@ -94,6 +157,12 @@ public class Templates {
         return Templates.replaceMap(template, replaceMap);
     }
 
+    /**
+     * Find a template file
+     *
+     * @param name
+     * @return
+     */
     private String getTemplate(final String name) {
         String result = "";
         try {
@@ -107,6 +176,13 @@ public class Templates {
         return result;
     }
 
+    /**
+     * Get the map of the replacements in the template
+     *
+     * @param itf
+     * @param version
+     * @return
+     */
     private Map<String, String> getReplaceMap(final InterfaceDescription itf,
             final InterfaceVersionDescription version) {
         final Map<String, String> replace = new HashMap<>();
@@ -115,23 +191,34 @@ public class Templates {
         replace.put("package", this.servicePackage);
         replace.put("username", System.getProperty("user.name"));
         replace.put("date", DateFormat.getDateInstance().format(new Date()));
-        replace.put("generator", Templates.class.getPackage().toString());
+        replace.put("generator", Templates.class.getPackage().getName().toString());
 
-        replace.put("service.class", Templates.serviceImplClass(this.serviceDescription));
+        replace.put("service.class", PluginUtils.serviceImplClass(this.serviceDescription));
         replace.put("service.version", this.serviceDescription.getVersion());
         replace.put("service.name", this.serviceDescription.getName());
 
         if ((itf != null) && (version != null)) {
-            final String versionedName = Templates.camelCaps(itf.getName() + version.getVersionName());
-            replace.put("handler.class", Templates.connectionHandlerClass(itf, version));
-            replace.put("handlerimpl.class", Templates.connectionHandlerImplClass(itf, version));
-            replace.put("factory.class", Templates.factoryClass(itf, version));
+            final String versionedName = PluginUtils.getVersionedName(itf, version);
+            replace.put("handler.class", PluginUtils.connectionHandlerClass(itf, version));
+            replace.put("handlerImpl.class", PluginUtils.connectionHandlerImplClass(itf, version));
+            replace.put("factory.class", PluginUtils.factoryClass(itf, version));
 
             replace.put("itf.name", itf.getName());
             replace.put("itf.version", version.getVersionName());
             replace.put("itf.receivesHash", this.getHash(itf, version, version.getReceives()));
-            replace.put("itf.receiveClasses", String.join(".class ", version.getReceives()));
-            replace.put("itf.sendClasses", String.join(".class ", version.getSends()));
+            replace.put("itf.sendsHash", this.getHash(itf, version, version.getSends()));
+
+            final Set<String> recvClasses = new HashSet<>();
+            for (final String type : version.getReceives()) {
+                recvClasses.add(type + ".class");
+            }
+            replace.put("itf.receiveClasses", String.join(", ", recvClasses));
+
+            final Set<String> sendClasses = new HashSet<>();
+            for (final String type : version.getSends()) {
+                sendClasses.add(type + ".class");
+            }
+            replace.put("itf.sendClasses", String.join("., ", sendClasses));
 
             // Add handler definitions and implementations for the connection handlers (and implementations
             // respectively)
@@ -170,6 +257,13 @@ public class Templates {
         return replace;
     }
 
+    /**
+     * Replace all keys in the template with their values
+     *
+     * @param template
+     * @param replace
+     * @return
+     */
     private static String replaceMap(final String template, final Map<String, String> replace) {
         String ret = template;
         for (final Entry<String, String> entry : replace.entrySet()) {
@@ -183,70 +277,15 @@ public class Templates {
     private String getHash(final InterfaceDescription itf,
             final InterfaceVersionDescription vitf,
             final Set<String> set) {
-        final String versionedName = itf.getName() + vitf.getVersionName();
+        final String versionedName = PluginUtils.getVersionedName(itf, vitf);
         if (this.hashes.containsKey(versionedName)) {
-            String baseHash = this.hashes.get(itf);
+            String baseHash = this.hashes.get(versionedName);
             for (final String key : set) {
                 baseHash += ";" + key;
             }
-            return Templates.SHA256(baseHash);
+            return PluginUtils.SHA256(baseHash);
         }
-        return "";
+        throw new RuntimeException("Could not get hash for " + versionedName);
     }
 
-    public static String serviceImplClass(final ServiceDescription d) {
-        return Templates.camelCaps(d.getName());
-    }
-
-    public static String connectionHandlerClass(final InterfaceDescription itf,
-            final InterfaceVersionDescription version) {
-        return Templates.camelCaps(itf.getName() + version.getVersionName() + "ConnectionHandler");
-    }
-
-    public static String connectionHandlerImplClass(final InterfaceDescription itf,
-            final InterfaceVersionDescription version) {
-        return Templates.camelCaps(itf.getName() + version.getVersionName() + "ConnectionHandlerImpl");
-    }
-
-    public static String factoryClass(final InterfaceDescription itf, final InterfaceVersionDescription version) {
-        return Templates.camelCaps(itf.getName() + version.getVersionName() + "ConnectionHandlerFactory");
-    }
-
-    /**
-     * @param i
-     * @return
-     */
-    static String camelCaps(final String str) {
-        final StringBuilder ret = new StringBuilder();
-
-        for (final String word : str.split(" ")) {
-            if (!word.isEmpty()) {
-                ret.append(Character.toUpperCase(word.charAt(0)));
-                ret.append(word.substring(1).toLowerCase());
-            }
-        }
-
-        return ret.toString();
-    }
-
-    public static String SHA256(final String body) {
-        MessageDigest md;
-        try {
-            md = MessageDigest.getInstance("SHA-256");
-
-            md.update(body.getBytes("UTF-8"));
-            final byte[] mdbytes = md.digest();
-
-            final StringBuffer sb = new StringBuffer();
-            for (final byte mdbyte : mdbytes) {
-                sb.append(Integer.toString((mdbyte & 0xff) + 0x100, 16).substring(1));
-            }
-            return sb.toString();
-        } catch (final NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (final UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
-        return "";
-    }
 }

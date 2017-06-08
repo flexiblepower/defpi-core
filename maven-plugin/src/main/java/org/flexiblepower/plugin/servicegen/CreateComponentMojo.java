@@ -4,22 +4,16 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
-
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.xpath.XPathExpressionException;
 
 /*
  * Copyright 2001-2005 The Apache Software Foundation.
@@ -48,12 +42,14 @@ import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription.Type;
 import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
-import org.xml.sax.SAXException;
 
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Mojo(name = "create", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
 public class CreateComponentMojo extends AbstractMojo {
+
+    private static final String SERVICE_FILENAME = "service.json";
 
     // private static final String messageRepositoryLink = "http://efpi-rd1.sensorlab.tno.nl/descriptors";
 
@@ -128,28 +124,32 @@ public class CreateComponentMojo extends AbstractMojo {
             this.createDescriptors(service.getInterfaces());
             this.templates = new Templates(this.servicePackage, service, this.hashes);
 
-            this.createStubs(service);
+            this.createJavaFiles(service);
             this.createDockerfile(service);
 
         } catch (final Exception e) {
-            e.printStackTrace();
+            this.getLog().debug(e);
+            throw new MojoExecutionException(e.getMessage(), e);
         }
     }
 
     /**
-     * Reads and parses the service yaml into a ServiceDescription object
+     * Reads and parses the service json into a ServiceDescription object
      *
-     * @return ServiceDescription object containing the data of the yaml
+     * @return ServiceDescription object containing the data of the json
      * @throws FileNotFoundException
      *             service.yml is not found in the resource directory
+     * @throws JsonParseException
+     *             file could not be parsed as json file
+     * @throws JsonMappingException
+     *             Json could not be mapped to a ServiceDescription
      */
     private ServiceDescription readServiceDefinition() throws IOException {
-        final File inputFile = this.resourcePath.resolve("service.json").toFile();
+        final File inputFile = this.resourcePath.resolve(CreateComponentMojo.SERVICE_FILENAME).toFile();
         this.getLog().info(String.format("Reading service definition from %s", inputFile));
 
-        try (InputStream input = new FileInputStream(inputFile)) {
-            return (new ObjectMapper()).readValue(input, ServiceDescription.class);
-        }
+        final ObjectMapper mapper = new ObjectMapper();
+        return mapper.readValue(inputFile, ServiceDescription.class);
     }
 
     /**
@@ -169,27 +169,21 @@ public class CreateComponentMojo extends AbstractMojo {
     }
 
     /**
-     * Creates altered descriptor files that can be compiled into java source
-     * code.
+     * Creates altered descriptor files that can be compiled into java source code.
      *
      * @param descriptors
      *            Map of descriptors
      * @throws IOException
-     * @throws ParserConfigurationException
-     * @throws SAXException
-     * @throws XPathExpressionException
      */
-    private void createDescriptors(final Set<InterfaceDescription> interfaces)
-            throws IOException, ParserConfigurationException, SAXException, XPathExpressionException {
+    private void createDescriptors(final Set<InterfaceDescription> interfaces) throws IOException {
         this.getLog().info("Creating descriptors");
 
         for (final InterfaceDescription iface : interfaces) {
             for (final InterfaceVersionDescription versionDescription : iface.getInterfaceVersions()) {
-                final String fullName = Templates.camelCaps(iface.getName() + versionDescription.getVersionName());
+                final String fullName = PluginUtils.getVersionedName(iface, versionDescription);
 
-                // versionDescription.getVersionName());
                 final Path inputPath = this.resourcePath.resolve(versionDescription.getLocation());
-                final Path outputPath = this.descriptorProtobufFolder.resolve(versionDescription.getLocation());
+                final Path outputPath = this.descriptorProtobufFolder.resolve(fullName + ".proto");
 
                 if (versionDescription.getType().equals(Type.PROTO)) {
                     this.appendDescriptor(fullName, inputPath, outputPath);
@@ -198,10 +192,7 @@ public class CreateComponentMojo extends AbstractMojo {
                     Files.copy(inputPath, outputPath, StandardCopyOption.REPLACE_EXISTING);
                 }
 
-                if (!this.hashes.containsKey(fullName)) {
-                    this.hashes.put(fullName, this.fileToSHA256(outputPath));
-                }
-
+                this.hashes.put(fullName, PluginUtils.SHA256(outputPath));
             }
         }
 
@@ -216,21 +207,21 @@ public class CreateComponentMojo extends AbstractMojo {
      *            Name of the descriptor
      * @param descriptor
      *            Descriptor object indicating which file has to be used
-     * @param filePath
+     * @param inputPath
      *            Path of the original descriptor file
      * @param outputPath
      *            Folder the altered descriptor file should be stored.
      * @throws IOException
      */
-    private void appendDescriptor(final String name, final Path filePath, final Path outputPath) throws IOException {
+    private void appendDescriptor(final String name, final Path inputPath, final Path outputPath) throws IOException {
         this.getLog().info("Modifying descriptor");
-        Files.copy(filePath, outputPath, StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(inputPath, outputPath, StandardCopyOption.REPLACE_EXISTING);
 
-        try (final Scanner scanner = new Scanner(new FileInputStream(filePath.toFile()), "UTF-8")) {
+        try (final Scanner scanner = new Scanner(new FileInputStream(inputPath.toFile()), "UTF-8")) {
             Files.write(outputPath,
                     ("syntax = \"proto2\";" + "\n\n" + "option java_package = \"" + this.servicePackage
-                            + ".protobuf\";\n" + "option java_outer_classname = \"" + name + "Proto\";\n\n"
-                            + scanner.useDelimiter("\\A").next()).getBytes(),
+                            + ".protobuf\";\n" + "option java_outer_classname = \"" + name + "Proto\";\n\n" + "package "
+                            + name + ";\n" + scanner.useDelimiter("\\A").next()).getBytes(),
                     StandardOpenOption.CREATE);
         }
     }
@@ -242,34 +233,33 @@ public class CreateComponentMojo extends AbstractMojo {
      * @param interfaces
      *            List of interfaces for which stubs should be created.
      * @throws IOException
+     * @throws HashComputeException
      */
-    private void createStubs(final ServiceDescription serviceDescription) throws IOException {
+    private void createJavaFiles(final ServiceDescription serviceDescription) throws IOException {
         this.getLog().info("Creating stubs");
 
-        final Path serviceImpl = this.sourceFolder.resolve(Templates.serviceImplClass(serviceDescription) + ".java");
+        final String ext = ".java";
+        final Path serviceImpl = this.sourceFolder.resolve(PluginUtils.serviceImplClass(serviceDescription) + ext);
         serviceImpl.toFile().delete();
         Files.write(serviceImpl, this.templates.generateServiceImplementation().getBytes(), StandardOpenOption.CREATE);
 
         for (final InterfaceDescription itf : serviceDescription.getInterfaces()) {
             for (final InterfaceVersionDescription version : itf.getInterfaceVersions()) {
-                final Path factory = this.sourceHandlerFolder.resolve(Templates.factoryClass(itf, version) + ".java");
+                final Path factory = this.sourceHandlerFolder.resolve(PluginUtils.factoryClass(itf, version) + ext);
                 final Path connectionHandler = this.sourceHandlerFolder
-                        .resolve(Templates.connectionHandlerClass(itf, version) + ".java");
+                        .resolve(PluginUtils.connectionHandlerClass(itf, version) + ext);
                 final Path connectionHandlerImpl = this.sourceHandlerFolder
-                        .resolve(Templates.connectionHandlerImplClass(itf, version) + "PublishHandler.java");
-                try {
-                    Files.write(factory,
-                            this.templates.generateFactory(itf, version).getBytes(),
-                            StandardOpenOption.CREATE_NEW);
-                    Files.write(connectionHandler,
-                            this.templates.generateConnectionHandler(itf, version).getBytes(),
-                            StandardOpenOption.CREATE_NEW);
-                    Files.write(connectionHandlerImpl,
-                            this.templates.generateConnectionHandlerImplementation(itf, version).getBytes(),
-                            StandardOpenOption.CREATE_NEW);
-                } catch (final IOException e) {
-                    this.getLog().info("Could not create stubs for interface " + itf.getName());
-                }
+                        .resolve(PluginUtils.connectionHandlerImplClass(itf, version) + ext);
+
+                Files.write(factory,
+                        this.templates.generateFactory(itf, version).getBytes(),
+                        StandardOpenOption.CREATE);
+                Files.write(connectionHandler,
+                        this.templates.generateConnectionHandler(itf, version).getBytes(),
+                        StandardOpenOption.CREATE);
+                Files.write(connectionHandlerImpl,
+                        this.templates.generateConnectionHandlerImplementation(itf, version).getBytes(),
+                        StandardOpenOption.CREATE);
             }
         }
     }
@@ -280,6 +270,7 @@ public class CreateComponentMojo extends AbstractMojo {
      * @param service
      *            The current ServiceDescription object
      * @throws IOException
+     * @throws HashComputeException
      */
     private void createDockerfile(final ServiceDescription service) throws IOException {
         this.getLog().info("Creating Dockerfiles");
@@ -289,38 +280,6 @@ public class CreateComponentMojo extends AbstractMojo {
         Files.write(this.dockerARMFolder.resolve("Dockerfile"),
                 this.templates.generateDockerfile("arm", service).getBytes(),
                 StandardOpenOption.CREATE);
-    }
-
-    /**
-     * Helper function to convert a file into a SHA256 hash
-     *
-     * @param file
-     *            File to be hashed
-     * @return
-     * @throws IOException
-     * @throws FileNotFoundException
-     * @throws NoSuchAlgorithmException
-     */
-    private String fileToSHA256(final Path file) throws FileNotFoundException, IOException {
-        this.getLog().info("Hashing file");
-        try (final FileInputStream fis = new FileInputStream(file.toFile())) {
-            final MessageDigest md = MessageDigest.getInstance("SHA-256");
-            final byte[] dataBytes = new byte[1024];
-
-            int nread = 0;
-            while ((nread = fis.read(dataBytes)) != -1) {
-                md.update(dataBytes, 0, nread);
-            }
-            final byte[] mdbytes = md.digest();
-
-            final StringBuffer sb = new StringBuffer();
-            for (final byte mdbyte : mdbytes) {
-                sb.append(Integer.toString((mdbyte & 0xff) + 0x100, 16).substring(1));
-            }
-            return sb.toString();
-        } catch (final NoSuchAlgorithmException e) {
-            throw new IOException("Error while computing hash for file " + file, e);
-        }
     }
 }
 //
