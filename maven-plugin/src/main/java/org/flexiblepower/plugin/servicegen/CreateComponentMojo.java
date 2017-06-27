@@ -337,4 +337,3 @@ public class CreateComponentMojo extends AbstractMojo {
                 StandardOpenOption.CREATE);
     }
 }
-//

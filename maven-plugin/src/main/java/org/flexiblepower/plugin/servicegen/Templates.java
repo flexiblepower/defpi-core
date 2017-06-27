@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,6 +22,7 @@ import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 
 /**
  * Templates
@@ -33,6 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class Templates {
 
+    private final static boolean PRETTY_PRINT_JSON = true;
     private final String servicePackage;
     private final ServiceDescription serviceDescription;
     private final Map<String, String> hashes;
@@ -133,9 +134,11 @@ public class Templates {
         }
 
         replace.put("service.name", service.getName());
-        final String interfaces = this.mapper.writeValueAsString(serviceInterfaces);
-        final String encoded = Base64.getEncoder().encodeToString(interfaces.getBytes());
-        replace.put("interfaces", encoded);
+        final ObjectWriter writer = Templates.PRETTY_PRINT_JSON ? this.mapper.writerWithDefaultPrettyPrinter()
+                : this.mapper.writer();
+        final String interfaces = writer.writeValueAsString(serviceInterfaces);
+        // final String encoded = Base64.getEncoder().encodeToString(interfaces.getBytes());
+        replace.put("interfaces", interfaces.replaceAll("\n", " \\\\ \n"));
 
         return Templates.replaceMap(this.getTemplate("Dockerfile"), replace);
     }
@@ -239,10 +242,8 @@ public class Templates {
                 replace.put("itf.serializer", "ProtobufMessageSerializer");
 
                 for (final String type : version.getReceives()) {
-                    imports += String.format("import %s.protobuf.%sProto.%s;\n",
-                            this.servicePackage,
-                            versionedName,
-                            type);
+                    imports += String
+                            .format("import %s.protobuf.%sProto.%s;\n", this.servicePackage, versionedName, type);
                 }
             } else if (version.getType().equals(Type.XSD)) {
                 replace.put("itf.serializer", "XSDMessageSerializer");
@@ -274,9 +275,7 @@ public class Templates {
         return ret;
     }
 
-    private String getHash(final InterfaceDescription itf,
-            final InterfaceVersionDescription vitf,
-            final Set<String> set) {
+    String getHash(final InterfaceDescription itf, final InterfaceVersionDescription vitf, final Set<String> set) {
         final String versionedName = PluginUtils.getVersionedName(itf, vitf);
         if (this.hashes.containsKey(versionedName)) {
             String baseHash = this.hashes.get(versionedName);
