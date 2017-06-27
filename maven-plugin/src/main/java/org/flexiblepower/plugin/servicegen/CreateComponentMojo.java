@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,18 +34,24 @@ import java.util.Set;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.MavenProject;
 import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription.Type;
 import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.fge.jackson.JsonLoader;
+import com.github.fge.jsonschema.core.exceptions.ProcessingException;
+import com.github.fge.jsonschema.core.report.ProcessingMessage;
+import com.github.fge.jsonschema.core.report.ProcessingReport;
+import com.github.fge.jsonschema.main.JsonSchema;
+import com.github.fge.jsonschema.main.JsonSchemaFactory;
 
 @Mojo(name = "create", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
 public class CreateComponentMojo extends AbstractMojo {
@@ -59,8 +66,14 @@ public class CreateComponentMojo extends AbstractMojo {
     @Parameter(property = "project.resourcedir", required = true)
     private String resourceDir;
 
-    @Component
-    private MavenProject project;
+    // @Component
+    @Parameter(property = "project.groupId")
+    private String groupId;
+
+    @Parameter(property = "project.artifactId")
+    private String artifactId;
+
+    // private MavenProject project;
 
     /**
      * Main package of the service
@@ -115,9 +128,16 @@ public class CreateComponentMojo extends AbstractMojo {
     public void execute() throws MojoExecutionException {
         try {
             this.resourcePath = Paths.get(this.resourceDir);
-            this.servicePackage = this.project.getGroupId() + "." + this.project.getArtifactId();
+            this.servicePackage = this.groupId + "." + this.artifactId;
+            // this.servicePackage = this.project.getGroupId() + "." + this.project.getArtifactId();
 
-            final ServiceDescription service = this.readServiceDefinition();
+            final File serviceDescriptionFile = this.resourcePath.resolve(CreateComponentMojo.SERVICE_FILENAME)
+                    .toFile();
+            if (!this.validateServiceDefinition(serviceDescriptionFile)) {
+                throw new MojoExecutionException("Invalid service description, see message log");
+            }
+
+            final ServiceDescription service = this.readServiceDefinition(serviceDescriptionFile);
             this.createFolderStructure();
 
             // Add descriptors and related hashes
@@ -137,6 +157,8 @@ public class CreateComponentMojo extends AbstractMojo {
      * Reads and parses the service json into a ServiceDescription object
      *
      * @return ServiceDescription object containing the data of the json
+     * @throws ProcessingException
+     * @throws IOException
      * @throws FileNotFoundException
      *             service.yml is not found in the resource directory
      * @throws JsonParseException
@@ -144,12 +166,45 @@ public class CreateComponentMojo extends AbstractMojo {
      * @throws JsonMappingException
      *             Json could not be mapped to a ServiceDescription
      */
-    private ServiceDescription readServiceDefinition() throws IOException {
-        final File inputFile = this.resourcePath.resolve(CreateComponentMojo.SERVICE_FILENAME).toFile();
+    private ServiceDescription readServiceDefinition(final File inputFile) throws ProcessingException, IOException {
         this.getLog().info(String.format("Reading service definition from %s", inputFile));
 
         final ObjectMapper mapper = new ObjectMapper();
         return mapper.readValue(inputFile, ServiceDescription.class);
+    }
+
+    /**
+     * @param inputFile
+     * @throws IOException
+     * @throws ProcessingException
+     */
+    public boolean validateServiceDefinition(final File inputFile) throws ProcessingException {
+        final JsonSchemaFactory factory = JsonSchemaFactory.byDefault();
+        final URL schemaURL = this.getClass().getClassLoader().getResource("schema.json");
+
+        try {
+            final JsonNode schemaNode = JsonLoader.fromURL(schemaURL);
+            final JsonNode data = JsonLoader.fromFile(inputFile);
+
+            final JsonSchema schema = factory.getJsonSchema(schemaNode);
+            final ProcessingReport report = schema.validate(data);
+
+            if (report.isSuccess()) {
+                return true;
+            } else {
+                this.getLog().warn("Errors while reading " + inputFile + ":");
+                for (final ProcessingMessage m : report) {
+                    this.getLog().warn(m.getMessage());
+                }
+            }
+        } catch (final JsonParseException e) {
+            this.getLog().warn("Invalid JSON syntax: " + e.getMessage());
+        } catch (final IOException e) {
+            this.getLog().warn("IOException while reading file: " + e.getMessage());
+        }
+
+        return false;
+
     }
 
     /**

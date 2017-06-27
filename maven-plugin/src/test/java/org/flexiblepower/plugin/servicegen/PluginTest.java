@@ -7,18 +7,25 @@ package org.flexiblepower.plugin.servicegen;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription;
 import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.fge.jackson.JsonLoader;
+import com.github.fge.jsonschema.core.exceptions.ProcessingException;
+import com.github.fge.jsonschema.core.report.ProcessingReport;
+import com.github.fge.jsonschema.main.JsonSchema;
+import com.github.fge.jsonschema.main.JsonSchemaFactory;
+import com.github.fge.jsonschema.processors.syntax.SyntaxValidator;
 
 /**
  * PluginTest
@@ -32,15 +39,12 @@ public class PluginTest {
     private static final ObjectMapper mapper = new ObjectMapper();
     private static ServiceDescription descr;
 
-    @BeforeClass
-    public static void load() throws JsonParseException, JsonMappingException, IOException {
+    @Test
+    public void testGenerate() throws JsonParseException, JsonMappingException, IOException {
         final File inputFile = new File("src/test/resources/service.json");
 
         PluginTest.descr = PluginTest.mapper.readValue(inputFile, ServiceDescription.class);
-    }
 
-    @Test
-    public void testGenerate() {
         final Map<String, String> hashes = new HashMap<>();
         hashes.put("EchoInterfacev001", "1");
         hashes.put("DropbackInterfacev001", "2");
@@ -51,6 +55,23 @@ public class PluginTest {
                 System.out.println(t.generateFactory(itf, version));
             }
         }
+    }
+
+    @Test
+    public void testSchemaValidation() throws ProcessingException, IOException {
+        final URL schemaURL = this.getClass().getClassLoader().getResource("schema.json");
+        final URL serviceURL = this.getClass().getClassLoader().getResource("service.json");
+
+        final JsonNode schemaNode = JsonLoader.fromURL(schemaURL);
+        final JsonNode data = JsonLoader.fromURL(serviceURL);
+
+        final JsonSchemaFactory factory = JsonSchemaFactory.byDefault();
+        final JsonSchema schema = factory.getJsonSchema(schemaNode);
+        final ProcessingReport report = schema.validate(data);
+        System.out.println(report);
+
+        final SyntaxValidator syntaxValidator = factory.getSyntaxValidator();
+        System.out.println(syntaxValidator.schemaIsValid(schemaNode));
     }
 
 }
