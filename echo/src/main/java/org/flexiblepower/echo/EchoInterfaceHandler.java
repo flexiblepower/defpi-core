@@ -3,9 +3,6 @@ package org.flexiblepower.echo;
 import org.flexiblepower.echo.handlers.Echo101ConnectionHandler;
 import org.flexiblepower.echo.protobuf.EchoInterfaceProto.Msg;
 import org.flexiblepower.service.Connection;
-import org.flexiblepower.service.Service;
-
-import com.google.protobuf.GeneratedMessage;
 
 public class EchoInterfaceHandler implements Echo101ConnectionHandler {
 	
@@ -17,8 +14,8 @@ public class EchoInterfaceHandler implements Echo101ConnectionHandler {
 	}
 
 	@Override
-	public GeneratedMessage handleMsgMessage(Msg message) {
-		return Msg.newBuilder().setCounter(message.getCounter()).setStr("Response!").build();
+	public void handleMsgMessage(Msg message) {
+		connection.send(Msg.newBuilder().setCounter(message.getCounter()).setStr("Response!").build());
 	}
 
 	@Override

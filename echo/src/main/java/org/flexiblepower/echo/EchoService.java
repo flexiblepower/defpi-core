@@ -13,7 +13,7 @@ public class EchoService implements Service {
 	int counter = 0;
 	
 	public EchoService() {
-		ConnectionManager.registerHandlers(Echo101ConnectionHandler.class, new EchoConnectionHandlerFactory(this));
+		ConnectionManager.registerConnectionHandlerFactory(Echo101ConnectionHandler.class, new EchoConnectionHandlerFactory(this));
 	}
 	
 	@Override
