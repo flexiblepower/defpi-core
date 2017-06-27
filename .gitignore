@@ -9,6 +9,8 @@ RemoteSystemsTempFiles
 .recommenders/
 .metadata
 Servers/
+.project
+.classpath
 
 # Keep the maven plugin settings to ignore missing m2e plugins
 !.metadata/.plugins/org.eclipse.m2e.core/lifecycle-mapping-metadata.xml
