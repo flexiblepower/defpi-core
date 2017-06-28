@@ -80,6 +80,7 @@ public class ConnectionManager implements Closeable {
      * @param message
      * @throws ConnectionModificationException
      */
+    @SuppressWarnings("resource")
     private void createConnection(final ConnectionMessage message) throws ConnectionModificationException {
         // First find the correct handler to attach to the connection
         final String key = ConnectionManager.handlerKey(message.getReceiveHash(), message.getSendHash());
