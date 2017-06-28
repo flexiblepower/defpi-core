@@ -8,9 +8,8 @@ package org.flexiblepower.orchestrator;
 import java.util.UUID;
 
 import org.flexiblepower.exceptions.ConnectionException;
+import org.junit.Before;
 import org.junit.Test;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * ConnectionManagerTest
@@ -19,7 +18,6 @@ import lombok.extern.slf4j.Slf4j;
  * @version 0.1
  * @since Apr 19, 2017
  */
-@Slf4j
 public class ConnectionManagerTest {
 
     private ConnectionManager manager;
@@ -30,9 +28,13 @@ public class ConnectionManagerTest {
 
     private static final UUID TEST_CONNECTION_ID = UUID.randomUUID();
 
+    @Before
+    public void init() {
+        this.manager = new ConnectionManager();
+    }
+
     @Test
     public void tryConnect() throws ConnectionException {
-        this.manager = new ConnectionManager();
         this.manager.connect(ConnectionManagerTest.TEST_CONNECTION_ID.toString(),
                 ConnectionManagerTest.TEST_HOST,
                 ConnectionManagerTest.TEST_SERVICE_LISTEN_PORT,
