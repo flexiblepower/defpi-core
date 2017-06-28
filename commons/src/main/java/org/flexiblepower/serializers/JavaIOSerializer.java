@@ -3,7 +3,7 @@
  *
  * Copyright 2017 TNO
  */
-package org.flexiblepower.service.serializers;
+package org.flexiblepower.serializers;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -12,7 +12,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
-import org.flexiblepower.service.exceptions.SerializationException;
+import org.flexiblepower.exceptions.SerializationException;
 
 /**
  * JavaIOSerializer
@@ -64,7 +64,7 @@ public class JavaIOSerializer implements MessageSerializer<Serializable> {
      * @see org.flexiblepower.service.serializers.MessageSerializer#addMessageClass(java.lang.Class)
      */
     @Override
-    public void addMessageClass(final Class<?> clazz) {
+    public void addMessageClass(Class<? extends Serializable> clazz) {
         // It's okay do nothing
     }
 

@@ -1,25 +1,25 @@
-package org.flexiblepower.service.serializers;
+package org.flexiblepower.serializers;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.flexiblepower.service.exceptions.SerializationException;
+import org.flexiblepower.exceptions.SerializationException;
 
 import com.google.protobuf.GeneratedMessage;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Parser;
 
-public class ProtobufMessageSerializer implements MessageSerializer<GeneratedMessage> {
+public class ProtobufMessageSerializer<T extends GeneratedMessage> implements MessageSerializer<T> {
 
-    private final List<Parser<? extends GeneratedMessage>> parsers = new ArrayList<>();
+    private final List<Parser<T>> parsers = new ArrayList<>();
     private final DescriptorType type = DescriptorType.PROTOBUF;
 
     @Override
-    public void addMessageClass(final Class<?> cls) {
+    public void addMessageClass(final Class<? extends T> cls) {
         try {
             @SuppressWarnings("unchecked")
-            final Parser<? extends GeneratedMessage> parser = (Parser<? extends GeneratedMessage>) cls
+            final Parser<T> parser = (Parser<T>) cls
                     .getMethod("parser").invoke(null);
             this.parsers.add(parser);
         } catch (IllegalAccessException
@@ -32,7 +32,7 @@ public class ProtobufMessageSerializer implements MessageSerializer<GeneratedMes
     }
 
     @Override
-    public byte[] serialize(final GeneratedMessage object) {
+    public byte[] serialize(final T object) {
         if (object != null) {
             return object.toByteArray();
         }
@@ -40,8 +40,8 @@ public class ProtobufMessageSerializer implements MessageSerializer<GeneratedMes
     }
 
     @Override
-    public GeneratedMessage deserialize(final byte[] data) throws SerializationException {
-        for (final Parser<? extends GeneratedMessage> parser : this.parsers) {
+    public T deserialize(final byte[] data) throws SerializationException {
+        for (final Parser<T> parser : this.parsers) {
             try {
                 return parser.parseFrom(data);
             } catch (final InvalidProtocolBufferException e) {

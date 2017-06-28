@@ -1,6 +1,6 @@
-package org.flexiblepower.service.serializers;
+package org.flexiblepower.serializers;
 
-import org.flexiblepower.service.exceptions.SerializationException;
+import org.flexiblepower.exceptions.SerializationException;
 
 public interface MessageSerializer<T> {
 
@@ -13,7 +13,7 @@ public interface MessageSerializer<T> {
 
     DescriptorType getType();
 
-    public void addMessageClass(Class<?> clazz);
+    public void addMessageClass(Class<? extends T> clazz);
 
     public T deserialize(byte[] data) throws SerializationException;
 
