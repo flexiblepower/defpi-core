@@ -11,13 +11,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
-
-import lombok.Getter;
+import java.nio.file.Paths;
+import java.util.Scanner;
 
 /**
  * ProtoCompiler
@@ -26,31 +23,20 @@ import lombok.Getter;
  * @version 0.1
  * @since Jun 27, 2017
  */
-public class ProtoCompiler {
-
-    public enum Status {
-        SUCCESS,
-        FAILURE
-    }
+public class ProtoCompiler extends Compiler {
 
     protected final File compilerFile;
-
-    @Getter
-    protected Status state = Status.SUCCESS;
+    private final String protobufVersion;
 
     public ProtoCompiler(final String protobufVersion) throws IOException {
         final String protoFilename = String.format("protoc-%s-%s-%s.exe",
                 protobufVersion,
                 ProtoCompiler.getOsName(),
                 ProtoCompiler.getArchitecture());
-        this.compilerFile = new File(protoFilename);
+        this.protobufVersion = protobufVersion;
 
-        if (!this.compilerFile.exists()) {
-            ProtoCompiler.downloadFile("http://central.maven.org/maven2/com/google/protobuf/protoc/" + protobufVersion
-                    + "/" + protoFilename, this.compilerFile);
-        }
-
-        this.compilerFile.setExecutable(true);
+        final Path tempPath = Paths.get("target", "protoc");
+        this.compilerFile = tempPath.resolve(protoFilename).toFile();
     }
 
     public static String getOsName() {
@@ -62,15 +48,16 @@ public class ProtoCompiler {
     }
 
     /**
-     * @param string
-     * @param targetFile
+     * @param src
+     * @param dst
      */
-    private static void downloadFile(final String string, final File targetFile) throws IOException {
-        final URL url = new URL(string);
+    private static void downloadFile(final String src, final File dst) throws IOException {
+        System.out.println("Downloading " + src + " to " + dst);
+        final URL url = new URL(src);
 
         try (
                 final InputStream in = new BufferedInputStream(url.openStream());
-                final FileOutputStream out = new FileOutputStream(targetFile)) {
+                final FileOutputStream out = new FileOutputStream(dst)) {
             final byte[] buf = new byte[1024];
             int n = 0;
             while (-1 != (n = in.read(buf))) {
@@ -84,44 +71,40 @@ public class ProtoCompiler {
      * @param sourcePath
      * @throws IOException
      */
-    public void compileSources(final Path sourcePath, final Path targetPath) throws IOException {
-        Files.walkFileTree(sourcePath, new SimpleFileVisitor<Path>() {
+    @Override
+    public void compile(final Path filePath, final Path targetPath) throws IOException {
+        // Delay making the target folder to this point so it won't be made unnessecarily
+        if (!targetPath.toFile().exists()) {
+            Files.createDirectory(targetPath);
+        }
 
-            @Override
-            public FileVisitResult visitFile(final Path filePath, final BasicFileAttributes attrs) throws IOException {
-                // Delay making the target folder to this point so it won't be made unnessecarily
-                if (!targetPath.toFile().exists()) {
-                    Files.createDirectory(targetPath);
-                }
+        if (!this.compilerFile.exists()) {
+            Files.createDirectories(this.compilerFile.toPath().getParent());
+            ProtoCompiler.downloadFile(
+                    "http://central.maven.org/maven2/com/google/protobuf/protoc/" + this.protobufVersion + "/"
+                            + this.compilerFile.getName().toString(),
+                    this.compilerFile);
+            this.compilerFile.setExecutable(true);
+        }
 
-                // Build and execute the command
-                final String cmd = String.format("%s --java_out=%s --proto_path=%s %s",
-                        ProtoCompiler.this.compilerFile.getAbsolutePath(),
-                        targetPath.toString(),
-                        filePath.getParent().toString(),
-                        filePath.toString());
-                final Process p = Runtime.getRuntime().exec(cmd);
+        // Build and execute the command
+        final String cmd = String.format("%s --java_out=%s --proto_path=%s %s",
+                ProtoCompiler.this.compilerFile.getAbsolutePath(),
+                targetPath.toString(),
+                filePath.getParent().toString(),
+                filePath.toString());
+        final Process p = Runtime.getRuntime().exec(cmd);
 
-                try {
-                    if (p.waitFor() != 0) {
-                        try (InputStream s = p.getErrorStream()) {
-                            final byte[] buf = new byte[1024];
-                            while (s.read(buf) > 0) {
-                                System.err.println(new String(buf));
-                            }
-                        }
-                        ProtoCompiler.this.state = Status.FAILURE;
-                        return FileVisitResult.TERMINATE;
-                    } else {
-                        return FileVisitResult.CONTINUE;
-                    }
-                } catch (final InterruptedException e) {
-                    e.printStackTrace();
-                    ProtoCompiler.this.state = Status.FAILURE;
-                    return FileVisitResult.TERMINATE;
+        try {
+            if (p.waitFor() != 0) {
+                try (final Scanner s = new Scanner(p.getErrorStream()).useDelimiter("\\A")) {
+                    final String error = s.hasNext() ? s.next() : "";
+                    throw new IOException("Error while compiling " + filePath + ": " + error);
                 }
             }
-        });
+        } catch (final InterruptedException e) {
+            throw new IOException("Interrupted while compiling " + filePath);
+        }
     }
 
 }

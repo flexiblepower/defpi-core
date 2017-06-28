@@ -30,9 +30,9 @@ public class PluginUtils {
     private static final String HANDLER_IMPL_SUFFIX = "ConnectionHandlerImpl";
     private static final String HANDLER_FACTORY_SUFFIX = "ConnectionHandlerFactory";
 
-    public static String getVersionedName(final InterfaceDescription iface,
+    public static String getVersionedName(final InterfaceDescription itf,
             final InterfaceVersionDescription versionDescription) {
-        return PluginUtils.camelCaps(iface.getName() + versionDescription.getVersionName());
+        return PluginUtils.camelCaps(itf.getName() + "_" + versionDescription.getVersionName());
     }
 
     public static String serviceImplClass(final ServiceDescription d) {

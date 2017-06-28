@@ -37,7 +37,6 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.flexiblepower.plugin.servicegen.ProtoCompiler.Status;
 import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription.Type;
@@ -113,29 +112,29 @@ public class CreateComponentMojo extends AbstractMojo {
     private String protobufInputLocation;
 
     /**
-     * Folder where the XSD sources can be found
-     */
-    @Parameter(property = "xsd.input.directory", defaultValue = "${project.basedir}/src/main/resources")
-    private String xsdInputLocation;
-
-    /**
-     * Folder where the protobuf sources can be found
+     * Folder where the protobuf resources should be put
      */
     @Parameter(property = "protobuf.resource.directory",
                defaultValue = "${project.basedir}/src/main/resources/protobuf")
     private String protobufResourceLocation;
 
     /**
+     * Package where the protobuf sources should be placed
+     */
+    @Parameter(property = "protobuf.output.package", defaultValue = "proto")
+    private String protobufOutputPackage;
+
+    /**
      * Folder where the XSD sources can be found
+     */
+    @Parameter(property = "xsd.input.directory", defaultValue = "${project.basedir}/src/main/resources")
+    private String xsdInputLocation;
+
+    /**
+     * Folder where the XSD resources should be put
      */
     @Parameter(property = "xsd.resource.directory", defaultValue = "${project.basedir}/src/main/resources/xsd")
     private String xsdResourceLocation;
-
-    /**
-     * Folder where the protobuf definitions should be copied to
-     */
-    @Parameter(property = "protobuf.output.package", defaultValue = "proto")
-    private String protoOutputPackage;
 
     /**
      * Folder where the XSD definitions should be copied to
@@ -182,15 +181,18 @@ public class CreateComponentMojo extends AbstractMojo {
 
             // Add descriptors and related hashes
             this.createDescriptors(service.getInterfaces());
-            this.templates = new Templates(this.servicePackage, service, this.hashes);
+            this.templates = new Templates(this.servicePackage,
+                    this.protobufOutputPackage,
+                    this.xsdOutputPackage,
+                    service,
+                    this.hashes);
 
             final Path javaSourceFolder = Paths.get(this.sourceLocation).resolve(this.servicePackage.replace('.', '/'));
             Files.createDirectories(javaSourceFolder);
 
             this.createJavaFiles(service, javaSourceFolder);
             this.createDockerfiles(service);
-            this.generateCodeFromProtos(service);
-            this.generateCodeFromXsds(service, javaSourceFolder);
+            this.compileDescriptors(service);
 
         } catch (final Exception e) {
             this.getLog().debug(e);
@@ -267,12 +269,12 @@ public class CreateComponentMojo extends AbstractMojo {
                 if (versionDescription.getType().equals(Type.PROTO)) {
                     final Path protoSourceFilePath = this.resourcePath.resolve(this.protobufInputLocation)
                             .resolve(versionDescription.getLocation());
-                    final Path protobufResourceFolder = Files
-                            .createDirectories(this.resourcePath.resolve(this.protobufResourceLocation));
-                    final Path outputPath = protobufResourceFolder.resolve(fullName + ".proto");
+                    final Path outputPath = Files
+                            .createDirectories(this.resourcePath.resolve(this.protobufResourceLocation))
+                            .resolve(fullName + ".proto");
 
                     // Append the descriptor and store hash of source
-                    this.appendDescriptor(fullName, protoSourceFilePath, outputPath);
+                    this.appendProtoDescriptor(fullName, protoSourceFilePath, outputPath);
                     this.hashes.put(fullName, PluginUtils.SHA256(protoSourceFilePath));
                 } else if (versionDescription.getType().equals(Type.XSD)) {
                     final Path xsdSourceFilePath = this.resourcePath.resolve(this.xsdInputLocation)
@@ -308,16 +310,23 @@ public class CreateComponentMojo extends AbstractMojo {
      *            Folder the altered descriptor file should be stored.
      * @throws IOException
      */
-    private void appendDescriptor(final String name, final Path inputPath, final Path outputPath) throws IOException {
+    private void appendProtoDescriptor(final String name, final Path inputPath, final Path outputPath)
+            throws IOException {
         Files.copy(inputPath, outputPath, StandardCopyOption.REPLACE_EXISTING);
+
+        String packageName = this.servicePackage + "." + name.toLowerCase();
+        if ((this.protobufOutputPackage != null) && !this.protobufOutputPackage.isEmpty()) {
+            packageName = packageName + "." + this.protobufOutputPackage;
+        }
 
         try (final Scanner scanner = new Scanner(new FileInputStream(inputPath.toFile()), "UTF-8")) {
             Files.write(outputPath,
-                    ("syntax = \"proto2\";" + "\n\n" + "option java_package = \"" + this.servicePackage + "."
-                            + name.toLowerCase() + "\";\n" + "option java_outer_classname = \"" + name + "Proto\";\n\n"
-                            + "package " + name + ";\n" + scanner.useDelimiter("\\A").next()).getBytes(),
+                    ("syntax = \"proto2\";" + "\n\n" + "option java_package = \"" + packageName + "\";\n"
+                            + "option java_outer_classname = \"" + name + "Proto\";\n\n" + "package " + name + ";\n"
+                            + scanner.useDelimiter("\\A").next()).getBytes(),
                     StandardOpenOption.CREATE);
         }
+
     }
 
     /**
@@ -385,22 +394,27 @@ public class CreateComponentMojo extends AbstractMojo {
      * @param service
      * @throws IOException
      */
-    private void generateCodeFromProtos(final ServiceDescription service) throws IOException {
+    private void compileDescriptors(final ServiceDescription service) throws IOException {
         this.getLog().debug("Compiling protobuf definitions to java code");
-        final ProtoCompiler compiler = new ProtoCompiler(this.protobufVersion);
-        compiler.compileSources(this.resourcePath.resolve(this.protobufResourceLocation),
-                Paths.get(this.sourceLocation));
+        final ProtoCompiler protoCompiler = new ProtoCompiler(this.protobufVersion);
+        final XjcCompiler xjcCompiler = new XjcCompiler();
 
-        if (compiler.getState() != Status.SUCCESS) {
-            throw new IOException("Error while compiling proto files, see log");
+        for (final InterfaceDescription iface : service.getInterfaces()) {
+            for (final InterfaceVersionDescription versionDescription : iface.getInterfaceVersions()) {
+                final String fullName = PluginUtils.getVersionedName(iface, versionDescription);
+
+                if (versionDescription.getType().equals(Type.PROTO)) {
+                    protoCompiler.compile(
+                            this.resourcePath.resolve(this.protobufResourceLocation).resolve(fullName + ".proto"),
+                            Paths.get(this.sourceLocation));
+                } else if (versionDescription.getType().equals(Type.XSD)) {
+                    xjcCompiler.setBasePackageName(
+                            this.servicePackage + "." + fullName.toLowerCase() + "." + this.xsdOutputPackage);
+                    xjcCompiler.compile(this.resourcePath.resolve(this.xsdResourceLocation).resolve(fullName + ".xsd"),
+                            Paths.get(this.sourceLocation));
+                }
+            }
         }
     }
 
-    /**
-     * @param service
-     */
-    private void generateCodeFromXsds(final ServiceDescription service, final Path javaSourceFolder) {
-        // TODO Auto-generated method stub
-        this.getLog().debug("Compiling xsd definitions to java code");
-    }
 }

@@ -35,12 +35,20 @@ public class Templates {
 
     private final static boolean PRETTY_PRINT_JSON = true;
     private final String servicePackage;
+    private final String protobufOutputPackage;
+    private final String xsdOutputPackage;
     private final ServiceDescription serviceDescription;
     private final Map<String, String> hashes;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public Templates(final String targetPackage, final ServiceDescription descr, final Map<String, String> hashes) {
+    public Templates(final String targetPackage,
+            final String protobufOutputPackage,
+            final String xsdOutputPackage,
+            final ServiceDescription descr,
+            final Map<String, String> hashes) {
         this.servicePackage = targetPackage;
+        this.protobufOutputPackage = protobufOutputPackage;
+        this.xsdOutputPackage = xsdOutputPackage;
         this.serviceDescription = descr;
         this.hashes = hashes;
     }
@@ -248,9 +256,10 @@ public class Templates {
                 replace.put("itf.serializer", "ProtobufMessageSerializer");
 
                 for (final String type : version.getReceives()) {
-                    imports += String.format("import %s.%s.%sProto.%s;\n",
+                    imports += String.format("import %s.%s.%s.%sProto.%s;\n",
                             this.servicePackage,
                             packageName,
+                            this.protobufOutputPackage,
                             versionedName,
                             type);
                 }
@@ -258,8 +267,11 @@ public class Templates {
                 replace.put("itf.serializer", "XSDMessageSerializer");
 
                 for (final String type : version.getReceives()) {
-                    imports += String
-                            .format("import %s.%s.xml.%s.*;\n", this.servicePackage, packageName, versionedName, type);
+                    imports += String.format("import %s.%s.%s.*;\n",
+                            this.servicePackage,
+                            packageName,
+                            this.xsdOutputPackage,
+                            type);
                 }
             }
             replace.put("handler.imports", imports);

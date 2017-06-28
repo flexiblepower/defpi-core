@@ -43,6 +43,14 @@
 			<groupId>org.flexiblepower</groupId>
 			<artifactId>api</artifactId>
 		</dependency>
+		
+		<!-- https://mvnrepository.com/artifact/org.glassfish.jaxb/jaxb-xjc -->
+		<dependency>
+		    <groupId>org.glassfish.jaxb</groupId>
+		    <artifactId>jaxb-xjc</artifactId>
+		    <version>2.2.11</version>
+		</dependency>
+		
 	</dependencies>
 
 	<build>

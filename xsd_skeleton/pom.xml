@@ -10,21 +10,9 @@
     <relativePath>../master/defpi-parent/service-parent/pom.xml</relativePath>
   </parent>
 
-  <artifactId>echo-skeleton</artifactId>
+  <groupId>org.flexiblepower</groupId>
+  <artifactId>booksample</artifactId>
   <version>0.0.1</version>
-
-  <properties>
-    <protobuf.input.directory>${project.resourcedir}</protobuf.input.directory>
-    <protobuf.resource.directory>${project.resourcedir}/protos</protobuf.resource.directory>
-    <protobuf.output.package>proto</protobuf.output.package>
-		
-    <xsd.input.directory>${project.resourcedir}</xsd.input.directory>
-    <xsd.resource.directory>${project.resourcedir}/xsds</xsd.resource.directory>
-    <xsd.output.package>xsd</xsd.output.package>
-
-    <docker.folder>docker1</docker.folder>
-    <docker.arm.folder>docker2</docker.arm.folder>
-  </properties>
 
   <build>
     <plugins>
