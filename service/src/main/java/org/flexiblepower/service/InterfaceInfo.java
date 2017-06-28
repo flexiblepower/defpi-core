@@ -11,7 +11,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import org.flexiblepower.service.serializers.MessageSerializer;
+import org.flexiblepower.serializers.MessageSerializer;
 
 /**
  * InterfaceInfo
@@ -37,6 +37,7 @@ public @interface InterfaceInfo {
 
     public Class<?>[] sendTypes();
 
-    public Class<? extends MessageSerializer<?>> serializer();
+    @SuppressWarnings("rawtypes")
+    public Class<? extends MessageSerializer> serializer();
 
 }
