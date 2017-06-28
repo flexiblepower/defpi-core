@@ -6,11 +6,11 @@ package {{package}};
 import java.io.Serializable;
 import java.util.Properties;
 
+import javax.annotation.Generated;
+
+{{service.imports}}
 import org.flexiblepower.service.ConnectionManager;
 import org.flexiblepower.service.Service;
-{{service.imports}}
-
-import javax.annotation.Generated;
 
 /**
  * {{service.class}} provides an implementation of the {{service.name}} service

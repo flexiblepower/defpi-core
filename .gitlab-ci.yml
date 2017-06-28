@@ -14,23 +14,34 @@ variables:
   # `installAtEnd` and `deployAtEnd`are only effective with recent version of the corresponding plugins.
   MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true -f master/pom.xml"
 
+image: maven:3.3.9-jdk-8
+
+stages:
+  - build
+  - unittest
+  - plugintest
+
 cache:
   paths:
     - ./cache/maven.repository
  
 # Validate merge requests using JDK8
 validate:jdk8:
-  image: maven:3.3.9-jdk-8
   stage: build
   script:
     - 'mvn $MAVEN_CLI_OPTS test-compile'
 
 # Verify merge requests using JDK8
 verify:jdk8:
-  image: maven:3.3.9-jdk-8
-  stage: test
+  stage: unittest
   script:
     - 'mvn $MAVEN_CLI_OPTS verify'
+
+#Test plugin
+generate-sources:
+  stage: plugintest
+    - 'mvn -f master/pom.xml install'   
+    - 'mvn -f echo_skeleton/pom.xml -P codegen generate-sources'
 
 #deploy:jdk8:
 #  image: maven:3.3.9-jdk-8

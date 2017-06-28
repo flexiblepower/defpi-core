@@ -37,6 +37,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.flexiblepower.plugin.servicegen.ProtoCompiler.Status;
 import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription.Type;
@@ -53,71 +54,109 @@ import com.github.fge.jsonschema.core.report.ProcessingReport;
 import com.github.fge.jsonschema.main.JsonSchema;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
 
+/**
+ * CreateComponentMojo
+ *
+ * @author coenvl
+ * @version 0.1
+ * @since Jun 28, 2017
+ */
 @Mojo(name = "create", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
 public class CreateComponentMojo extends AbstractMojo {
 
-    private static final String SERVICE_FILENAME = "service.json";
+    /**
+     * The groupId of the service to build
+     */
+    @Parameter(property = "project.groupId", required = true)
+    private String groupId;
 
-    // private static final String messageRepositoryLink = "http://efpi-rd1.sensorlab.tno.nl/descriptors";
+    /**
+     * The artifactId of the service to build
+     */
+    @Parameter(property = "project.artifactId", required = true)
+    private String artifactId;
+
+    /**
+     * Version of protobuf to use
+     */
+    @Parameter(property = "protobuf.version", required = true)
+    private String protobufVersion;
 
     /**
      * Folder where the service.yml and descriptor/xsd files are located
      */
-    @Parameter(property = "project.resourcedir", required = true)
-    private String resourceDir;
+    @Parameter(property = "project.resourcedir", defaultValue = "${project.basedir}/src/main/resources")
+    private String resourceLocation;
 
-    // @Component
-    @Parameter(property = "project.groupId")
-    private String groupId;
+    /**
+     * Main java source folder where all java sources should be put
+     */
+    @Parameter(property = "project.sourcedir", defaultValue = "${project.basedir}/src/main/java")
+    private String sourceLocation;
 
-    @Parameter(property = "project.artifactId")
-    private String artifactId;
-
-    // private MavenProject project;
+    /**
+     * Service definition file
+     */
+    @Parameter(property = "defpi.service.description", defaultValue = "service.json")
+    private String serviceFilename;
 
     /**
      * Main package of the service
      */
+    @Parameter(property = "defpi.service.package", defaultValue = "${project.groupId}.${project.artifactId}")
     private String servicePackage;
 
     /**
-     * SHA256 hashes that identify a specific descriptorcol buffer description
+     * Folder where the protobuf sources can be found
      */
-    private final Map<String, String> hashes = new HashMap<>();
+    @Parameter(property = "protobuf.input.directory", defaultValue = "${project.basedir}/src/main/resources")
+    private String protobufInputLocation;
 
     /**
-     * Main resources path, from parameter
+     * Folder where the XSD sources can be found
      */
+    @Parameter(property = "xsd.input.directory", defaultValue = "${project.basedir}/src/main/resources")
+    private String xsdInputLocation;
+
+    /**
+     * Folder where the protobuf sources can be found
+     */
+    @Parameter(property = "protobuf.resource.directory",
+               defaultValue = "${project.basedir}/src/main/resources/protobuf")
+    private String protobufResourceLocation;
+
+    /**
+     * Folder where the XSD sources can be found
+     */
+    @Parameter(property = "xsd.resource.directory", defaultValue = "${project.basedir}/src/main/resources/xsd")
+    private String xsdResourceLocation;
+
+    /**
+     * Folder where the protobuf definitions should be copied to
+     */
+    @Parameter(property = "protobuf.output.package", defaultValue = "proto")
+    private String protoOutputPackage;
+
+    /**
+     * Folder where the XSD definitions should be copied to
+     */
+    @Parameter(property = "xsd.output.package", defaultValue = "xml")
+    private String xsdOutputPackage;
+
+    /**
+     * Folder where the protobuf definitions should be copied to
+     */
+    @Parameter(property = "docker.folder", defaultValue = "docker")
+    private String dockerLocation;
+
+    /**
+     * Folder where the protobuf definitions should be copied to
+     */
+    @Parameter(property = "docker.arm.folder", defaultValue = "docker-arm")
+    private String dockerArmLocation;
+
     private Path resourcePath;
-    /**
-     * Main java source folder
-     */
-    private Path sourceFolder;
-    /**
-     * Java source folder for service handlers
-     */
-    private Path sourceHandlerFolder;
-    /**
-     * Folder to store altered protobuf descriptor files
-     */
-    private Path descriptorProtobufFolder;
-    /**
-     * Folder to store xsd descriptor files
-     */
-    // private Path descriptorXSDFolder;
-    /**
-     * Folder where the Dockerfile is located
-     */
-    private Path dockerFolder;
-
-    /**
-     * Folder where the ARM Dockerfile is located
-     */
-    private Path dockerARMFolder;
-
-    /**
-     * Templates for code generation
-     */
+    private final Map<String, String> hashes = new HashMap<>();
     private Templates templates;
 
     /**
@@ -127,25 +166,31 @@ public class CreateComponentMojo extends AbstractMojo {
     @Override
     public void execute() throws MojoExecutionException {
         try {
-            this.resourcePath = Paths.get(this.resourceDir);
-            this.servicePackage = this.groupId + "." + this.artifactId;
-            // this.servicePackage = this.project.getGroupId() + "." + this.project.getArtifactId();
+            if (!this.servicePackage.matches("[a-z][a-z.]+")) {
+                this.getLog().warn("Invalid java package name " + this.servicePackage);
+                this.servicePackage = this.servicePackage.replaceAll("[^a-zA-Z.]", "").toLowerCase();
+                this.getLog().warn("New target package name " + this.servicePackage);
+            }
 
-            final File serviceDescriptionFile = this.resourcePath.resolve(CreateComponentMojo.SERVICE_FILENAME)
-                    .toFile();
+            this.resourcePath = Paths.get(this.resourceLocation);
+            final File serviceDescriptionFile = this.resourcePath.resolve(this.serviceFilename).toFile();
             if (!this.validateServiceDefinition(serviceDescriptionFile)) {
                 throw new MojoExecutionException("Invalid service description, see message log");
             }
 
             final ServiceDescription service = this.readServiceDefinition(serviceDescriptionFile);
-            this.createFolderStructure();
 
             // Add descriptors and related hashes
             this.createDescriptors(service.getInterfaces());
             this.templates = new Templates(this.servicePackage, service, this.hashes);
 
-            this.createJavaFiles(service);
-            this.createDockerfile(service);
+            final Path javaSourceFolder = Paths.get(this.sourceLocation).resolve(this.servicePackage.replace('.', '/'));
+            Files.createDirectories(javaSourceFolder);
+
+            this.createJavaFiles(service, javaSourceFolder);
+            this.createDockerfiles(service);
+            this.generateCodeFromProtos(service);
+            this.generateCodeFromXsds(service, javaSourceFolder);
 
         } catch (final Exception e) {
             this.getLog().debug(e);
@@ -208,22 +253,6 @@ public class CreateComponentMojo extends AbstractMojo {
     }
 
     /**
-     * Makes the folders for the generated files
-     *
-     * @throws IOException
-     */
-    private void createFolderStructure() throws IOException {
-        this.getLog().info("Creating folder structure");
-        this.sourceFolder = Paths.get("src", "main", "java", this.servicePackage.replace('.', '/'));
-
-        this.sourceHandlerFolder = Files.createDirectories(this.sourceFolder.resolve("handlers"));
-        this.descriptorProtobufFolder = Files.createDirectories(this.resourcePath.resolve("protobuf"));
-        // this.descriptorXSDFolder = Files.createDirectories(this.resourcePath.resolve("xsd"));
-        this.dockerFolder = Files.createDirectories(this.resourcePath.resolve("docker"));
-        this.dockerARMFolder = Files.createDirectories(this.resourcePath.resolve("docker-arm"));
-    }
-
-    /**
      * Creates altered descriptor files that can be compiled into java source code.
      *
      * @param descriptors
@@ -231,23 +260,34 @@ public class CreateComponentMojo extends AbstractMojo {
      * @throws IOException
      */
     private void createDescriptors(final Set<InterfaceDescription> interfaces) throws IOException {
-        this.getLog().info("Creating descriptors");
-
         for (final InterfaceDescription iface : interfaces) {
             for (final InterfaceVersionDescription versionDescription : iface.getInterfaceVersions()) {
                 final String fullName = PluginUtils.getVersionedName(iface, versionDescription);
 
-                final Path inputPath = this.resourcePath.resolve(versionDescription.getLocation());
-                final Path outputPath = this.descriptorProtobufFolder.resolve(fullName + ".proto");
-
                 if (versionDescription.getType().equals(Type.PROTO)) {
-                    this.appendDescriptor(fullName, inputPath, outputPath);
+                    final Path protoSourceFilePath = this.resourcePath.resolve(this.protobufInputLocation)
+                            .resolve(versionDescription.getLocation());
+                    final Path protobufResourceFolder = Files
+                            .createDirectories(this.resourcePath.resolve(this.protobufResourceLocation));
+                    final Path outputPath = protobufResourceFolder.resolve(fullName + ".proto");
+
+                    // Append the descriptor and store hash of source
+                    this.appendDescriptor(fullName, protoSourceFilePath, outputPath);
+                    this.hashes.put(fullName, PluginUtils.SHA256(protoSourceFilePath));
                 } else if (versionDescription.getType().equals(Type.XSD)) {
-                    this.getLog().info("Reading xsd descriptor");
-                    Files.copy(inputPath, outputPath, StandardCopyOption.REPLACE_EXISTING);
+                    final Path xsdSourceFilePath = this.resourcePath.resolve(this.xsdInputLocation)
+                            .resolve(versionDescription.getLocation());
+                    final Path xsdResourceFolder = Files
+                            .createDirectories(this.resourcePath.resolve(this.xsdResourceLocation));
+                    final Path outputPath = xsdResourceFolder.resolve(fullName + ".xsd");
+
+                    // Copy the descriptor and store hash of source
+                    Files.copy(xsdSourceFilePath, outputPath, StandardCopyOption.REPLACE_EXISTING);
+                    this.hashes.put(fullName, PluginUtils.SHA256(xsdSourceFilePath));
+                } else {
+                    throw new IOException("Unknown descriptor file type: " + versionDescription.getType());
                 }
 
-                this.hashes.put(fullName, PluginUtils.SHA256(outputPath));
             }
         }
 
@@ -269,14 +309,13 @@ public class CreateComponentMojo extends AbstractMojo {
      * @throws IOException
      */
     private void appendDescriptor(final String name, final Path inputPath, final Path outputPath) throws IOException {
-        this.getLog().info("Modifying descriptor");
         Files.copy(inputPath, outputPath, StandardCopyOption.REPLACE_EXISTING);
 
         try (final Scanner scanner = new Scanner(new FileInputStream(inputPath.toFile()), "UTF-8")) {
             Files.write(outputPath,
-                    ("syntax = \"proto2\";" + "\n\n" + "option java_package = \"" + this.servicePackage
-                            + ".protobuf\";\n" + "option java_outer_classname = \"" + name + "Proto\";\n\n" + "package "
-                            + name + ";\n" + scanner.useDelimiter("\\A").next()).getBytes(),
+                    ("syntax = \"proto2\";" + "\n\n" + "option java_package = \"" + this.servicePackage + "."
+                            + name.toLowerCase() + "\";\n" + "option java_outer_classname = \"" + name + "Proto\";\n\n"
+                            + "package " + name + ";\n" + scanner.useDelimiter("\\A").next()).getBytes(),
                     StandardOpenOption.CREATE);
         }
     }
@@ -290,31 +329,32 @@ public class CreateComponentMojo extends AbstractMojo {
      * @throws IOException
      * @throws HashComputeException
      */
-    private void createJavaFiles(final ServiceDescription serviceDescription) throws IOException {
-        this.getLog().info("Creating stubs");
+    private void createJavaFiles(final ServiceDescription serviceDescription, final Path dest) throws IOException {
+        this.getLog().debug("Creating stubs");
 
         final String ext = ".java";
-        final Path serviceImpl = this.sourceFolder.resolve(PluginUtils.serviceImplClass(serviceDescription) + ext);
-        serviceImpl.toFile().delete();
-        Files.write(serviceImpl, this.templates.generateServiceImplementation().getBytes(), StandardOpenOption.CREATE);
+        Files.createDirectories(dest);
+        final Path serviceImpl = dest.resolve(PluginUtils.serviceImplClass(serviceDescription) + ext);
+        // serviceImpl.toFile().delete();
+        Files.write(serviceImpl, this.templates.generateServiceImplementation().getBytes());
 
         for (final InterfaceDescription itf : serviceDescription.getInterfaces()) {
             for (final InterfaceVersionDescription version : itf.getInterfaceVersions()) {
-                final Path factory = this.sourceHandlerFolder.resolve(PluginUtils.factoryClass(itf, version) + ext);
-                final Path connectionHandler = this.sourceHandlerFolder
+                final String packageName = PluginUtils.getVersionedName(itf, version).toLowerCase();
+                final Path packagePath = Files.createDirectories(dest.resolve(packageName));
+
+                // Create intermediate directories
+                final Path factory = packagePath.resolve(PluginUtils.factoryClass(itf, version) + ext);
+                final Path connectionHandler = packagePath
                         .resolve(PluginUtils.connectionHandlerClass(itf, version) + ext);
-                final Path connectionHandlerImpl = this.sourceHandlerFolder
+                final Path connectionHandlerImpl = packagePath
                         .resolve(PluginUtils.connectionHandlerImplClass(itf, version) + ext);
 
-                Files.write(factory,
-                        this.templates.generateFactory(itf, version).getBytes(),
-                        StandardOpenOption.CREATE);
-                Files.write(connectionHandler,
-                        this.templates.generateConnectionHandler(itf, version).getBytes(),
-                        StandardOpenOption.CREATE);
+                // Write files
+                Files.write(factory, this.templates.generateFactory(itf, version).getBytes());
+                Files.write(connectionHandler, this.templates.generateConnectionHandler(itf, version).getBytes());
                 Files.write(connectionHandlerImpl,
-                        this.templates.generateConnectionHandlerImplementation(itf, version).getBytes(),
-                        StandardOpenOption.CREATE);
+                        this.templates.generateConnectionHandlerImplementation(itf, version).getBytes());
             }
         }
     }
@@ -327,13 +367,40 @@ public class CreateComponentMojo extends AbstractMojo {
      * @throws IOException
      * @throws HashComputeException
      */
-    private void createDockerfile(final ServiceDescription service) throws IOException {
-        this.getLog().info("Creating Dockerfiles");
-        Files.write(this.dockerFolder.resolve("Dockerfile"),
+    private void createDockerfiles(final ServiceDescription service) throws IOException {
+        this.getLog().debug("Creating Dockerfiles");
+
+        final Path dockerFolder = Files.createDirectories(this.resourcePath.resolve(this.dockerLocation));
+        final Path dockerArmFolder = Files.createDirectories(this.resourcePath.resolve(this.dockerArmLocation));
+
+        Files.write(dockerFolder.resolve("Dockerfile"),
                 this.templates.generateDockerfile("x86", service).getBytes(),
                 StandardOpenOption.CREATE);
-        Files.write(this.dockerARMFolder.resolve("Dockerfile"),
+        Files.write(dockerArmFolder.resolve("Dockerfile"),
                 this.templates.generateDockerfile("arm", service).getBytes(),
                 StandardOpenOption.CREATE);
+    }
+
+    /**
+     * @param service
+     * @throws IOException
+     */
+    private void generateCodeFromProtos(final ServiceDescription service) throws IOException {
+        this.getLog().debug("Compiling protobuf definitions to java code");
+        final ProtoCompiler compiler = new ProtoCompiler(this.protobufVersion);
+        compiler.compileSources(this.resourcePath.resolve(this.protobufResourceLocation),
+                Paths.get(this.sourceLocation));
+
+        if (compiler.getState() != Status.SUCCESS) {
+            throw new IOException("Error while compiling proto files, see log");
+        }
+    }
+
+    /**
+     * @param service
+     */
+    private void generateCodeFromXsds(final ServiceDescription service, final Path javaSourceFolder) {
+        // TODO Auto-generated method stub
+        this.getLog().debug("Compiling xsd definitions to java code");
     }
 }

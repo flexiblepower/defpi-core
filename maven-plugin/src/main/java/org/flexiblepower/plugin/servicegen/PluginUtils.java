@@ -68,7 +68,8 @@ public class PluginUtils {
             }
         }
 
-        return ret.toString().replace(".", "");
+        // Return a cleaned-up string
+        return ret.toString().replaceAll("[^a-zA-Z0-9_]", "");
     }
 
     public static String SHA256(final String body) {
@@ -89,4 +90,5 @@ public class PluginUtils {
             throw new RuntimeException("Error computing hash: " + e.getMessage());
         }
     }
+
 }
