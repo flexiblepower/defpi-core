@@ -35,13 +35,13 @@ validate:jdk8:
 verify:jdk8:
   stage: unittest
   script:
-    - 'mvn $MAVEN_CLI_OPTS verify'
+    - 'mvn $MAVEN_CLI_OPTS'
 
 #Test plugin
 generate-sources:
   stage: plugintest
   script:
-    - 'mvn -f master/pom.xml install'   
+    - 'mvn -f master/pom.xml install -DskipTests'   
     - 'mvn -f echo_skeleton/pom.xml -P codegen generate-sources'
 
 #deploy:jdk8:
