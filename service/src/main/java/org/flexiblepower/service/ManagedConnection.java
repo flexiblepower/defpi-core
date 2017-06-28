@@ -8,12 +8,16 @@ package org.flexiblepower.service;
 import java.io.Closeable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
+import org.flexiblepower.proto.ConnectionProto.ConnectionHeartbeat;
+import org.flexiblepower.proto.ConnectionProto.ConnectionHeartbeat.MessageType;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.serializers.MessageSerializer;
-import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +25,8 @@ import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Context;
 import org.zeromq.ZMQ.Socket;
 import org.zeromq.ZMQException;
+
+import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
  * ManagedConnection
@@ -32,26 +38,23 @@ import org.zeromq.ZMQException;
 final class ManagedConnection implements Connection, Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(ManagedConnection.class);
-
     private static final int RECEIVE_TIMEOUT = 100;
+    private static final int MAX_HEARTBEAT_THREADS = 1;
+    private static final long HEARTBEAT_PERIOD_IN_SECONDS = 60;
+    private static final long INITIAL_HEARTBEAT_DELAY = 1;
 
     private ConnectionState state;
     private volatile boolean keepThreadAlive;
-
     private final Context zmqContext;
     private final Socket subscribeSocket;
     private final Socket publishSocket;
     private final Thread connectionThread;
-
     private final ConnectionHandler handler;
     private final MessageSerializer<Object> javaIoSerializer;
-    private final ProtobufMessageSerializer<ConnectionHandshake> protoBufSerializer;
-
     private InterfaceInfo info = null;
-
     private final String connectionId;
-
-    private ConnectionHandshake initHandshakeMessage;
+    private long pingTime;
+    private final ScheduledFuture<?> heartBeatThread;
 
     /**
      * @param targetAddress
@@ -60,6 +63,7 @@ final class ManagedConnection implements Connection, Closeable {
      * @throws SerializationException
      *
      */
+    @SuppressWarnings("unchecked")
     ManagedConnection(final String connectionId,
             final int listenPort,
             final String targetAddress,
@@ -67,8 +71,6 @@ final class ManagedConnection implements Connection, Closeable {
         this.connectionId = connectionId;
         this.handler = handler;
         this.info = ManagedConnection.getInfoFromHandler(handler);
-        this.protoBufSerializer = new ProtobufMessageSerializer<>();
-        this.protoBufSerializer.addMessageClass(ConnectionHandshake.class);
 
         // Add serializer to the connection
         try {
@@ -98,7 +100,11 @@ final class ManagedConnection implements Connection, Closeable {
         this.subscribeSocket.setReceiveTimeOut(ManagedConnection.RECEIVE_TIMEOUT);
         this.subscribeSocket.bind(listenAddress);
 
-        if (this.publishSocket.send(this.initialiseHandshake())) {
+        final ConnectionHandshake initHandshakeMessage = ConnectionHandshake.newBuilder()
+                .setConnectionId(this.connectionId)
+                .setConnectionState(ConnectionState.STARTING)
+                .build();
+        if (this.publishSocket.send(initHandshakeMessage.toByteArray())) {
             ManagedConnection.log.debug("Succesfully sent Handshake to " + targetAddress);
         } else {
             ManagedConnection.log.debug("Failed to send Handshake to " + targetAddress);
@@ -122,8 +128,25 @@ final class ManagedConnection implements Connection, Closeable {
             }
             ManagedConnection.log.trace("End of thread");
         }, "Managed " + this.info.name() + " handler thread");
-
         this.connectionThread.start();
+
+        this.heartBeatThread = new ScheduledThreadPoolExecutor(ManagedConnection.MAX_HEARTBEAT_THREADS)
+                .scheduleAtFixedRate(() -> {
+                    if (this.pingTime == 0) {
+                        final ConnectionHeartbeat heartbeat = ConnectionHeartbeat.newBuilder()
+                                .setConnectionId(connectionId)
+                                .setHeartbeat(MessageType.PING)
+                                .build();
+                        this.pingTime = System.currentTimeMillis();
+                        this.publishSocket.send(heartbeat.toByteArray());
+                    } else {
+                        // If no PONG was received since the last PING, assume connection was interrupted!
+                        handler.onInterrupt();
+                    }
+                },
+                        ManagedConnection.INITIAL_HEARTBEAT_DELAY,
+                        ManagedConnection.HEARTBEAT_PERIOD_IN_SECONDS,
+                        TimeUnit.SECONDS);
     }
 
     /**
@@ -146,35 +169,6 @@ final class ManagedConnection implements Connection, Closeable {
     }
 
     /**
-     * @return a special series of bytes that indicate this connection is ready.
-     * @throws SerializationException
-     */
-    private byte[] initialiseHandshake() {
-        this.initHandshakeMessage = ConnectionHandshake.newBuilder()
-                .setConnectionId(this.connectionId)
-                .setConnectionState(ConnectionState.STARTING)
-                .build();
-
-        return this.protoBufSerializer.serialize(this.initHandshakeMessage);
-    }
-
-    private void acknowledgeHandshake(final ConnectionHandshake message) {
-        ManagedConnection.log.debug("Received acknowledge string: {}", message);
-
-        this.state = ConnectionState.CONNECTED;
-        this.handler.onConnected(this);
-
-        ManagedConnection.log.debug("Updated state to {}, replying ack", this.state);
-
-        final ConnectionHandshake response = ConnectionHandshake.newBuilder()
-                .setConnectionId(this.connectionId)
-                .setConnectionState(ConnectionState.CONNECTED)
-                .build();
-
-        this.publishSocket.send(this.protoBufSerializer.serialize(response));
-    }
-
-    /**
      * @param buff
      * @throws InvocationTargetException
      * @throws IllegalArgumentException
@@ -188,13 +182,43 @@ final class ManagedConnection implements Connection, Closeable {
         }
 
         try {
-            final ConnectionHandshake handShakeMessage = this.protoBufSerializer.deserialize(buff);
-            if ((this.state == ConnectionState.STARTING)
-                    && (this.connectionId.equals(handShakeMessage.getConnectionId()))) {
-                this.acknowledgeHandshake(handShakeMessage);
+            final ConnectionHeartbeat heartbeat = ConnectionHeartbeat.parseFrom(buff);
+            if (heartbeat.getHeartbeat().equals(MessageType.PING)
+                    && heartbeat.getConnectionId().equals(this.connectionId)) {
+                final ConnectionHeartbeat response = ConnectionHeartbeat.newBuilder()
+                        .setConnectionId(heartbeat.getConnectionId())
+                        .setHeartbeat(MessageType.PONG)
+                        .build();
+                this.publishSocket.send(response.toByteArray());
+            } else if (heartbeat.getHeartbeat().equals(MessageType.PONG)
+                    && heartbeat.getConnectionId().equals(this.connectionId)) {
+                this.pingTime = 0;
             }
             return;
-        } catch (final SerializationException e) {
+        } catch (final InvalidProtocolBufferException e) {
+            // Not a heartbeat but possibly handshake or service-implemented message, so ignore!
+        }
+
+        try {
+            final ConnectionHandshake handShakeMessage = ConnectionHandshake.parseFrom(buff);
+            if ((this.state == ConnectionState.STARTING)
+                    && (this.connectionId.equals(handShakeMessage.getConnectionId()))) {
+                ManagedConnection.log.debug("Received acknowledge string: {}", handShakeMessage);
+
+                this.state = ConnectionState.CONNECTED;
+                this.handler.onConnected(this);
+
+                ManagedConnection.log.debug("Updated state to {}, replying ack", this.state);
+
+                final ConnectionHandshake response = ConnectionHandshake.newBuilder()
+                        .setConnectionId(this.connectionId)
+                        .setConnectionState(ConnectionState.CONNECTED)
+                        .build();
+
+                this.publishSocket.send(response.toByteArray());
+            }
+            return;
+        } catch (final InvalidProtocolBufferException e) {
             // Not a handshake but a service-implemented message, so ignore!
         }
 
@@ -267,6 +291,7 @@ final class ManagedConnection implements Connection, Closeable {
     @Override
     public void close() {
         this.keepThreadAlive = false;
+        this.heartBeatThread.cancel(true);
         this.state = ConnectionState.TERMINATED;
         this.handler.terminated();
 
