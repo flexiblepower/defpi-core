@@ -40,7 +40,12 @@ public class ProtoCompiler extends Compiler {
     }
 
     public static String getOsName() {
-        return System.getProperty("os.name").toLowerCase();
+        final String rawName = System.getProperty("os.name").toLowerCase();
+        if (rawName.startsWith("windows")) {
+            return "windows";
+        } else {
+            return rawName;
+        }
     }
 
     public static String getArchitecture() {
@@ -80,10 +85,8 @@ public class ProtoCompiler extends Compiler {
 
         if (!this.compilerFile.exists()) {
             Files.createDirectories(this.compilerFile.toPath().getParent());
-            ProtoCompiler.downloadFile(
-                    "http://central.maven.org/maven2/com/google/protobuf/protoc/" + this.protobufVersion + "/"
-                            + this.compilerFile.getName().toString(),
-                    this.compilerFile);
+            ProtoCompiler.downloadFile("http://central.maven.org/maven2/com/google/protobuf/protoc/"
+                    + this.protobufVersion + "/" + this.compilerFile.getName().toString(), this.compilerFile);
             this.compilerFile.setExecutable(true);
         }
 
