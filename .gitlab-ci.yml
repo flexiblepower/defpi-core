@@ -40,6 +40,7 @@ verify:jdk8:
 #Test plugin
 generate-sources:
   stage: plugintest
+  script:
     - 'mvn -f master/pom.xml install'   
     - 'mvn -f echo_skeleton/pom.xml -P codegen generate-sources'
 
