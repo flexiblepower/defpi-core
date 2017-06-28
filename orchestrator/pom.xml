@@ -85,6 +85,11 @@
 			<artifactId>docker-client</artifactId>
 			<version>8.3.2-SNAPSHOT</version>
 		</dependency>
+		<dependency>
+			<groupId>defpi</groupId>
+			<artifactId>commons</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
 	</dependencies>
 
 	<build>
