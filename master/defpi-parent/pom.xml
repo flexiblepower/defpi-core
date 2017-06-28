@@ -28,6 +28,7 @@
 		<module>service-parent</module>
 		<module>../../service</module>
 		<module>../../orchestrator</module>
+		<module>../../commons</module>
 	</modules>
 
 	<dependencies>
