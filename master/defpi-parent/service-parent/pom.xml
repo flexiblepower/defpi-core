@@ -14,7 +14,8 @@
 	</parent>
 
 	<properties>
-		<protobuf.classifier>linux-x86_64</protobuf.classifier>
+		<!-- protobuf.classifier>linux-x86_64</protobuf.classifier-->
+		<protobuf.classifier>windows-x86_64</protobuf.classifier>
 	
 		<mainClass>org.flexiblepower.service.ServiceMain</mainClass>
 		<!--  mainClass>${project.groupId}.${project.artifactId}.ServiceImpl</mainClass-->
