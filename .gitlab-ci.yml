@@ -35,7 +35,7 @@ validate:jdk8:
 verify:jdk8:
   stage: unittest
   script:
-    - 'mvn $MAVEN_CLI_OPTS'
+    - 'mvn $MAVEN_CLI_OPTS test'
 
 #Test plugin
 test-proto-compile:
