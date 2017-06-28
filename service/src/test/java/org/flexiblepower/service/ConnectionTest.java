@@ -9,8 +9,11 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 import org.flexiblepower.exceptions.SerializationException;
+import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
+import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.serializers.JavaIOSerializer;
+import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -28,6 +31,11 @@ import org.zeromq.ZMQ.Socket;
  */
 public class ConnectionTest {
 
+    /**
+     *
+     */
+    private static final String CONNECTION_ID = "1";
+    private static final String WRONG_CONNECTION_ID = "8";
     // private static final String TEST_HOST = "172.17.0.2";
     private static final String TEST_HOST = "localhost";
     private static final int TEST_SERVICE_LISTEN_PORT = 5020;
@@ -39,11 +47,14 @@ public class ConnectionTest {
 
     private Socket out;
     private Socket in;
+    private ProtobufMessageSerializer<ConnectionHandshake> serializer;
 
     @Before
     public void initConnection() throws UnknownHostException, InterruptedException {
         this.testService = new TestService();
         this.manager = new ServiceManager(this.testService);
+        this.serializer = new ProtobufMessageSerializer<>();
+        this.serializer.addMessageClass(ConnectionHandshake.class);
 
         final String managementURI = String.format("tcp://%s:%d",
                 ConnectionTest.TEST_HOST,
@@ -56,7 +67,7 @@ public class ConnectionTest {
         final String hostOfTestRunner = InetAddress.getLocalHost().getCanonicalHostName();
 
         final ConnectionMessage createMsg = ConnectionMessage.newBuilder()
-                .setConnectionId("1")
+                .setConnectionId(ConnectionTest.CONNECTION_ID)
                 .setMode(ConnectionMessage.ModeType.CREATE)
                 .setTargetAddress("tcp://" + hostOfTestRunner + ":" + ConnectionTest.TEST_SERVICE_TARGET_PORT)
                 .setListenPort(ConnectionTest.TEST_SERVICE_LISTEN_PORT)
@@ -65,7 +76,16 @@ public class ConnectionTest {
                 .build();
 
         Assert.assertTrue(this.managementSocket.send(createMsg.toByteArray()));
-        Assert.assertArrayEquals(ServiceManager.SUCCESS, this.managementSocket.recv());
+        final byte[] response = this.managementSocket.recv();
+        ConnectionHandshake message = null;
+        try {
+            message = this.serializer.deserialize(response);
+        } catch (final SerializationException e) {
+            System.out.println("Message: " + response);
+            e.printStackTrace();
+        }
+        Assert.assertNotNull(message);
+        Assert.assertEquals(ConnectionState.STARTING, message.getConnectionState());
 
         final String serviceURI = String.format("tcp://%s:%d",
                 ConnectionTest.TEST_HOST,
@@ -83,35 +103,36 @@ public class ConnectionTest {
     }
 
     @Test(timeout = 5000)
-    public void testAck() throws InterruptedException {
+    public void testAck() throws InterruptedException, SerializationException {
         // Now start real tests, first send random string
         Assert.assertTrue("Failed to send random string", this.out.send("This is just a not an ack"));
         Assert.assertNull("Random string should not be answered", this.in.recv());
 
         // Send an ACK, but an incorrect one
-        final String wrongack = String.format("%s:%s/%s@%s",
-                "@Defpi-0.2.1 connection ready",
-                "eefc3942366e0b12795edb10f5358i45694e45a7a6e96144299ff2e1f8f5c252",
-                "eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252",
-                JavaIOSerializer.class);
+        final ConnectionHandshake wrongHandshake = ConnectionHandshake.newBuilder()
+                .setConnectionId(ConnectionTest.WRONG_CONNECTION_ID)
+                .setConnectionState(ConnectionState.STARTING)
+                .build();
 
-        Assert.assertTrue("Failed to send wrong ACK", this.out.send(wrongack));
+        Assert.assertTrue("Failed to send wrong ACK",
+                this.out.send(new String(this.serializer.serialize(wrongHandshake))));
         Assert.assertNull("Wrong ACK should not be answered", this.in.recv());
 
         // Send the real ack
-        final String ack = String.format("%s:%s/%s@%s",
-                "@Defpi-0.2.1 connection ready",
-                "eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252",
-                "eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252",
-                JavaIOSerializer.class);
+        final ConnectionHandshake correctHandshake = ConnectionHandshake.newBuilder()
+                .setConnectionId(ConnectionTest.CONNECTION_ID)
+                .setConnectionState(ConnectionState.STARTING)
+                .build();
 
         Assert.assertNotEquals("connected", this.testService.getState());
-        Assert.assertTrue("Failed to send real ACK", this.out.send(ack));
-        Assert.assertArrayEquals("Unexpected response to ACK", ack.getBytes(), this.in.recv());
-        Assert.assertEquals("connected", this.testService.getState());
+        final String handShakeString = new String(this.serializer.serialize(correctHandshake));
 
-        // Send ANOTHER ack
-        Assert.assertTrue("Failed to send second ACK", this.out.send(ack));
+        Assert.assertTrue("Sending real ACK", this.out.send(handShakeString));
+        Thread.sleep(500);
+        Assert.assertEquals("connected", this.testService.getState());
+        Assert.assertNotNull(this.in.recv());
+
+        Assert.assertTrue("Failed to send second ACK", this.out.send(handShakeString));
         Assert.assertNull("Second ACK should not bew answered", this.in.recv());
     }
 
@@ -129,34 +150,41 @@ public class ConnectionTest {
     }
 
     @Test(timeout = 5000)
-    public void testSuspend() {
+    public void testSuspend() throws SerializationException {
         Assert.assertNotEquals("connection-suspended", this.testService.getState());
         Assert.assertTrue(this.managementSocket.send(ConnectionMessage.newBuilder()
-                .setConnectionId("1")
+                .setConnectionId(ConnectionTest.CONNECTION_ID)
                 .setMode(ConnectionMessage.ModeType.SUSPEND)
                 .build()
                 .toByteArray()));
-        Assert.assertArrayEquals(ServiceManager.SUCCESS, this.managementSocket.recv());
+
+        byte[] recv = this.managementSocket.recv();
+        ConnectionHandshake acknowledgement = this.serializer.deserialize(recv);
+        Assert.assertEquals(ConnectionState.SUSPENDED, acknowledgement.getConnectionState());
         Assert.assertEquals("connection-suspended", this.testService.getState());
 
         Assert.assertTrue(this.managementSocket.send(ConnectionMessage.newBuilder()
-                .setConnectionId("1")
+                .setConnectionId(ConnectionTest.CONNECTION_ID)
                 .setMode(ConnectionMessage.ModeType.RESUME)
                 .build()
                 .toByteArray()));
-        Assert.assertArrayEquals(ServiceManager.SUCCESS, this.managementSocket.recv());
+        recv = this.managementSocket.recv();
+        acknowledgement = this.serializer.deserialize(recv);
+        Assert.assertEquals(ConnectionState.CONNECTED, acknowledgement.getConnectionState());
         Assert.assertEquals("connection-resumed", this.testService.getState());
     }
 
     @Test(timeout = 5000)
-    public void testTerminate() {
+    public void testTerminate() throws SerializationException {
         Assert.assertNotEquals("connection-terminated", this.testService.getState());
         Assert.assertTrue(this.managementSocket.send(ConnectionMessage.newBuilder()
-                .setConnectionId("1")
+                .setConnectionId(ConnectionTest.CONNECTION_ID)
                 .setMode(ConnectionMessage.ModeType.TERMINATE)
                 .build()
                 .toByteArray()));
-        Assert.assertArrayEquals(ServiceManager.SUCCESS, this.managementSocket.recv());
+        final byte[] recv = this.managementSocket.recv();
+        final ConnectionHandshake acknowledgement = this.serializer.deserialize(recv);
+        Assert.assertEquals(ConnectionState.TERMINATED, acknowledgement.getConnectionState());
         Assert.assertEquals("connection-terminated", this.testService.getState());
     }
 
