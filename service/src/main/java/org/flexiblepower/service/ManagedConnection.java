@@ -13,6 +13,7 @@ import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.serializers.MessageSerializer;
+import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +33,6 @@ final class ManagedConnection implements Connection, Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(ManagedConnection.class);
 
-    private static final String ACK_PREFIX = "@Defpi-0.2.1 connection ready";
     private static final int RECEIVE_TIMEOUT = 100;
 
     private ConnectionState state;
@@ -44,7 +44,8 @@ final class ManagedConnection implements Connection, Closeable {
     private final Thread connectionThread;
 
     private final ConnectionHandler handler;
-    private final MessageSerializer<Object> serializer;
+    private final MessageSerializer<Object> javaIoSerializer;
+    private final ProtobufMessageSerializer<ConnectionHandshake> protoBufSerializer;
 
     private InterfaceInfo info = null;
 
@@ -66,16 +67,18 @@ final class ManagedConnection implements Connection, Closeable {
         this.connectionId = connectionId;
         this.handler = handler;
         this.info = ManagedConnection.getInfoFromHandler(handler);
+        this.protoBufSerializer = new ProtobufMessageSerializer<>();
+        this.protoBufSerializer.addMessageClass(ConnectionHandshake.class);
 
         // Add serializer to the connection
         try {
-            this.serializer = this.info.serializer().newInstance();
+            this.javaIoSerializer = this.info.serializer().newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
             throw new ConnectionModificationException("Unable to serializer instantiate connection");
         }
 
         for (final Class<?> messageType : this.info.receiveTypes()) {
-            this.serializer.addMessageClass(messageType);
+            this.javaIoSerializer.addMessageClass(messageType);
         }
 
         this.state = ConnectionState.STARTING;
@@ -96,9 +99,9 @@ final class ManagedConnection implements Connection, Closeable {
         this.subscribeSocket.bind(listenAddress);
 
         if (this.publishSocket.send(this.initialiseHandshake())) {
-            ManagedConnection.log.debug("Succesfully sent acknowledge");
+            ManagedConnection.log.debug("Succesfully sent Handshake to " + targetAddress);
         } else {
-            ManagedConnection.log.debug("Failed to send acknowledge");
+            ManagedConnection.log.debug("Failed to send Handshake to " + targetAddress);
         }
 
         this.keepThreadAlive = true;
@@ -152,59 +155,23 @@ final class ManagedConnection implements Connection, Closeable {
                 .setConnectionState(ConnectionState.STARTING)
                 .build();
 
-        // final String ack = String.format("%s:%s/%s@%s",
-        // ManagedConnection.ACK_PREFIX,
-        // this.info.receivesHash(),
-        // this.info.sendsHash(),
-        // this.info.serializer());
-        // return ack.getBytes();
-        try {
-            return this.serializer.serialize(this.initHandshakeMessage);
-        } catch (final SerializationException e) {
-            e.printStackTrace();
-            return null;
-        }
+        return this.protoBufSerializer.serialize(this.initHandshakeMessage);
     }
 
-    /*
-     * TODO! Update the acknowledgement message here.
-     *
-     */
-    private boolean handleAcknowledgement(final byte[] barr) {
-        ConnectionHandshake message = null;
-        try {
-            message = (ConnectionHandshake) this.serializer.deserialize(barr);
-        } catch (final SerializationException e) {
-            e.printStackTrace();
-        }
+    private void acknowledgeHandshake(final ConnectionHandshake message) {
+        ManagedConnection.log.debug("Received acknowledge string: {}", message);
 
-        // final String test = new String(barr);
+        this.state = ConnectionState.CONNECTED;
+        this.handler.onConnected(this);
 
-        // final String expected = String.format("%s:%s/%s@%s",
-        // ManagedConnection.ACK_PREFIX,
-        // this.info.sendsHash(),
-        // this.info.receivesHash(),
-        // this.info.serializer());
+        ManagedConnection.log.debug("Updated state to {}, replying ack", this.state);
 
-        if ((message != null) && message.getConnectionId().equals(this.connectionId)
-                && message.getConnectionState().equals(ConnectionState.STARTING)) {
-            ManagedConnection.log.debug("Received acknowledge string: {}", message);
-            this.state = ConnectionState.CONNECTED;
-            this.handler.onConnected(this);
-            ManagedConnection.log.debug("Updated state to {}, replying ack", this.state);
-            final ConnectionHandshake response = ConnectionHandshake.newBuilder()
-                    .setConnectionId(this.connectionId)
-                    .setConnectionState(ConnectionState.CONNECTED)
-                    .build();
-            try {
-                this.publishSocket.send(this.serializer.serialize(response));
-            } catch (final SerializationException e) {
-                e.printStackTrace();
-                return false;
-            }
-            return true;
-        }
-        return false;
+        final ConnectionHandshake response = ConnectionHandshake.newBuilder()
+                .setConnectionId(this.connectionId)
+                .setConnectionState(ConnectionState.CONNECTED)
+                .build();
+
+        this.publishSocket.send(this.protoBufSerializer.serialize(response));
     }
 
     /**
@@ -215,24 +182,36 @@ final class ManagedConnection implements Connection, Closeable {
      * @throws SerializationException
      */
     private void handleByteArray(final byte[] buff)
-            throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, SerializationException {
+            throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         if (buff == null) {
             return;
         }
 
-        if ((this.state == ConnectionState.STARTING) && this.handleAcknowledgement(buff)) {
+        try {
+            final ConnectionHandshake handShakeMessage = this.protoBufSerializer.deserialize(buff);
+            if ((this.state == ConnectionState.STARTING)
+                    && (this.connectionId.equals(handShakeMessage.getConnectionId()))) {
+                this.acknowledgeHandshake(handShakeMessage);
+            }
             return;
+        } catch (final SerializationException e) {
+            // Not a handshake but a service-implemented message, so ignore!
         }
 
-        final Object message = this.serializer.deserialize(buff);
+        try {
+            final Object message = this.javaIoSerializer.deserialize(buff);
 
-        final Class<?> messageType = message.getClass();
-        final Method[] allMethods = this.handler.getClass().getMethods();
-        for (final Method method : allMethods) {
-            if ((method.getName().startsWith("handle")) && (method.getName().endsWith("Message"))
-                    && (method.getParameterCount() == 1) && method.getParameterTypes()[0].equals(messageType)) {
-                method.invoke(this.handler, message);
+            final Class<?> messageType = message.getClass();
+            final Method[] allMethods = this.handler.getClass().getMethods();
+            for (final Method method : allMethods) {
+                if ((method.getName().startsWith("handle")) && (method.getName().endsWith("Message"))
+                        && (method.getParameterCount() == 1) && method.getParameterTypes()[0].equals(messageType)) {
+                    method.invoke(this.handler, message);
+                }
             }
+        } catch (final SerializationException e) {
+            // Not a service-implemented message either, so ignore again!
+            ManagedConnection.log.warn("Received unknown message : " + new String(buff) + ". Ignoring...");
         }
     }
 
@@ -250,7 +229,7 @@ final class ManagedConnection implements Connection, Closeable {
         if (this.getState().equals(ConnectionState.CONNECTED)) {
             try {
                 // Do the send
-                this.publishSocket.send(this.serializer.serialize(message));
+                this.publishSocket.send(this.javaIoSerializer.serialize(message));
             } catch (final Exception e) {
                 this.state = ConnectionState.INTERRUPTED;
                 // TODO Recover from the Interrupted state (or via resume?)
