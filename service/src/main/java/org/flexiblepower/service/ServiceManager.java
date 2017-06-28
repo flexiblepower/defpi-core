@@ -18,7 +18,6 @@ import org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage;
 import org.flexiblepower.proto.ServiceProto.ResumeProcessMessage;
 import org.flexiblepower.proto.ServiceProto.SetConfigMessage;
 import org.flexiblepower.serializers.JavaIOSerializer;
-import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.flexiblepower.service.exceptions.ServiceInvocationException;
 import org.slf4j.Logger;
@@ -59,7 +58,6 @@ public class ServiceManager implements Closeable {
     private final ConnectionManager connectionManager;
     private final Service service;
     private final JavaIOSerializer javaIoSerializer = new JavaIOSerializer();
-    private final ProtobufMessageSerializer<ConnectionHandshake> connectionHandshakeMessageSerializer = new ProtobufMessageSerializer<>();
     private final Socket managementSocket;
 
     public ServiceManager(final Service service) {
@@ -160,7 +158,7 @@ public class ServiceManager implements Closeable {
         try {
             final ConnectionMessage msg = ConnectionMessage.parseFrom(data);
             final ConnectionHandshake response = this.connectionManager.handleConnectionMessage(msg);
-            return this.connectionHandshakeMessageSerializer.serialize(response);
+            return response.toByteArray();
         } catch (final InvalidProtocolBufferException e) {
             // Not this type of message, try next
         }
