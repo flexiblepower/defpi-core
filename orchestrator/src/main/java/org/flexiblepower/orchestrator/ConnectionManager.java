@@ -8,15 +8,20 @@ package org.flexiblepower.orchestrator;
 import java.io.IOException;
 import java.util.Random;
 
+import org.flexiblepower.commons.ConnectionResponseHandler;
 import org.flexiblepower.exceptions.ConnectionException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
+import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Interface;
 import org.flexiblepower.model.InterfaceVersion;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Service;
-import org.flexiblepower.proto.ServiceProto.ConnectionMessage;
+import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
+import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
+import org.flexiblepower.proto.ConnectionProto.ConnectionState;
+import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Socket;
 
@@ -35,21 +40,16 @@ public class ConnectionManager {
     /**
      * Timeout of send/recv operations in milliseconds
      */
-    private static final int MANAGEMENT_SOCKET_SEND_TIMEOUT = 1000;
-    private static final int MANAGEMENT_SOCKET_RECV_TIMEOUT = 1000;
-    private static final int MANAGEMENT_PORT = 4999;
+    private static int EXPECTED_STATE_TIMEOUT = 1000;
+    private static int MANAGEMENT_SOCKET_SEND_TIMEOUT = 1000;
+    private static int MANAGEMENT_SOCKET_RECV_TIMEOUT = 1000;
+    private static int MANAGEMENT_PORT = 4999;
 
-    private static ConnectionManager instance = null;
+    private ProtobufMessageSerializer<ConnectionHandshake> serializer = null;
 
-    private ConnectionManager() {
-
-    }
-
-    public static ConnectionManager getInstance() {
-        if (ConnectionManager.instance == null) {
-            ConnectionManager.instance = new ConnectionManager();
-        }
-        return ConnectionManager.instance;
+    public ConnectionManager() {
+        this.serializer = new ProtobufMessageSerializer<>();
+        this.serializer.addMessageClass(ConnectionHandshake.class);
     }
 
     /**
@@ -78,7 +78,7 @@ public class ConnectionManager {
                     final int port1 = 5000 + new Random().nextInt(5000);
                     final int port2 = 5000 + new Random().nextInt(5000);
 
-                    ConnectionManager.connect(connection.getId().toString(),
+                    this.connect(connection.getId().toString(),
                             process1.getRunningDockerNodeId(),
                             port1,
                             version1.getSendsHash(),
@@ -86,7 +86,7 @@ public class ConnectionManager {
                             port2,
                             version2.getReceivesHash());
 
-                    ConnectionManager.connect(connection.getId().toString(),
+                    this.connect(connection.getId().toString(),
                             process2.getRunningDockerNodeId(),
                             port2,
                             version2.getSendsHash(),
@@ -102,7 +102,7 @@ public class ConnectionManager {
         return false;
     }
 
-    static void connect(final String id,
+    public void connect(final String id,
             final String sendingHost,
             final int listeningPort,
             final String sendingHash,
@@ -111,7 +111,7 @@ public class ConnectionManager {
             final String receivingHash) throws ConnectionException {
         final String targetAddress = "tcp://" + receivingHost + ":" + targetPort;
 
-        final ConnectionMessage connection = ConnectionMessage.newBuilder()
+        final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
                 .setConnectionId(id)
                 .setMode(ConnectionMessage.ModeType.CREATE)
                 .setTargetAddress(targetAddress)
@@ -120,20 +120,48 @@ public class ConnectionManager {
                 .setSendHash(sendingHash)
                 .build();
 
-        if (ConnectionManager.sendConnectionMessage(sendingHost, connection) != 0) {
-            throw new ConnectionException("No response received from client");
-        }
+        this.sendConnectionMessage(sendingHost, connectionMessage, new ConnectionResponseHandler() {
+
+            @Override
+            public void timeOutOccurred() throws ConnectionException {
+                throw new ConnectionException("Timeout occurred waiting for " + this.expectedState().name());
+            }
+
+            @Override
+            public void handleConnectionResponse(final ConnectionHandshake message) {
+                ConnectionManager.log.debug("Connection " + id + " status: " + message.getConnectionState().name());
+            }
+
+            @Override
+            public ConnectionState expectedState() {
+                return ConnectionState.CONNECTED;
+            }
+        });
     }
 
-    static void disconnect(final String id, final String sendingHost) throws ConnectionException {
-        final ConnectionMessage connection = ConnectionMessage.newBuilder()
+    void disconnect(final String id, final String sendingHost) throws ConnectionException {
+        final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
                 .setConnectionId(id)
                 .setMode(ConnectionMessage.ModeType.TERMINATE)
                 .build();
 
-        if (ConnectionManager.sendConnectionMessage(sendingHost, connection) != 0) {
-            throw new ConnectionException("No response received from client");
-        }
+        this.sendConnectionMessage(sendingHost, connectionMessage, new ConnectionResponseHandler() {
+
+            @Override
+            public void timeOutOccurred() throws ConnectionException {
+                throw new ConnectionException("Timeout occurred waiting for " + this.expectedState().name());
+            }
+
+            @Override
+            public void handleConnectionResponse(final ConnectionHandshake message) {
+                ConnectionManager.log.debug("Connection " + id + " status: " + message.getConnectionState().name());
+            }
+
+            @Override
+            public ConnectionState expectedState() {
+                return ConnectionState.TERMINATED;
+            }
+        });
     }
 
     /**
@@ -144,24 +172,47 @@ public class ConnectionManager {
      * @param session
      * @return
      */
-    static int sendConnectionMessage(final String ip, final ConnectionMessage session) {
-        final String uri = String.format("tcp://%s:%d", ip, ConnectionManager.MANAGEMENT_PORT);
-        ConnectionManager.log.info("Sending session {} to {}", session, uri);
+    void sendConnectionMessage(final String ip,
+            final ConnectionMessage session,
+            final ConnectionResponseHandler handler) {
 
-        try (final Socket socket = ZMQ.context(1).socket(ZMQ.REQ)) {
-            socket.setDelayAttachOnConnect(true);
-            socket.connect(uri.toString());
+        final Thread connectionThread = new Thread(() -> {
+            final String uri = String.format("tcp://%s:%d", ip, ConnectionManager.MANAGEMENT_PORT);
+            boolean expectedMessageArrived = false;
+            boolean timeOutOccurred = false;
+            ConnectionManager.log.info("Sending session {} to {}", session, uri);
 
-            // This should work okay
-            socket.setSendTimeOut(ConnectionManager.MANAGEMENT_SOCKET_SEND_TIMEOUT);
-            socket.setReceiveTimeOut(ConnectionManager.MANAGEMENT_SOCKET_RECV_TIMEOUT);
+            try (Socket socket = ZMQ.context(1).socket(ZMQ.REQ)) {
+                socket.setDelayAttachOnConnect(true);
+                socket.connect(uri.toString());
 
-            if (socket.send(session.toByteArray(), 0)) {
-                final byte[] buffer = socket.recv();
-                return (buffer == null ? -1 : buffer[0]);
+                // This should work okay
+                socket.setSendTimeOut(ConnectionManager.MANAGEMENT_SOCKET_SEND_TIMEOUT);
+                socket.setReceiveTimeOut(ConnectionManager.MANAGEMENT_SOCKET_RECV_TIMEOUT);
+
+                if (socket.send(session.toByteArray(), 0)) {
+                    final long start = System.currentTimeMillis();
+                    while (!expectedMessageArrived && !timeOutOccurred) {
+                        final byte[] buffer = socket.recv();
+                        if ((System.currentTimeMillis() - start) > ConnectionManager.EXPECTED_STATE_TIMEOUT) {
+                            handler.timeOutOccurred();
+                            timeOutOccurred = true;
+                        }
+                        if ((buffer != null) && (buffer.length != 0)) {
+                            final ConnectionHandshake message = this.serializer.deserialize(buffer);
+                            handler.handleConnectionResponse(message);
+                            if (handler.expectedState().equals(message.getConnectionState())) {
+                                expectedMessageArrived = true;
+                            }
+                        }
+                    }
+                }
+            } catch (SerializationException | ConnectionException e) {
+                e.printStackTrace();
             }
-            return -1;
-        }
+        });
+
+        connectionThread.start();
     }
 
 }
