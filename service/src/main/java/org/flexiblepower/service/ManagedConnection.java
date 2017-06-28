@@ -9,9 +9,11 @@ import java.io.Closeable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import org.flexiblepower.exceptions.SerializationException;
+import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
+import org.flexiblepower.proto.ConnectionProto.ConnectionState;
+import org.flexiblepower.serializers.MessageSerializer;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
-import org.flexiblepower.service.exceptions.SerializationException;
-import org.flexiblepower.service.serializers.MessageSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
@@ -46,20 +48,28 @@ final class ManagedConnection implements Connection, Closeable {
 
     private InterfaceInfo info = null;
 
+    private final String connectionId;
+
+    private ConnectionHandshake initHandshakeMessage;
+
     /**
      * @param targetAddress
      * @param listenPort
      * @throws ConnectionModificationException
+     * @throws SerializationException
      *
      */
-    ManagedConnection(final int listenPort, final String targetAddress, final ConnectionHandler handler)
-            throws ConnectionModificationException {
+    ManagedConnection(final String connectionId,
+            final int listenPort,
+            final String targetAddress,
+            final ConnectionHandler handler) throws ConnectionModificationException {
+        this.connectionId = connectionId;
         this.handler = handler;
         this.info = ManagedConnection.getInfoFromHandler(handler);
 
         // Add serializer to the connection
         try {
-            this.serializer = (MessageSerializer<Object>) this.info.serializer().newInstance();
+            this.serializer = this.info.serializer().newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
             throw new ConnectionModificationException("Unable to serializer instantiate connection");
         }
@@ -85,7 +95,7 @@ final class ManagedConnection implements Connection, Closeable {
         this.subscribeSocket.setReceiveTimeOut(ManagedConnection.RECEIVE_TIMEOUT);
         this.subscribeSocket.bind(listenAddress);
 
-        if (this.publishSocket.send(this.acknowledge())) {
+        if (this.publishSocket.send(this.initialiseHandshake())) {
             ManagedConnection.log.debug("Succesfully sent acknowledge");
         } else {
             ManagedConnection.log.debug("Failed to send acknowledge");
@@ -134,36 +144,65 @@ final class ManagedConnection implements Connection, Closeable {
 
     /**
      * @return a special series of bytes that indicate this connection is ready.
+     * @throws SerializationException
      */
-    private byte[] acknowledge() {
-        final String ack = String.format("%s:%s/%s@%s",
-                ManagedConnection.ACK_PREFIX,
-                this.info.receivesHash(),
-                this.info.sendsHash(),
-                this.info.serializer());
-        return ack.getBytes();
+    private byte[] initialiseHandshake() {
+        this.initHandshakeMessage = ConnectionHandshake.newBuilder()
+                .setConnectionId(this.connectionId)
+                .setConnectionState(ConnectionState.STARTING)
+                .build();
+
+        // final String ack = String.format("%s:%s/%s@%s",
+        // ManagedConnection.ACK_PREFIX,
+        // this.info.receivesHash(),
+        // this.info.sendsHash(),
+        // this.info.serializer());
+        // return ack.getBytes();
+        try {
+            return this.serializer.serialize(this.initHandshakeMessage);
+        } catch (final SerializationException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
-    private boolean handleAck(final byte[] barr) {
-        final String test = new String(barr);
+    /*
+     * TODO! Update the acknowledgement message here.
+     *
+     */
+    private boolean handleAcknowledgement(final byte[] barr) {
+        ConnectionHandshake message = null;
+        try {
+            message = (ConnectionHandshake) this.serializer.deserialize(barr);
+        } catch (final SerializationException e) {
+            e.printStackTrace();
+        }
 
-        final String expected = String.format("%s:%s/%s@%s",
-                ManagedConnection.ACK_PREFIX,
-                this.info.sendsHash(),
-                this.info.receivesHash(),
-                this.info.serializer());
+        // final String test = new String(barr);
 
-        if (test.startsWith(ManagedConnection.ACK_PREFIX)) {
-            ManagedConnection.log.debug("Received acknowledge string: {}", test);
-            if (test.equals(expected)) {
-                this.state = ConnectionState.CONNECTED;
-                this.handler.onConnected(this);
-                ManagedConnection.log.debug("Updated state to {}, replying ack", this.state);
-                this.publishSocket.send(this.acknowledge());
-                return true;
-            } else {
-                ManagedConnection.log.warn("Unexpected ACK");
+        // final String expected = String.format("%s:%s/%s@%s",
+        // ManagedConnection.ACK_PREFIX,
+        // this.info.sendsHash(),
+        // this.info.receivesHash(),
+        // this.info.serializer());
+
+        if ((message != null) && message.getConnectionId().equals(this.connectionId)
+                && message.getConnectionState().equals(ConnectionState.STARTING)) {
+            ManagedConnection.log.debug("Received acknowledge string: {}", message);
+            this.state = ConnectionState.CONNECTED;
+            this.handler.onConnected(this);
+            ManagedConnection.log.debug("Updated state to {}, replying ack", this.state);
+            final ConnectionHandshake response = ConnectionHandshake.newBuilder()
+                    .setConnectionId(this.connectionId)
+                    .setConnectionState(ConnectionState.CONNECTED)
+                    .build();
+            try {
+                this.publishSocket.send(this.serializer.serialize(response));
+            } catch (final SerializationException e) {
+                e.printStackTrace();
+                return false;
             }
+            return true;
         }
         return false;
     }
@@ -181,7 +220,7 @@ final class ManagedConnection implements Connection, Closeable {
             return;
         }
 
-        if ((this.state == ConnectionState.STARTING) && this.handleAck(buff)) {
+        if ((this.state == ConnectionState.STARTING) && this.handleAcknowledgement(buff)) {
             return;
         }
 

@@ -11,14 +11,16 @@ import java.io.Serializable;
 import java.nio.channels.ClosedSelectorException;
 import java.util.Properties;
 
+import org.flexiblepower.exceptions.SerializationException;
+import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
+import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
+import org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage;
+import org.flexiblepower.proto.ServiceProto.ResumeProcessMessage;
+import org.flexiblepower.proto.ServiceProto.SetConfigMessage;
+import org.flexiblepower.serializers.JavaIOSerializer;
+import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
-import org.flexiblepower.service.exceptions.SerializationException;
 import org.flexiblepower.service.exceptions.ServiceInvocationException;
-import org.flexiblepower.service.proto.ServiceProto.ConnectionMessage;
-import org.flexiblepower.service.proto.ServiceProto.GoToProcessStateMessage;
-import org.flexiblepower.service.proto.ServiceProto.ResumeProcessMessage;
-import org.flexiblepower.service.proto.ServiceProto.SetConfigMessage;
-import org.flexiblepower.service.serializers.JavaIOSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
@@ -56,7 +58,8 @@ public class ServiceManager implements Closeable {
 
     private final ConnectionManager connectionManager;
     private final Service service;
-    private final JavaIOSerializer serializer = new JavaIOSerializer();
+    private final JavaIOSerializer javaIoSerializer = new JavaIOSerializer();
+    private final ProtobufMessageSerializer<ConnectionHandshake> connectionHandshakeMessageSerializer = new ProtobufMessageSerializer<>();
     private final Socket managementSocket;
 
     public ServiceManager(final Service service) {
@@ -128,12 +131,12 @@ public class ServiceManager implements Closeable {
      * @throws ConnectionModificationException
      */
     private byte[] handleServiceMessage(final byte[] data)
-            throws IOException, ServiceInvocationException, ConnectionModificationException {
+            throws IOException, ServiceInvocationException, ConnectionModificationException, SerializationException {
         try {
             final GoToProcessStateMessage msg = GoToProcessStateMessage.parseFrom(data);
             return this.handleGoToProcessStateMessage(msg);
-        } catch (final SerializationException e) {
-            throw new ServiceInvocationException("Unable to serialize message response: " + e.getMessage(), e);
+            // } catch (final SerializationException e) {
+            // throw new ServiceInvocationException("Unable to serialize message response: " + e.getMessage(), e);
         } catch (final InvalidProtocolBufferException e) {
             // Not this type of message, try next
         }
@@ -156,8 +159,8 @@ public class ServiceManager implements Closeable {
 
         try {
             final ConnectionMessage msg = ConnectionMessage.parseFrom(data);
-            this.connectionManager.handleConnectionMessage(msg);
-            return ServiceManager.SUCCESS;
+            final ConnectionHandshake response = this.connectionManager.handleConnectionMessage(msg);
+            return this.connectionHandshakeMessageSerializer.serialize(response);
         } catch (final InvalidProtocolBufferException e) {
             // Not this type of message, try next
         }
@@ -170,7 +173,7 @@ public class ServiceManager implements Closeable {
      * @throws ServiceInvocationException
      */
     private byte[] handleGoToProcessStateMessage(final GoToProcessStateMessage message)
-            throws ServiceInvocationException {
+            throws ServiceInvocationException, SerializationException {
         ServiceManager.log.info("Received GoToProcessStateMessage for process {} -> {}",
                 message.getProcessId(),
                 message.getTargetState());
@@ -187,7 +190,7 @@ public class ServiceManager implements Closeable {
             final Serializable state = this.service.suspend();
             this.connectionManager.close();
             this.keepThreadAlive = false;
-            return this.serializer.serialize(state);
+            return this.javaIoSerializer.serialize(state);
 
         case TERMINATED:
             this.service.terminate();
@@ -212,7 +215,7 @@ public class ServiceManager implements Closeable {
         ServiceManager.log.trace("Received message: {}", msg);
 
         try {
-            final Serializable state = this.serializer.deserialize(msg.getStateData().toByteArray());
+            final Serializable state = this.javaIoSerializer.deserialize(msg.getStateData().toByteArray());
             this.service.resumeFrom(state);
         } catch (final Exception e) {
             throw new ServiceInvocationException("Error while resuming process", e);

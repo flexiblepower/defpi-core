@@ -9,8 +9,11 @@ import java.io.Closeable;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
+import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake.Builder;
+import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
+import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
-import org.flexiblepower.service.proto.ServiceProto.ConnectionMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,31 +41,39 @@ public class ConnectionManager implements Closeable {
     /**
      * @param parseFrom
      * @return
+     * @return
      * @throws ConnectionModificationException
      */
-    public void handleConnectionMessage(final ConnectionMessage message) throws ConnectionModificationException {
+    public ConnectionHandshake handleConnectionMessage(final ConnectionMessage message)
+            throws ConnectionModificationException {
+        final String connectionId = message.getConnectionId();
         ConnectionManager.log.info("Received ConnectionMessage for connection {} ({})",
-                message.getConnectionId(),
+                connectionId,
                 message.getMode());
         ConnectionManager.log.trace("Received message:\n{}", message);
+        final Builder responseBuilder = ConnectionHandshake.newBuilder().setConnectionId(connectionId);
 
-        final String id = message.getConnectionId();
         switch (message.getMode()) {
         case CREATE:
             this.createConnection(message);
+            responseBuilder.setConnectionState(ConnectionState.STARTING);
             break;
         case RESUME:
-            this.connections.get(id).resume();
+            this.connections.get(connectionId).resume();
+            responseBuilder.setConnectionState(ConnectionState.CONNECTED);
             break;
         case SUSPEND:
-            this.connections.get(id).suspend();
+            this.connections.get(connectionId).suspend();
+            responseBuilder.setConnectionState(ConnectionState.SUSPENDED);
             break;
         case TERMINATE:
-            this.connections.remove(id).close();
+            this.connections.remove(connectionId).close();
+            responseBuilder.setConnectionState(ConnectionState.TERMINATED);
             break;
         default:
             throw new ConnectionModificationException("Invalid connection modification type");
         }
+        return responseBuilder.build();
     }
 
     /**
@@ -82,7 +93,10 @@ public class ConnectionManager implements Closeable {
             throw new ConnectionModificationException("Unknown connection handling hash: " + key);
         } else {
             this.connections.put(message.getConnectionId(),
-                    new ManagedConnection(message.getListenPort(), message.getTargetAddress(), chf.build()));
+                    new ManagedConnection(message.getConnectionId(),
+                            message.getListenPort(),
+                            message.getTargetAddress(),
+                            chf.build()));
             ConnectionManager.log.trace("Added connection {} to list", message.getConnectionId());
         }
     }
