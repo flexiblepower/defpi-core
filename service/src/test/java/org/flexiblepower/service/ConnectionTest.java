@@ -8,9 +8,9 @@ package org.flexiblepower.service;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-import org.flexiblepower.service.exceptions.SerializationException;
-import org.flexiblepower.service.proto.ServiceProto.ConnectionMessage;
-import org.flexiblepower.service.serializers.JavaIOSerializer;
+import org.flexiblepower.exceptions.SerializationException;
+import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
+import org.flexiblepower.serializers.JavaIOSerializer;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

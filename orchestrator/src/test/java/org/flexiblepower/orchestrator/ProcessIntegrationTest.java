@@ -45,7 +45,7 @@ public class ProcessIntegrationTest {
 
         final NodeManager nm = NodeManager.getInstance();
         final ProcessManager pm = ProcessManager.getInstance();
-        final ConnectionManager cm = ConnectionManager.getInstance();
+        final ConnectionManager cm = new ConnectionManager();
         final MongoDbConnector mdc = new MongoDbConnector();
 
         final Service service = ServiceManager.getInstance().getService("echo:0.0.1");

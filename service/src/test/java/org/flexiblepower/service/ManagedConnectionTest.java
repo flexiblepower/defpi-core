@@ -5,7 +5,7 @@
  */
 package org.flexiblepower.service;
 
-import org.flexiblepower.service.Connection.ConnectionState;
+import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.junit.Assert;
 import org.junit.Test;
@@ -24,7 +24,10 @@ public class ManagedConnectionTest {
 
     @Test(timeout = 5000)
     public void testConnection() throws ConnectionModificationException {
-        final ManagedConnection conn = new ManagedConnection(1234, "tcp://localhost:5678", new TestService());
+        final ManagedConnection conn = new ManagedConnection("ConnID1234",
+                1234,
+                "tcp://localhost:5678",
+                new TestService());
         Assert.assertEquals(ConnectionState.STARTING, conn.getState());
         conn.close();
         Assert.assertEquals(ConnectionState.TERMINATED, conn.getState());

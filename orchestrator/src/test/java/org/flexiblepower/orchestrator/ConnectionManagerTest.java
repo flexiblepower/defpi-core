@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ConnectionManagerTest {
 
+    private ConnectionManager manager;
     private static final String TEST_HOST = "172.17.0.2";// "localhost";
     private static final int TEST_SERVICE_LISTEN_PORT = 5020;
     private static final int TEST_SERVICE_TARGET_PORT = 5025;
@@ -31,7 +32,8 @@ public class ConnectionManagerTest {
 
     @Test
     public void tryConnect() throws ConnectionException {
-        ConnectionManager.connect(ConnectionManagerTest.TEST_CONNECTION_ID.toString(),
+        this.manager = new ConnectionManager();
+        this.manager.connect(ConnectionManagerTest.TEST_CONNECTION_ID.toString(),
                 ConnectionManagerTest.TEST_HOST,
                 ConnectionManagerTest.TEST_SERVICE_LISTEN_PORT,
                 ConnectionManagerTest.ECHO_HASH,
@@ -42,8 +44,7 @@ public class ConnectionManagerTest {
 
     @Test
     public void tryDisconnect() throws ConnectionException {
-        ConnectionManager.disconnect(ConnectionManagerTest.TEST_CONNECTION_ID.toString(),
-                ConnectionManagerTest.TEST_HOST);
+        this.manager.disconnect(ConnectionManagerTest.TEST_CONNECTION_ID.toString(), ConnectionManagerTest.TEST_HOST);
     }
 
 }
