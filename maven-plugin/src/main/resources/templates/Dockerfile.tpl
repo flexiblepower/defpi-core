@@ -6,6 +6,6 @@ FROM {{from}}
 ADD packaged-jar-with-dependencies.jar /
 
 LABEL org.flexiblepower.serviceName="{{service.name}}" 
-LABEL org.flexiblepower.interfaces="{{interfaces}}" 
+LABEL org.flexiblepower.interfaces='{{interfaces}}' 
 
 ENTRYPOINT ["java", "-jar", "/packaged-jar-with-dependencies.jar"]

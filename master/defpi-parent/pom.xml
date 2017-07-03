@@ -2,6 +2,9 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
+	<!-- This pom contains settings mostly for the docker plugins and zeromq libraries
+		 which should be used by all defpi artifacts -->
+		 
 	<artifactId>defpi-parent</artifactId>
 	<packaging>pom</packaging>
 
@@ -13,14 +16,14 @@
 	</parent>
 
 	<properties>
-		<registry>def-pi1.sensorlab.tno.nl:5000</registry>	
-		<imageName>${registry}/services/${project.artifactId}:${project.version}</imageName>
-		
-		<!-- Resource dir for Docker and protobuf -->
+		<!-- A shorthand to point to the resources folder that should be included in packaged JARs (and docker) -->
 		<project.resourcedir>${project.basedir}/src/main/resources</project.resourcedir>
 
+		<!-- Specific setting for the docker image -->
+		<docker.registry>def-pi1.sensorlab.tno.nl:5000</docker.registry>	
+		<docker.imageName>${docker.registry}/services/${project.artifactId}:${project.version}</docker.imageName>
+		
 		<docker-maven-plugin.version>0.4.13</docker-maven-plugin.version>
-		<protobuf.version>3.0.0-beta-1</protobuf.version>
 		<jeromq.version>0.3.5</jeromq.version>
 	</properties>
 
@@ -50,6 +53,7 @@
 			<plugins>
 				<plugin>
 					<artifactId>maven-assembly-plugin</artifactId>
+					<version>3.0.0</version>
 					<configuration>
 						<archive>
 							<manifest>
@@ -82,7 +86,7 @@
 					<artifactId>docker-maven-plugin</artifactId>
 					<version>${docker-maven-plugin.version}</version>
 					<configuration>
-						<imageName>${imageName}</imageName>
+						<imageName>${docker.imageName}</imageName>
 						<dockerDirectory>${project.resourcedir}/docker</dockerDirectory>
 						<resources>
 							<resource>
@@ -116,7 +120,7 @@
 							</goals>
 							<configuration>
 								<dockerDirectory>${project.resourcedir}/docker-arm</dockerDirectory>
-								<imageName>${imageName}-arm</imageName>
+								<imageName>${docker.imageName}-arm</imageName>
 							</configuration>
 						</execution>
 						<execution>
@@ -126,7 +130,7 @@
 								<goal>push</goal>
 							</goals>
 							<configuration>
-								<imageName>${imageName}-arm</imageName>
+								<imageName>${docker.imageName}-arm</imageName>
 							</configuration>
 						</execution>
 					</executions>

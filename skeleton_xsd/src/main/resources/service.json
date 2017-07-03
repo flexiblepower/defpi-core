@@ -1,0 +1,27 @@
+{
+  "name": "Books library",
+  "version": "85",
+  "interfaces": [
+    {
+      "name": "books XSD",
+      "autoConnect": false,
+      "allowMultiple": false,
+      "interfaceVersions": [
+        {
+          "versionName": "8.5 XSD",
+          "type": "xsd",
+          "location": "books.xsd",
+          "sends": ["BooksForm"],
+          "receives": ["BooksForm"]
+        },
+        {
+          "versionName": "readonly",
+          "type": "xsd",
+          "location": "books.xsd",
+          "sends": [],
+          "receives": ["BooksForm"]
+        }
+      ]
+    }
+  ]
+}

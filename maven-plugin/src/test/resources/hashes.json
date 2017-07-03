@@ -12,6 +12,20 @@
           "type": "proto",
           "location": "echoProtocol.proto",
           "sends": ["Msg"],
+          "receives": []
+        }
+      ]
+    },
+    {
+      "name": "Echo Interface",
+      "autoConnect": false,
+      "allowMultiple": true,
+      "interfaceVersions": [
+        {
+          "versionName": "v0.0.2",
+          "type": "proto",
+          "location": "echoProtocol.proto",
+          "sends": ["Msg"],
           "receives": ["Msg"]
         }
       ]

@@ -44,7 +44,7 @@ public class ConnectionManagerTest {
                 ConnectionManagerTest.ECHO_HASH);
     }
 
-    @Test
+    // @Test
     public void tryDisconnect() throws ConnectionException {
         this.manager.disconnect(ConnectionManagerTest.TEST_CONNECTION_ID.toString(), ConnectionManagerTest.TEST_HOST);
     }

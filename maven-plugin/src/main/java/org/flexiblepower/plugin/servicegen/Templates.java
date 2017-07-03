@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,6 +22,7 @@ import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 
 /**
  * Templates
@@ -33,13 +33,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class Templates {
 
+    private final static boolean PRETTY_PRINT_JSON = true;
     private final String servicePackage;
+    private final String protobufOutputPackage;
+    private final String xsdOutputPackage;
     private final ServiceDescription serviceDescription;
     private final Map<String, String> hashes;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public Templates(final String targetPackage, final ServiceDescription descr, final Map<String, String> hashes) {
+    public Templates(final String targetPackage,
+            final String protobufOutputPackage,
+            final String xsdOutputPackage,
+            final ServiceDescription descr,
+            final Map<String, String> hashes) {
         this.servicePackage = targetPackage;
+        this.protobufOutputPackage = protobufOutputPackage;
+        this.xsdOutputPackage = xsdOutputPackage;
         this.serviceDescription = descr;
         this.hashes = hashes;
     }
@@ -54,16 +63,19 @@ public class Templates {
         String imports = "";
         for (final InterfaceDescription itf : this.serviceDescription.getInterfaces()) {
             for (final InterfaceVersionDescription version : itf.getInterfaceVersions()) {
+                final String interfacePackage = PluginUtils.getVersionedName(itf, version).toLowerCase();
                 factoryRegistration += String.format(
-                        "        ConnectionManager.registerConnectionHandlerFactory(\n" + "             %s.class,\n"
+                        "        ConnectionManager.registerConnectionHandlerFactory(%s.class,\n"
                                 + "                new %s());\n",
                         PluginUtils.connectionHandlerClass(itf, version),
                         PluginUtils.factoryClass(itf, version));
-                imports += String.format("import %s.handlers.%s;\n",
+                imports += String.format("import %s.%s.%s;\n",
                         this.servicePackage,
+                        interfacePackage,
                         PluginUtils.connectionHandlerClass(itf, version));
-                imports += String.format("import %s.handlers.%s;\n",
+                imports += String.format("import %s.%s.%s;\n",
                         this.servicePackage,
+                        interfacePackage,
                         PluginUtils.factoryClass(itf, version));
             }
         }
@@ -133,9 +145,11 @@ public class Templates {
         }
 
         replace.put("service.name", service.getName());
-        final String interfaces = this.mapper.writeValueAsString(serviceInterfaces);
-        final String encoded = Base64.getEncoder().encodeToString(interfaces.getBytes());
-        replace.put("interfaces", encoded);
+        final ObjectWriter writer = Templates.PRETTY_PRINT_JSON ? this.mapper.writerWithDefaultPrettyPrinter()
+                : this.mapper.writer();
+        final String interfaces = writer.writeValueAsString(serviceInterfaces);
+        // final String encoded = Base64.getEncoder().encodeToString(interfaces.getBytes());
+        replace.put("interfaces", interfaces.replaceAll("\n", " \\\\ \n"));
 
         return Templates.replaceMap(this.getTemplate("Dockerfile"), replace);
     }
@@ -199,12 +213,15 @@ public class Templates {
 
         if ((itf != null) && (version != null)) {
             final String versionedName = PluginUtils.getVersionedName(itf, version);
+            final String packageName = versionedName.toLowerCase();
+
             replace.put("handler.class", PluginUtils.connectionHandlerClass(itf, version));
             replace.put("handlerImpl.class", PluginUtils.connectionHandlerImplClass(itf, version));
             replace.put("factory.class", PluginUtils.factoryClass(itf, version));
 
             replace.put("itf.name", itf.getName());
             replace.put("itf.version", version.getVersionName());
+            replace.put("itf.packagename", packageName);
             replace.put("itf.receivesHash", this.getHash(itf, version, version.getReceives()));
             replace.put("itf.sendsHash", this.getHash(itf, version, version.getSends()));
 
@@ -239,8 +256,10 @@ public class Templates {
                 replace.put("itf.serializer", "ProtobufMessageSerializer");
 
                 for (final String type : version.getReceives()) {
-                    imports += String.format("import %s.protobuf.%sProto.%s;\n",
+                    imports += String.format("import %s.%s.%s.%sProto.%s;\n",
                             this.servicePackage,
+                            packageName,
+                            this.protobufOutputPackage,
                             versionedName,
                             type);
                 }
@@ -248,7 +267,11 @@ public class Templates {
                 replace.put("itf.serializer", "XSDMessageSerializer");
 
                 for (final String type : version.getReceives()) {
-                    imports += String.format("import %s.xml.%s;\n", this.servicePackage, versionedName, type);
+                    imports += String.format("import %s.%s.%s.*;\n",
+                            this.servicePackage,
+                            packageName,
+                            this.xsdOutputPackage,
+                            type);
                 }
             }
             replace.put("handler.imports", imports);
@@ -274,9 +297,7 @@ public class Templates {
         return ret;
     }
 
-    private String getHash(final InterfaceDescription itf,
-            final InterfaceVersionDescription vitf,
-            final Set<String> set) {
+    String getHash(final InterfaceDescription itf, final InterfaceVersionDescription vitf, final Set<String> set) {
         final String versionedName = PluginUtils.getVersionedName(itf, vitf);
         if (this.hashes.containsKey(versionedName)) {
             String baseHash = this.hashes.get(versionedName);

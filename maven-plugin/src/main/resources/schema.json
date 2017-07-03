@@ -2,7 +2,6 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "definitions": {},
   "type": "object",
-  "id": "http://flexiblepower.org/service.json",
   "properties": {
     "name": {
       "$ref": "#/definitions/name"
