@@ -22,6 +22,8 @@ import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Context;
 import org.zeromq.ZMQ.Socket;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+
 /**
  * ConnectionTest
  *
@@ -133,7 +135,12 @@ public class ConnectionTest {
         Assert.assertNotNull(this.in.recv());
 
         Assert.assertTrue("Failed to send second ACK", this.out.send(handShakeString));
-        Assert.assertNull("Second ACK should not bew answered", this.in.recv());
+        try {
+            ConnectionHandshake.parseFrom(this.in.recv());
+            Assert.fail("Expected exception");
+        } catch (final Exception e) {
+            Assert.assertEquals(InvalidProtocolBufferException.class, e.getClass());
+        }
     }
 
     @Test(timeout = 5000)
