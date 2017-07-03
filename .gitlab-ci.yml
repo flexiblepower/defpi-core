@@ -16,6 +16,9 @@ variables:
 
 image: maven:3.3.9-jdk-8
 
+tags:
+  - defpi
+
 stages:
   - build
   - unittest
