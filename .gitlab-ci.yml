@@ -42,15 +42,15 @@ test-proto-compile:
   stage: plugintest
   script:
     - 'mvn -f master/pom.xml install -DskipTests'   
-    - 'mvn -f echo_skeleton/pom.xml -P codegen generate-sources'
-    - 'mvn -f echo_skeleton/pom.xml clean test-compile'
+    - 'mvn -f skeleton_proto/pom.xml -P codegen generate-sources'
+    - 'mvn -f skeleton_proto/pom.xml clean test-compile'
 
 test-xsd-compile:
   stage: plugintest
   script:
     - 'mvn -f master/pom.xml install -DskipTests'   
-    - 'mvn -f xsd_skeleton/pom.xml -P codegen generate-sources'
-    - 'mvn -f xsd_skeleton/pom.xml clean test-compile'
+    - 'mvn -f skeleton_xsd/pom.xml -P codegen generate-sources'
+    - 'mvn -f skeleton_xsd/pom.xml clean test-compile'
 
 #deploy:jdk8:
 #  image: maven:3.3.9-jdk-8
