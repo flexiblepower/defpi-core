@@ -25,7 +25,8 @@ cache:
 validate:jdk8:
   stage: build
   artifacts:
-    - ./*/target
+    paths:
+      - ./*/target
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml test-compile'
 
@@ -41,7 +42,8 @@ verify:jdk8:
 install-plugin:
   stage: test
   artifacts:
-    - ./*/target
+    paths:
+      - ./*/target
   except:
     - master
   script:
@@ -51,7 +53,8 @@ install-plugin:
 test-proto-compile:
   stage: plugintest
   artifacts:
-    - skeleton_proto/*
+    paths:
+      - skeleton_proto/*
   except:
     - master
   script:
@@ -61,7 +64,8 @@ test-proto-compile:
 test-xsd-compile:
   stage: plugintest
   artifacts:
-    - skeleton_xsd/*
+    paths:
+      - skeleton_xsd/*
   except:
     - master
   script:
