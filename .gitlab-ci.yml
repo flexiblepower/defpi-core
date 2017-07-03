@@ -66,6 +66,7 @@ deploy:
   stage: deploy
   only:
     - master
+    - defpici
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy'
 
@@ -73,6 +74,7 @@ deploy-proto-skeleton:
   stage: deploy
   only:
     - master
+    - defpici
   script:
     - 'find .'
     - 'mvn $MAVEN_CLI_OPTS -f skeleton_proto/pom.xml deploy'
@@ -83,6 +85,7 @@ deploy-xsd-skeleton:
   stage: deploy
   only:
     - master
+    - defpici
   script:
     - 'find .'
     - 'mvn $MAVEN_CLI_OPTS -f skeleton_xsd/pom.xml deploy'
