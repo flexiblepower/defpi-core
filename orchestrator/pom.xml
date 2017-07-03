@@ -16,7 +16,7 @@
 
 	<properties>
 		<mainClass>org.flexiblepower.orchestrator.Main</mainClass>
-		<imageName>${registry}/defpi/${project.artifactId}:${project.version}</imageName>
+		<docker.imageName>${docker.registry}/defpi/${project.artifactId}:${project.version}</docker.imageName>
 	</properties>
 	
 	<dependencies>
@@ -88,7 +88,7 @@
 		<dependency>
 			<groupId>com.spotify</groupId>
 			<artifactId>docker-client</artifactId>
-			<version>8.3.2-SNAPSHOT</version>
+			<version>8.8.1-SNAPSHOT</version>
 		</dependency>
 
 	</dependencies>
@@ -104,6 +104,5 @@
 			</plugin>
 		</plugins>
 	</build>
-
 
 </project>

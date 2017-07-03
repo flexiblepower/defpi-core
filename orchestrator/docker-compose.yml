@@ -1,5 +1,5 @@
 orchestrator:
-  image: def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator:0.1.1-SNAPSHOT
+  image: def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator:0.2.0-SNAPSHOT
   ports:
     - 0.0.0.0:8080:8080
   volumes:
@@ -18,4 +18,5 @@ orchestrator-ui:
   ports:
     - 0.0.0.0:8081:80
   environment:
-    - ORCHESTARTOR_URL=http://def-pi1.sensorlab.tno.nl:8080/
+    #- ORCHESTARTOR_URL=http://def-pi1.sensorlab.tno.nl:8080/
+    - ORCHESTRATOR_URL=http://localhost:8080/
