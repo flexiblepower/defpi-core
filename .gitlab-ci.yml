@@ -18,6 +18,7 @@ stages:
   - deploy
 
 cache:
+  untracked: true
   paths:
     - ./cache/maven.repository
  
