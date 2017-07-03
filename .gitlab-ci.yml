@@ -19,18 +19,18 @@ stages:
 
 cache:
   untracked: true
-  key: "$CI_COMMIT_REF_NAME"
   paths:
     - ./cache/maven.repository
  
 # Validate merge requests using JDK8
 validate:jdk8:
   stage: build
-  artifacts:
-    paths:
-      - ./*/target
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml test-compile'
+  cache:
+    untracked: true
+    paths:
+      - ./*/target
 
 # Verify merge requests using JDK8
 verify:jdk8:
@@ -40,38 +40,31 @@ verify:jdk8:
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml test'
 
-# Install modules for next steps (we need to test the plugin)
-install-plugin:
-  stage: test
-  artifacts:
-    paths:
-      - ./*/target
-  except:
-    - master
-  script:
-    - 'mvn $MAVEN_CLI_OPTS -DskipTests -f master/pom.xml install'
-
-#Test plugin on protobuf
+#Test plugin on xsd
 test-proto-compile:
   stage: plugintest
-  artifacts:
-    paths:
-      - skeleton_proto/*
   except:
     - master
   script:
+    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
     - 'mvn $MAVEN_CLI_OPTS -f skeleton_proto/pom.xml -P codegen generate-sources'
+  cache:
+    untracked: true
+    paths:
+      - skeleton_proto/*
 
 #Test plugin on xsd
 test-xsd-compile:
   stage: plugintest
-  artifacts:
-    paths:
-      - skeleton_xsd/*
   except:
     - master
   script:
+    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
     - 'mvn $MAVEN_CLI_OPTS -f skeleton_xsd/pom.xml -P codegen generate-sources'
+  cache:
+    untracked: true
+    paths:
+      - skeleton_xsd/*
 
 #Finally deploy stuff
 deploy:
@@ -86,6 +79,8 @@ deploy-proto-skeleton:
   only:
     - master
   script:
+    - 'find .'
+    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
     - 'mvn $MAVEN_CLI_OPTS -f skeleton_proto/pom.xml deploy'
 
 deploy-xsd-skeleton:
@@ -93,4 +88,6 @@ deploy-xsd-skeleton:
   only:
     - master
   script:
+    - 'find .'
+    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
     - 'mvn $MAVEN_CLI_OPTS -f skeleton_xsd/pom.xml deploy'
