@@ -21,6 +21,7 @@
 		<module>defpi-parent</module>
 		<module>../maven-plugin</module>
 		<module>../api</module>
+		<module>../commons</module>
 	</modules>
 
 	<!-- Where to push the maven compiled jars -->

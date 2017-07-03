@@ -3,7 +3,7 @@
  *
  * Copyright 2017 TNO
  */
-package org.flexiblepower.service.exceptions;
+package org.flexiblepower.exceptions;
 
 /**
  * SerializationException
@@ -12,7 +12,7 @@ package org.flexiblepower.service.exceptions;
  * @version 0.1
  * @since May 12, 2017
  */
-public class SerializationException extends ServiceInvocationException {
+public class SerializationException extends Exception {
 
     /**
      *

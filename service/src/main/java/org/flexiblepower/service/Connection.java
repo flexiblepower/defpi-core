@@ -5,6 +5,8 @@
  */
 package org.flexiblepower.service;
 
+import org.flexiblepower.proto.ConnectionProto.ConnectionState;
+
 /**
  * Connection
  *
@@ -13,14 +15,6 @@ package org.flexiblepower.service;
  * @since Apr 24, 2017
  */
 public interface Connection {
-
-    public static enum ConnectionState {
-        STARTING,
-        CONNECTED,
-        SUSPENDED,
-        INTERRUPTED,
-        TERMINATED;
-    }
 
     public void send(Object message);
 

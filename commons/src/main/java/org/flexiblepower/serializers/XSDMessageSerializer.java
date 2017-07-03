@@ -1,4 +1,4 @@
-package org.flexiblepower.service.serializers;
+package org.flexiblepower.serializers;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -15,7 +15,7 @@ import javax.xml.bind.annotation.XmlType;
 import javax.xml.namespace.QName;
 import javax.xml.transform.stream.StreamSource;
 
-import org.flexiblepower.service.exceptions.SerializationException;
+import org.flexiblepower.exceptions.SerializationException;
 
 public class XSDMessageSerializer implements MessageSerializer<Object> {
 

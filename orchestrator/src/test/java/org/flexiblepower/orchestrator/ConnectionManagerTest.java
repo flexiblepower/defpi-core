@@ -8,8 +8,8 @@ package org.flexiblepower.orchestrator;
 import java.util.UUID;
 
 import org.flexiblepower.exceptions.ConnectionException;
-
-import lombok.extern.slf4j.Slf4j;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * ConnectionManagerTest
@@ -18,9 +18,9 @@ import lombok.extern.slf4j.Slf4j;
  * @version 0.1
  * @since Apr 19, 2017
  */
-@Slf4j
 public class ConnectionManagerTest {
 
+    private ConnectionManager manager;
     private static final String TEST_HOST = "172.17.0.2";// "localhost";
     private static final int TEST_SERVICE_LISTEN_PORT = 5020;
     private static final int TEST_SERVICE_TARGET_PORT = 5025;
@@ -28,9 +28,14 @@ public class ConnectionManagerTest {
 
     private static final UUID TEST_CONNECTION_ID = UUID.randomUUID();
 
-    // @Test
+    @Before
+    public void init() {
+        this.manager = new ConnectionManager();
+    }
+
+    @Test
     public void tryConnect() throws ConnectionException {
-        ConnectionManager.connect(ConnectionManagerTest.TEST_CONNECTION_ID.toString(),
+        this.manager.connect(ConnectionManagerTest.TEST_CONNECTION_ID.toString(),
                 ConnectionManagerTest.TEST_HOST,
                 ConnectionManagerTest.TEST_SERVICE_LISTEN_PORT,
                 ConnectionManagerTest.ECHO_HASH,
@@ -41,8 +46,7 @@ public class ConnectionManagerTest {
 
     // @Test
     public void tryDisconnect() throws ConnectionException {
-        ConnectionManager.disconnect(ConnectionManagerTest.TEST_CONNECTION_ID.toString(),
-                ConnectionManagerTest.TEST_HOST);
+        this.manager.disconnect(ConnectionManagerTest.TEST_CONNECTION_ID.toString(), ConnectionManagerTest.TEST_HOST);
     }
 
 }

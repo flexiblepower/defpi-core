@@ -8,12 +8,12 @@ package org.flexiblepower.service;
 import java.io.Serializable;
 import java.net.UnknownHostException;
 
-import org.flexiblepower.service.exceptions.SerializationException;
-import org.flexiblepower.service.proto.ServiceProto.GoToProcessStateMessage;
-import org.flexiblepower.service.proto.ServiceProto.ProcessState;
-import org.flexiblepower.service.proto.ServiceProto.ResumeProcessMessage;
-import org.flexiblepower.service.serializers.JavaIOSerializer;
-import org.flexiblepower.service.serializers.MessageSerializer;
+import org.flexiblepower.exceptions.SerializationException;
+import org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage;
+import org.flexiblepower.proto.ServiceProto.ProcessState;
+import org.flexiblepower.proto.ServiceProto.ResumeProcessMessage;
+import org.flexiblepower.serializers.JavaIOSerializer;
+import org.flexiblepower.serializers.MessageSerializer;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
