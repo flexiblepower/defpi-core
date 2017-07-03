@@ -45,6 +45,10 @@ test-proto-compile:
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
     - 'mvn $MAVEN_CLI_OPTS -f skeleton_proto/pom.xml -P codegen generate-sources'
+  artifacts:
+    untracked: true
+    paths:
+      - skeleton_proto/src/*
 
 #Test plugin on xsd
 test-xsd-compile:
@@ -54,6 +58,10 @@ test-xsd-compile:
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
     - 'mvn $MAVEN_CLI_OPTS -f skeleton_xsd/pom.xml -P codegen generate-sources'
+  artifacts:
+    untracked: true
+    paths:
+      - skeleton_xsd/src/*
 
 #Finally deploy stuff
 deploy:
@@ -69,8 +77,9 @@ deploy-proto-skeleton:
     - master
   script:
     - 'find .'
-    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
     - 'mvn $MAVEN_CLI_OPTS -f skeleton_proto/pom.xml deploy'
+  dependencies:
+    - test-proto-compile
 
 deploy-xsd-skeleton:
   stage: deploy
@@ -78,5 +87,6 @@ deploy-xsd-skeleton:
     - master
   script:
     - 'find .'
-    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
     - 'mvn $MAVEN_CLI_OPTS -f skeleton_xsd/pom.xml deploy'
+  dependencies:
+    - test-xsd-compile
