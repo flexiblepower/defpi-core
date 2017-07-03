@@ -31,7 +31,7 @@
 		<module>service-parent</module>
 		<module>../../service</module>
 		<module>../../orchestrator</module>
-		
+		<module>../../commons</module>
 	</modules>
 
 	<dependencies>
@@ -45,12 +45,6 @@
 			<groupId>org.zeromq</groupId>
 			<artifactId>jeromq</artifactId>
 			<version>${jeromq.version}</version>
-		</dependency>
-		
-		<dependency>
-			<groupId>org.flexiblepower</groupId>
-			<artifactId>commons</artifactId>
-			<version>${def-pi.version}</version>
 		</dependency>
 	</dependencies>
 
