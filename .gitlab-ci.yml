@@ -16,9 +16,6 @@ variables:
 
 image: maven:3.3.9-jdk-8
 
-tags:
-  - defpi
-
 stages:
   - build
   - unittest
@@ -43,12 +40,16 @@ verify:jdk8:
 #Test plugin
 test-proto-compile:
   stage: plugintest
+  tags:
+    - defpi
   script:
     - 'mvn -f skeleton_proto/pom.xml -P codegen generate-sources'
     - 'mvn -f skeleton_proto/pom.xml deploy'
 
 test-xsd-compile:
   stage: plugintest
+  tags:
+    - defpi
   script:
     - 'mvn -f skeleton_xsd/pom.xml -P codegen generate-sources'
     - 'mvn -f skeleton_xsd/pom.xml deploy'
