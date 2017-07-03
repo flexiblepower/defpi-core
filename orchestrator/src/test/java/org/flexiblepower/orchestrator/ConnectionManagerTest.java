@@ -8,7 +8,6 @@ package org.flexiblepower.orchestrator;
 import java.util.UUID;
 
 import org.flexiblepower.exceptions.ConnectionException;
-import org.junit.Test;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -29,7 +28,7 @@ public class ConnectionManagerTest {
 
     private static final UUID TEST_CONNECTION_ID = UUID.randomUUID();
 
-    @Test
+    // @Test
     public void tryConnect() throws ConnectionException {
         ConnectionManager.connect(ConnectionManagerTest.TEST_CONNECTION_ID.toString(),
                 ConnectionManagerTest.TEST_HOST,
@@ -40,7 +39,7 @@ public class ConnectionManagerTest {
                 ConnectionManagerTest.ECHO_HASH);
     }
 
-    @Test
+    // @Test
     public void tryDisconnect() throws ConnectionException {
         ConnectionManager.disconnect(ConnectionManagerTest.TEST_CONNECTION_ID.toString(),
                 ConnectionManagerTest.TEST_HOST);

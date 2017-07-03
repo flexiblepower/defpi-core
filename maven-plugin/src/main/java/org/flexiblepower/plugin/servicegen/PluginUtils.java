@@ -30,9 +30,9 @@ public class PluginUtils {
     private static final String HANDLER_IMPL_SUFFIX = "ConnectionHandlerImpl";
     private static final String HANDLER_FACTORY_SUFFIX = "ConnectionHandlerFactory";
 
-    public static String getVersionedName(final InterfaceDescription iface,
+    public static String getVersionedName(final InterfaceDescription itf,
             final InterfaceVersionDescription versionDescription) {
-        return PluginUtils.camelCaps(iface.getName() + versionDescription.getVersionName());
+        return PluginUtils.camelCaps(itf.getName() + "_" + versionDescription.getVersionName());
     }
 
     public static String serviceImplClass(final ServiceDescription d) {
@@ -68,7 +68,8 @@ public class PluginUtils {
             }
         }
 
-        return ret.toString().replace(".", "");
+        // Return a cleaned-up string
+        return ret.toString().replaceAll("[^a-zA-Z0-9_]", "");
     }
 
     public static String SHA256(final String body) {
@@ -89,4 +90,5 @@ public class PluginUtils {
             throw new RuntimeException("Error computing hash: " + e.getMessage());
         }
     }
+
 }

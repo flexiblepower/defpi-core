@@ -1,9 +1,10 @@
-package {{package}}.handlers;
+package {{package}}.{{itf.packagename}};
+
+import javax.annotation.Generated;
 
 import org.flexiblepower.service.ConnectionHandler;
 import org.flexiblepower.service.ConnectionHandlerFactory;
 
-import javax.annotation.Generated;
 
 /**
  * {{factory.class}}

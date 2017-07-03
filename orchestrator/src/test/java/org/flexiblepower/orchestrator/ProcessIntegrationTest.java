@@ -15,7 +15,6 @@ import org.flexiblepower.model.Service;
 import org.flexiblepower.model.UnidentifiedNode;
 import org.flexiblepower.model.User;
 import org.junit.Assert;
-import org.junit.Test;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,7 +32,6 @@ public class ProcessIntegrationTest {
     private static final String TEST_PASS = "abc12345";
     private static final String TEST_SERVICE = "echo:0.0.1";
 
-    @Test
     public void runTest() throws Exception {
         /*
          * try {

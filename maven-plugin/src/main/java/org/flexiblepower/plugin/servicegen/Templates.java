@@ -35,12 +35,20 @@ public class Templates {
 
     private final static boolean PRETTY_PRINT_JSON = true;
     private final String servicePackage;
+    private final String protobufOutputPackage;
+    private final String xsdOutputPackage;
     private final ServiceDescription serviceDescription;
     private final Map<String, String> hashes;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public Templates(final String targetPackage, final ServiceDescription descr, final Map<String, String> hashes) {
+    public Templates(final String targetPackage,
+            final String protobufOutputPackage,
+            final String xsdOutputPackage,
+            final ServiceDescription descr,
+            final Map<String, String> hashes) {
         this.servicePackage = targetPackage;
+        this.protobufOutputPackage = protobufOutputPackage;
+        this.xsdOutputPackage = xsdOutputPackage;
         this.serviceDescription = descr;
         this.hashes = hashes;
     }
@@ -55,16 +63,19 @@ public class Templates {
         String imports = "";
         for (final InterfaceDescription itf : this.serviceDescription.getInterfaces()) {
             for (final InterfaceVersionDescription version : itf.getInterfaceVersions()) {
+                final String interfacePackage = PluginUtils.getVersionedName(itf, version).toLowerCase();
                 factoryRegistration += String.format(
-                        "        ConnectionManager.registerConnectionHandlerFactory(\n" + "             %s.class,\n"
+                        "        ConnectionManager.registerConnectionHandlerFactory(%s.class,\n"
                                 + "                new %s());\n",
                         PluginUtils.connectionHandlerClass(itf, version),
                         PluginUtils.factoryClass(itf, version));
-                imports += String.format("import %s.handlers.%s;\n",
+                imports += String.format("import %s.%s.%s;\n",
                         this.servicePackage,
+                        interfacePackage,
                         PluginUtils.connectionHandlerClass(itf, version));
-                imports += String.format("import %s.handlers.%s;\n",
+                imports += String.format("import %s.%s.%s;\n",
                         this.servicePackage,
+                        interfacePackage,
                         PluginUtils.factoryClass(itf, version));
             }
         }
@@ -202,12 +213,15 @@ public class Templates {
 
         if ((itf != null) && (version != null)) {
             final String versionedName = PluginUtils.getVersionedName(itf, version);
+            final String packageName = versionedName.toLowerCase();
+
             replace.put("handler.class", PluginUtils.connectionHandlerClass(itf, version));
             replace.put("handlerImpl.class", PluginUtils.connectionHandlerImplClass(itf, version));
             replace.put("factory.class", PluginUtils.factoryClass(itf, version));
 
             replace.put("itf.name", itf.getName());
             replace.put("itf.version", version.getVersionName());
+            replace.put("itf.packagename", packageName);
             replace.put("itf.receivesHash", this.getHash(itf, version, version.getReceives()));
             replace.put("itf.sendsHash", this.getHash(itf, version, version.getSends()));
 
@@ -242,14 +256,22 @@ public class Templates {
                 replace.put("itf.serializer", "ProtobufMessageSerializer");
 
                 for (final String type : version.getReceives()) {
-                    imports += String
-                            .format("import %s.protobuf.%sProto.%s;\n", this.servicePackage, versionedName, type);
+                    imports += String.format("import %s.%s.%s.%sProto.%s;\n",
+                            this.servicePackage,
+                            packageName,
+                            this.protobufOutputPackage,
+                            versionedName,
+                            type);
                 }
             } else if (version.getType().equals(Type.XSD)) {
                 replace.put("itf.serializer", "XSDMessageSerializer");
 
                 for (final String type : version.getReceives()) {
-                    imports += String.format("import %s.xml.%s;\n", this.servicePackage, versionedName, type);
+                    imports += String.format("import %s.%s.%s.*;\n",
+                            this.servicePackage,
+                            packageName,
+                            this.xsdOutputPackage,
+                            type);
                 }
             }
             replace.put("handler.imports", imports);
