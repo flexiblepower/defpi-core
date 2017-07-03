@@ -95,7 +95,7 @@
 								<include>packaged-jar-with-dependencies.jar</include>
 							</resource>
 						</resources>
-						<dockerHost>http://def-pi1.sensorlab.tno.nl:2376</dockerHost>
+						<!-- dockerHost>http://def-pi1.sensorlab.tno.nl:2376</dockerHost -->
 					</configuration>
 					<executions>
 						<execution>

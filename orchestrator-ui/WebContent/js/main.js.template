@@ -19,7 +19,7 @@ myApp
 				'NgAdminConfigurationProvider',
 				function(nga) {
 					var admin = nga.application('EF-Pi Orchestrator')
-							.baseApiUrl('$ORCHESTARTOR_URL');
+							.baseApiUrl('$ORCHESTRATOR_URL');
 
 					// Entities
 					var user = nga.entity('user');
