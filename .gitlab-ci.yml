@@ -19,6 +19,7 @@ stages:
 
 cache:
   untracked: true
+  key: "$CI_COMMIT_REF_NAME"
   paths:
     - ./cache/maven.repository
  
