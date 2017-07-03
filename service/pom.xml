@@ -17,11 +17,6 @@
 		    <artifactId>reflections</artifactId>
 		    <version>0.9.11</version>
 		</dependency>
-		<dependency>
-			<groupId>defpi</groupId>
-			<artifactId>commons</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
 	</dependencies>
 
 </project>

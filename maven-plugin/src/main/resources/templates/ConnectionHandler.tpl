@@ -8,7 +8,7 @@ import javax.annotation.Generated;
 {{handler.imports}}
 import org.flexiblepower.service.ConnectionHandler;
 import org.flexiblepower.service.InterfaceInfo;
-import org.flexiblepower.service.serializers.{{itf.serializer}};
+import org.flexiblepower.serializers.{{itf.serializer}};
 
 /**
  * {{handler.class}}
