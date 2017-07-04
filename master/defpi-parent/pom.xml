@@ -2,30 +2,30 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<!-- This pom contains settings mostly for the docker plugins and zeromq libraries
-		 which should be used by all defpi artifacts -->
-		 
+	<!-- This pom contains settings mostly for the docker plugins and zeromq 
+		libraries which should be used by all defpi artifacts -->
+
 	<artifactId>defpi-parent</artifactId>
 	<packaging>pom</packaging>
 
 	<parent>
 		<groupId>org.flexiblepower</groupId>
 		<artifactId>master</artifactId>
-		<version>0.2.0-SNAPSHOT</version>
+		<version>0.2.1-SNAPSHOT</version>
 		<relativePath>..</relativePath>
 	</parent>
 
 	<properties>
-		<!-- A shorthand to point to the resources folder that should be included in packaged JARs (and docker) -->
+		<!-- A shorthand to point to the resources folder that should be included 
+			in packaged JARs (and docker) -->
 		<project.resourcedir>${project.basedir}/src/main/resources</project.resourcedir>
 
 		<!-- Specific setting for the docker image -->
-        <docker.folder>docker</docker.folder>
-        <docker.arm.folder>docker-arm</docker.arm.folder>
-        <docker.registry>def-pi1.sensorlab.tno.nl:5000</docker.registry>	
+		<docker.folder>docker</docker.folder>
+		<docker.arm.folder>docker-arm</docker.arm.folder>
+		<docker.registry>def-pi1.sensorlab.tno.nl:5000</docker.registry>
 		<docker.imageName>${docker.registry}/services/${project.artifactId}:${project.version}</docker.imageName>
-		
-		<docker-maven-plugin.version>0.4.13</docker-maven-plugin.version>
+
 		<jeromq.version>0.3.5</jeromq.version>
 	</properties>
 
@@ -65,12 +65,6 @@
 						<descriptorRefs>
 							<descriptorRef>jar-with-dependencies</descriptorRef>
 						</descriptorRefs>
-						<finalName>packaged</finalName>
-						<!-- fileSets>
-							<fileSet>
-								<directory>src/main/resources</directory>
-							</fileSet>
-						</fileSets -->
 					</configuration>
 					<executions>
 						<execution>
@@ -86,18 +80,18 @@
 				<plugin>
 					<groupId>com.spotify</groupId>
 					<artifactId>docker-maven-plugin</artifactId>
-					<version>${docker-maven-plugin.version}</version>
+					<version>1.0.0</version>
 					<configuration>
+						<buildDirectory>${project.build.directory}/docker_build</buildDirectory>
 						<imageName>${docker.imageName}</imageName>
-                        <dockerDirectory>${project.resourcedir}/${docker.folder}</dockerDirectory>
+						<dockerDirectory>${project.build.directory}/${docker.folder}</dockerDirectory>
 						<resources>
 							<resource>
 								<targetPath>/</targetPath>
 								<directory>${project.build.directory}</directory>
-								<include>packaged-jar-with-dependencies.jar</include>
+								<include>*-jar-with-dependencies.jar</include>
 							</resource>
 						</resources>
-						<!-- dockerHost>http://def-pi1.sensorlab.tno.nl:2376</dockerHost -->
 					</configuration>
 					<executions>
 						<execution>
@@ -121,7 +115,7 @@
 								<goal>build</goal>
 							</goals>
 							<configuration>
-                                <dockerDirectory>${project.resourcedir}/${docker.arm.folder}</dockerDirectory>
+								<dockerDirectory>${project.build.directory}/${docker.arm.folder}</dockerDirectory>
 								<imageName>${docker.imageName}-arm</imageName>
 							</configuration>
 						</execution>
@@ -139,6 +133,38 @@
 				</plugin>
 			</plugins>
 		</pluginManagement>
+
+		<plugins>
+			<plugin>
+				<!-- The resource plugin allows us to use maven variables in the docker files -->
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>3.0.2</version>
+				<configuration>
+					<resources>
+						<resource>
+							<directory>${project.resourcedir}/${docker.folder}</directory>
+							<targetPath>${project.build.directory}/${docker.folder}</targetPath>
+							<filtering>true</filtering>
+						</resource>
+						<resource>
+							<directory>${project.resourcedir}/${docker.arm.folder}</directory>
+							<targetPath>${project.build.directory}/${docker.arm.folder}</targetPath>
+							<filtering>true</filtering>
+						</resource>
+					</resources>
+				</configuration>
+				<executions>
+					<execution>
+						<id>build-resources</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>resources</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+
 	</build>
 
 </project>
