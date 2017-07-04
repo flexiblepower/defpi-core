@@ -61,7 +61,7 @@ test-compile:xsd:
     TEST_PROJ: skeleton_xsd
   <<: *plugin
 
-#Deploy to artifactory
+#Deploy to artifactory and registry
 deploy:master:
   only:
     - master
@@ -75,7 +75,6 @@ deploy:ui:
   only:
     - master
     - defpici
-    - deploy
   stage: deploy
   script:
     - 'docker build orchestrator-ui -t def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator-ui'
