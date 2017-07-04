@@ -16,15 +16,15 @@
 
 	<properties>
 		<mainClass>org.flexiblepower.orchestrator.Main</mainClass>
-		<docker.imageName>${docker.registry}/defpi/${project.artifactId}:${project.version}</docker.imageName>
+		<docker.imageName>${docker.registry}/defpi/${project.artifactId}</docker.imageName>
 	</properties>
-	
+
 	<dependencies>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 		</dependency>
-	
+
 		<!-- Jetty HTTP server hosting the UI -->
 		<dependency>
 			<groupId>org.glassfish.jersey.core</groupId>
@@ -54,7 +54,7 @@
 			<groupId>org.flexiblepower</groupId>
 			<artifactId>api</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.flexiblepower</groupId>
 			<artifactId>commons</artifactId>
@@ -93,6 +93,7 @@
 
 	</dependencies>
 
+
 	<build>
 		<plugins>
 			<plugin>
@@ -100,7 +101,7 @@
 			</plugin>
 			<plugin>
 				<groupId>com.spotify</groupId>
-				<artifactId>docker-maven-plugin</artifactId>
+				<artifactId>dockerfile-maven-plugin</artifactId>
 			</plugin>
 		</plugins>
 	</build>

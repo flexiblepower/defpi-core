@@ -38,4 +38,5 @@
       ]
     }
   ]
+  ${project.artifactId}
 }
