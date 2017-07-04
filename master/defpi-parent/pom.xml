@@ -20,7 +20,9 @@
 		<project.resourcedir>${project.basedir}/src/main/resources</project.resourcedir>
 
 		<!-- Specific setting for the docker image -->
-		<docker.registry>def-pi1.sensorlab.tno.nl:5000</docker.registry>	
+        <docker.folder>docker</docker.folder>
+        <docker.arm.folder>docker-arm</docker.arm.folder>
+        <docker.registry>def-pi1.sensorlab.tno.nl:5000</docker.registry>	
 		<docker.imageName>${docker.registry}/services/${project.artifactId}:${project.version}</docker.imageName>
 		
 		<docker-maven-plugin.version>0.4.13</docker-maven-plugin.version>
@@ -87,7 +89,7 @@
 					<version>${docker-maven-plugin.version}</version>
 					<configuration>
 						<imageName>${docker.imageName}</imageName>
-						<dockerDirectory>${project.resourcedir}/docker</dockerDirectory>
+                        <dockerDirectory>${project.resourcedir}/${docker.folder}</dockerDirectory>
 						<resources>
 							<resource>
 								<targetPath>/</targetPath>
@@ -119,7 +121,7 @@
 								<goal>build</goal>
 							</goals>
 							<configuration>
-								<dockerDirectory>${project.resourcedir}/docker-arm</dockerDirectory>
+                                <dockerDirectory>${project.resourcedir}/${docker.arm.folder}</dockerDirectory>
 								<imageName>${docker.imageName}-arm</imageName>
 							</configuration>
 						</execution>
