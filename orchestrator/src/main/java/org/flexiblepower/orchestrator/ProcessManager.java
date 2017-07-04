@@ -25,7 +25,7 @@ public class ProcessManager {
     private static ProcessManager instance = null;
 
     private final DockerConnector dockerConnector = new DockerConnector();
-    private final MongoDbConnector mongoDbConnector = new MongoDbConnector();
+    private final MongoDbConnector mongoDbConnector = MongoDbConnector.getInstance();
 
     private ProcessManager() {
     }
