@@ -46,6 +46,7 @@ public class ProcessConnection {
         this.serializer.addMessageClass(SetConfigMessage.class);
         this.serializer.addMessageClass(ConnectionHandshake.class);
         this.serializer.addMessageClass(ConnectionMessage.class);
+        this.connect();
     }
 
     public void connect() {

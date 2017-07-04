@@ -221,4 +221,20 @@ public class ProcessConnector {
         this.connections.remove(processId);
     }
 
+    /**
+     * @param id
+     */
+    public void initNewProcess(final ObjectId processId) {
+        final ProcessConnection processConnection = this.getProcessConnection(processId);
+        processConnection.startProcess();
+    }
+
+    /**
+     * @param id
+     */
+    public void terminate(final ObjectId processId) {
+        final ProcessConnection processConnection = this.getProcessConnection(processId);
+        processConnection.terminateProcess();
+    }
+
 }
