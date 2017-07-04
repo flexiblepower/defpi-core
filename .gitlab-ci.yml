@@ -77,7 +77,7 @@ deploy:skeleton_proto:
   <<: *deploy 
   stage: deployservice
   script:
-    - 'mvn $MAVEN_CLI_OPTS -f skeleton_proto/pom.xml deploy'
+    - 'mvn $MAVEN_CLI_OPTS -f skeleton_proto/pom.xml clean deploy'
   dependencies:
     - test-compile:proto
 
@@ -85,6 +85,6 @@ deploy:xsd_proto:
   <<: *deploy 
   stage: deployservice
   script:
-    - 'mvn $MAVEN_CLI_OPTS -f skeleton_xsd/pom.xml deploy'
+    - 'mvn $MAVEN_CLI_OPTS -f skeleton_xsd/pom.xml clean deploy'
   dependencies:
     - test-compile:xsd
