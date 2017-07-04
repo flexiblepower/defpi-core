@@ -55,7 +55,7 @@ test-compile:proto:
   <<: *plugin
 
 #Test plugin on xsd
-test-xsd-compile:
+test-compile:xsd:
   variables:
     TEST_PROJ: skeleton_xsd
   <<: *plugin
