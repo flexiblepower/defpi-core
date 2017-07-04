@@ -57,7 +57,7 @@ test-compile:xsd:
     TEST_PROJ: skeleton_xsd
   <<: *plugin
 
-#Finally deploy stuff
+#Deploy to artifactory
 deploy:master:
   only:
     - master
@@ -85,3 +85,14 @@ deploy:xsd_proto:
   variables:
     TEST_PROJ: skeleton_xsd
   <<: *deployservice
+
+# And finally run service on def-pi1
+deploy:master:
+  image: tmaier/docker-compose:17.06
+  tags:
+    - defpi1
+  only:
+    - master
+  stage: deployservice
+  script:
+    - 'docker-compose -p def-pi -f orchestrator/docker-compose.yml -d'
