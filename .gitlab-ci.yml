@@ -95,4 +95,4 @@ deploy:orchestrator:
     - master
   stage: deployservice
   script:
-    - 'docker-compose -p def-pi -f orchestrator/docker-compose.yml -d'
+    - 'docker-compose -p def-pi -f orchestrator/docker-compose.yml up -d'
