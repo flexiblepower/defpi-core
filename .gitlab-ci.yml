@@ -24,6 +24,8 @@ cache:
  
 # Validate merge requests using JDK8
 validate:jdk8:
+  except:
+    - deploy
   stage: build
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml clean test-compile'
@@ -33,6 +35,7 @@ verify:jdk8:
   stage: test
   except:
     - master
+    - deploy
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml test'
 
@@ -40,6 +43,7 @@ verify:jdk8:
   stage: plugintest
   except:
     - master
+    - deploy
   before_script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
   script:
@@ -57,7 +61,7 @@ test-compile:xsd:
     TEST_PROJ: skeleton_xsd
   <<: *plugin
 
-#Deploy to artifactory
+#Deploy to artifactory and registry
 deploy:master:
   only:
     - master
@@ -65,6 +69,16 @@ deploy:master:
   stage: deploy
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy'
+
+deploy:ui:
+  image: docker:17.03.2-ce-git
+  only:
+    - master
+    - defpici
+  stage: deploy
+  script:
+    - 'docker build orchestrator-ui -t def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator-ui'
+    - 'docker push def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator-ui'
 
 .deploy_template: &deployservice
   only:
@@ -93,6 +107,7 @@ deploy:orchestrator:
     - defpi1
   only:
     - master
+    - deploy
   stage: deployservice
   script:
-    - 'docker-compose -p def-pi -f orchestrator/docker-compose.yml -d'
+    - 'docker-compose -p def-pi -f orchestrator/docker-compose.yml up -d'
