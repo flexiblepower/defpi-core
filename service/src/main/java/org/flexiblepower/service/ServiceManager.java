@@ -247,7 +247,7 @@ public class ServiceManager implements Closeable {
         }
 
         return ProcessStateUpdateMessage.newBuilder()
-                .setProcessId("TODO")
+                .setProcessId(this.processId)
                 .setState(ProcessState.RUNNING)
                 .build()
                 .toByteArray();
