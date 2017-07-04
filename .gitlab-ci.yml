@@ -9,7 +9,7 @@ variables:
   MAVEN_OPTS: "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true -Dmaven.repo.local=/cache/maven.repository"
   MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
 
-image: maven:3.3.9-jdk-8
+image: maven:3.5.0-jdk-8
 
 stages:
   - build
@@ -44,7 +44,6 @@ test-proto-compile:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
     - 'mvn $MAVEN_CLI_OPTS -f skeleton_proto/pom.xml -P codegen generate-sources'
   artifacts:
-    untracked: true
     paths:
       - skeleton_proto/src/*
 
@@ -57,7 +56,6 @@ test-xsd-compile:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
     - 'mvn $MAVEN_CLI_OPTS -f skeleton_xsd/pom.xml -P codegen generate-sources'
   artifacts:
-    untracked: true
     paths:
       - skeleton_xsd/src/*
 
