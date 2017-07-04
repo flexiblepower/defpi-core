@@ -77,11 +77,11 @@ deploy:skeleton_proto:
   script:
     - 'mvn $MAVEN_CLI_OPTS -f skeleton_proto/pom.xml deploy'
   dependencies:
-    - test-proto-compile
+    - test-compile:proto
 
 deploy:xsd_proto:
   <<: *deploy 
   script:
     - 'mvn $MAVEN_CLI_OPTS -f skeleton_xsd/pom.xml deploy'
   dependencies:
-    - test-xsd-compile
+    - test-compile:xsd
