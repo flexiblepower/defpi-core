@@ -87,7 +87,7 @@ deploy:xsd_proto:
   <<: *deployservice
 
 # And finally run service on def-pi1
-deploy:master:
+deploy:orchestrator:
   image: tmaier/docker-compose:17.06
   tags:
     - defpi1
