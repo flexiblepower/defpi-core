@@ -70,6 +70,17 @@ deploy:master:
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy'
 
+deploy:ui:
+  image: docker:17.03.2-ce-git
+  only:
+    - master
+    - defpici
+    - deploy
+  stage: deploy
+  script:
+    - 'docker build orchestrator-ui -t def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator-ui'
+    - 'docker push def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator-ui'
+
 .deploy_template: &deployservice
   only:
     - master
