@@ -18,13 +18,13 @@
 		<mainClass>org.flexiblepower.orchestrator.Main</mainClass>
 		<docker.imageName>${docker.registry}/defpi/${project.artifactId}:${project.version}</docker.imageName>
 	</properties>
-	
+
 	<dependencies>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 		</dependency>
-	
+
 		<!-- Jetty HTTP server hosting the UI -->
 		<dependency>
 			<groupId>org.glassfish.jersey.core</groupId>
@@ -54,7 +54,7 @@
 			<groupId>org.flexiblepower</groupId>
 			<artifactId>api</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.flexiblepower</groupId>
 			<artifactId>commons</artifactId>
@@ -101,6 +101,20 @@
 			<plugin>
 				<groupId>com.spotify</groupId>
 				<artifactId>docker-maven-plugin</artifactId>
+				<configuration>
+					<resources>
+						<resource>
+							<targetPath>/</targetPath>
+							<directory>${project.basedir}</directory>
+							<include>def-pi-cacert.crt</include>
+						</resource>
+						<resource>
+							<targetPath>/</targetPath>
+							<directory>${project.build.directory}</directory>
+							<include>packaged-jar-with-dependencies.jar</include>
+						</resource>
+					</resources>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
