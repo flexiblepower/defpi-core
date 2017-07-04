@@ -1,9 +1,0 @@
-#!/bin/bash
-mvn clean package 
-
-export DOCKER_HOST=efpi-rd2.sensorlab.tno.nl:2375 
-docker rm -f orchestrator
-docker pull hub.servicelab.org/dsefpi/orchestrator
-docker run -d --name orchestrator --net=overlay -p 0.0.0.0:80:80 hub.servicelab.org/dsefpi/orchestrator
-
-unset DOCKER_HOST

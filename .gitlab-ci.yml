@@ -16,6 +16,7 @@ stages:
   - test
   - plugintest
   - deploy
+  - deployservice
 
 cache:
   paths:
@@ -62,26 +63,28 @@ test-compile:xsd:
 
 #Finally deploy stuff
 .deploy_template: &deploy
-  stage: deploy
   only:
     - master
     - defpici
 
 deploy:master:
-  <<: *deploy 
+  <<: *deploy
+  stage: deploy
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy'
 
 deploy:skeleton_proto:
   <<: *deploy 
+  stage: deployservice
   script:
-    - 'mvn $MAVEN_CLI_OPTS -f skeleton_proto/pom.xml deploy'
+    - 'mvn $MAVEN_CLI_OPTS -f skeleton_proto/pom.xml clean deploy'
   dependencies:
     - test-compile:proto
 
 deploy:xsd_proto:
   <<: *deploy 
+  stage: deployservice
   script:
-    - 'mvn $MAVEN_CLI_OPTS -f skeleton_xsd/pom.xml deploy'
+    - 'mvn $MAVEN_CLI_OPTS -f skeleton_xsd/pom.xml clean deploy'
   dependencies:
     - test-compile:xsd
