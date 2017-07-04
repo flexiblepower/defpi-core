@@ -10,13 +10,13 @@
 	<parent>
 		<groupId>org.flexiblepower</groupId>
 		<artifactId>defpi-parent</artifactId>
-		<version>0.2.0-SNAPSHOT</version>
+		<version>0.2.1-SNAPSHOT</version>
 		<relativePath>../master/defpi-parent</relativePath>
 	</parent>
 
 	<properties>
 		<mainClass>org.flexiblepower.orchestrator.Main</mainClass>
-		<docker.imageName>${docker.registry}/defpi/${project.artifactId}</docker.imageName>
+		<docker.imageName>${docker.registry}/defpi/${project.artifactId}:${project.version}</docker.imageName>
 	</properties>
 
 	<dependencies>
@@ -101,7 +101,7 @@
 			</plugin>
 			<plugin>
 				<groupId>com.spotify</groupId>
-				<artifactId>dockerfile-maven-plugin</artifactId>
+				<artifactId>docker-maven-plugin</artifactId>
 			</plugin>
 		</plugins>
 	</build>

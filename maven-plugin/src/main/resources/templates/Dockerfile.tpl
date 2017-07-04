@@ -3,9 +3,9 @@
 
 FROM {{from}}
 
-ADD packaged-jar-with-dependencies.jar /
+ADD ${project.artifactId}-${project.version}-jar-with-dependencies.jar /
 
 LABEL org.flexiblepower.serviceName="{{service.name}}" 
 LABEL org.flexiblepower.interfaces='{{interfaces}}' 
 
-ENTRYPOINT ["java", "-jar", "/packaged-jar-with-dependencies.jar"]
+ENTRYPOINT ["java", "-jar", "/${project.artifactId}-${project.version}-jar-with-dependencies.jar"]

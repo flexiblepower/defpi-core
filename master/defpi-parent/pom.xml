@@ -11,7 +11,7 @@
 	<parent>
 		<groupId>org.flexiblepower</groupId>
 		<artifactId>master</artifactId>
-		<version>0.2.0-SNAPSHOT</version>
+		<version>0.2.1-SNAPSHOT</version>
 		<relativePath>..</relativePath>
 	</parent>
 
