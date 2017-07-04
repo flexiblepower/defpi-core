@@ -16,6 +16,8 @@ import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.model.User;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * ProcessManager
  *
@@ -23,6 +25,7 @@ import org.flexiblepower.model.User;
  * @version 0.1
  * @since May 29, 2017
  */
+@Slf4j
 public class ProcessManager {
 
     private static ProcessManager instance = null;
@@ -124,7 +127,12 @@ public class ProcessManager {
 
     public void deleteProcess(final Process process) {
         // Notify process
-        ProcessConnector.getInstance().terminate(process.getId());
+        try {
+            ProcessConnector.getInstance().terminate(process.getId());
+        } catch (final Exception e) {
+            // If notification doesn't work, that's too bad, make sure it gets removed anyway
+            ProcessManager.log.warn("Could not notify process it is going to terminate. Terminating anyway.", e);
+        }
 
         // Now give it some time to shut down
         this.threadpool.schedule(() -> {
