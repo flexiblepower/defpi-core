@@ -6,10 +6,10 @@
 # since: 2-6-2017
 
 variables:
-  MAVEN_OPTS: "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true -Dmaven.repo.local=./cache/maven.repository"
+  MAVEN_OPTS: "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true -Dmaven.repo.local=/cache/maven.repository"
   MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
 
-image: maven:3.3.9-jdk-8
+image: maven:3.5.0-jdk-8
 
 stages:
   - build
@@ -18,10 +18,8 @@ stages:
   - deploy
 
 cache:
-  untracked: true
   paths:
-    - ./cache/maven.repository
-    - ./*/target
+    - /cache/maven.repository
  
 # Validate merge requests using JDK8
 validate:jdk8:
@@ -37,46 +35,53 @@ verify:jdk8:
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml test'
 
-#Test plugin on xsd
-test-proto-compile:
+.plugin_template: &plugin
   stage: plugintest
   except:
     - master
-  script:
+  before_script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
-    - 'mvn $MAVEN_CLI_OPTS -f skeleton_proto/pom.xml -P codegen generate-sources'
+  script:
+    - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml -P codegen generate-sources'
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - "$TEST_PROJ/src"
+
+#Test plugin on xsd
+test-compile:proto:
+  variables:
+    TEST_PROJ: skeleton_proto
+  <<: *plugin
 
 #Test plugin on xsd
 test-xsd-compile:
-  stage: plugintest
-  except:
-    - master
-  script:
-    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
-    - 'mvn $MAVEN_CLI_OPTS -f skeleton_xsd/pom.xml -P codegen generate-sources'
+  variables:
+    TEST_PROJ: skeleton_xsd
+  <<: *plugin
 
 #Finally deploy stuff
-deploy:
+.deploy_template: &deploy
   stage: deploy
   only:
     - master
+    - defpici
+
+deploy:master:
+  <<: *deploy 
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy'
 
-deploy-proto-skeleton:
-  stage: deploy
-  only:
-    - master
+deploy:skeleton_proto:
+  <<: *deploy 
   script:
-    - 'find .'
-    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
     - 'mvn $MAVEN_CLI_OPTS -f skeleton_proto/pom.xml deploy'
+  dependencies:
+    - test-proto-compile
 
-deploy-xsd-skeleton:
-  stage: deploy
-  only:
-    - master
+deploy:skeleton_proto:
+  <<: *deploy 
   script:
-    - 'find .'
-    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
     - 'mvn $MAVEN_CLI_OPTS -f skeleton_xsd/pom.xml deploy'
+  dependencies:
+    - test-xsd-compile
