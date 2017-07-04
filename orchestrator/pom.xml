@@ -112,7 +112,7 @@
 						<resource>
 							<targetPath>/</targetPath>
 							<directory>${project.build.directory}</directory>
-							<include>packaged-jar-with-dependencies.jar</include>
+							<include>*-jar-with-dependencies.jar</include>
 						</resource>
 					</resources>
 				</configuration>
