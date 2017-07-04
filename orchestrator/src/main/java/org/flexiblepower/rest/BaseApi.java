@@ -28,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class BaseApi {
 
     @Deprecated // Alleen toegang via managers, niet direct!
-    protected final MongoDbConnector db = new MongoDbConnector();
+    protected final MongoDbConnector db = MongoDbConnector.getInstance();
 
     protected final User loggedInUser;
 

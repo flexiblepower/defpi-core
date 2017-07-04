@@ -1,6 +1,5 @@
 package org.flexiblepower.orchestrator;
 
-import java.io.Closeable;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -32,15 +31,17 @@ import lombok.extern.slf4j.Slf4j;
  * @since Mar 29, 2017
  */
 @Slf4j
-public final class MongoDbConnector implements Closeable {
+public final class MongoDbConnector {
 
     // private final static String host = "efpi-rd1.sensorlab.tno.nl";
     private final static String MONGO_HOST_KEY = "MONGO_HOST";
-    private final static String MONGO_HOST_DFLT = "172.17.0.3";
+    private final static String MONGO_HOST_DFLT = "localhost";
     private final static String MONGO_PORT_KEY = "MONGO_PORT";
     private final static String MONGO_PORT_DFLT = "27017";
     private final static String MONGO_DATABASE_KEY = "MONGO_DATABASE";
     private final static String MONGO_DATABASE_DFLT = "def-pi";
+
+    private static MongoDbConnector instance = null;
 
     private final MongoClient client;
     private final Datastore datastore;
@@ -51,7 +52,7 @@ public final class MongoDbConnector implements Closeable {
     private String mongoHost;
     private String mongoPort;
 
-    public MongoDbConnector() {
+    private MongoDbConnector() {
         this.mongoHost = System.getenv(MongoDbConnector.MONGO_HOST_KEY);
         if (this.mongoHost == null) {
             this.mongoHost = MongoDbConnector.MONGO_HOST_DFLT;
@@ -78,7 +79,13 @@ public final class MongoDbConnector implements Closeable {
         this.datastore.ensureIndexes();
     }
 
-    @Override
+    public static MongoDbConnector getInstance() {
+        if (MongoDbConnector.instance == null) {
+            MongoDbConnector.instance = new MongoDbConnector();
+        }
+        return MongoDbConnector.instance;
+    }
+
     public void close() {
         this.client.close();
     }

@@ -15,6 +15,8 @@ import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
 import org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage;
+import org.flexiblepower.proto.ServiceProto.ProcessState;
+import org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage;
 import org.flexiblepower.proto.ServiceProto.ResumeProcessMessage;
 import org.flexiblepower.proto.ServiceProto.SetConfigMessage;
 import org.flexiblepower.serializers.JavaIOSerializer;
@@ -53,6 +55,7 @@ public class ServiceManager implements Closeable {
     // private final Class<? extends Service> serviceClass;
     private boolean configured;
     private volatile boolean keepThreadAlive;
+    private String processId;
     private final Thread managerThread;
 
     private final ConnectionManager connectionManager;
@@ -149,8 +152,7 @@ public class ServiceManager implements Closeable {
 
         try {
             final SetConfigMessage msg = SetConfigMessage.parseFrom(data);
-            this.handleSetConfigMessage(msg);
-            return ServiceManager.SUCCESS;
+            return this.handleSetConfigMessage(msg);
         } catch (final InvalidProtocolBufferException e) {
             // Not this type of message, try next
         }
@@ -225,10 +227,12 @@ public class ServiceManager implements Closeable {
      * @return
      * @throws ServiceInvocationException
      */
-    private void handleSetConfigMessage(final SetConfigMessage message) throws ServiceInvocationException {
+    private byte[] handleSetConfigMessage(final SetConfigMessage message) throws ServiceInvocationException {
         ServiceManager.log.info("Received SetConfigMessage for process {}", message.getProcessId());
         ServiceManager.log.debug("Properties to set: {}", message.getConfig());
         ServiceManager.log.trace("Received message: {}", message);
+
+        this.processId = message.getProcessId();
 
         final Properties props = new Properties();
         message.getConfig().forEach((key, value) -> {
@@ -241,6 +245,12 @@ public class ServiceManager implements Closeable {
         } else {
             this.service.modify(props);
         }
+
+        return ProcessStateUpdateMessage.newBuilder()
+                .setProcessId(this.processId)
+                .setState(ProcessState.RUNNING)
+                .build()
+                .toByteArray();
     }
 
 }

@@ -44,7 +44,7 @@ public class NodeManager {
         return NodeManager.instance;
     }
 
-    private final MongoDbConnector db = new MongoDbConnector();
+    private final MongoDbConnector db = MongoDbConnector.getInstance();
     private final DockerConnector docker = new DockerConnector();
 
     private NodeManager() {

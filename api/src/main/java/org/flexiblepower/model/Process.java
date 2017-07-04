@@ -6,6 +6,7 @@
 package org.flexiblepower.model;
 
 import java.util.List;
+import java.util.Map;
 
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.annotations.Entity;
@@ -78,5 +79,7 @@ public class Process {
 	 * state is not RUNNING.
 	 */
 	private String runningDockerNodeId;
+
+	private Map<String, String> configuration;
 
 }

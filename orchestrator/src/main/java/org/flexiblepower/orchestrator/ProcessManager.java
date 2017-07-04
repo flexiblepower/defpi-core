@@ -6,12 +6,17 @@
 package org.flexiblepower.orchestrator;
 
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.model.User;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * ProcessManager
@@ -20,12 +25,14 @@ import org.flexiblepower.model.User;
  * @version 0.1
  * @since May 29, 2017
  */
+@Slf4j
 public class ProcessManager {
 
     private static ProcessManager instance = null;
 
     private final DockerConnector dockerConnector = new DockerConnector();
-    private final MongoDbConnector mongoDbConnector = new MongoDbConnector();
+    private final MongoDbConnector mongoDbConnector = MongoDbConnector.getInstance();
+    private final ScheduledExecutorService threadpool = Executors.newScheduledThreadPool(1);
 
     private ProcessManager() {
     }
@@ -69,13 +76,21 @@ public class ProcessManager {
         process.setState(ProcessState.STARTING);
         this.mongoDbConnector.save(process);
 
-        // Now create the process in Docker
-        final User user = this.mongoDbConnector.getUser(process.getUserId());
-        final String dockerId = this.dockerConnector.newProcess(process, user);
+        this.threadpool.execute(() -> {
+            // Now create the process in Docker
+            final User user = MongoDbConnector.getInstance().getUser(process.getUserId());
+            final String dockerId = ProcessManager.this.dockerConnector.newProcess(process, user);
 
-        process.setState(ProcessState.INITIALIZING);
-        process.setDockerId(dockerId);
-        this.mongoDbConnector.save(process);
+            process.setState(ProcessState.INITIALIZING);
+            process.setDockerId(dockerId);
+            MongoDbConnector.getInstance().save(process);
+
+            ProcessManager.this.threadpool.execute(() -> {
+                // Create management connection
+                ProcessConnector.getInstance().initNewProcess(process.getId());
+            });
+
+        });
 
         return process;
     }
@@ -111,14 +126,25 @@ public class ProcessManager {
     }
 
     public void deleteProcess(final Process process) {
-        // TODO notify process
-        // TODO update state
+        // Notify process
         try {
-            this.dockerConnector.removeProcess(process);
-        } catch (final ProcessNotFoundException e) {
-            // That's fine, we didn't want it anyway
+            ProcessConnector.getInstance().terminate(process.getId());
+        } catch (final Exception e) {
+            // If notification doesn't work, that's too bad, make sure it gets removed anyway
+            ProcessManager.log.warn("Could not notify process it is going to terminate. Terminating anyway.", e);
         }
-        this.mongoDbConnector.delete(process);
+
+        // Now give it some time to shut down
+        this.threadpool.schedule(() -> {
+            // Delete Docker service
+            try {
+                this.dockerConnector.removeProcess(process);
+            } catch (final ProcessNotFoundException e) {
+                // That's fine, we didn't want it anyway
+            }
+            // Delete record from MongoDB
+            this.mongoDbConnector.delete(process);
+        }, 5, TimeUnit.SECONDS);
     }
 
     public Process updateProcess(final Process process) {

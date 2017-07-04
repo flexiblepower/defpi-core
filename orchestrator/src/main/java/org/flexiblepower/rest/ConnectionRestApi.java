@@ -12,19 +12,19 @@ import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
-import org.flexiblepower.orchestrator.ConnectionManager;
+import org.flexiblepower.orchestrator.ProcessConnector;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ConnectionRestApi extends BaseApi implements ConnectionApi {
 
-    private final ConnectionManager connections;
+    private final ProcessConnector connections;
 
     protected ConnectionRestApi(@Context final HttpHeaders httpHeaders,
             @Context final SecurityContext securityContext) {
         super(httpHeaders, securityContext);
-        this.connections = new ConnectionManager();
+        this.connections = ProcessConnector.getInstance();
     }
 
     @Override
