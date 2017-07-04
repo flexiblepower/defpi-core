@@ -64,8 +64,7 @@ public class NodeManager {
             if (node == null) {
                 pn.setStatus(DockerNodeStatus.MISSING);
             } else {
-                // TODO status
-                pn.setStatus(DockerNodeStatus.UNKNOWN);
+                pn.setStatus(DockerNodeStatus.fromString(node.status().state()));
                 pn.setHostname(node.description().hostname());
                 pn.setArchitecture(Architecture.fromString(node.description().platform().architecture()));
             }
@@ -80,8 +79,7 @@ public class NodeManager {
             if (node == null) {
                 pn.setStatus(DockerNodeStatus.MISSING);
             } else {
-                // TODO status
-                pn.setStatus(DockerNodeStatus.UNKNOWN);
+                pn.setStatus(DockerNodeStatus.fromString(node.status().state()));
                 pn.setHostname(node.description().hostname());
                 pn.setArchitecture(Architecture.fromString(node.description().platform().architecture()));
             }
@@ -97,8 +95,7 @@ public class NodeManager {
                 // Node was unidentified, now it's gone. Remove from db.
                 this.db.delete(un);
             } else {
-                // TODO status
-                un.setStatus(DockerNodeStatus.UNKNOWN);
+                un.setStatus(DockerNodeStatus.fromString(node.status().state()));
                 un.setHostname(node.description().hostname());
                 un.setLastSync(new Date());
                 dockerNodes.remove(un.getDockerId());
