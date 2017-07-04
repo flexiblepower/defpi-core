@@ -102,6 +102,20 @@
 			<plugin>
 				<groupId>com.spotify</groupId>
 				<artifactId>docker-maven-plugin</artifactId>
+				<configuration>
+					<resources>
+						<resource>
+							<targetPath>/</targetPath>
+							<directory>${project.basedir}</directory>
+							<include>def-pi-cacert.crt</include>
+						</resource>
+						<resource>
+							<targetPath>/</targetPath>
+							<directory>${project.build.directory}</directory>
+							<include>*-jar-with-dependencies.jar</include>
+						</resource>
+					</resources>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

@@ -54,7 +54,8 @@ public class Main {
      *
      */
     private static void ensureAdminUserExists() {
-        try (MongoDbConnector db = new MongoDbConnector()) {
+        try {
+            final MongoDbConnector db = MongoDbConnector.getInstance();
             if (db.getUser(Main.ROOT_USER, Main.ROOT_PASSWORD) == null) {
                 final User root = new User(Main.ROOT_USER, Main.ROOT_PASSWORD);
                 root.setPasswordHash();

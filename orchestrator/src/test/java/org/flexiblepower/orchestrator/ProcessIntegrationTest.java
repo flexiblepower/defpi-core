@@ -44,8 +44,8 @@ public class ProcessIntegrationTest {
 
         final NodeManager nm = NodeManager.getInstance();
         final ProcessManager pm = ProcessManager.getInstance();
-        final ConnectionManager cm = new ConnectionManager();
-        final MongoDbConnector mdc = new MongoDbConnector();
+        final ProcessConnector cm = ProcessConnector.getInstance();
+        final MongoDbConnector mdc = MongoDbConnector.getInstance();
 
         final Service service = ServiceManager.getInstance().getService("echo:0.0.1");
         User user = mdc.getUser(ProcessIntegrationTest.TEST_USER, ProcessIntegrationTest.TEST_PASS);
