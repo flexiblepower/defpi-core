@@ -35,57 +35,53 @@ verify:jdk8:
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml test'
 
-#Test plugin on xsd
-test-proto-compile:
+.plugin_template: &plugin
   stage: plugintest
   except:
     - master
-  script:
+  before_script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
-    - 'mvn $MAVEN_CLI_OPTS -f skeleton_proto/pom.xml -P codegen generate-sources'
+  script:
+    - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml -P codegen generate-sources'
   artifacts:
+    expire_in: 1 week
     paths:
-      - skeleton_proto/src/*
+      - "$TEST_PROJ/src"
+
+#Test plugin on xsd
+test-compile:proto:
+  variables:
+    TEST_PROJ: skeleton_proto
+  <<: *plugin
 
 #Test plugin on xsd
 test-xsd-compile:
-  stage: plugintest
-  except:
-    - master
-  script:
-    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
-    - 'mvn $MAVEN_CLI_OPTS -f skeleton_xsd/pom.xml -P codegen generate-sources'
-  artifacts:
-    paths:
-      - skeleton_xsd/src/*
+  variables:
+    TEST_PROJ: skeleton_xsd
+  <<: *plugin
 
 #Finally deploy stuff
-deploy:
+.deploy_template: &deploy
   stage: deploy
   only:
     - master
     - defpici
+
+deploy:master:
+  <<: *deploy 
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy'
 
-deploy-proto-skeleton:
-  stage: deploy
-  only:
-    - master
-    - defpici
+deploy:skeleton_proto:
+  <<: *deploy 
   script:
-    - 'find .'
     - 'mvn $MAVEN_CLI_OPTS -f skeleton_proto/pom.xml deploy'
   dependencies:
     - test-proto-compile
 
-deploy-xsd-skeleton:
-  stage: deploy
-  only:
-    - master
-    - defpici
+deploy:skeleton_proto:
+  <<: *deploy 
   script:
-    - 'find .'
     - 'mvn $MAVEN_CLI_OPTS -f skeleton_xsd/pom.xml deploy'
   dependencies:
     - test-xsd-compile
