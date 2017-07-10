@@ -89,7 +89,14 @@
 			<groupId>com.spotify</groupId>
 			<artifactId>docker-client</artifactId>
 			<version>8.8.1-SNAPSHOT</version>
+			<exclusions>
+				<exclusion>
+					<groupId>ch.qos.logback</groupId>
+					<artifactId>logback-classic</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
+
 
 	</dependencies>
 
@@ -113,6 +120,11 @@
 							<targetPath>/</targetPath>
 							<directory>${project.build.directory}</directory>
 							<include>*-jar-with-dependencies.jar</include>
+						</resource>
+						<resource>
+							<targetPath>/</targetPath>
+							<directory>${project.basedir}/src/main/resources</directory>
+							<include>log4j2.xml</include>
 						</resource>
 					</resources>
 				</configuration>
