@@ -87,6 +87,7 @@ public class ProcessManager {
 
             ProcessManager.this.threadpool.execute(() -> {
                 // Create management connection
+                ProcessManager.log.info("Going to configure process " + process.getId());
                 ProcessConnector.getInstance().initNewProcess(process.getId());
             });
 

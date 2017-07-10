@@ -85,14 +85,14 @@ public class ProcessConnector {
                     pc1.setUpConnection(connection.getId(),
                             port1,
                             version1.getSendsHash(),
-                            process2.getRunningDockerNodeId(),
+                            process2.getId().toString(),
                             port2,
                             version2.getReceivesHash());
 
                     pc2.setUpConnection(connection.getId(),
                             port2,
                             version2.getSendsHash(),
-                            process1.getRunningDockerNodeId(),
+                            process1.getId().toString(),
                             port1,
                             version1.getReceivesHash());
 

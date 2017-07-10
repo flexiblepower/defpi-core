@@ -48,6 +48,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 class DockerConnector {
 
+    /**
+     *
+     */
+    private static final String ORCHESTRATOR_NETWORK_NAME = "orchestrator";
+
     // private static final String CERT_PATH = "C:\\Users\\leeuwencjv\\.docker\\machine\\machines\\default";
     private static final String DOCKER_HOST_KEY = "DOCKER_HOST";
 
@@ -100,9 +105,10 @@ class DockerConnector {
     public String newProcess(final Process process, final User user) {
         try {
             this.ensureUserNetworkExists(user);
+            this.ensureOrchestratorNetworkExists();
             final Service service = ServiceManager.getInstance().getService(process.getServiceId());
             final Node node = DockerConnector.determineRunningNode(process);
-            final ServiceSpec serviceSpec = DockerConnector.createServiceSpec(service, user, node);
+            final ServiceSpec serviceSpec = DockerConnector.createServiceSpec(process, service, user, node);
             final String id = this.client.createService(serviceSpec).id();
             DockerConnector.log.info("Created process with Id {}", id);
             return id;
@@ -143,6 +149,15 @@ class DockerConnector {
                 throw new ApiException(e);
             }
         }
+    }
+
+    public void ensureOrchestratorNetworkExists() {
+        for (final String networkName : this.listNetworks().values()) {
+            if (networkName.equals(DockerConnector.ORCHESTRATOR_NETWORK_NAME)) {
+                return;
+            }
+        }
+        this.newNetwork(DockerConnector.ORCHESTRATOR_NETWORK_NAME);
     }
 
     public void ensureUserNetworkExists(final User user) {
@@ -261,7 +276,10 @@ class DockerConnector {
      * @param process
      * @return
      */
-    private static ServiceSpec createServiceSpec(final Service service, final User user, final Node node) {
+    private static ServiceSpec createServiceSpec(final Process process,
+            final Service service,
+            final User user,
+            final Node node) {
 
         final Architecture architecture = node.getArchitecture();
         // Create a name for the service by removing blanks from process name
@@ -298,9 +316,14 @@ class DockerConnector {
         // }
 
         // Add the network attachment to place process in user network
+        final NetworkAttachmentConfig orchestratornet = NetworkAttachmentConfig.builder()
+                .target(DockerConnector.ORCHESTRATOR_NETWORK_NAME)
+                .aliases(process.getId().toString())
+                .build();
+
         final NetworkAttachmentConfig usernet = NetworkAttachmentConfig.builder()
                 .target(user.getUsername() + "-net")
-                .aliases(serviceName)
+                .aliases(process.getId().toString())
                 .build();
 
         return ServiceSpec.builder()
@@ -308,7 +331,7 @@ class DockerConnector {
                 .labels(serviceLabels)
                 .taskTemplate(taskTemplate)
                 .endpointSpec(endpointSpec.build())
-                .networks(usernet)
+                .networks(orchestratornet, usernet)
                 .build();
     }
 

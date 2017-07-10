@@ -28,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ProcessConnection {
 
-    private static int MANAGEMENT_SOCKET_SEND_TIMEOUT = 1000;
+    private static int MANAGEMENT_SOCKET_SEND_TIMEOUT = 10000;
     private static int MANAGEMENT_SOCKET_RECV_TIMEOUT = 1000;
     private static int MANAGEMENT_PORT = 4999;
 
@@ -39,6 +39,7 @@ public class ProcessConnection {
     private ByteString suspendState;
 
     public ProcessConnection(final ObjectId processId) {
+        ProcessConnection.log.debug("Creating new ProcessConnection for process " + processId);
         this.processId = processId;
         this.serializer.addMessageClass(GoToProcessStateMessage.class);
         this.serializer.addMessageClass(ResumeProcessMessage.class);
@@ -46,21 +47,27 @@ public class ProcessConnection {
         this.serializer.addMessageClass(SetConfigMessage.class);
         this.serializer.addMessageClass(ConnectionHandshake.class);
         this.serializer.addMessageClass(ConnectionMessage.class);
-        this.connect();
+        this.connectWithProcess();
     }
 
-    public void connect() {
-        final Process process = ProcessManager.getInstance().getProcess(this.processId);
-        if (process == null) {
-            throw new IllegalArgumentException("Provided ObjectId for Process " + this.processId + " does not exist");
-        }
-        this.uri = String.format("tcp://%s:%d", process.getDockerId(), ProcessConnection.MANAGEMENT_PORT);
+    public void connectWithProcess() {
+        try {
+            final Process process = ProcessManager.getInstance().getProcess(this.processId);
+            if (process == null) {
+                throw new IllegalArgumentException(
+                        "Provided ObjectId for Process " + this.processId + " does not exist");
+            }
+            this.uri = String.format("tcp://%s:%d", process.getId().toString(), ProcessConnection.MANAGEMENT_PORT);
 
-        this.socket = ZMQ.context(1).socket(ZMQ.REQ);
-        this.socket.setDelayAttachOnConnect(true);
-        this.socket.connect(this.uri.toString());
-        this.socket.setSendTimeOut(ProcessConnection.MANAGEMENT_SOCKET_SEND_TIMEOUT);
-        this.socket.setReceiveTimeOut(ProcessConnection.MANAGEMENT_SOCKET_RECV_TIMEOUT);
+            this.socket = ZMQ.context(1).socket(ZMQ.REQ);
+            this.socket.setDelayAttachOnConnect(true);
+            this.socket.connect(this.uri.toString());
+            this.socket.setSendTimeOut(ProcessConnection.MANAGEMENT_SOCKET_SEND_TIMEOUT);
+            this.socket.setReceiveTimeOut(ProcessConnection.MANAGEMENT_SOCKET_RECV_TIMEOUT);
+            ProcessConnection.log.debug("Connecting with process on address " + this.uri);
+        } catch (final Throwable t) {
+            ProcessConnection.log.error("Could not connect with container ", t);
+        }
     }
 
     public void setUpConnection(final ObjectId connectionId,
@@ -109,6 +116,8 @@ public class ProcessConnection {
             builder.putAllConfig(process.getConfiguration());
         }
         final SetConfigMessage msg = builder.build();
+
+        ProcessConnection.log.info("Starting process " + this.processId);
 
         final ProcessStateUpdateMessage response = this.send(msg, ProcessStateUpdateMessage.class);
         if (response != null) {
@@ -187,6 +196,7 @@ public class ProcessConnection {
     private <T> T send(final GeneratedMessage msg, final Class<T> expected) {
         this.socket.send(this.serializer.serialize(msg));
         final byte[] recv = this.socket.recv();
+        // TODO could be null
         try {
             final GeneratedMessage m = this.serializer.deserialize(recv);
             if (expected.isInstance(m)) {
