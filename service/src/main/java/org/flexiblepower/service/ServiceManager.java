@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Socket;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import zmq.ZError;
@@ -48,8 +49,6 @@ public class ServiceManager implements Closeable {
      */
     private static final int MANAGEMENT_SOCKET_RECEIVE_TIMEOUT = 100;
 
-    public static final byte[] SUCCESS = new byte[] {0};
-    public static final byte[] FAILURE = new byte[] {1};
     public static final int MANAGEMENT_PORT = 4999;
 
     // private final Class<? extends Service> serviceClass;
@@ -92,7 +91,7 @@ public class ServiceManager implements Closeable {
                 } catch (final Exception e) {
                     ServiceManager.log.error("Exception handling message: {}", e.getMessage());
                     ServiceManager.log.trace("Exception handing message", e);
-                    this.managementSocket.send(ServiceManager.FAILURE);
+                    this.managementSocket.send(new byte[] {0});
                 }
             }
             ServiceManager.log.trace("End of thread");
@@ -144,8 +143,7 @@ public class ServiceManager implements Closeable {
 
         try {
             final ResumeProcessMessage msg = ResumeProcessMessage.parseFrom(data);
-            this.handleResumeProcessMessage(msg);
-            return ServiceManager.SUCCESS;
+            return this.handleResumeProcessMessage(msg);
         } catch (final InvalidProtocolBufferException e) {
             // Not this type of message, try next
         }
@@ -184,19 +182,19 @@ public class ServiceManager implements Closeable {
             // This is basically a "force start" with no configuration
             this.service.init(new Properties());
             this.configured = true;
-            return ServiceManager.SUCCESS;
+            return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
 
         case SUSPENDED:
             final Serializable state = this.service.suspend();
             this.connectionManager.close();
             this.keepThreadAlive = false;
-            return this.javaIoSerializer.serialize(state);
+            return this.createProcessStateUpdateMessage(ProcessState.SUSPENDED, this.javaIoSerializer.serialize(state));
 
         case TERMINATED:
             this.service.terminate();
             this.connectionManager.close();
             this.keepThreadAlive = false;
-            return ServiceManager.SUCCESS;
+            return this.createProcessStateUpdateMessage(ProcessState.TERMINATED);
 
         case STARTING:
         case INITIALIZING:
@@ -210,13 +208,14 @@ public class ServiceManager implements Closeable {
      * @param msg
      * @throws ServiceInvocationException
      */
-    private void handleResumeProcessMessage(final ResumeProcessMessage msg) throws ServiceInvocationException {
+    private byte[] handleResumeProcessMessage(final ResumeProcessMessage msg) throws ServiceInvocationException {
         ServiceManager.log.info("Received ResumeProcessMessage for process {}", msg.getProcessId());
         ServiceManager.log.trace("Received message: {}", msg);
 
         try {
             final Serializable state = this.javaIoSerializer.deserialize(msg.getStateData().toByteArray());
             this.service.resumeFrom(state);
+            return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
         } catch (final Exception e) {
             throw new ServiceInvocationException("Error while resuming process", e);
         }
@@ -246,9 +245,24 @@ public class ServiceManager implements Closeable {
             this.service.modify(props);
         }
 
+        return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
+    }
+
+    private byte[] createProcessStateUpdateMessage(final ProcessState processState) {
+        return this.createProcessStateUpdateMessage(processState, null);
+    }
+
+    private byte[] createProcessStateUpdateMessage(final ProcessState processState, final byte[] data) {
+        ByteString byteString;
+        if ((data == null) || (data.length == 0)) {
+            byteString = ByteString.EMPTY;
+        } else {
+            byteString = ByteString.copyFrom(data);
+        }
         return ProcessStateUpdateMessage.newBuilder()
                 .setProcessId(this.processId)
-                .setState(ProcessState.RUNNING)
+                .setState(processState)
+                .setStateData(byteString)
                 .build()
                 .toByteArray();
     }
