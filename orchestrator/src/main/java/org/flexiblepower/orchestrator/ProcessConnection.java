@@ -17,7 +17,7 @@ import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Socket;
 
 import com.google.protobuf.ByteString;
-import com.google.protobuf.GeneratedMessage;
+import com.google.protobuf.Message;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,7 +32,7 @@ public class ProcessConnection {
     private static int MANAGEMENT_SOCKET_RECV_TIMEOUT = 1000;
     private static int MANAGEMENT_PORT = 4999;
 
-    private final ProtobufMessageSerializer<GeneratedMessage> serializer = new ProtobufMessageSerializer<>();
+    private final ProtobufMessageSerializer serializer = new ProtobufMessageSerializer();
     private Socket socket = null;
     private final ObjectId processId;
     private String uri;
@@ -193,12 +193,16 @@ public class ProcessConnection {
     }
 
     @SuppressWarnings("unchecked")
-    private <T> T send(final GeneratedMessage msg, final Class<T> expected) {
-        this.socket.send(this.serializer.serialize(msg));
-        final byte[] recv = this.socket.recv();
-        // TODO could be null
+    private <T> T send(final Message msg, final Class<T> expected) {
         try {
-            final GeneratedMessage m = this.serializer.deserialize(recv);
+            this.socket.send(this.serializer.serialize(msg));
+        } catch (final SerializationException e1) {
+            ProcessConnection.log.error("Could not serialize message", e1);
+        }
+        final byte[] recv = this.socket.recv();
+        // TODO could be null?
+        try {
+            final Message m = this.serializer.deserialize(recv);
             if (expected.isInstance(m)) {
                 return (T) m;
             } else {

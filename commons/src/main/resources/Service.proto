@@ -34,3 +34,8 @@ message SetConfigMessage {
   required bool isUpdate = 2; 
   map<string, string> config = 3;
 }
+
+message ErrorMessage {
+  required string processId = 1;
+  required string debugInformation = 2;
+}

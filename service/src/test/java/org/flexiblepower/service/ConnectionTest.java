@@ -49,13 +49,13 @@ public class ConnectionTest {
 
     private Socket out;
     private Socket in;
-    private ProtobufMessageSerializer<ConnectionHandshake> serializer;
+    private ProtobufMessageSerializer serializer;
 
     @Before
     public void initConnection() throws UnknownHostException, InterruptedException {
         this.testService = new TestService();
         this.manager = new ServiceManager(this.testService);
-        this.serializer = new ProtobufMessageSerializer<>();
+        this.serializer = new ProtobufMessageSerializer();
         this.serializer.addMessageClass(ConnectionHandshake.class);
 
         final String managementURI = String.format("tcp://%s:%d",
@@ -81,7 +81,7 @@ public class ConnectionTest {
         final byte[] response = this.managementSocket.recv();
         ConnectionHandshake message = null;
         try {
-            message = this.serializer.deserialize(response);
+            message = (ConnectionHandshake) this.serializer.deserialize(response);
         } catch (final SerializationException e) {
             System.out.println("Message: " + response);
             e.printStackTrace();
@@ -166,7 +166,7 @@ public class ConnectionTest {
                 .toByteArray()));
 
         byte[] recv = this.managementSocket.recv();
-        ConnectionHandshake acknowledgement = this.serializer.deserialize(recv);
+        ConnectionHandshake acknowledgement = (ConnectionHandshake) this.serializer.deserialize(recv);
         Assert.assertEquals(ConnectionState.SUSPENDED, acknowledgement.getConnectionState());
         Assert.assertEquals("connection-suspended", this.testService.getState());
 
@@ -176,7 +176,7 @@ public class ConnectionTest {
                 .build()
                 .toByteArray()));
         recv = this.managementSocket.recv();
-        acknowledgement = this.serializer.deserialize(recv);
+        acknowledgement = (ConnectionHandshake) this.serializer.deserialize(recv);
         Assert.assertEquals(ConnectionState.CONNECTED, acknowledgement.getConnectionState());
         Assert.assertEquals("connection-resumed", this.testService.getState());
     }
@@ -190,7 +190,7 @@ public class ConnectionTest {
                 .build()
                 .toByteArray()));
         final byte[] recv = this.managementSocket.recv();
-        final ConnectionHandshake acknowledgement = this.serializer.deserialize(recv);
+        final ConnectionHandshake acknowledgement = (ConnectionHandshake) this.serializer.deserialize(recv);
         Assert.assertEquals(ConnectionState.TERMINATED, acknowledgement.getConnectionState());
         Assert.assertEquals("connection-terminated", this.testService.getState());
     }
