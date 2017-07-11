@@ -29,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ProcessConnection {
 
     private static int MANAGEMENT_SOCKET_SEND_TIMEOUT = 10000;
-    private static int MANAGEMENT_SOCKET_RECV_TIMEOUT = 1000;
+    private static int MANAGEMENT_SOCKET_RECV_TIMEOUT = 10000;
     private static int MANAGEMENT_PORT = 4999;
 
     private final ProtobufMessageSerializer serializer = new ProtobufMessageSerializer();
