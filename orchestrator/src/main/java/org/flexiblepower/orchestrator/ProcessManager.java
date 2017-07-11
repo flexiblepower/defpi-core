@@ -32,7 +32,7 @@ public class ProcessManager {
 
     private final DockerConnector dockerConnector = new DockerConnector();
     private final MongoDbConnector mongoDbConnector = MongoDbConnector.getInstance();
-    private final ScheduledExecutorService threadpool = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService threadpool = Executors.newScheduledThreadPool(8);
 
     private ProcessManager() {
     }
@@ -128,12 +128,14 @@ public class ProcessManager {
 
     public void deleteProcess(final Process process) {
         // Notify process
-        try {
-            ProcessConnector.getInstance().terminate(process.getId());
-        } catch (final Exception e) {
-            // If notification doesn't work, that's too bad, make sure it gets removed anyway
-            ProcessManager.log.warn("Could not notify process it is going to terminate. Terminating anyway.", e);
-        }
+        this.threadpool.execute(() -> {
+            try {
+                ProcessConnector.getInstance().terminate(process.getId());
+            } catch (final Exception e) {
+                // If notification doesn't work, that's too bad, make sure it gets removed anyway
+                ProcessManager.log.warn("Could not notify process it is going to terminate. Terminating anyway.", e);
+            }
+        });
 
         // Now give it some time to shut down
         this.threadpool.schedule(() -> {
@@ -148,8 +150,54 @@ public class ProcessManager {
         }, 5, TimeUnit.SECONDS);
     }
 
-    public Process updateProcess(final Process process) {
-        return null; // TODO
+    public Process updateProcess(final Process newProcess) {
+        this.validateProcess(newProcess);
+
+        Process currentProcess = MongoDbConnector.getInstance().get(Process.class, newProcess.getId());
+
+        // Should the process be moved?
+        boolean move = false;
+        if (newProcess.getNodePoolId() != null) {
+            // this should run on a public node
+            if (!newProcess.getNodePoolId().equals(currentProcess.getNodePoolId())) {
+                move = true;
+            }
+        } else {
+            // this should run on a private node
+            if (!newProcess.getPrivateNodeId().equals(currentProcess.getPrivateNodeId())) {
+                move = true;
+            }
+        }
+        if (move) {
+            currentProcess = this.moveProcess(currentProcess, newProcess);
+        } else {
+            // Did the configuration change?
+            if (!newProcess.getConfiguration().equals(currentProcess.getConfiguration())) {
+                currentProcess = ProcessManager.updateConfiguration(currentProcess, newProcess);
+            }
+        }
+
+        return currentProcess;
+    }
+
+    /**
+     * @param currentProcess
+     * @param newProcess
+     * @return
+     */
+    private Process moveProcess(final Process currentProcess, final Process newProcess) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    /**
+     * @param currentProcess
+     * @param newProcess
+     * @return
+     */
+    private static Process updateConfiguration(final Process currentProcess, final Process newProcess) {
+        return ProcessConnector.getInstance().updateConfiguration(currentProcess.getId(),
+                newProcess.getConfiguration());
     }
 
 }

@@ -4,6 +4,7 @@ import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.ConnectionException;
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.model.Process;
+import org.flexiblepower.model.Process.Parameter;
 import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
@@ -113,7 +114,9 @@ public class ProcessConnection {
                 .setProcessId(process.getId().toString())
                 .setIsUpdate(false);
         if (process.getConfiguration() != null) {
-            builder.putAllConfig(process.getConfiguration());
+            for (final Parameter p : process.getConfiguration()) {
+                builder.putConfig(p.getKey(), p.getValue());
+            }
         }
         final SetConfigMessage msg = builder.build();
 
@@ -143,7 +146,9 @@ public class ProcessConnection {
                 .setProcessId(process.getId().toString())
                 .setIsUpdate(true);
         if (process.getConfiguration() != null) {
-            builder.putAllConfig(process.getConfiguration());
+            for (final Parameter p : process.getConfiguration()) {
+                builder.putConfig(p.getKey(), p.getValue());
+            }
         }
         final SetConfigMessage msg = builder.build();
 

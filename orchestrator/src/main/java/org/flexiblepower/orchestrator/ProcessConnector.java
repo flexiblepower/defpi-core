@@ -7,6 +7,7 @@ package org.flexiblepower.orchestrator;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -18,6 +19,7 @@ import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Interface;
 import org.flexiblepower.model.InterfaceVersion;
 import org.flexiblepower.model.Process;
+import org.flexiblepower.model.Process.Parameter;
 import org.flexiblepower.model.Service;
 
 import lombok.extern.slf4j.Slf4j;
@@ -122,6 +124,19 @@ public class ProcessConnector {
     public void terminate(final ObjectId processId) {
         final ProcessConnection processConnection = this.getProcessConnection(processId);
         processConnection.terminateProcess();
+    }
+
+    /**
+     * @param id
+     * @param configuration
+     * @return
+     */
+    public Process updateConfiguration(final ObjectId processId, final List<Parameter> configuration) {
+        final Process process = MongoDbConnector.getInstance().get(Process.class, processId);
+        process.setConfiguration(configuration);
+        MongoDbConnector.getInstance().save(process);
+        this.getProcessConnection(processId).updateConfiguration();
+        return process;
     }
 
 }
