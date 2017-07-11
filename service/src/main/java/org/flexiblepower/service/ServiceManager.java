@@ -120,8 +120,8 @@ public class ServiceManager implements Closeable {
                 }
             }
             ServiceManager.log.trace("End of thread");
-            this.managementSocket.close();
             this.connectionManager.close();
+            this.managementSocket.close();
         }, "ServiceManager thread");
 
         this.managerThread.start();

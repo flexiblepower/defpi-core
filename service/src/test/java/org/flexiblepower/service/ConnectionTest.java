@@ -52,11 +52,12 @@ public class ConnectionTest {
     private ProtobufMessageSerializer serializer;
 
     @Before
-    public void initConnection() throws UnknownHostException, InterruptedException {
+    public void initConnection() throws UnknownHostException, InterruptedException, SerializationException {
         this.testService = new TestService();
         this.manager = new ServiceManager(this.testService);
         this.serializer = new ProtobufMessageSerializer();
         this.serializer.addMessageClass(ConnectionHandshake.class);
+        this.serializer.addMessageClass(ConnectionMessage.class);
 
         final String managementURI = String.format("tcp://%s:%d",
                 ConnectionTest.TEST_HOST,
@@ -77,7 +78,7 @@ public class ConnectionTest {
                 .setSendHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
                 .build();
 
-        Assert.assertTrue(this.managementSocket.send(createMsg.toByteArray()));
+        Assert.assertTrue(this.managementSocket.send(this.serializer.serialize(createMsg)));
         final byte[] response = this.managementSocket.recv();
         ConnectionHandshake message = null;
         try {
@@ -159,22 +160,20 @@ public class ConnectionTest {
     @Test(timeout = 5000)
     public void testSuspend() throws SerializationException {
         Assert.assertNotEquals("connection-suspended", this.testService.getState());
-        Assert.assertTrue(this.managementSocket.send(ConnectionMessage.newBuilder()
+        Assert.assertTrue(this.managementSocket.send(this.serializer.serialize(ConnectionMessage.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
                 .setMode(ConnectionMessage.ModeType.SUSPEND)
-                .build()
-                .toByteArray()));
+                .build())));
 
         byte[] recv = this.managementSocket.recv();
         ConnectionHandshake acknowledgement = (ConnectionHandshake) this.serializer.deserialize(recv);
         Assert.assertEquals(ConnectionState.SUSPENDED, acknowledgement.getConnectionState());
         Assert.assertEquals("connection-suspended", this.testService.getState());
 
-        Assert.assertTrue(this.managementSocket.send(ConnectionMessage.newBuilder()
+        Assert.assertTrue(this.managementSocket.send(this.serializer.serialize(ConnectionMessage.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
                 .setMode(ConnectionMessage.ModeType.RESUME)
-                .build()
-                .toByteArray()));
+                .build())));
         recv = this.managementSocket.recv();
         acknowledgement = (ConnectionHandshake) this.serializer.deserialize(recv);
         Assert.assertEquals(ConnectionState.CONNECTED, acknowledgement.getConnectionState());
@@ -184,11 +183,10 @@ public class ConnectionTest {
     @Test(timeout = 5000)
     public void testTerminate() throws SerializationException {
         Assert.assertNotEquals("connection-terminated", this.testService.getState());
-        Assert.assertTrue(this.managementSocket.send(ConnectionMessage.newBuilder()
+        Assert.assertTrue(this.managementSocket.send(this.serializer.serialize(ConnectionMessage.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
                 .setMode(ConnectionMessage.ModeType.TERMINATE)
-                .build()
-                .toByteArray()));
+                .build())));
         final byte[] recv = this.managementSocket.recv();
         final ConnectionHandshake acknowledgement = (ConnectionHandshake) this.serializer.deserialize(recv);
         Assert.assertEquals(ConnectionState.TERMINATED, acknowledgement.getConnectionState());
