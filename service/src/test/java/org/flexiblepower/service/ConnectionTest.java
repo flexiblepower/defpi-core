@@ -12,6 +12,7 @@ import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
+import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.serializers.JavaIOSerializer;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.junit.After;
@@ -21,8 +22,6 @@ import org.junit.Test;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Context;
 import org.zeromq.ZMQ.Socket;
-
-import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
  * ConnectionTest
@@ -50,6 +49,7 @@ public class ConnectionTest {
     private Socket out;
     private Socket in;
     private ProtobufMessageSerializer serializer;
+    private Context ctx;
 
     @Before
     public void initConnection() throws UnknownHostException, InterruptedException {
@@ -57,13 +57,15 @@ public class ConnectionTest {
         this.manager = new ServiceManager(this.testService);
         this.serializer = new ProtobufMessageSerializer();
         this.serializer.addMessageClass(ConnectionHandshake.class);
+        this.serializer.addMessageClass(ConnectionMessage.class);
+        this.serializer.addMessageClass(ErrorMessage.class);
 
         final String managementURI = String.format("tcp://%s:%d",
                 ConnectionTest.TEST_HOST,
                 ServiceManager.MANAGEMENT_PORT);
-        final Context ctx = ZMQ.context(1);
-        this.managementSocket = ctx.socket(ZMQ.REQ);
-        this.managementSocket.setReceiveTimeOut(1000);
+        this.ctx = ZMQ.context(1);
+        this.managementSocket = this.ctx.socket(ZMQ.REQ);
+        this.managementSocket.setReceiveTimeOut(5000);
         this.managementSocket.connect(managementURI.toString());
 
         final String hostOfTestRunner = InetAddress.getLocalHost().getCanonicalHostName();
@@ -77,7 +79,11 @@ public class ConnectionTest {
                 .setSendHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
                 .build();
 
-        Assert.assertTrue(this.managementSocket.send(createMsg.toByteArray()));
+        try {
+            Assert.assertTrue(this.managementSocket.send(this.serializer.serialize(createMsg)));
+        } catch (final SerializationException e1) {
+            e1.printStackTrace();
+        }
         final byte[] response = this.managementSocket.recv();
         ConnectionHandshake message = null;
         try {
@@ -92,23 +98,24 @@ public class ConnectionTest {
         final String serviceURI = String.format("tcp://%s:%d",
                 ConnectionTest.TEST_HOST,
                 ConnectionTest.TEST_SERVICE_LISTEN_PORT);
-        this.out = ctx.socket(ZMQ.PUSH);
-        this.out.setSendTimeOut(0);
+        this.out = this.ctx.socket(ZMQ.PUSH);
+        this.out.setSendTimeOut(1000);
         this.out.setDelayAttachOnConnect(true);
         this.out.connect(serviceURI.toString());
 
         final String listenURI = String.format("tcp://*:%d", ConnectionTest.TEST_SERVICE_TARGET_PORT);
-        this.in = ctx.socket(ZMQ.PULL);
+        this.in = this.ctx.socket(ZMQ.PULL);
         this.in.setReceiveTimeOut(200);
         this.in.bind(listenURI.toString());
         Thread.sleep(500); // Allow remote thread to process the connection message
     }
 
-    @Test(timeout = 5000)
+    @Test
     public void testAck() throws InterruptedException, SerializationException {
         // Now start real tests, first send random string
         Assert.assertTrue("Failed to send random string", this.out.send("This is just a not an ack"));
-        Assert.assertNull("Random string should not be answered", this.in.recv());
+        final byte[] recv = this.in.recv();
+        Assert.assertNull("Random string should not be answered", recv);
 
         // Send an ACK, but an incorrect one
         final ConnectionHandshake wrongHandshake = ConnectionHandshake.newBuilder()
@@ -135,15 +142,10 @@ public class ConnectionTest {
         Assert.assertNotNull(this.in.recv());
 
         Assert.assertTrue("Failed to send second ACK", this.out.send(handShakeString));
-        try {
-            ConnectionHandshake.parseFrom(this.in.recv());
-            Assert.fail("Expected exception");
-        } catch (final Exception e) {
-            Assert.assertEquals(InvalidProtocolBufferException.class, e.getClass());
-        }
+        Assert.assertNull(this.in.recv());
     }
 
-    @Test(timeout = 5000)
+    @Test
     public void testSend() throws InterruptedException, SerializationException {
         this.testService.resetCount();
 

@@ -82,6 +82,7 @@ public class ServiceManager implements Closeable {
         this.pbSerializer.addMessageClass(SetConfigMessage.class);
         this.pbSerializer.addMessageClass(ProcessStateUpdateMessage.class);
         this.pbSerializer.addMessageClass(ResumeProcessMessage.class);
+        this.pbSerializer.addMessageClass(ConnectionMessage.class);
 
         // Because when this exists, it is initializing
         this.configured = false;

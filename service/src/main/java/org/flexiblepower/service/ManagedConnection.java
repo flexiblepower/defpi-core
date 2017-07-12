@@ -8,9 +8,6 @@ package org.flexiblepower.service;
 import java.io.Closeable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
@@ -18,6 +15,7 @@ import org.flexiblepower.proto.ConnectionProto.ConnectionHeartbeat;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHeartbeat.MessageType;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.serializers.MessageSerializer;
+import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +24,9 @@ import org.zeromq.ZMQ.Context;
 import org.zeromq.ZMQ.Socket;
 import org.zeromq.ZMQException;
 
-import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.Message;
+
+import zmq.ZError;
 
 /**
  * ManagedConnection
@@ -41,7 +41,8 @@ final class ManagedConnection implements Connection, Closeable {
     private static final int RECEIVE_TIMEOUT = 100;
     private static final int MAX_HEARTBEAT_THREADS = 1;
     private static final long HEARTBEAT_PERIOD_IN_SECONDS = 60;
-    private static final long INITIAL_HEARTBEAT_DELAY = 1;
+    private static final long INITIAL_HEARTBEAT_DELAY = 2;
+    private static final int CONNECT_RETRY_DELAY_IN_SECONDS = 5;
 
     private ConnectionState state;
     private volatile boolean keepThreadAlive;
@@ -51,10 +52,11 @@ final class ManagedConnection implements Connection, Closeable {
     private final Thread connectionThread;
     private final ConnectionHandler handler;
     private final MessageSerializer<Object> javaIoSerializer;
+    private final ProtobufMessageSerializer pbSerializer;
     private InterfaceInfo info = null;
     private final String connectionId;
-    private long pingTime;
-    private final ScheduledFuture<?> heartBeatThread;
+    // private boolean pinged;
+    // private ScheduledFuture<?> heartBeatThread;
 
     /**
      * @param targetAddress
@@ -83,43 +85,68 @@ final class ManagedConnection implements Connection, Closeable {
             this.javaIoSerializer.addMessageClass(messageType);
         }
 
+        this.pbSerializer = new ProtobufMessageSerializer();
+        this.pbSerializer.addMessageClass(ConnectionHandshake.class);
+        this.pbSerializer.addMessageClass(ConnectionHeartbeat.class);
+
         this.state = ConnectionState.STARTING;
         this.zmqContext = ZMQ.context(1);
         this.publishSocket = this.zmqContext.socket(ZMQ.PUSH);
         this.subscribeSocket = this.zmqContext.socket(ZMQ.PULL);
 
-        // this.connectionThread = new Thread(() -> {
-
         ManagedConnection.log.debug("Creating publishSocket to {}", targetAddress);
         this.publishSocket.setSendTimeOut(0); // ManagedConnection.SEND_TIMEOUT);
         this.publishSocket.setDelayAttachOnConnect(true);
-        this.publishSocket.connect(targetAddress);
-
-        final String listenAddress = "tcp://*:" + listenPort;
-        ManagedConnection.log.debug("Creating subscribeSocket listening on port {}", listenAddress);
-        this.subscribeSocket.setReceiveTimeOut(ManagedConnection.RECEIVE_TIMEOUT);
-        this.subscribeSocket.bind(listenAddress);
-
-        final ConnectionHandshake initHandshakeMessage = ConnectionHandshake.newBuilder()
-                .setConnectionId(this.connectionId)
-                .setConnectionState(ConnectionState.STARTING)
-                .build();
-        if (this.publishSocket.send(initHandshakeMessage.toByteArray())) {
-            ManagedConnection.log.debug("Succesfully sent Handshake to " + targetAddress);
-        } else {
-            ManagedConnection.log.debug("Failed to send Handshake to " + targetAddress);
-        }
 
         this.keepThreadAlive = true;
 
         this.connectionThread = new Thread(() -> {
+            this.tryToConnect(targetAddress);
+
+            final String listenAddress = "tcp://*:" + listenPort;
+            ManagedConnection.log.debug("Creating subscribeSocket listening on port {}", listenAddress);
+            this.subscribeSocket.setReceiveTimeOut(ManagedConnection.RECEIVE_TIMEOUT);
+            this.subscribeSocket.bind(listenAddress);
+
+            final ConnectionHandshake initHandshakeMessage = ConnectionHandshake.newBuilder()
+                    .setConnectionId(this.connectionId)
+                    .setConnectionState(ConnectionState.STARTING)
+                    .build();
+            try {
+                this.publishSocket.send(this.pbSerializer.serialize(initHandshakeMessage));
+            } catch (final SerializationException e) {
+                ManagedConnection.log.error("Error in serializing message: " + initHandshakeMessage);
+            }
+
+            // this.heartBeatThread = new ScheduledThreadPoolExecutor(ManagedConnection.MAX_HEARTBEAT_THREADS)
+            // .scheduleAtFixedRate(() -> {
+            // if (!this.pinged) {
+            // final ConnectionHeartbeat heartbeat = ConnectionHeartbeat.newBuilder()
+            // .setConnectionId(connectionId)
+            // .setHeartbeat(MessageType.PING)
+            // .build();
+            // this.pinged = true;
+            // try {
+            // this.publishSocket.send(this.pbSerializer.serialize(heartbeat));
+            // } catch (final SerializationException e) {
+            // e.printStackTrace();
+            // }
+            // } else {
+            // // If no PONG was received since the last PING, assume connection was interrupted!
+            // handler.onInterrupt();
+            // }
+            // },
+            // ManagedConnection.INITIAL_HEARTBEAT_DELAY,
+            // ManagedConnection.HEARTBEAT_PERIOD_IN_SECONDS,
+            // TimeUnit.SECONDS);
+
             while (this.keepThreadAlive) {
                 try {
                     this.handleByteArray(this.subscribeSocket.recv());
                 } catch (final ZMQException e) {
                     if (e.getErrorCode() == 156384765) {
-                        ManagedConnection.log.info("Socket closed, stopping thread");
-                        break;
+                        ManagedConnection.log.info("Socket closed, Attempting to reconnect");
+                        this.tryToConnect(targetAddress);
                     }
                 } catch (final Exception e) {
                     ManagedConnection.log.error("Exception handling message: {}", e.getMessage());
@@ -127,26 +154,28 @@ final class ManagedConnection implements Connection, Closeable {
                 }
             }
             ManagedConnection.log.trace("End of thread");
+            // this.heartBeatThread.cancel(true);
         }, "Managed " + this.info.name() + " handler thread");
         this.connectionThread.start();
+    }
 
-        this.heartBeatThread = new ScheduledThreadPoolExecutor(ManagedConnection.MAX_HEARTBEAT_THREADS)
-                .scheduleAtFixedRate(() -> {
-                    if (this.pingTime == 0) {
-                        final ConnectionHeartbeat heartbeat = ConnectionHeartbeat.newBuilder()
-                                .setConnectionId(connectionId)
-                                .setHeartbeat(MessageType.PING)
-                                .build();
-                        this.pingTime = System.currentTimeMillis();
-                        this.publishSocket.send(heartbeat.toByteArray());
-                    } else {
-                        // If no PONG was received since the last PING, assume connection was interrupted!
-                        handler.onInterrupt();
-                    }
-                },
-                        ManagedConnection.INITIAL_HEARTBEAT_DELAY,
-                        ManagedConnection.HEARTBEAT_PERIOD_IN_SECONDS,
-                        TimeUnit.SECONDS);
+    private void tryToConnect(final String targetAddress) {
+        boolean connected = false;
+        while (!connected) {
+            try {
+                this.publishSocket.connect(targetAddress);
+                connected = true;
+            } catch (final IllegalArgumentException e) {
+                ManagedConnection.log.debug("Target" + targetAddress + " is still not up. Retrying in "
+                        + ManagedConnection.CONNECT_RETRY_DELAY_IN_SECONDS + " seconds...");
+                try {
+                    Thread.sleep(ManagedConnection.CONNECT_RETRY_DELAY_IN_SECONDS * 1000);
+                } catch (final InterruptedException e1) {
+                    e1.printStackTrace();
+                    break;
+                }
+            }
+        }
     }
 
     /**
@@ -181,26 +210,32 @@ final class ManagedConnection implements Connection, Closeable {
             return;
         }
 
+        Message receivedMsg = null;
         try {
-            final ConnectionHeartbeat heartbeat = ConnectionHeartbeat.parseFrom(buff);
+            receivedMsg = this.pbSerializer.deserialize(buff);
+        } catch (final SerializationException e1) {
+            e1.printStackTrace();
+        }
+
+        if (receivedMsg instanceof ConnectionHeartbeat) {
+            final ConnectionHeartbeat heartbeat = (ConnectionHeartbeat) receivedMsg;
             if (heartbeat.getHeartbeat().equals(MessageType.PING)
                     && heartbeat.getConnectionId().equals(this.connectionId)) {
                 final ConnectionHeartbeat response = ConnectionHeartbeat.newBuilder()
                         .setConnectionId(heartbeat.getConnectionId())
                         .setHeartbeat(MessageType.PONG)
                         .build();
-                this.publishSocket.send(response.toByteArray());
+                try {
+                    this.publishSocket.send(this.pbSerializer.serialize(response));
+                } catch (final SerializationException e) {
+                    ManagedConnection.log.error("Error in serializing " + response);
+                }
             } else if (heartbeat.getHeartbeat().equals(MessageType.PONG)
                     && heartbeat.getConnectionId().equals(this.connectionId)) {
-                this.pingTime = 0;
+                // this.pinged = false;
             }
-            return;
-        } catch (final InvalidProtocolBufferException e) {
-            // Not a heartbeat but possibly handshake or service-implemented message, so ignore!
-        }
-
-        try {
-            final ConnectionHandshake handShakeMessage = ConnectionHandshake.parseFrom(buff);
+        } else if (receivedMsg instanceof ConnectionHandshake) {
+            final ConnectionHandshake handShakeMessage = (ConnectionHandshake) receivedMsg;
             if ((this.state == ConnectionState.STARTING)
                     && (this.connectionId.equals(handShakeMessage.getConnectionId()))) {
                 ManagedConnection.log.debug("Received acknowledge string: {}", handShakeMessage);
@@ -215,27 +250,28 @@ final class ManagedConnection implements Connection, Closeable {
                         .setConnectionState(ConnectionState.CONNECTED)
                         .build();
 
-                this.publishSocket.send(response.toByteArray());
-            }
-            return;
-        } catch (final InvalidProtocolBufferException e) {
-            // Not a handshake but a service-implemented message, so ignore!
-        }
-
-        try {
-            final Object message = this.javaIoSerializer.deserialize(buff);
-
-            final Class<?> messageType = message.getClass();
-            final Method[] allMethods = this.handler.getClass().getMethods();
-            for (final Method method : allMethods) {
-                if ((method.getName().startsWith("handle")) && (method.getName().endsWith("Message"))
-                        && (method.getParameterCount() == 1) && method.getParameterTypes()[0].equals(messageType)) {
-                    method.invoke(this.handler, message);
+                try {
+                    this.publishSocket.send(this.pbSerializer.serialize(response));
+                } catch (final SerializationException e) {
+                    ManagedConnection.log.error("Error in serializing " + response);
                 }
             }
-        } catch (final SerializationException e) {
-            // Not a service-implemented message either, so ignore again!
-            ManagedConnection.log.warn("Received unknown message : " + new String(buff) + ". Ignoring...");
+        } else {
+            try {
+                final Object message = this.javaIoSerializer.deserialize(buff);
+
+                final Class<?> messageType = message.getClass();
+                final Method[] allMethods = this.handler.getClass().getMethods();
+                for (final Method method : allMethods) {
+                    if ((method.getName().startsWith("handle")) && (method.getName().endsWith("Message"))
+                            && (method.getParameterCount() == 1) && method.getParameterTypes()[0].equals(messageType)) {
+                        method.invoke(this.handler, message);
+                    }
+                }
+            } catch (final SerializationException e) {
+                // Not a service-implemented message, so ignore!
+                ManagedConnection.log.warn("Received unknown message : " + new String(buff) + ". Ignoring...");
+            }
         }
     }
 
@@ -291,7 +327,6 @@ final class ManagedConnection implements Connection, Closeable {
     @Override
     public void close() {
         this.keepThreadAlive = false;
-        this.heartBeatThread.cancel(true);
         this.state = ConnectionState.TERMINATED;
         this.handler.terminated();
 
@@ -310,7 +345,12 @@ final class ManagedConnection implements Connection, Closeable {
         }
 
         if (this.zmqContext != null) {
-            this.zmqContext.close();
+            try {
+                this.zmqContext.close();
+            } catch (final ZError.IOException e) {
+                // Do nothing
+                // This happens apparently if the socket is closed while someone is polling it.
+            }
         }
     }
 

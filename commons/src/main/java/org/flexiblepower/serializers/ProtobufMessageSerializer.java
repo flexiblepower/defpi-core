@@ -57,6 +57,9 @@ public class ProtobufMessageSerializer implements MessageSerializer<Message> {
 	@Override
 	public Message deserialize(final byte[] data) throws SerializationException {
 		int msgTypeNameLength = data[0];
+		if (msgTypeNameLength <= 0) {
+			throw new SerializationException("Received data is not a valid message: " + Arrays.toString(data));
+		}
 		if (data.length < msgTypeNameLength + 2) {
 			throw new SerializationException("Received data is not a valid message: " + Arrays.toString(data));
 		}
@@ -77,7 +80,7 @@ public class ProtobufMessageSerializer implements MessageSerializer<Message> {
 
 	@Override
 	public DescriptorType getType() {
-		return this.type;
+		return type;
 	}
 
 }
