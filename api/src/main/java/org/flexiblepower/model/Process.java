@@ -6,7 +6,6 @@
 package org.flexiblepower.model;
 
 import java.util.List;
-import java.util.Map;
 
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.annotations.Entity;
@@ -18,6 +17,8 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -39,6 +40,15 @@ public class Process {
 
 	public static enum ProcessState {
 		STARTING, INITIALIZING, RUNNING, SUSPENDED, TERMINATED
+	}
+
+	@Data
+	@Getter
+	@Setter
+	@EqualsAndHashCode
+	public static class Parameter {
+		private String key;
+		private String value;
 	}
 
 	@Id
@@ -80,6 +90,6 @@ public class Process {
 	 */
 	private String runningDockerNodeId;
 
-	private Map<String, String> configuration;
+	private List<Parameter> configuration;
 
 }
