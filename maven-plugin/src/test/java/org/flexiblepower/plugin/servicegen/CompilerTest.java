@@ -8,6 +8,8 @@ package org.flexiblepower.plugin.servicegen;
 import java.io.IOException;
 import java.nio.file.Paths;
 
+import org.flexiblepower.plugin.servicegen.compiler.ProtoCompiler;
+import org.flexiblepower.plugin.servicegen.compiler.XjcCompiler;
 import org.junit.Test;
 
 /**

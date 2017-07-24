@@ -251,30 +251,31 @@ public class Templates {
             replace.put("handlerImpls", handlerImpls);
 
             // Add imports for the handlers
-            String imports = "";
+            final Set<String> imports = new HashSet<>();
             if (version.getType().equals(Type.PROTO)) {
                 replace.put("itf.serializer", "ProtobufMessageSerializer");
 
                 for (final String type : version.getReceives()) {
-                    imports += String.format("import %s.%s.%s.%sProto.%s;\n",
+                    imports.add(String.format("import %s.%s.%s.%sProto.%s;",
                             this.servicePackage,
                             packageName,
                             this.protobufOutputPackage,
                             versionedName,
-                            type);
+                            type));
                 }
             } else if (version.getType().equals(Type.XSD)) {
                 replace.put("itf.serializer", "XSDMessageSerializer");
 
                 for (final String type : version.getReceives()) {
-                    imports += String.format("import %s.%s.%s.*;\n",
+                    imports.add(String.format("import %s.%s.%s.*;",
                             this.servicePackage,
                             packageName,
                             this.xsdOutputPackage,
-                            type);
+                            type));
                 }
             }
-            replace.put("handler.imports", imports);
+
+            replace.put("handler.imports", String.join("\n", imports));
         }
 
         return replace;

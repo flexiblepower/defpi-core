@@ -3,7 +3,7 @@
  *
  * Copyright 2017 TNO
  */
-package org.flexiblepower.plugin.servicegen;
+package org.flexiblepower.plugin.servicegen.compiler;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -23,7 +23,7 @@ import lombok.Setter;
  * @version 0.1
  * @since Jun 28, 2017
  */
-public class XjcCompiler extends Compiler {
+public class XjcCompiler implements Compiler {
 
     @Setter
     private String basePackageName = "";
@@ -34,7 +34,7 @@ public class XjcCompiler extends Compiler {
      * @see org.flexiblepower.plugin.servicegen.Compiler#compileSources(java.nio.file.Path, java.nio.file.Path)
      */
     @Override
-    void compile(final Path filePath, final Path targetPath) throws IOException {
+    public void compile(final Path filePath, final Path targetPath) throws IOException {
         // Delay making the target folder to this point so it won't be made unnessecarily
         if (!targetPath.toFile().exists()) {
             Files.createDirectory(targetPath);

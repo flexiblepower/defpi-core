@@ -47,9 +47,8 @@ public class ConnectionManager implements Closeable {
     public ConnectionHandshake handleConnectionMessage(final ConnectionMessage message)
             throws ConnectionModificationException {
         final String connectionId = message.getConnectionId();
-        ConnectionManager.log.info("Received ConnectionMessage for connection {} ({})",
-                connectionId,
-                message.getMode());
+        ConnectionManager.log
+                .info("Received ConnectionMessage for connection {} ({})", connectionId, message.getMode());
         ConnectionManager.log.trace("Received message:\n{}", message);
         final Builder responseBuilder = ConnectionHandshake.newBuilder().setConnectionId(connectionId);
 
@@ -109,7 +108,7 @@ public class ConnectionManager implements Closeable {
             final ConnectionHandlerFactory connectionHandlerFactory) {
         if (!clazz.isAnnotationPresent(InterfaceInfo.class)) {
             throw new RuntimeException(
-                    "ConnectionHandlerFactory must have the InterfaceInfo annotation to be able to register");
+                    "ConnectionHandler must have the InterfaceInfo annotation to be able to register");
         }
         final InterfaceInfo info = clazz.getAnnotation(InterfaceInfo.class);
         final String key = ConnectionManager.handlerKey(info.receivesHash(), info.sendsHash());
