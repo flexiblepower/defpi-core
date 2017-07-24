@@ -77,7 +77,9 @@ public interface UserApi {
     public void deleteUser(
             @ApiParam(value = "The id of the user that needs to be deleted",
                       required = true) @PathParam("user_id") final String userId)
-            throws AuthorizationException, InvalidObjectIdException, NotFoundException;
+            throws AuthorizationException,
+            InvalidObjectIdException,
+            NotFoundException;
 
     @GET
     @Path("/{user_id}")
@@ -92,7 +94,9 @@ public interface UserApi {
     public User
             getUser(@ApiParam(value = "The id of the User that needs to be fetched",
                               required = true) @PathParam("user_id") final String userId)
-                    throws AuthorizationException, InvalidObjectIdException, NotFoundException;
+                    throws AuthorizationException,
+                    InvalidObjectIdException,
+                    NotFoundException;
 
     @GET
     @ApiOperation(nickname = "listUsers",

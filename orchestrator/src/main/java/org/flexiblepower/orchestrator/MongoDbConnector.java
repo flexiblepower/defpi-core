@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.bson.types.ObjectId;
-import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Process;
@@ -46,8 +45,6 @@ public final class MongoDbConnector {
     private final MongoClient client;
     private final Datastore datastore;
 
-    // This is the user of the application, and accordingly, decides what functions are available
-    private User appUser;
     private String mongoDatabase;
     private String mongoHost;
     private String mongoPort;
@@ -79,7 +76,7 @@ public final class MongoDbConnector {
         this.datastore.ensureIndexes();
     }
 
-    public static MongoDbConnector getInstance() {
+    static MongoDbConnector getInstance() {
         if (MongoDbConnector.instance == null) {
             MongoDbConnector.instance = new MongoDbConnector();
         }
@@ -88,6 +85,32 @@ public final class MongoDbConnector {
 
     public void close() {
         this.client.close();
+    }
+
+    public List<Process> listProcessesForUser(final User user) {
+        final Query<Process> query = this.datastore.find(Process.class);
+        query.criteria("userId").equal(user.getId());
+        return query.asList();
+    }
+
+    /**
+     * @return a list of all connections that are connected to the process with the provided id
+     */
+    public List<Connection> getConnectionsForProcess(final String processId) {
+        final Query<Connection> q = this.datastore.find(Connection.class);
+        q.or(q.criteria("container2").equal(processId), q.criteria("container2").equal(processId));
+        return q.asList();
+    }
+
+    /**
+     * Removes all connections that are connected to the process with the provided id from the database.
+     *
+     * @param processId
+     */
+    public void deleteConnectionsForProcess(final String processId) {
+        final Query<Connection> q = this.datastore.find(Connection.class);
+        q.or(q.criteria("container2").equal(processId), q.criteria("container2").equal(processId));
+        this.datastore.delete(q);
     }
 
     public <T> List<T> list(final Class<T> type,
@@ -114,6 +137,10 @@ public final class MongoDbConnector {
         return this.datastore.get(type, id);
     }
 
+    public <T> T get(final Class<T> type, final String id) throws InvalidObjectIdException {
+        return this.datastore.get(type, MongoDbConnector.stringToObjectId(id));
+    }
+
     public <T> int totalCount(final Class<T> type, final Map<String, Object> filter) {
         final Query<T> query = this.datastore.createQuery(type);
         query.disableValidation();
@@ -130,12 +157,20 @@ public final class MongoDbConnector {
         return filter;
     }
 
-    public void save(final Object entity) {
-        this.datastore.save(entity);
+    /**
+     * @param entity
+     * @return the new objectId of the stored entity
+     */
+    public String save(final Object entity) {
+        return this.datastore.save(entity).getId().toString();
     }
 
     public void delete(final Object entity) {
         this.datastore.delete(entity);
+    }
+
+    public void delete(final Class<?> type, final String id) throws InvalidObjectIdException {
+        this.datastore.delete(type, MongoDbConnector.stringToObjectId(id));
     }
 
     /**
@@ -154,76 +189,8 @@ public final class MongoDbConnector {
     }
 
     /**
-     * Sets the provided user as the current "logged in" application user. This means that all subsequent calls will be
-     * executed as the provided user.
+     * This is essentially a "login" action, in which the user obtains from the database his user information.
      *
-     * @param currentUser
-     * @see {@link #getUser(String, String)}
-     */
-    public void setApplicationUser(final User currentUser) {
-        this.appUser = currentUser;
-    }
-
-    /**
-     * Updates the user information in the database. This function can only be used by that user, or by users with
-     * administrator rights.
-     *
-     * @param user
-     * @return the (new) userId of the updated user
-     * @throws AuthorizationException
-     */
-    public String updateUser(final User user) throws AuthorizationException {
-        MongoDbConnector.log.debug("Updating user: {}", user);
-        if (this.appUser.isAdmin() || this.appUser.equals(user)) {
-            return this.datastore.save(user).getId().toString();
-        } else {
-            throw new AuthorizationException();
-        }
-    }
-
-    /**
-     * @return a list of all users currently stored in the mongo db.
-     * @throws AuthorizationException
-     */
-    public List<User> getUsers() throws AuthorizationException {
-        MongoDbConnector.log.debug("Listing all users {}");
-        return this.datastore.find(User.class).asList();
-    }
-
-    /**
-     * Get a user object from the database that has the provided userId, or null if no such user exists. This function
-     * can only be used by a users with administrator rights.
-     *
-     * @param userId
-     * @return the user stored with the provided Id, or null
-     * @throws AuthorizationException
-     * @throws InvalidObjectIdException
-     */
-    public User getUser(final String userId) throws AuthorizationException, InvalidObjectIdException {
-        final ObjectId id = MongoDbConnector.stringToObjectId(userId);
-        return this.getUser(id);
-    }
-
-    /**
-     * Get a user object from the database that has the provided userId, or null if no such user exists. This function
-     * can only be used by a users with administrator rights.
-     *
-     * @param userId
-     * @return the user stored with the provided Id, or null
-     * @throws AuthorizationException
-     * @throws InvalidObjectIdException
-     */
-    public User getUser(final ObjectId userId) {
-        MongoDbConnector.log.debug("Searching user with id {}", userId.toString());
-        return this.datastore.get(User.class, userId);
-    }
-
-    /**
-     * This is essentially a "login" action, in which the user obtains from the database his user information. However,
-     * note that it does not automatically sets this user as the current application user; this is only achieved using
-     * the {@linkplain #setApplicationUser(User)} function.
-     *
-     * @see {@link #setApplicationUser(User)}
      * @param username
      * @param password
      * @return the user that is stored in the database that has the provided user name and password
@@ -240,123 +207,9 @@ public final class MongoDbConnector {
         return query.get();
     }
 
-    public List<Process> listProcessesForUser(final User user) {
-        final Query<Process> query = this.datastore.find(Process.class);
-        query.criteria("userId").equal(user.getId());
-        return query.asList();
-    }
-
-    /**
-     * This function creates a new user with the provided name and password. This is essentially a "registration"
-     * function. Note that it only inserts the new user in the database, and does not load this user as the new
-     * application user.
-     *
-     * @param username
-     * @param password
-     * @return the userId of the newly created user
-     * @throws AuthorizationException
-     */
-    public String createNewUser(final String username, final String password) throws AuthorizationException {
-        MongoDbConnector.log.info("Registering new user with name {} and password", username);
-        return this.datastore.save(new User(username, password)).getId().toString();
-    }
-
-    /**
-     * Inserts a user object in the database. This function can only be used by a users with administrator rights.
-     *
-     * @param user
-     * @return the userId of the inserted user
-     * @throws AuthorizationException if the current logged in user does not have admin rights
-     */
-    public String saveUser(final User user) throws AuthorizationException {
-        MongoDbConnector.log.debug("Saving user: {}", user);
-        return this.datastore.save(user).getId().toString();
-    }
-
-    /**
-     * Deletes a user object from the database that has the provided userId. This function can only be used by a users
-     * with administrator rights.
-     *
-     * @param userId
-     * @throws AuthorizationException
-     * @throws InvalidObjectIdException
-     */
-    public void deleteUser(final String userId) throws AuthorizationException, InvalidObjectIdException {
-        MongoDbConnector.log.debug("Removing user with id {}", userId);
-        final ObjectId id = MongoDbConnector.stringToObjectId(userId);
-        this.datastore.delete(User.class, id);
-    }
-
-    /**
-     * @return a list of all connections that are stored in the database
-     */
-    public List<Connection> getConnections() {
-        MongoDbConnector.log.debug("Listing all connections");
-        return this.datastore.find(Connection.class).asList();
-    }
-
     public UnidentifiedNode getUnidentifiedNodeByDockerId(final String dockerId) {
         final Query<UnidentifiedNode> q = this.datastore.find(UnidentifiedNode.class);
         q.criteria("dockerId").equal(dockerId);
         return q.get();
     }
-
-    /**
-     * Returns the connection that is stored in the database with the provided id, or null if no such connection exists.
-     *
-     * @param connectionId
-     * @return the connection that has the provided id, or null
-     * @throws InvalidObjectIdException
-     */
-    public Connection getConnection(final String connectionId) throws InvalidObjectIdException {
-        MongoDbConnector.log.debug("Searching connection with id {} ", connectionId);
-        final ObjectId id = MongoDbConnector.stringToObjectId(connectionId);
-        return this.datastore.get(Connection.class, id);
-    }
-
-    /**
-     * @return a list of all connections that are connected to the process with the provided id
-     */
-    public List<Connection> getConnectionsForProcess(final String processId) {
-        MongoDbConnector.log.debug("Listing all connections for process with id {}", processId);
-        final Query<Connection> q = this.datastore.find(Connection.class);
-        q.or(q.criteria("container2").equal(processId), q.criteria("container2").equal(processId));
-        return q.asList();
-    }
-
-    /**
-     * Insert the provided connection in the database.
-     *
-     * @param connection
-     * @return the id of the newly inserted connection
-     */
-    public String insertConnection(final Connection connection) {
-        MongoDbConnector.log.debug("Adding new connection: {}", connection);
-        return this.datastore.save(connection).getId().toString();
-    }
-
-    /**
-     * Removes the connection that has the provided id from the database.
-     *
-     * @param connectionId
-     * @throws InvalidObjectIdException
-     */
-    public void deleteConnection(final String connectionId) throws InvalidObjectIdException {
-        MongoDbConnector.log.debug("Deleting connection with id {}", connectionId);
-        final ObjectId id = MongoDbConnector.stringToObjectId(connectionId);
-        this.datastore.delete(Connection.class, id);
-    }
-
-    /**
-     * Removes all connections that are connected to the process with the provided id from the database.
-     *
-     * @param processId
-     */
-    public void deleteConnectionsForProcess(final String processId) {
-        MongoDbConnector.log.debug("Deleting all connections for process with id {}", processId);
-        final Query<Connection> q = this.datastore.find(Connection.class);
-        q.or(q.criteria("container2").equal(processId), q.criteria("container2").equal(processId));
-        this.datastore.delete(q);
-    }
-
 }

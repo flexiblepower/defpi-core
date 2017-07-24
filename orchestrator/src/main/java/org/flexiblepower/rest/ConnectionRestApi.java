@@ -4,7 +4,6 @@ import java.util.List;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.SecurityContext;
 
 import org.flexiblepower.api.ConnectionApi;
 import org.flexiblepower.exceptions.ConnectionException;
@@ -12,6 +11,7 @@ import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
+import org.flexiblepower.orchestrator.ConnectionManager;
 import org.flexiblepower.orchestrator.ProcessConnector;
 
 import lombok.extern.slf4j.Slf4j;
@@ -21,9 +21,10 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
 
     private final ProcessConnector connections;
 
-    protected ConnectionRestApi(@Context final HttpHeaders httpHeaders,
-            @Context final SecurityContext securityContext) {
-        super(httpHeaders, securityContext);
+    private final ConnectionManager db = ConnectionManager.getInstance();
+
+    protected ConnectionRestApi(@Context final HttpHeaders httpHeaders) {
+        super(httpHeaders);
         this.connections = ProcessConnector.getInstance();
     }
 

@@ -6,7 +6,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.SecurityContext;
 
 import org.flexiblepower.api.UserApi;
 import org.flexiblepower.exceptions.ApiException;
@@ -14,19 +13,26 @@ import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.MongoDbConnector;
+import org.flexiblepower.orchestrator.UserManager;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class UserRestApi extends BaseApi implements UserApi {
 
-    protected UserRestApi(@Context final HttpHeaders httpHeaders, @Context final SecurityContext securityContext) {
-        super(httpHeaders, securityContext);
+    private final UserManager db = UserManager.getInstance();
+
+    protected UserRestApi(@Context final HttpHeaders httpHeaders) {
+        super(httpHeaders);
     }
 
     @Override
     public User createUser(final User newUser) throws AuthorizationException {
         UserRestApi.log.debug("Received call to create new User");
+        if (!this.sessionUser.isAdmin() && !this.sessionUser.equals(newUser)) {
+            throw new AuthorizationException();
+        }
+
         // Update the password to store it encrypted
         newUser.setPasswordHash();
         this.db.saveUser(newUser);
@@ -36,6 +42,11 @@ public class UserRestApi extends BaseApi implements UserApi {
     @Override
     public void deleteUser(final String userId) throws AuthorizationException, InvalidObjectIdException {
         UserRestApi.log.debug("Received call to delete user {}", userId);
+
+        if (!this.sessionUser.isAdmin()) {
+            throw new AuthorizationException();
+        }
+
         this.db.deleteUser(userId);
     }
 
@@ -79,8 +90,8 @@ public class UserRestApi extends BaseApi implements UserApi {
             final String filters) throws AuthorizationException {
         final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
         return Response.status(Status.OK.getStatusCode())
-                .header("X-Total-Count", Integer.toString(this.db.totalCount(User.class, filter)))
-                .entity(this.db.list(User.class, page, perPage, sortDir, sortField, filter))
+                .header("X-Total-Count", Integer.toString(this.db.countUsers(filter)))
+                .entity(this.db.listUsers(page, perPage, sortDir, sortField, filter))
                 .build();
     }
 }

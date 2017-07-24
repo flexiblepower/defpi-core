@@ -4,7 +4,6 @@ import java.util.List;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.SecurityContext;
 
 import org.flexiblepower.api.ServiceApi;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
@@ -13,8 +12,8 @@ import org.flexiblepower.orchestrator.ServiceManager;
 
 public class ServiceRestApi extends BaseApi implements ServiceApi {
 
-    protected ServiceRestApi(@Context final HttpHeaders httpHeaders, @Context final SecurityContext securityContext) {
-        super(httpHeaders, securityContext);
+    protected ServiceRestApi(@Context final HttpHeaders httpHeaders) {
+        super(httpHeaders);
     }
 
     // @Override
