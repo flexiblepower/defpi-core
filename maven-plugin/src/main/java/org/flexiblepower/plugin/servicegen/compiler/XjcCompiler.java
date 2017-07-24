@@ -41,6 +41,7 @@ public class XjcCompiler implements Compiler {
         }
 
         // Build and execute the command
+        @SuppressWarnings("unused")
         final Driver d = new Driver();
 
         try (

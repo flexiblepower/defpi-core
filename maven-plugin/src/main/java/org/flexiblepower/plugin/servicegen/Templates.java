@@ -57,32 +57,7 @@ public class Templates {
      * @return
      */
     public String generateServiceImplementation() {
-        final Map<String, String> replace = this.getReplaceMap(null, null);
-
-        String factoryRegistration = "";
-        String imports = "";
-        for (final InterfaceDescription itf : this.serviceDescription.getInterfaces()) {
-            for (final InterfaceVersionDescription version : itf.getInterfaceVersions()) {
-                final String interfacePackage = PluginUtils.getVersionedName(itf, version).toLowerCase();
-                factoryRegistration += String.format(
-                        "        ConnectionManager.registerConnectionHandlerFactory(%s.class,\n"
-                                + "                new %s());\n",
-                        PluginUtils.connectionHandlerClass(itf, version),
-                        PluginUtils.factoryClass(itf, version));
-                imports += String.format("import %s.%s.%s;\n",
-                        this.servicePackage,
-                        interfacePackage,
-                        PluginUtils.connectionHandlerClass(itf, version));
-                imports += String.format("import %s.%s.%s;\n",
-                        this.servicePackage,
-                        interfacePackage,
-                        PluginUtils.factoryClass(itf, version));
-            }
-        }
-        replace.put("service.registerFactories", factoryRegistration);
-        replace.put("service.imports", imports);
-
-        return Templates.replaceMap(this.getTemplate("ServiceImplementation"), replace);
+        return this.generate("ServiceImplementation", null, null);
     }
 
     /**
@@ -166,7 +141,85 @@ public class Templates {
             final InterfaceDescription itf,
             final InterfaceVersionDescription version) {
         final String template = this.getTemplate(templateName);
-        final Map<String, String> replaceMap = this.getReplaceMap(itf, version);
+
+        final Map<String, String> replaceMap = new HashMap<>();
+
+        // Generic stuff that is the same everywhere
+        replaceMap.put("package", this.servicePackage);
+        replaceMap.put("username", System.getProperty("user.name"));
+        replaceMap.put("date", DateFormat.getDateTimeInstance().format(new Date()));
+        replaceMap.put("generator", Templates.class.getPackage().getName().toString());
+
+        replaceMap.put("service.class", PluginUtils.serviceImplClass(this.serviceDescription));
+        replaceMap.put("service.version", this.serviceDescription.getVersion());
+        replaceMap.put("service.name", this.serviceDescription.getName());
+
+        if ((itf != null) && (version != null)) {
+            final String versionedName = PluginUtils.getVersionedName(itf, version);
+            final String packageName = versionedName.toLowerCase();
+
+            replaceMap.put("handler.class", PluginUtils.connectionHandlerClass(itf, version));
+            replaceMap.put("handlerImpl.class", PluginUtils.connectionHandlerImplClass(itf, version));
+            replaceMap.put("factory.class", PluginUtils.factoryClass(itf, version));
+
+            replaceMap.put("itf.name", itf.getName());
+            replaceMap.put("itf.version", version.getVersionName());
+            replaceMap.put("itf.packagename", packageName);
+            replaceMap.put("itf.receivesHash", this.getHash(itf, version, version.getReceives()));
+            replaceMap.put("itf.sendsHash", this.getHash(itf, version, version.getSends()));
+
+            final Set<String> recvClasses = new HashSet<>();
+            for (final String type : version.getReceives()) {
+                recvClasses.add(type + ".class");
+            }
+            replaceMap.put("itf.receiveClasses", String.join(", ", recvClasses));
+
+            final Set<String> sendClasses = new HashSet<>();
+            for (final String type : version.getSends()) {
+                sendClasses.add(type + ".class");
+            }
+            replaceMap.put("itf.sendClasses", String.join("., ", sendClasses));
+
+            // Add handler definitions and implementations for the connection handlers (and implementations
+            // respectively)
+            String handlers = "";
+            String handlerImpls = "";
+            for (final String type : version.getReceives()) {
+                final Map<String, String> handlerReplace = new HashMap<>();
+                handlerReplace.put("handle.type", type);
+                handlers += Templates.replaceMap(this.getTemplate("Handler"), handlerReplace);
+                handlerImpls += Templates.replaceMap(this.getTemplate("HandlerImpl"), handlerReplace);
+            }
+            replaceMap.put("handlers", handlers);
+            replaceMap.put("handlerImpls", handlerImpls);
+
+            // Add imports for the handlers
+            final Set<String> imports = new HashSet<>();
+            if (version.getType().equals(Type.PROTO)) {
+                replaceMap.put("itf.serializer", "ProtobufMessageSerializer");
+
+                for (final String type : version.getReceives()) {
+                    imports.add(String.format("import %s.%s.%s.%sProto.%s;",
+                            this.servicePackage,
+                            packageName,
+                            this.protobufOutputPackage,
+                            versionedName,
+                            type));
+                }
+            } else if (version.getType().equals(Type.XSD)) {
+                replaceMap.put("itf.serializer", "XSDMessageSerializer");
+
+                for (final String type : version.getReceives()) {
+                    imports.add(String.format("import %s.%s.%s.*;",
+                            this.servicePackage,
+                            packageName,
+                            this.xsdOutputPackage,
+                            type));
+                }
+            }
+
+            replaceMap.put("handler.imports", String.join("\n", imports));
+        }
 
         return Templates.replaceMap(template, replaceMap);
     }
@@ -188,97 +241,6 @@ public class Templates {
             e.printStackTrace();
         }
         return result;
-    }
-
-    /**
-     * Get the map of the replacements in the template
-     *
-     * @param itf
-     * @param version
-     * @return
-     */
-    private Map<String, String> getReplaceMap(final InterfaceDescription itf,
-            final InterfaceVersionDescription version) {
-        final Map<String, String> replace = new HashMap<>();
-
-        // Generic stuff that is the same everywhere
-        replace.put("package", this.servicePackage);
-        replace.put("username", System.getProperty("user.name"));
-        replace.put("date", DateFormat.getDateInstance().format(new Date()));
-        replace.put("generator", Templates.class.getPackage().getName().toString());
-
-        replace.put("service.class", PluginUtils.serviceImplClass(this.serviceDescription));
-        replace.put("service.version", this.serviceDescription.getVersion());
-        replace.put("service.name", this.serviceDescription.getName());
-
-        if ((itf != null) && (version != null)) {
-            final String versionedName = PluginUtils.getVersionedName(itf, version);
-            final String packageName = versionedName.toLowerCase();
-
-            replace.put("handler.class", PluginUtils.connectionHandlerClass(itf, version));
-            replace.put("handlerImpl.class", PluginUtils.connectionHandlerImplClass(itf, version));
-            replace.put("factory.class", PluginUtils.factoryClass(itf, version));
-
-            replace.put("itf.name", itf.getName());
-            replace.put("itf.version", version.getVersionName());
-            replace.put("itf.packagename", packageName);
-            replace.put("itf.receivesHash", this.getHash(itf, version, version.getReceives()));
-            replace.put("itf.sendsHash", this.getHash(itf, version, version.getSends()));
-
-            final Set<String> recvClasses = new HashSet<>();
-            for (final String type : version.getReceives()) {
-                recvClasses.add(type + ".class");
-            }
-            replace.put("itf.receiveClasses", String.join(", ", recvClasses));
-
-            final Set<String> sendClasses = new HashSet<>();
-            for (final String type : version.getSends()) {
-                sendClasses.add(type + ".class");
-            }
-            replace.put("itf.sendClasses", String.join("., ", sendClasses));
-
-            // Add handler definitions and implementations for the connection handlers (and implementations
-            // respectively)
-            String handlers = "";
-            String handlerImpls = "";
-            for (final String type : version.getReceives()) {
-                final Map<String, String> handlerReplace = new HashMap<>();
-                handlerReplace.put("handle.type", type);
-                handlers += Templates.replaceMap(this.getTemplate("Handler"), handlerReplace);
-                handlerImpls += Templates.replaceMap(this.getTemplate("HandlerImpl"), handlerReplace);
-            }
-            replace.put("handlers", handlers);
-            replace.put("handlerImpls", handlerImpls);
-
-            // Add imports for the handlers
-            final Set<String> imports = new HashSet<>();
-            if (version.getType().equals(Type.PROTO)) {
-                replace.put("itf.serializer", "ProtobufMessageSerializer");
-
-                for (final String type : version.getReceives()) {
-                    imports.add(String.format("import %s.%s.%s.%sProto.%s;",
-                            this.servicePackage,
-                            packageName,
-                            this.protobufOutputPackage,
-                            versionedName,
-                            type));
-                }
-            } else if (version.getType().equals(Type.XSD)) {
-                replace.put("itf.serializer", "XSDMessageSerializer");
-
-                for (final String type : version.getReceives()) {
-                    imports.add(String.format("import %s.%s.%s.*;",
-                            this.servicePackage,
-                            packageName,
-                            this.xsdOutputPackage,
-                            type));
-                }
-            }
-
-            replace.put("handler.imports", String.join("\n", imports));
-        }
-
-        return replace;
     }
 
     /**

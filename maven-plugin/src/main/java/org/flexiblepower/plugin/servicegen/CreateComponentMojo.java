@@ -346,8 +346,11 @@ public class CreateComponentMojo extends AbstractMojo {
         final String ext = ".java";
         Files.createDirectories(dest);
         final Path serviceImpl = dest.resolve(PluginUtils.serviceImplClass(serviceDescription) + ext);
-        // serviceImpl.toFile().delete();
-        Files.write(serviceImpl, this.templates.generateServiceImplementation().getBytes());
+        if (serviceImpl.toFile().exists()) {
+            this.getLog().debug("Skipping existing file " + serviceImpl.toString());
+        } else {
+            Files.write(serviceImpl, this.templates.generateServiceImplementation().getBytes());
+        }
 
         for (final InterfaceDescription itf : serviceDescription.getInterfaces()) {
             for (final InterfaceVersionDescription version : itf.getInterfaceVersions()) {
@@ -364,8 +367,14 @@ public class CreateComponentMojo extends AbstractMojo {
                 // Write files
                 Files.write(factory, this.templates.generateFactory(itf, version).getBytes());
                 Files.write(connectionHandler, this.templates.generateConnectionHandler(itf, version).getBytes());
-                Files.write(connectionHandlerImpl,
-                        this.templates.generateConnectionHandlerImplementation(itf, version).getBytes());
+
+                if (connectionHandlerImpl.toFile().exists()) {
+                    this.getLog().debug("Skipping existing file " + connectionHandlerImpl.toString());
+                } else {
+                    Files.write(connectionHandlerImpl,
+                            this.templates.generateConnectionHandlerImplementation(itf, version).getBytes());
+                }
+
             }
         }
     }
