@@ -54,13 +54,14 @@ public class ConnectionTest {
     @Before
     public void initConnection() throws UnknownHostException, InterruptedException {
         this.testService = new TestService();
+        ConnectionManager.registerConnectionHandlerFactory(TestService.class, this.testService);
+
         this.manager = new ServiceManager(this.testService);
         this.serializer = new ProtobufMessageSerializer<>();
         this.serializer.addMessageClass(ConnectionHandshake.class);
 
-        final String managementURI = String.format("tcp://%s:%d",
-                ConnectionTest.TEST_HOST,
-                ServiceManager.MANAGEMENT_PORT);
+        final String managementURI = String
+                .format("tcp://%s:%d", ConnectionTest.TEST_HOST, ServiceManager.MANAGEMENT_PORT);
         final Context ctx = ZMQ.context(1);
         this.managementSocket = ctx.socket(ZMQ.REQ);
         this.managementSocket.setReceiveTimeOut(1000);
@@ -89,9 +90,8 @@ public class ConnectionTest {
         Assert.assertNotNull(message);
         Assert.assertEquals(ConnectionState.STARTING, message.getConnectionState());
 
-        final String serviceURI = String.format("tcp://%s:%d",
-                ConnectionTest.TEST_HOST,
-                ConnectionTest.TEST_SERVICE_LISTEN_PORT);
+        final String serviceURI = String
+                .format("tcp://%s:%d", ConnectionTest.TEST_HOST, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
         this.out = ctx.socket(ZMQ.PUSH);
         this.out.setSendTimeOut(0);
         this.out.setDelayAttachOnConnect(true);

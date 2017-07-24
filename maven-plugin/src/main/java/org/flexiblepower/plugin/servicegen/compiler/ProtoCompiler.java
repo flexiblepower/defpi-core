@@ -3,7 +3,7 @@
  *
  * Copyright 2017 TNO
  */
-package org.flexiblepower.plugin.servicegen;
+package org.flexiblepower.plugin.servicegen.compiler;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -23,7 +23,7 @@ import java.util.Scanner;
  * @version 0.1
  * @since Jun 27, 2017
  */
-public class ProtoCompiler extends Compiler {
+public class ProtoCompiler implements Compiler {
 
     protected final File compilerFile;
     private final String protobufVersion;
@@ -85,8 +85,10 @@ public class ProtoCompiler extends Compiler {
 
         if (!this.compilerFile.exists()) {
             Files.createDirectories(this.compilerFile.toPath().getParent());
-            ProtoCompiler.downloadFile("http://central.maven.org/maven2/com/google/protobuf/protoc/"
-                    + this.protobufVersion + "/" + this.compilerFile.getName().toString(), this.compilerFile);
+            ProtoCompiler.downloadFile(
+                    "http://central.maven.org/maven2/com/google/protobuf/protoc/" + this.protobufVersion + "/"
+                            + this.compilerFile.getName().toString(),
+                    this.compilerFile);
             this.compilerFile.setExecutable(true);
         }
 
