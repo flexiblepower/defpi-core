@@ -8,11 +8,12 @@ package org.flexiblepower.service;
 import java.io.Closeable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
-import org.flexiblepower.proto.ConnectionProto.ConnectionHeartbeat;
-import org.flexiblepower.proto.ConnectionProto.ConnectionHeartbeat.MessageType;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.serializers.MessageSerializer;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
@@ -43,6 +44,9 @@ final class ManagedConnection implements Connection, Closeable {
     private static final long HEARTBEAT_PERIOD_IN_SECONDS = 60;
     private static final long INITIAL_HEARTBEAT_DELAY = 2;
     private static final int CONNECT_RETRY_DELAY_IN_SECONDS = 5;
+    private static final byte[] PING = new byte[] {(byte) 0xA};
+    private static final byte[] PONG = new byte[] {(byte) 0xB};
+    private static final int HEARTBEAT_MSG_LENGTH = 1;
 
     private ConnectionState state;
     private volatile boolean keepThreadAlive;
@@ -51,12 +55,12 @@ final class ManagedConnection implements Connection, Closeable {
     private final Socket publishSocket;
     private final Thread connectionThread;
     private final ConnectionHandler handler;
-    private final MessageSerializer<Object> javaIoSerializer;
-    private final ProtobufMessageSerializer pbSerializer;
+    private final MessageSerializer<Object> userMessageSerializer;
+    private final ProtobufMessageSerializer protoBufSerializer;
     private InterfaceInfo info = null;
     private final String connectionId;
-    // private boolean pinged;
-    // private ScheduledFuture<?> heartBeatThread;
+    private boolean pinged;
+    private ScheduledFuture<?> heartBeatThread;
 
     /**
      * @param targetAddress
@@ -74,20 +78,20 @@ final class ManagedConnection implements Connection, Closeable {
         this.handler = handler;
         this.info = ManagedConnection.getInfoFromHandler(handler);
 
-        // Add serializer to the connection
+        // Add serializer to the connection for user-defined messages
         try {
-            this.javaIoSerializer = this.info.serializer().newInstance();
+            this.userMessageSerializer = this.info.serializer().newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
             throw new ConnectionModificationException("Unable to serializer instantiate connection");
         }
 
         for (final Class<?> messageType : this.info.receiveTypes()) {
-            this.javaIoSerializer.addMessageClass(messageType);
+            this.userMessageSerializer.addMessageClass(messageType);
         }
 
-        this.pbSerializer = new ProtobufMessageSerializer();
-        this.pbSerializer.addMessageClass(ConnectionHandshake.class);
-        this.pbSerializer.addMessageClass(ConnectionHeartbeat.class);
+        // Add Protobuf serializer to connection for ConnectionHandshake messages
+        this.protoBufSerializer = new ProtobufMessageSerializer();
+        this.protoBufSerializer.addMessageClass(ConnectionHandshake.class);
 
         this.state = ConnectionState.STARTING;
         this.zmqContext = ZMQ.context(1);
@@ -113,32 +117,25 @@ final class ManagedConnection implements Connection, Closeable {
                     .setConnectionState(ConnectionState.STARTING)
                     .build();
             try {
-                this.publishSocket.send(this.pbSerializer.serialize(initHandshakeMessage));
+                this.publishSocket.send(this.protoBufSerializer.serialize(initHandshakeMessage));
             } catch (final SerializationException e) {
                 ManagedConnection.log.error("Error in serializing message: " + initHandshakeMessage);
             }
 
-            // this.heartBeatThread = new ScheduledThreadPoolExecutor(ManagedConnection.MAX_HEARTBEAT_THREADS)
-            // .scheduleAtFixedRate(() -> {
-            // if (!this.pinged) {
-            // final ConnectionHeartbeat heartbeat = ConnectionHeartbeat.newBuilder()
-            // .setConnectionId(connectionId)
-            // .setHeartbeat(MessageType.PING)
-            // .build();
-            // this.pinged = true;
-            // try {
-            // this.publishSocket.send(this.pbSerializer.serialize(heartbeat));
-            // } catch (final SerializationException e) {
-            // e.printStackTrace();
-            // }
-            // } else {
-            // // If no PONG was received since the last PING, assume connection was interrupted!
-            // handler.onInterrupt();
-            // }
-            // },
-            // ManagedConnection.INITIAL_HEARTBEAT_DELAY,
-            // ManagedConnection.HEARTBEAT_PERIOD_IN_SECONDS,
-            // TimeUnit.SECONDS);
+            this.heartBeatThread = new ScheduledThreadPoolExecutor(ManagedConnection.MAX_HEARTBEAT_THREADS)
+                    .scheduleAtFixedRate(() -> {
+                        if (!this.pinged) {
+                            final byte[] heartbeat = ManagedConnection.PING;
+                            this.pinged = true;
+                            this.publishSocket.send(heartbeat);
+                        } else {
+                            // If no PONG was received since the last PING, assume connection was interrupted!
+                            handler.onInterrupt();
+                        }
+                    },
+                            ManagedConnection.INITIAL_HEARTBEAT_DELAY,
+                            ManagedConnection.HEARTBEAT_PERIOD_IN_SECONDS,
+                            TimeUnit.SECONDS);
 
             while (this.keepThreadAlive) {
                 try {
@@ -154,7 +151,7 @@ final class ManagedConnection implements Connection, Closeable {
                 }
             }
             ManagedConnection.log.trace("End of thread");
-            // this.heartBeatThread.cancel(true);
+            this.heartBeatThread.cancel(true);
         }, "Managed " + this.info.name() + " handler thread");
         this.connectionThread.start();
     }
@@ -204,40 +201,36 @@ final class ManagedConnection implements Connection, Closeable {
      * @throws IllegalAccessException
      * @throws SerializationException
      */
-    private void handleByteArray(final byte[] buff)
-            throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    private void handleByteArray(final byte[] buff) throws IllegalAccessException,
+            IllegalArgumentException,
+            InvocationTargetException {
         if (buff == null) {
             return;
         }
 
-        Message receivedMsg = null;
-        try {
-            receivedMsg = this.pbSerializer.deserialize(buff);
-        } catch (final SerializationException e1) {
-            e1.printStackTrace();
-        }
-
-        if (receivedMsg instanceof ConnectionHeartbeat) {
-            final ConnectionHeartbeat heartbeat = (ConnectionHeartbeat) receivedMsg;
-            if (heartbeat.getHeartbeat().equals(MessageType.PING)
-                    && heartbeat.getConnectionId().equals(this.connectionId)) {
-                final ConnectionHeartbeat response = ConnectionHeartbeat.newBuilder()
-                        .setConnectionId(heartbeat.getConnectionId())
-                        .setHeartbeat(MessageType.PONG)
-                        .build();
-                try {
-                    this.publishSocket.send(this.pbSerializer.serialize(response));
-                } catch (final SerializationException e) {
-                    ManagedConnection.log.error("Error in serializing " + response);
-                }
-            } else if (heartbeat.getHeartbeat().equals(MessageType.PONG)
-                    && heartbeat.getConnectionId().equals(this.connectionId)) {
-                // this.pinged = false;
+        if (buff.length == ManagedConnection.HEARTBEAT_MSG_LENGTH) {
+            // If message is only 1 byte long, it can only be a Heatbeat!
+            if (buff.equals(ManagedConnection.PONG)) {
+                // If ponged, it is a response to our ping
+                this.pinged = false;
+            } else {
+                // If pinged, respond with a pong
+                final byte[] response = ManagedConnection.PONG;
+                this.publishSocket.send(response);
             }
-        } else if (receivedMsg instanceof ConnectionHandshake) {
-            final ConnectionHandshake handShakeMessage = (ConnectionHandshake) receivedMsg;
-            if ((this.state == ConnectionState.STARTING)
-                    && (this.connectionId.equals(handShakeMessage.getConnectionId()))) {
+
+        } else {
+            // If message is longer than 1 byte, it can be a ConnectionHandshake or a user-defined process message!
+            if (this.state.equals(ConnectionState.STARTING)) {
+                // If connection state is STARTING, it can only be a Connection Handshake!
+                Message receivedMsg = null;
+                try {
+                    receivedMsg = this.protoBufSerializer.deserialize(buff);
+                } catch (final SerializationException e1) {
+                    e1.printStackTrace();
+                }
+                final ConnectionHandshake handShakeMessage = (ConnectionHandshake) receivedMsg;
+
                 ManagedConnection.log.debug("Received acknowledge string: {}", handShakeMessage);
 
                 this.state = ConnectionState.CONNECTED;
@@ -251,26 +244,27 @@ final class ManagedConnection implements Connection, Closeable {
                         .build();
 
                 try {
-                    this.publishSocket.send(this.pbSerializer.serialize(response));
+                    this.publishSocket.send(this.protoBufSerializer.serialize(response));
                 } catch (final SerializationException e) {
                     ManagedConnection.log.error("Error in serializing " + response);
                 }
-            }
-        } else {
-            try {
-                final Object message = this.javaIoSerializer.deserialize(buff);
-
-                final Class<?> messageType = message.getClass();
-                final Method[] allMethods = this.handler.getClass().getMethods();
-                for (final Method method : allMethods) {
-                    if ((method.getName().startsWith("handle")) && (method.getName().endsWith("Message"))
-                            && (method.getParameterCount() == 1) && method.getParameterTypes()[0].equals(messageType)) {
-                        method.invoke(this.handler, message);
+            } else {
+                // If connection state is CONNECTED, it can only be a user-defined process message!
+                try {
+                    final Object message = this.userMessageSerializer.deserialize(buff);
+                    final Class<?> messageType = message.getClass();
+                    final Method[] allMethods = this.handler.getClass().getMethods();
+                    for (final Method method : allMethods) {
+                        if ((method.getName().startsWith("handle")) && (method.getName().endsWith("Message"))
+                                && (method.getParameterCount() == 1)
+                                && method.getParameterTypes()[0].equals(messageType)) {
+                            method.invoke(this.handler, message);
+                        }
                     }
+                } catch (final SerializationException e) {
+                    // Not a user-defined message, so ignore with grace!
+                    ManagedConnection.log.warn("Received unknown message : " + new String(buff) + ". Ignoring...");
                 }
-            } catch (final SerializationException e) {
-                // Not a service-implemented message, so ignore!
-                ManagedConnection.log.warn("Received unknown message : " + new String(buff) + ". Ignoring...");
             }
         }
     }
@@ -289,7 +283,7 @@ final class ManagedConnection implements Connection, Closeable {
         if (this.getState().equals(ConnectionState.CONNECTED)) {
             try {
                 // Do the send
-                this.publishSocket.send(this.javaIoSerializer.serialize(message));
+                this.publishSocket.send(this.userMessageSerializer.serialize(message));
             } catch (final Exception e) {
                 this.state = ConnectionState.INTERRUPTED;
                 // TODO Recover from the Interrupted state (or via resume?)

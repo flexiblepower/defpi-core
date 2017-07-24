@@ -34,12 +34,3 @@ message ConnectionHandshake {
   optional string receiveHash = 3;
   optional string sendHash = 4;
 }
-
-message ConnectionHeartbeat {
-	enum MessageType {
-	  PING = 0;
-	  PONG = 1;
-	}
-	required MessageType heartbeat = 1;
-	required string connectionId = 3;
-}
