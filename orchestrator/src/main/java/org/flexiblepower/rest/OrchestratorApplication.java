@@ -34,7 +34,7 @@ import io.swagger.jaxrs.listing.SwaggerSerializers;
  * @since 20 mrt. 2017
  */
 @SwaggerDefinition(info = @Info(description = "API for communicating with the distributed EF-Pi orchestrator",
-                                version = "V0.1",
+                                version = "v0.2.1",
                                 title = "dEF-Pi API",
                                 termsOfService = "Proof of concept, for testing purposes only. No rights or claims can be derived from this",
                                 contact = @Contact(name = "TNO",
