@@ -23,10 +23,6 @@ import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Context;
 import org.zeromq.ZMQ.Socket;
 
-import src.main.java.org.flexiblepower.service.ConnectionManager;
-import src.main.java.org.flexiblepower.service.ServiceManager;
-import src.test.java.org.flexiblepower.service.TestService;
-
 /**
  * ConnectionTest
  *

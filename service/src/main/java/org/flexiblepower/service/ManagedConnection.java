@@ -17,6 +17,7 @@ import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.serializers.MessageSerializer;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
+import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
@@ -26,7 +27,6 @@ import org.zeromq.ZMQException;
 
 import com.google.protobuf.Message;
 
-import src.main.java.org.flexiblepower.service.exceptions.ConnectionModificationException;
 import zmq.ZError;
 
 /**
@@ -281,7 +281,6 @@ final class ManagedConnection implements Connection, Closeable {
      * @see org.flexiblepower.service.Connection#send(java.lang.Object)
      */
     @Override
-    @Override
     public void send(final Object message) {
         if (message == null) {
             return;
@@ -305,7 +304,6 @@ final class ManagedConnection implements Connection, Closeable {
      *
      * @see org.flexiblepower.service.Connection#getState()
      */
-    @Override
     @Override
     public ConnectionState getState() {
         return this.state;
