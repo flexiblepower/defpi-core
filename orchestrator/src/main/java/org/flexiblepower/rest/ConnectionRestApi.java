@@ -12,20 +12,16 @@ import org.flexiblepower.exceptions.NotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.orchestrator.ConnectionManager;
 import org.flexiblepower.orchestrator.MongoDbConnector;
-import org.flexiblepower.orchestrator.ProcessConnector;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ConnectionRestApi extends BaseApi implements ConnectionApi {
 
-    private final ProcessConnector processConnector;
-
     private final ConnectionManager connectionManager = ConnectionManager.getInstance();
 
     protected ConnectionRestApi(@Context final HttpHeaders httpHeaders) {
         super(httpHeaders);
-        this.processConnector = ProcessConnector.getInstance();
     }
 
     @Override
@@ -36,8 +32,6 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
     @Override
     public String newConnection(final Connection connection) throws AuthorizationException, NotFoundException {
         ConnectionRestApi.log.info("newConnection(): " + connection);
-        this.processConnector.addConnection(connection);
-
         return this.connectionManager.insertConnection(connection);
     }
 

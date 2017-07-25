@@ -76,7 +76,7 @@ public final class MongoDbConnector {
         this.datastore.ensureIndexes();
     }
 
-    static MongoDbConnector getInstance() {
+    synchronized static MongoDbConnector getInstance() {
         if (MongoDbConnector.instance == null) {
             MongoDbConnector.instance = new MongoDbConnector();
         }
