@@ -12,21 +12,18 @@ import org.flexiblepower.orchestrator.ServiceManager;
 
 public class InterfaceRestApi extends BaseApi implements InterfaceApi {
 
-    private final ServiceManager serviceManager;
-
     protected InterfaceRestApi(@Context final HttpHeaders httpHeaders) {
         super(httpHeaders);
-        this.serviceManager = ServiceManager.getInstance();
     }
 
     @Override
     public List<Interface> listInterfaces() {
-        return this.serviceManager.listInterfaces();
+        return ServiceManager.getInstance().listInterfaces();
     }
 
     @Override
     public Interface getInterface(final String id) throws NotFoundException {
-        return this.serviceManager.getInterfaceById(id);
+        return ServiceManager.getInstance().getInterfaceById(id);
     }
 
 }
