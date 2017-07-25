@@ -231,31 +231,28 @@ final class ManagedConnection implements Connection, Closeable {
                     ManagedConnection.log.warn("Expected handshake, but failed to parse, ignoring message");
                     return;
                 }
-
                 final ConnectionHandshake handShakeMessage = (ConnectionHandshake) receivedMsg;
-                ManagedConnection.log.debug("Received acknowledge string: {}", handShakeMessage);
+                if (handShakeMessage.getConnectionId().equals(this.connectionId)) {
+                    ManagedConnection.log.debug("Received acknowledge string: {}", handShakeMessage);
 
-                if (!handShakeMessage.getConnectionId().equals(this.connectionId)) {
-                    ManagedConnection.log.warn("Expected handshake for connection Id {}, instead received {}",
-                            this.connectionId,
-                            handShakeMessage.getConnectionId());
-                    return;
-                }
+                    this.state = ConnectionState.CONNECTED;
+                    this.handler.onConnected(this);
 
-                this.state = ConnectionState.CONNECTED;
-                this.handler.onConnected(this);
+                    ManagedConnection.log.debug("Updated state to {}, replying ack", this.state);
 
-                ManagedConnection.log.debug("Updated state to {}, replying ack", this.state);
+                    final ConnectionHandshake response = ConnectionHandshake.newBuilder()
+                            .setConnectionId(this.connectionId)
+                            .setConnectionState(ConnectionState.CONNECTED)
+                            .build();
 
-                final ConnectionHandshake response = ConnectionHandshake.newBuilder()
-                        .setConnectionId(this.connectionId)
-                        .setConnectionState(ConnectionState.CONNECTED)
-                        .build();
-
-                try {
-                    this.publishSocket.send(this.protoBufSerializer.serialize(response));
-                } catch (final SerializationException e) {
-                    ManagedConnection.log.error("Error in serializing " + response);
+                    try {
+                        this.publishSocket.send(this.protoBufSerializer.serialize(response));
+                    } catch (final SerializationException e) {
+                        ManagedConnection.log.error("Error in serializing " + response);
+                    }
+                } else {
+                    ManagedConnection.log
+                            .warn("Invalid Connection ID in Handshake message : " + handShakeMessage.getConnectionId());
                 }
             } else {
                 // If connection state is CONNECTED, it can only be a user-defined process message!

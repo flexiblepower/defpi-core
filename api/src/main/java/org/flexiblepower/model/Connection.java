@@ -10,8 +10,10 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Entity
 public class Connection {
@@ -19,17 +21,18 @@ public class Connection {
 	@Id
 	@JsonSerialize(using = ToStringSerializer.class)
 	@JsonDeserialize(using = ObjectIdDeserializer.class)
-	private final ObjectId id = null;
+	private ObjectId id = null;
 
 	@JsonSerialize(using = ToStringSerializer.class)
 	@JsonDeserialize(using = ObjectIdDeserializer.class)
-	private final ObjectId process1;
+	private ObjectId process1Id;
+
+	private String interface1Id;
 
 	@JsonSerialize(using = ToStringSerializer.class)
 	@JsonDeserialize(using = ObjectIdDeserializer.class)
-	private final ObjectId process2;
+	private ObjectId process2Id;
 
-	private final String interface1;
-	private final String interface2;
+	private String interface2Id;
 
 }

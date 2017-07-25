@@ -103,15 +103,15 @@ public class ConnectionTest {
         this.in = this.ctx.socket(ZMQ.PULL);
         this.in.setReceiveTimeOut(200);
         this.in.bind(listenURI.toString());
-        Thread.sleep(500); // Allow remote thread to process the connection message
+        Thread.sleep(1000); // Allow remote thread to process the connection message
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void testAck() throws InterruptedException, SerializationException {
         // Now start real tests, first send random string
         Assert.assertTrue("Failed to send random string", this.out.send("This is just a not an ack"));
-        final byte[] recv = this.in.recv();
-        Assert.assertEquals("Random string should not be answered", "", recv == null ? "" : new String(recv));
+        byte[] recv = this.readSocketFilterHeartbeat();
+        Assert.assertNull("Random string should not be answered", recv);
 
         // Send an ACK, but an incorrect one
         final ConnectionHandshake wrongHandshake = ConnectionHandshake.newBuilder()
@@ -121,7 +121,8 @@ public class ConnectionTest {
 
         Assert.assertTrue("Failed to send wrong ACK",
                 this.out.send(new String(this.serializer.serialize(wrongHandshake))));
-        Assert.assertNull("Wrong ACK should not be answered", this.in.recv());
+        recv = this.readSocketFilterHeartbeat();
+        Assert.assertNull("Wrong ACK should not be answered", recv);
 
         // Send the real ack
         final ConnectionHandshake correctHandshake = ConnectionHandshake.newBuilder()
@@ -135,14 +136,30 @@ public class ConnectionTest {
         Assert.assertTrue("Sending real ACK", this.out.send(handShakeString));
         Thread.sleep(500);
         Assert.assertEquals("connected", this.testService.getState());
-        Assert.assertNotNull(this.in.recv());
+        recv = this.readSocketFilterHeartbeat();
+        Assert.assertNotNull(recv);
 
         Assert.assertTrue("Failed to send second ACK", this.out.send(handShakeString));
-        Assert.assertNull(this.in.recv());
+        recv = this.readSocketFilterHeartbeat();
+        Assert.assertNull(recv);
+    }
+
+    private byte[] readSocketFilterHeartbeat() {
+        byte[] recv = this.in.recv();
+        if (recv != null) {
+            if (recv.length == 1) {
+                recv = this.in.recv();
+            }
+            if (recv != null) {
+                System.out.println("Received " + new String(recv));
+            }
+        }
+        return recv;
     }
 
     @Test
     public void testSend() throws InterruptedException, SerializationException {
+        // Send the real ack
         final ConnectionHandshake correctHandshake = ConnectionHandshake.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
                 .setConnectionState(ConnectionState.STARTING)
@@ -152,7 +169,6 @@ public class ConnectionTest {
         this.out.send(handShakeString);
 
         this.testService.resetCount();
-
         final int numTests = 100;
         for (int i = 0; i < numTests; i++) {
             Assert.assertTrue(this.out.send((new JavaIOSerializer()).serialize("THIS IS A TEST " + i)));

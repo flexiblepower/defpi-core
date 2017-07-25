@@ -63,7 +63,7 @@ public interface ConnectionApi {
             InvalidObjectIdException;
 
     @POST
-    @Produces(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "newConnection",
                   value = "Create a new connection",
@@ -72,7 +72,7 @@ public interface ConnectionApi {
     @ApiResponses(value = {@ApiResponse(code = 200, message = "The id of the new connection", response = String.class),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE),
             @ApiResponse(code = 404, message = ConnectionApi.INTERFACE_NOT_FOUND_MESSAGE)})
-    public String newConnection(
+    public Connection newConnection(
             @ApiParam(name = "connection",
                       value = "The new connection to insert",
                       required = true) final Connection connection)
@@ -97,5 +97,4 @@ public interface ConnectionApi {
             throws AuthorizationException,
             InvalidObjectIdException,
             NotFoundException;
-
 }

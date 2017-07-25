@@ -67,9 +67,12 @@ public class ConnectionManager {
      * @throws ServiceNotFoundException
      * @throws ProcessNotFoundException
      */
-    public ObjectId insertConnection(final Connection connection) throws ProcessNotFoundException {
+    public Connection insertConnection(final Connection connection) throws ProcessNotFoundException {
+        // TODO: validate connection, does interface exist in process? etc.
+
         this.pc.addConnection(connection);
-        return this.db.save(connection);
+        this.db.save(connection);
+        return connection;
     }
 
     /**

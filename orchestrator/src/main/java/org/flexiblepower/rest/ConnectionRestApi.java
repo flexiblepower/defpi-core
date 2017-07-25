@@ -39,22 +39,24 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
     }
 
     @Override
-    public String newConnection(final Connection connection) throws AuthorizationException, ProcessNotFoundException {
-        final Process p1 = ProcessManager.getInstance().getProcess(connection.getProcess1());
+    public Connection newConnection(final Connection connection) throws AuthorizationException,
+            ProcessNotFoundException {
+        final Process p1 = ProcessManager.getInstance().getProcess(connection.getProcess1Id());
 
         if (p1 == null) {
-            throw new ProcessNotFoundException(connection.getProcess1().toString());
+            throw new ProcessNotFoundException(connection.getProcess1Id().toString());
         }
         this.assertUserIsAdminOrEquals(p1.getUserId());
 
-        final Process p2 = ProcessManager.getInstance().getProcess(connection.getProcess2());
+        final Process p2 = ProcessManager.getInstance().getProcess(connection.getProcess2Id());
         if (p2 == null) {
-            throw new ProcessNotFoundException(connection.getProcess2().toString());
+            throw new ProcessNotFoundException(connection.getProcess2Id().toString());
         }
         this.assertUserIsAdminOrEquals(p2.getUserId());
 
         ConnectionRestApi.log.info("Inserting new Connection {}", connection);
-        return this.connectionManager.insertConnection(connection).toString();
+        this.connectionManager.insertConnection(connection);
+        return connection;
     }
 
     @Override
@@ -68,15 +70,15 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
             throw new ApiException(Status.NOT_FOUND, "Could not find connection with id " + id);
         }
 
-        final Process p1 = ProcessManager.getInstance().getProcess(connection.getProcess1());
+        final Process p1 = ProcessManager.getInstance().getProcess(connection.getProcess1Id());
         if (p1 == null) {
-            throw new ProcessNotFoundException(connection.getProcess1().toString());
+            throw new ProcessNotFoundException(connection.getProcess1Id().toString());
         }
         this.assertUserIsAdminOrEquals(p1.getUserId());
 
-        final Process p2 = ProcessManager.getInstance().getProcess(connection.getProcess2());
+        final Process p2 = ProcessManager.getInstance().getProcess(connection.getProcess2Id());
         if (p2 == null) {
-            throw new ProcessNotFoundException(connection.getProcess2().toString());
+            throw new ProcessNotFoundException(connection.getProcess2Id().toString());
         }
         this.assertUserIsAdminOrEquals(p2.getUserId());
 
