@@ -21,16 +21,16 @@ cache:
   paths:
     - /cache/maven.repository
  
-# Validate merge requests using JDK8
+# Validate java code using JDK8
 java-compile:
   except:
-    - deploy
     - master
+    - deploy
   stage: build
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml clean test-compile'
 
-# Verify merge requests using JDK8
+# Run Junit tests with maven
 java-test:
   stage: test
   except:
@@ -39,6 +39,7 @@ java-test:
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml test'
 
+# Plugin template, how test the plugins with the code generator
 .plugin_template: &plugin
   stage: test
   except:
@@ -49,19 +50,19 @@ java-test:
   script:
     - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml -P codegen generate-sources'
 
-#Test plugin on xsd
+# Test plugin on xsd
 plugin-test:proto:
   variables:
     TEST_PROJ: skeleton_proto
   <<: *plugin
 
-#Test plugin on xsd
+# Test plugin on xsd
 plugin-test:xsd:
   variables:
     TEST_PROJ: skeleton_xsd
   <<: *plugin
 
-#Deploy to artifactory and registry
+# Deploy the complete project with modules to artifactory and the orchestrator to registry
 integrate:master:
   only:
     - master
@@ -70,6 +71,7 @@ integrate:master:
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy'
 
+# Deploy UI to registry
 integrate:ui:
   image: docker:17.03.2-ce-git
   only:
@@ -80,27 +82,31 @@ integrate:ui:
     - 'docker build orchestrator-ui -t def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator-ui'
     - 'docker push def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator-ui'
 
+# How to deploy the (test)services to the registry
 .integrate_template: &integrate_service
   only:
     - master
     - defpici
   stage: deploy
-  before_script:  
+  before_script:
+    # In this stage the plugin should be available from artifactory
     - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml -P codegen generate-sources'
   script:
     - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml clean deploy'
 
+# Deploy the proto skeleton
 integrate:skeleton_proto:
   variables:
     TEST_PROJ: skeleton_proto
   <<: *integrate_service 
 
+# Deploy the XSD skeleton    
 integrate:xsd_proto:
   variables:
     TEST_PROJ: skeleton_xsd
   <<: *integrate_service
 
-# And finally run service on def-pi1
+# And finally run the orchestrator on def-pi1 using docker-compose
 deploy:orchestrator:
   image: tmaier/docker-compose:17.06
   tags:
@@ -110,4 +116,5 @@ deploy:orchestrator:
     - deploy
   stage: deploy
   script:
+    - 'docker-compose -f orchestrator/docker-compose.yml pull'
     - 'docker-compose -p def-pi -f orchestrator/docker-compose.yml up -d'
