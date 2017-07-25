@@ -1,5 +1,6 @@
 package org.flexiblepower.rest;
 
+import java.util.Arrays;
 import java.util.Map;
 
 import javax.ws.rs.core.Context;
@@ -7,6 +8,7 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.bson.types.ObjectId;
 import org.flexiblepower.api.UserApi;
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.AuthorizationException;
@@ -29,9 +31,7 @@ public class UserRestApi extends BaseApi implements UserApi {
     @Override
     public User createUser(final User newUser) throws AuthorizationException {
         UserRestApi.log.debug("Received call to create new User");
-        if (!this.sessionUser.isAdmin() && !this.sessionUser.equals(newUser)) {
-            throw new AuthorizationException();
-        }
+        this.assertUserIsAdmin();
 
         // Update the password to store it encrypted
         newUser.setPasswordHash();
@@ -42,17 +42,17 @@ public class UserRestApi extends BaseApi implements UserApi {
     @Override
     public void deleteUser(final String userId) throws AuthorizationException, InvalidObjectIdException {
         UserRestApi.log.debug("Received call to delete user {}", userId);
+        this.assertUserIsAdmin();
 
-        if (!this.sessionUser.isAdmin()) {
-            throw new AuthorizationException();
-        }
-
-        this.db.deleteUser(userId);
+        this.db.deleteUser(this.db.getUser(MongoDbConnector.stringToObjectId(userId)));
     }
 
     @Override
     public User getUser(final String userId) throws AuthorizationException, InvalidObjectIdException {
-        final User ret = this.db.getUser(userId);
+        final ObjectId oid = MongoDbConnector.stringToObjectId(userId);
+        this.assertUserIsAdminOrEquals(oid);
+
+        final User ret = this.db.getUser(oid);
         if (ret == null) {
             throw new ApiException(Status.NOT_FOUND, UserApi.USER_NOT_FOUND_MESSAGE);
         } else {
@@ -66,16 +66,22 @@ public class UserRestApi extends BaseApi implements UserApi {
         if ((updatedUser.getId() == null) || (userId == null) || !userId.equals(updatedUser.getId().toString())) {
             throw new ApiException(Status.BAD_REQUEST, "No or wrong id provided");
         }
+
+        this.assertUserIsAdminOrEquals(updatedUser.getId());
+
         final User ret = this.db.getUser(updatedUser.getId());
         if (ret == null) {
             throw new ApiException(Status.NOT_FOUND, UserApi.USER_NOT_FOUND_MESSAGE);
         }
+
         if (!ret.getUsername().equals(updatedUser.getUsername())) {
             throw new ApiException(Status.BAD_REQUEST, "Name cannot be changed");
         }
+
         if ((updatedUser.getPassword() != null) && !updatedUser.getPassword().isEmpty()) {
             updatedUser.setPassword(updatedUser.getPassword());
         }
+
         ret.setAdmin(updatedUser.isAdmin());
         ret.setEmail(updatedUser.getEmail());
         this.db.saveUser(ret);
@@ -88,10 +94,17 @@ public class UserRestApi extends BaseApi implements UserApi {
             final String sortDir,
             final String sortField,
             final String filters) throws AuthorizationException {
-        final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
-        return Response.status(Status.OK.getStatusCode())
-                .header("X-Total-Count", Integer.toString(this.db.countUsers(filter)))
-                .entity(this.db.listUsers(page, perPage, sortDir, sortField, filter))
-                .build();
+        if (this.sessionUser.isAdmin()) {
+            final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
+            return Response.status(Status.OK.getStatusCode())
+                    .header("X-Total-Count", Integer.toString(this.db.countUsers(filter)))
+                    .entity(this.db.listUsers(page, perPage, sortDir, sortField, filter))
+                    .build();
+        } else {
+            return Response.status(Status.OK.getStatusCode())
+                    .header("X-Total-Count", Integer.toString(1))
+                    .entity(Arrays.asList(this.sessionUser))
+                    .build();
+        }
     }
 }

@@ -15,6 +15,7 @@ import javax.ws.rs.core.MediaType;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.NotFoundException;
+import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Process;
 
 import io.swagger.annotations.Api;
@@ -36,11 +37,10 @@ public interface ProcessApi {
                   value = "List processes",
                   notes = "List all processes that are currently running",
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
-    @ApiResponses(value = {
-            @ApiResponse(code = 200,
-                         message = "An array of Processes",
-                         response = Process.class,
-                         responseContainer = "List")})
+    @ApiResponses(value = {@ApiResponse(code = 200,
+                                        message = "An array of Processes",
+                                        response = Process.class,
+                                        responseContainer = "List")})
     public List<org.flexiblepower.model.Process> listProcesses();
 
     @GET
@@ -58,7 +58,9 @@ public interface ProcessApi {
             @ApiParam(name = "processId",
                       value = "The id of the process",
                       required = true) @PathParam("processId") final String uuid)
-            throws AuthorizationException, NotFoundException, InvalidObjectIdException;
+            throws AuthorizationException,
+            NotFoundException,
+            InvalidObjectIdException;
 
     @PUT
     @Path("{processId}")
@@ -78,7 +80,9 @@ public interface ProcessApi {
             @ApiParam(name = "process",
                       value = "The process definition of the new process to add",
                       required = true) final Process process)
-            throws AuthorizationException;
+            throws AuthorizationException,
+            InvalidObjectIdException,
+            ProcessNotFoundException;
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)
@@ -103,12 +107,15 @@ public interface ProcessApi {
                   code = 204,
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
     @ApiResponses(value = {@ApiResponse(code = 204, message = "Process deleted"),
+            @ApiResponse(code = 400, message = InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE),
             @ApiResponse(code = 404, message = ProcessApi.PROCESS_NOT_FOUND_MESSAGE),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public void removeProcess(
             @ApiParam(name = "process",
                       value = "The id of process to remove",
                       required = true) @PathParam("processId") final String uuid)
-            throws AuthorizationException, NotFoundException;
+            throws AuthorizationException,
+            NotFoundException,
+            InvalidObjectIdException;
 
 }

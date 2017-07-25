@@ -14,6 +14,7 @@ import javax.ws.rs.core.MediaType;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.NotFoundException;
+import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Connection;
 
 import io.swagger.annotations.Api;
@@ -36,12 +37,30 @@ public interface ConnectionApi {
                   value = "List connections",
                   notes = "List all existing connections",
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
-    @ApiResponses(value = {
-            @ApiResponse(code = 200,
-                         message = "An array of Connections",
-                         response = Connection.class,
-                         responseContainer = "List")})
+    @ApiResponses(value = {@ApiResponse(code = 200,
+                                        message = "An array of Connections",
+                                        response = Connection.class,
+                                        responseContainer = "List")})
     public List<Connection> listConnections();
+
+    @GET
+    @Path("{connectionId}")
+    @ApiOperation(nickname = "getConnection",
+                  value = "Get connection data",
+                  notes = "Get the connection with the specified Id",
+                  authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Connection with the specified Id", response = Connection.class),
+            @ApiResponse(code = 400, message = InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE),
+            @ApiResponse(code = 404, message = ProcessApi.PROCESS_NOT_FOUND_MESSAGE),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
+    public Connection getConnection(
+            @ApiParam(name = "connectionId",
+                      value = "The id of the connection",
+                      required = true) @PathParam("connectionId") final String id)
+            throws AuthorizationException,
+            ProcessNotFoundException,
+            InvalidObjectIdException;
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)
@@ -57,7 +76,8 @@ public interface ConnectionApi {
             @ApiParam(name = "connection",
                       value = "The new connection to insert",
                       required = true) final Connection connection)
-            throws AuthorizationException, NotFoundException;
+            throws AuthorizationException,
+            NotFoundException;
 
     @DELETE
     @Path("{id}")
@@ -74,5 +94,7 @@ public interface ConnectionApi {
             @ApiParam(name = "connectionId",
                       value = "The id of the connection to remove",
                       required = true) @PathParam("id") final String id)
-            throws AuthorizationException, InvalidObjectIdException, NotFoundException;
+            throws AuthorizationException,
+            InvalidObjectIdException,
+            NotFoundException;
 }

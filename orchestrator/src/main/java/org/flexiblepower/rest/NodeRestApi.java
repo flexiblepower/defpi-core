@@ -10,6 +10,7 @@ import javax.ws.rs.core.Response.Status;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.api.NodeApi;
+import org.flexiblepower.api.UserApi;
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
@@ -37,96 +38,109 @@ public class NodeRestApi extends BaseApi implements NodeApi {
     }
 
     @Override
-    public PrivateNode createPrivateNode(final PrivateNode newNode) throws AuthorizationException {
+    public PrivateNode createPrivateNode(final PrivateNode newNode) throws AuthorizationException,
+            InvalidObjectIdException {
         this.assertUserIsAdmin();
         // TODO this is a hack. The UI gives the id of the Unidentified node, not of the dockerId...
-        final UnidentifiedNode un = this.nodeManager.getUnidentifiedNode(new ObjectId(newNode.getDockerId()));
+        final ObjectId oid = MongoDbConnector.stringToObjectId(newNode.getDockerId());
+        final UnidentifiedNode un = this.nodeManager.getUnidentifiedNode(oid);
         if (un == null) {
-            throw new ApiException(404, "Node could not be found");
-        }
-        final User user = this.userManager.getUser(newNode.getUserId()); // TODO use user manager
-        if (user == null) {
-            throw new ApiException(404, "User could not be found");
+            throw new ApiException(Status.NOT_FOUND, NodeApi.UNIDENTIFIED_NODE_NOT_FOUND_MESSAGE);
         }
 
-        if (!user.equals(this.sessionUser) || !user.isAdmin()) {
-            throw new AuthorizationException();
+        final User owner = this.userManager.getUser(newNode.getUserId());
+        if (owner == null) {
+            throw new ApiException(Status.NOT_FOUND, UserApi.USER_NOT_FOUND_MESSAGE);
         }
 
         NodeRestApi.log.info("Making node " + newNode.getDockerId() + " into a private node");
-        return this.nodeManager.makeUnidentifiedNodePrivate(un, user);
+        return this.nodeManager.makeUnidentifiedNodePrivate(un, owner);
     }
 
     @Override
-    public PublicNode createPublicNode(final PublicNode newNode) {
+    public PublicNode createPublicNode(final PublicNode newNode) throws AuthorizationException,
+            InvalidObjectIdException {
         this.assertUserIsAdmin();
         // TODO this is a hack. The UI gives the id of the Unidentified node, not of the dockerId...
-        final UnidentifiedNode un = this.nodeManager.getUnidentifiedNode(new ObjectId(newNode.getDockerId()));
+        final ObjectId oid = MongoDbConnector.stringToObjectId(newNode.getDockerId());
+        final UnidentifiedNode un = this.nodeManager.getUnidentifiedNode(oid);
+
         if (un == null) {
-            throw new ApiException(404, "Node could not be found");
+            throw new ApiException(Status.NOT_FOUND, NodeApi.UNIDENTIFIED_NODE_NOT_FOUND_MESSAGE);
         }
+
         final NodePool nodePool = this.nodeManager.getNodePool(newNode.getNodePoolId());
         if (nodePool == null) {
-            throw new ApiException(404, "NodePool could not be found");
+            throw new ApiException(Status.NOT_FOUND, NodeApi.NODE_POOL_NOT_FOUND_MESSAGE);
         }
+
         NodeRestApi.log.info("Making node " + newNode.getDockerId() + " into a public node");
         return this.nodeManager.makeUnidentifiedNodePublic(un, nodePool);
     }
 
     @Override
-    public void deletePrivateNode(final String nodeId) throws InvalidObjectIdException {
+    public void deletePrivateNode(final String nodeId) throws AuthorizationException, InvalidObjectIdException {
         this.assertUserIsAdmin();
-        try {
-            final PrivateNode privateNode = this.nodeManager.getPrivateNode(new ObjectId(nodeId));
-            if (privateNode == null) {
-                throw new ApiException(404, "Private Node could not be found");
-            }
-            this.nodeManager.deletePrivateNode(privateNode);
-        } catch (final IllegalArgumentException e) {
-            throw new ApiException(400, "Not a valid identified");
+
+        final ObjectId oid = MongoDbConnector.stringToObjectId(nodeId);
+        final PrivateNode privateNode = this.nodeManager.getPrivateNode(oid);
+        if (privateNode == null) {
+            throw new ApiException(Status.NOT_FOUND, NodeApi.PRIVATE_NODE_NOT_FOUND_MESSAGE);
         }
+        this.nodeManager.deletePrivateNode(privateNode);
     }
 
     @Override
-    public void deletePublicNode(final String nodeId) throws InvalidObjectIdException {
+    public void deletePublicNode(final String nodeId) throws AuthorizationException, InvalidObjectIdException {
         this.assertUserIsAdmin();
-        try {
-            final PublicNode publicNode = this.nodeManager.getPublicNode(new ObjectId(nodeId));
-            if (publicNode == null) {
-                throw new ApiException(404, "Private Node could not be found");
-            }
-            this.nodeManager.deletePublicNode(publicNode);
-        } catch (final IllegalArgumentException e) {
-            throw new ApiException(400, "Not a valid identified");
+
+        final ObjectId oid = MongoDbConnector.stringToObjectId(nodeId);
+        final PublicNode publicNode = this.nodeManager.getPublicNode(oid);
+
+        if (publicNode == null) {
+            throw new ApiException(Status.NOT_FOUND, NodeApi.PUBLIC_NODE_NOT_FOUND_MESSAGE);
         }
+        this.nodeManager.deletePublicNode(publicNode);
     }
 
     @Override
-    public PrivateNode getPrivateNode(final String nodeId) throws InvalidObjectIdException {
-        this.assertUserIsAdmin();
-        return this.nodeManager.getPrivateNode(new ObjectId(nodeId));
+    public PrivateNode getPrivateNode(final String id) throws AuthorizationException, InvalidObjectIdException {
+        final ObjectId nodeId = MongoDbConnector.stringToObjectId(id);
+        final PrivateNode ret = this.nodeManager.getPrivateNode(nodeId);
+
+        if (ret == null) {
+            throw new ApiException(Status.NOT_FOUND, NodeApi.PRIVATE_NODE_NOT_FOUND_MESSAGE);
+        }
+
+        this.assertUserIsAdminOrEquals(ret.getUserId());
+        return ret;
     }
 
     @Override
     public PublicNode getPublicNode(final String nodeId) throws InvalidObjectIdException {
-        this.assertUserIsAdmin();
-        return this.nodeManager.getPublicNode(new ObjectId(nodeId));
+        final PublicNode ret = this.nodeManager.getPublicNode(MongoDbConnector.stringToObjectId(nodeId));
+        if (ret == null) {
+            throw new ApiException(Status.NOT_FOUND, NodeApi.PUBLIC_NODE_NOT_FOUND_MESSAGE);
+        }
+        return ret;
     }
 
     @Override
     public List<PrivateNode> listPrivateNodes() {
-        this.assertUserIsAdmin();
-        return this.nodeManager.getPrivateNodes();
+        if (this.sessionUser.isAdmin()) {
+            return this.nodeManager.getPrivateNodes();
+        } else {
+            return this.nodeManager.getPrivateNodesForUser(this.sessionUser);
+        }
     }
 
     @Override
     public List<PublicNode> listPublicNodes() {
-        this.assertUserIsAdmin();
         return this.nodeManager.getPublicNodes();
     }
 
     @Override
-    public List<UnidentifiedNode> listUnidentifiedNodes() {
+    public List<UnidentifiedNode> listUnidentifiedNodes() throws AuthorizationException {
         this.assertUserIsAdmin();
         return this.nodeManager.getUnidentifiedNodes();
     }
@@ -140,14 +154,15 @@ public class NodeRestApi extends BaseApi implements NodeApi {
     @Override
     public NodePool updateNodePool(final String nodePoolId, final NodePool updatedNodePool)
             throws AuthorizationException,
-            NodePoolNotFoundException {
-        if ((nodePoolId == null) || !nodePoolId.equals(updatedNodePool.getId().toString())) {
-            throw new ApiException(403, "Invalid id");
+            NodePoolNotFoundException,
+            InvalidObjectIdException {
+        this.assertUserIsAdmin();
+        final NodePool nodePool = this.getNodePool(nodePoolId);
+
+        if (!nodePool.getId().equals(updatedNodePool.getId())) {
+            throw new ApiException(Status.FORBIDDEN, "Cannot update the nodepool id");
         }
-        final NodePool nodePool = this.nodeManager.getNodePool(new ObjectId(nodePoolId));
-        if (nodePool == null) {
-            throw new NodePoolNotFoundException();
-        }
+
         return this.nodeManager.saveNodePool(updatedNodePool);
     }
 
@@ -155,18 +170,17 @@ public class NodeRestApi extends BaseApi implements NodeApi {
     public void deleteNodePool(final String nodePoolId) throws AuthorizationException,
             InvalidObjectIdException,
             NotFoundException {
-        final NodePool nodePool = this.nodeManager.getNodePool(new ObjectId(nodePoolId));
-        if (nodePool == null) {
-            throw new NodePoolNotFoundException();
-        }
+        this.assertUserIsAdmin();
+        final NodePool nodePool = this.getNodePool(nodePoolId);
         this.nodeManager.deleteNodePool(nodePool);
     }
 
     @Override
     public NodePool getNodePool(final String nodePoolId) throws AuthorizationException,
             InvalidObjectIdException,
-            NotFoundException {
-        final NodePool nodePool = this.nodeManager.getNodePool(new ObjectId(nodePoolId));
+            NodePoolNotFoundException {
+        final ObjectId oid = MongoDbConnector.stringToObjectId(nodePoolId);
+        final NodePool nodePool = this.nodeManager.getNodePool(oid);
         if (nodePool == null) {
             throw new NodePoolNotFoundException();
         }

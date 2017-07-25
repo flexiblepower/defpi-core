@@ -76,8 +76,7 @@ public class ProcessConnector {
      * @throws IOException
      * @throws ServiceNotFoundException
      */
-    public boolean addConnection(final Connection connection) throws ProcessNotFoundException,
-            ServiceNotFoundException {
+    public boolean addConnection(final Connection connection) throws ProcessNotFoundException {
         final Process process1 = ProcessManager.getInstance().getProcess(connection.getProcess1Id());
         final ProcessConnection pc1 = this.getProcessConnection(process1.getId());
         final Process process2 = ProcessManager.getInstance().getProcess(connection.getProcess2Id());
