@@ -33,10 +33,10 @@
 
 	<dependencies>
 		<!-- Jetty HTTP server hosting the UI -->
-		<dependency>
+		<!--  dependency>
 			<groupId>org.glassfish.jersey.core</groupId>
 			<artifactId>jersey-server</artifactId>
-		</dependency>
+		</dependency -->
 
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>
@@ -48,10 +48,10 @@
 			<artifactId>jersey-container-jetty-http</artifactId>
 		</dependency>
 
-		<dependency>
+		<!--  dependency>
 			<groupId>org.glassfish.jersey.media</groupId>
 			<artifactId>jersey-media-json-jackson</artifactId>
-		</dependency>
+		</dependency -->
 
 		<dependency>
 			<groupId>com.fasterxml.jackson.datatype</groupId>

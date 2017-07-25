@@ -103,13 +103,18 @@ public class ConnectionTest {
         this.in = this.ctx.socket(ZMQ.PULL);
         this.in.setReceiveTimeOut(200);
         this.in.bind(listenURI.toString());
-        Thread.sleep(5000); // Allow remote thread to process the connection message
+
+        // Wait for the first handshake try...
+        this.readSocketFilterHeartbeat();
+        // Thread.sleep(50); // Allow remote thread to process the connection message
     }
 
     @Test(timeout = 5000)
     public void testAck() throws InterruptedException, SerializationException {
         // Now start real tests, first send random string
+        System.out.println("Sending random ack");
         Assert.assertTrue("Failed to send random string", this.out.send("This is just a not an ack"));
+        System.out.println("Read socket");
         byte[] recv = this.readSocketFilterHeartbeat();
         Assert.assertNull("Random string should not be answered", recv);
 

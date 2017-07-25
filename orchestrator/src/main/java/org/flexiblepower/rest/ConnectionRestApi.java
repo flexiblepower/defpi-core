@@ -24,8 +24,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ConnectionRestApi extends BaseApi implements ConnectionApi {
 
-    private final ConnectionManager connectionManager = ConnectionManager.getInstance();
-
     protected ConnectionRestApi(@Context final HttpHeaders httpHeaders) {
         super(httpHeaders);
     }
@@ -35,9 +33,9 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
         if (this.sessionUser == null) {
             return Collections.emptyList();
         } else if (this.sessionUser.isAdmin()) {
-            return this.connectionManager.getConnections();
+            return ConnectionManager.getInstance().getConnections();
         } else {
-            return this.connectionManager.getConnectionsForUser(this.sessionUser);
+            return ConnectionManager.getInstance().getConnectionsForUser(this.sessionUser);
         }
     }
 
@@ -58,7 +56,7 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
         this.assertUserIsAdminOrEquals(p2.getUserId());
 
         ConnectionRestApi.log.info("Inserting new Connection {}", connection);
-        this.connectionManager.insertConnection(connection);
+        ConnectionManager.getInstance().insertConnection(connection);
         return connection;
     }
 
@@ -67,7 +65,7 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
             ProcessNotFoundException,
             InvalidObjectIdException {
         final ObjectId oid = MongoDbConnector.stringToObjectId(id);
-        final Connection connection = this.connectionManager.getConnection(oid);
+        final Connection connection = ConnectionManager.getInstance().getConnection(oid);
 
         if (connection == null) {
             throw new ApiException(Status.NOT_FOUND, "Could not find connection with id " + id);
@@ -95,6 +93,6 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
         final Connection connection = this.getConnection(id);
 
         ConnectionRestApi.log.info("Removing connection {}", id);
-        this.connectionManager.deleteConnection(connection);
+        ConnectionManager.getInstance().deleteConnection(connection);
     }
 }

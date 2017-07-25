@@ -39,6 +39,7 @@ public interface ServiceApi {
 
     @GET
     @Path("/")
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "listServices",
                   value = "List Services",
                   notes = "List all services in a repository",
@@ -46,7 +47,7 @@ public interface ServiceApi {
     @ApiResponses(value = {
             @ApiResponse(code = 200,
                          message = "An array of services",
-                         response = String.class,
+                         response = Service.class,
                          responseContainer = "List"),
             @ApiResponse(code = 404, message = RepositoryNotFoundException.REPOSITORY_NOT_FOUND_MESSAGE)})
     public List<Service> listServices() throws NotFoundException;
@@ -71,6 +72,7 @@ public interface ServiceApi {
 
     @GET
     @Path("/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "getService",
                   value = "Get a service",
                   notes = "Get a particular service from the registry",

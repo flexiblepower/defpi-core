@@ -75,17 +75,5 @@ public class Main {
             main(final String[] args) throws AuthorizationException, UnknownHostException, URISyntaxException {
         Main.ensureAdminUserExists();
         Main.startServer();
-        // final Services services = new Services(null);
-        // while (true) {
-        // try {
-        // // services.syncServices();
-        // // Swarm.syncHosts();
-        // Thread.sleep(10000);
-        // } catch (final InterruptedException e) {
-        // e.printStackTrace();
-        // } catch (final Exception e) {
-        // e.printStackTrace();
-        // }
-        // }
     }
 }
