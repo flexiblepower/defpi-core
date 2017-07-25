@@ -4,7 +4,6 @@ import java.util.List;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.SecurityContext;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.api.ProcessApi;
@@ -20,8 +19,8 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
 
     // TODO authentication etc
 
-    protected ProcessRestApi(@Context final HttpHeaders httpHeaders, @Context final SecurityContext securityContext) {
-        super(httpHeaders, securityContext);
+    protected ProcessRestApi(@Context final HttpHeaders httpHeaders) {
+        super(httpHeaders);
     }
 
     @Override

@@ -38,8 +38,10 @@ public class NodeManager {
     private static NodeManager instance = null;
 
     public static NodeManager getInstance() {
-        if (NodeManager.instance == null) {
-            NodeManager.instance = new NodeManager();
+        synchronized (NodeManager.instance) {
+            if (NodeManager.instance == null) {
+                NodeManager.instance = new NodeManager();
+            }
         }
         return NodeManager.instance;
     }

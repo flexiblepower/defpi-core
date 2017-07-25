@@ -15,6 +15,9 @@ import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.serializers.JavaIOSerializer;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
+import org.flexiblepower.service.ConnectionManager;
+import org.flexiblepower.service.ServiceManager;
+import org.flexiblepower.service.TestService;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -54,6 +57,8 @@ public class ConnectionTest {
     @Before
     public void initConnection() throws UnknownHostException, InterruptedException, SerializationException {
         this.testService = new TestService();
+        ConnectionManager.registerConnectionHandlerFactory(TestService.class, this.testService);
+
         this.manager = new ServiceManager(this.testService);
         this.serializer = new ProtobufMessageSerializer();
         this.serializer.addMessageClass(ConnectionHandshake.class);
@@ -66,6 +71,7 @@ public class ConnectionTest {
         this.ctx = ZMQ.context(1);
         this.managementSocket = this.ctx.socket(ZMQ.REQ);
         this.managementSocket.setReceiveTimeOut(5000);
+
         this.managementSocket.connect(managementURI.toString());
 
         final String hostOfTestRunner = InetAddress.getLocalHost().getCanonicalHostName();
@@ -100,6 +106,7 @@ public class ConnectionTest {
                 ConnectionTest.TEST_SERVICE_LISTEN_PORT);
         this.out = this.ctx.socket(ZMQ.PUSH);
         this.out.setSendTimeOut(1000);
+
         this.out.setDelayAttachOnConnect(true);
         this.out.connect(serviceURI.toString());
 

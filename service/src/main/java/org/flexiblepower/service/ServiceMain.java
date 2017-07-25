@@ -5,6 +5,7 @@
  */
 package org.flexiblepower.service;
 
+import java.lang.reflect.Constructor;
 import java.util.Set;
 
 import org.flexiblepower.service.exceptions.ServiceInvocationException;
@@ -19,6 +20,13 @@ import org.slf4j.LoggerFactory;
  * @version 0.1
  * @since May 10, 2017
  */
+/**
+ * ServiceMain
+ *
+ * @author coenvl
+ * @version 0.1
+ * @since Jul 24, 2017
+ */
 public final class ServiceMain {
 
     private static final Logger log = LoggerFactory.getLogger(ServiceMain.class);
@@ -30,6 +38,7 @@ public final class ServiceMain {
     public ServiceMain() throws ServiceInvocationException {
         // Get service from package
         final Service service = ServiceMain.getService();
+        ServiceMain.registerMessageHandlers(service);
         ServiceMain.log.info("Started service {}", service);
 
         final ServiceManager manager = new ServiceManager(service);
@@ -64,34 +73,57 @@ public final class ServiceMain {
     }
 
     /**
-     * @return
-     * @throws ServiceInvocationException
+     * Registers all connectionHandlerFactories for their corresponding connectionHandlers.
+     *
+     * @param service
      */
-    // private static Set<MessageHandler> getMessageHandlers() throws ServiceInvocationException {
-    // final Reflections reflections = new Reflections("org.flexiblepower");
-    // final Set<Class<? extends MessageHandler>> set = reflections.getSubTypesOf(MessageHandler.class);
-    //
-    // // Remove our abstract implementation which is not meant to be instantiated, but not necessarily used
-    // set.remove(AbstractMessageHandler.class);
-    //
-    // if (set.isEmpty()) {
-    // ServiceMain.log
-    // .warn("No message handlers have been found, service will not be able to respond to messages");
-    // } else {
-    // ServiceMain.log.info("Found {} message handlers: {}", set.size(), set);
-    // }
-    //
-    // final Set<MessageHandler> ret = new HashSet<>();
-    // for (final Class<? extends MessageHandler> handlerClass : set) {
-    // try {
-    // ret.add(handlerClass.newInstance());
-    // } catch (InstantiationException | IllegalAccessException e) {
-    // throw new ServiceInvocationException("Unable to start service of type " + handlerClass, e);
-    // }
-    // }
-    //
-    // return ret;
-    // }
+    private static void registerMessageHandlers(final Service service) {
+        final Reflections reflections = new Reflections("org.flexiblepower");
+        final Set<Class<? extends ConnectionHandler>> set = reflections.getSubTypesOf(ConnectionHandler.class);
+
+        if (set.isEmpty()) {
+            ServiceMain.log
+                    .warn("No connection handlers have been found, service will not be able to respond to messages");
+        } else {
+            ServiceMain.log.info("Found {} message handlers: {}", set.size(), set);
+        }
+
+        for (final Class<? extends ConnectionHandler> handlerClass : set) {
+            try {
+                final InterfaceInfo info = handlerClass.getAnnotation(InterfaceInfo.class);
+                if (info == null) {
+                    ServiceMain.log.debug("Missing @InterfaceInfo annotation on {}, skipping", handlerClass);
+                    continue;
+                }
+
+                final Class<? extends ConnectionHandlerFactory> factoryClass = info.factory();
+
+                ConnectionHandlerFactory chf = null;
+                // It should have a constructor with service as argument
+                for (final Constructor<?> c : factoryClass.getConstructors()) {
+                    if ((c.getParameterCount() == 1) && Service.class.isAssignableFrom(c.getParameterTypes()[0])) {
+                        try {
+                            chf = (ConnectionHandlerFactory) c.newInstance(service);
+                            break;
+                        } catch (final Exception e) {
+                            // Do nothing try next...
+                        }
+                    }
+                }
+                if (chf == null) {
+                    // Try the empty constructor if it fails
+                    chf = factoryClass.newInstance();
+                }
+                ConnectionManager.registerConnectionHandlerFactory(handlerClass, chf);
+
+            } catch (InstantiationException | IllegalAccessException e) {
+                ServiceMain.log.warn("Unable to instantiate factory for type {} for service ", handlerClass, service);
+                ServiceMain.log.trace("Unable to instantiate factory", e);
+
+                continue;
+            }
+        }
+    }
 
     @SuppressWarnings("unused")
     public static void main(final String[] args) throws ServiceInvocationException {

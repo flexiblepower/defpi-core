@@ -102,4 +102,13 @@ public class User {
         }
     }
 
+    @Override
+    public boolean equals(Object other) {
+    	if (other instanceof User) {
+    		return ((User) other).id == id;
+    	} else {
+    		return super.equals(other);
+    	}
+    }
+    
 }

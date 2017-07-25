@@ -7,7 +7,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.SecurityContext;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.api.NodeApi;
@@ -23,17 +22,18 @@ import org.flexiblepower.model.UnidentifiedNode;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.MongoDbConnector;
 import org.flexiblepower.orchestrator.NodeManager;
+import org.flexiblepower.orchestrator.UserManager;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class NodeRestApi extends BaseApi implements NodeApi {
 
-    private final NodeManager nodeManager;
+    private final NodeManager nodeManager = NodeManager.getInstance();
+    private final UserManager userManager = UserManager.getInstance();
 
-    protected NodeRestApi(@Context final HttpHeaders httpHeaders, @Context final SecurityContext securityContext) {
-        super(httpHeaders, securityContext);
-        this.nodeManager = NodeManager.getInstance();
+    protected NodeRestApi(@Context final HttpHeaders httpHeaders) {
+        super(httpHeaders);
     }
 
     @Override
@@ -44,10 +44,15 @@ public class NodeRestApi extends BaseApi implements NodeApi {
         if (un == null) {
             throw new ApiException(404, "Node could not be found");
         }
-        final User user = this.db.getUser(newNode.getUserId()); // TODO use user manager
+        final User user = this.userManager.getUser(newNode.getUserId()); // TODO use user manager
         if (user == null) {
             throw new ApiException(404, "User could not be found");
         }
+
+        if (!user.equals(this.sessionUser) || !user.isAdmin()) {
+            throw new AuthorizationException();
+        }
+
         NodeRestApi.log.info("Making node " + newNode.getDockerId() + " into a private node");
         return this.nodeManager.makeUnidentifiedNodePrivate(un, user);
     }
@@ -134,7 +139,8 @@ public class NodeRestApi extends BaseApi implements NodeApi {
 
     @Override
     public NodePool updateNodePool(final String nodePoolId, final NodePool updatedNodePool)
-            throws AuthorizationException, NodePoolNotFoundException {
+            throws AuthorizationException,
+            NodePoolNotFoundException {
         if ((nodePoolId == null) || !nodePoolId.equals(updatedNodePool.getId().toString())) {
             throw new ApiException(403, "Invalid id");
         }
@@ -146,8 +152,9 @@ public class NodeRestApi extends BaseApi implements NodeApi {
     }
 
     @Override
-    public void deleteNodePool(final String nodePoolId)
-            throws AuthorizationException, InvalidObjectIdException, NotFoundException {
+    public void deleteNodePool(final String nodePoolId) throws AuthorizationException,
+            InvalidObjectIdException,
+            NotFoundException {
         final NodePool nodePool = this.nodeManager.getNodePool(new ObjectId(nodePoolId));
         if (nodePool == null) {
             throw new NodePoolNotFoundException();
@@ -156,8 +163,9 @@ public class NodeRestApi extends BaseApi implements NodeApi {
     }
 
     @Override
-    public NodePool getNodePool(final String nodePoolId)
-            throws AuthorizationException, InvalidObjectIdException, NotFoundException {
+    public NodePool getNodePool(final String nodePoolId) throws AuthorizationException,
+            InvalidObjectIdException,
+            NotFoundException {
         final NodePool nodePool = this.nodeManager.getNodePool(new ObjectId(nodePoolId));
         if (nodePool == null) {
             throw new NodePoolNotFoundException();
