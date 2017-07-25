@@ -60,9 +60,8 @@ public class ConnectionTest {
         this.serializer.addMessageClass(ConnectionMessage.class);
         this.serializer.addMessageClass(ErrorMessage.class);
 
-        final String managementURI = String.format("tcp://%s:%d",
-                ConnectionTest.TEST_HOST,
-                ServiceManager.MANAGEMENT_PORT);
+        final String managementURI = String
+                .format("tcp://%s:%d", ConnectionTest.TEST_HOST, ServiceManager.MANAGEMENT_PORT);
         this.ctx = ZMQ.context(1);
         this.managementSocket = this.ctx.socket(ZMQ.REQ);
         this.managementSocket.setReceiveTimeOut(5000);
@@ -95,9 +94,8 @@ public class ConnectionTest {
         Assert.assertNotNull(message);
         Assert.assertEquals(ConnectionState.STARTING, message.getConnectionState());
 
-        final String serviceURI = String.format("tcp://%s:%d",
-                ConnectionTest.TEST_HOST,
-                ConnectionTest.TEST_SERVICE_LISTEN_PORT);
+        final String serviceURI = String
+                .format("tcp://%s:%d", ConnectionTest.TEST_HOST, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
         this.out = this.ctx.socket(ZMQ.PUSH);
         this.out.setSendTimeOut(1000);
         this.out.setDelayAttachOnConnect(true);
@@ -110,11 +108,11 @@ public class ConnectionTest {
         Thread.sleep(500); // Allow remote thread to process the connection message
     }
 
-    @Test
+    @Test(timeout = 5000000)
     public void testAck() throws InterruptedException, SerializationException {
         // Now start real tests, first send random string
         Assert.assertTrue("Failed to send random string", this.out.send("This is just a not an ack"));
-        final byte[] recv = this.in.recv();
+        byte[] recv = this.readSocketFilterHeartbeat();
         Assert.assertNull("Random string should not be answered", recv);
 
         // Send an ACK, but an incorrect one
@@ -125,7 +123,8 @@ public class ConnectionTest {
 
         Assert.assertTrue("Failed to send wrong ACK",
                 this.out.send(new String(this.serializer.serialize(wrongHandshake))));
-        Assert.assertNull("Wrong ACK should not be answered", this.in.recv());
+        recv = this.readSocketFilterHeartbeat();
+        Assert.assertNull("Wrong ACK should not be answered", recv);
 
         // Send the real ack
         final ConnectionHandshake correctHandshake = ConnectionHandshake.newBuilder()
@@ -139,16 +138,37 @@ public class ConnectionTest {
         Assert.assertTrue("Sending real ACK", this.out.send(handShakeString));
         Thread.sleep(500);
         Assert.assertEquals("connected", this.testService.getState());
-        Assert.assertNotNull(this.in.recv());
+        recv = this.readSocketFilterHeartbeat();
+        Assert.assertNotNull(recv);
 
         Assert.assertTrue("Failed to send second ACK", this.out.send(handShakeString));
-        Assert.assertNull(this.in.recv());
+        recv = this.readSocketFilterHeartbeat();
+        Assert.assertNull(recv);
+    }
+
+    private byte[] readSocketFilterHeartbeat() {
+        byte[] recv = this.in.recv();
+        if (recv != null) {
+            if (recv.length == 1) {
+                recv = this.in.recv();
+            }
+            System.out.println("Received " + new String(recv));
+        }
+        return recv;
     }
 
     @Test
     public void testSend() throws InterruptedException, SerializationException {
-        this.testService.resetCount();
+        // Send the real ack
+        final ConnectionHandshake correctHandshake = ConnectionHandshake.newBuilder()
+                .setConnectionId(ConnectionTest.CONNECTION_ID)
+                .setConnectionState(ConnectionState.STARTING)
+                .build();
 
+        Assert.assertTrue("Sending handshake to start",
+                this.out.send(new String(this.serializer.serialize(correctHandshake))));
+
+        this.testService.resetCount();
         final int numTests = 100;
         for (int i = 0; i < numTests; i++) {
             Assert.assertTrue(this.out.send((new JavaIOSerializer()).serialize("THIS IS A TEST " + i)));
