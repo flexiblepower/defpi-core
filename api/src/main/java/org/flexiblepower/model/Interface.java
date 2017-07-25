@@ -14,7 +14,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class Interface {
 
+	private String id;
+
 	private String name = null;
+
+	private String serviceId = null;
 
 	@Embedded
 	private List<InterfaceVersion> interfaceVersions = null;
@@ -22,5 +26,17 @@ public class Interface {
 	private boolean allowMultiple = false;
 
 	private boolean autoConnect = false;
+
+	public boolean isCompatibleWith(Interface other) {
+		for (InterfaceVersion iv : interfaceVersions) {
+			for (InterfaceVersion oiv : other.getInterfaceVersions()) {
+				if (iv.getReceivesHash().equals(oiv.getSendsHash())
+						&& iv.getSendsHash().equals(oiv.getReceivesHash())) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
 
 }

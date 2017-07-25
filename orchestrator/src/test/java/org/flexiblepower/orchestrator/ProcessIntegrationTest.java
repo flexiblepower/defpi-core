@@ -72,7 +72,7 @@ public class ProcessIntegrationTest {
 
         final String localhostName = InetAddress.getLocalHost().getHostName();
 
-        Assert.assertTrue(cm.addConnection(new Connection(process1.getId(), process1.getId(), "Echo", "Echo")));
+        Assert.assertTrue(cm.addConnection(new Connection(null, process1.getId(), "Echo", process1.getId(), "Echo")));
     }
 
     //
