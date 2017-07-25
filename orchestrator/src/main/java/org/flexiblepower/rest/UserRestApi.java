@@ -1,5 +1,6 @@
 package org.flexiblepower.rest;
 
+import java.util.Arrays;
 import java.util.Map;
 
 import javax.ws.rs.core.Context;
@@ -93,11 +94,17 @@ public class UserRestApi extends BaseApi implements UserApi {
             final String sortDir,
             final String sortField,
             final String filters) throws AuthorizationException {
-        this.assertUserIsAdmin();
-        final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
-        return Response.status(Status.OK.getStatusCode())
-                .header("X-Total-Count", Integer.toString(this.db.countUsers(filter)))
-                .entity(this.db.listUsers(page, perPage, sortDir, sortField, filter))
-                .build();
+        if (this.sessionUser.isAdmin()) {
+            final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
+            return Response.status(Status.OK.getStatusCode())
+                    .header("X-Total-Count", Integer.toString(this.db.countUsers(filter)))
+                    .entity(this.db.listUsers(page, perPage, sortDir, sortField, filter))
+                    .build();
+        } else {
+            return Response.status(Status.OK.getStatusCode())
+                    .header("X-Total-Count", Integer.toString(1))
+                    .entity(Arrays.asList(this.sessionUser))
+                    .build();
+        }
     }
 }
