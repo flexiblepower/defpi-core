@@ -15,9 +15,6 @@ import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.serializers.JavaIOSerializer;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
-import org.flexiblepower.service.ConnectionManager;
-import org.flexiblepower.service.ServiceManager;
-import org.flexiblepower.service.TestService;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -45,8 +42,8 @@ public class ConnectionTest {
     private static final int TEST_SERVICE_LISTEN_PORT = 5020;
     private static final int TEST_SERVICE_TARGET_PORT = 5025;
 
-    private TestService testService;
-    private ServiceManager manager;
+    private final TestService testService = new TestService();
+    private ServiceManager manager = new ServiceManager(this.testService);
     private Socket managementSocket;
 
     private Socket out;
@@ -56,18 +53,15 @@ public class ConnectionTest {
 
     @Before
     public void initConnection() throws UnknownHostException, InterruptedException, SerializationException {
-        this.testService = new TestService();
         ConnectionManager.registerConnectionHandlerFactory(TestService.class, this.testService);
 
-        this.manager = new ServiceManager(this.testService);
         this.serializer = new ProtobufMessageSerializer();
         this.serializer.addMessageClass(ConnectionHandshake.class);
         this.serializer.addMessageClass(ConnectionMessage.class);
         this.serializer.addMessageClass(ErrorMessage.class);
 
-        final String managementURI = String.format("tcp://%s:%d",
-                ConnectionTest.TEST_HOST,
-                ServiceManager.MANAGEMENT_PORT);
+        final String managementURI = String
+                .format("tcp://%s:%d", ConnectionTest.TEST_HOST, ServiceManager.MANAGEMENT_PORT);
         this.ctx = ZMQ.context(1);
         this.managementSocket = this.ctx.socket(ZMQ.REQ);
         this.managementSocket.setReceiveTimeOut(5000);
@@ -90,20 +84,15 @@ public class ConnectionTest {
         } catch (final SerializationException e1) {
             e1.printStackTrace();
         }
+
         final byte[] response = this.managementSocket.recv();
         ConnectionHandshake message = null;
-        try {
-            message = (ConnectionHandshake) this.serializer.deserialize(response);
-        } catch (final SerializationException e) {
-            System.out.println("Message: " + response);
-            e.printStackTrace();
-        }
+        message = (ConnectionHandshake) this.serializer.deserialize(response);
         Assert.assertNotNull(message);
         Assert.assertEquals(ConnectionState.STARTING, message.getConnectionState());
 
-        final String serviceURI = String.format("tcp://%s:%d",
-                ConnectionTest.TEST_HOST,
-                ConnectionTest.TEST_SERVICE_LISTEN_PORT);
+        final String serviceURI = String
+                .format("tcp://%s:%d", ConnectionTest.TEST_HOST, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
         this.out = this.ctx.socket(ZMQ.PUSH);
         this.out.setSendTimeOut(1000);
 
@@ -122,7 +111,7 @@ public class ConnectionTest {
         // Now start real tests, first send random string
         Assert.assertTrue("Failed to send random string", this.out.send("This is just a not an ack"));
         final byte[] recv = this.in.recv();
-        Assert.assertNull("Random string should not be answered", recv);
+        Assert.assertEquals("Random string should not be answered", "", recv == null ? "" : new String(recv));
 
         // Send an ACK, but an incorrect one
         final ConnectionHandshake wrongHandshake = ConnectionHandshake.newBuilder()
@@ -154,6 +143,14 @@ public class ConnectionTest {
 
     @Test
     public void testSend() throws InterruptedException, SerializationException {
+        final ConnectionHandshake correctHandshake = ConnectionHandshake.newBuilder()
+                .setConnectionId(ConnectionTest.CONNECTION_ID)
+                .setConnectionState(ConnectionState.STARTING)
+                .build();
+
+        final String handShakeString = new String(this.serializer.serialize(correctHandshake));
+        this.out.send(handShakeString);
+
         this.testService.resetCount();
 
         final int numTests = 100;

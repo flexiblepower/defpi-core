@@ -227,11 +227,20 @@ final class ManagedConnection implements Connection, Closeable {
                 try {
                     receivedMsg = this.protoBufSerializer.deserialize(buff);
                 } catch (final SerializationException e1) {
-                    e1.printStackTrace();
+                    // Ignore it...
+                    ManagedConnection.log.warn("Expected handshake, but failed to parse, ignoring message");
+                    return;
                 }
-                final ConnectionHandshake handShakeMessage = (ConnectionHandshake) receivedMsg;
 
+                final ConnectionHandshake handShakeMessage = (ConnectionHandshake) receivedMsg;
                 ManagedConnection.log.debug("Received acknowledge string: {}", handShakeMessage);
+
+                if (!handShakeMessage.getConnectionId().equals(this.connectionId)) {
+                    ManagedConnection.log.warn("Expected handshake for connection Id {}, instead received {}",
+                            this.connectionId,
+                            handShakeMessage.getConnectionId());
+                    return;
+                }
 
                 this.state = ConnectionState.CONNECTED;
                 this.handler.onConnected(this);
