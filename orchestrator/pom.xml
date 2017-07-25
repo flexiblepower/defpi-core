@@ -19,25 +19,35 @@
 		<docker.imageName>${docker.registry}/defpi/${project.artifactId}:${project.version}</docker.imageName>
 	</properties>
 
-	<dependencies>
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-		</dependency>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.glassfish.jersey</groupId>
+				<artifactId>jersey-bom</artifactId>
+				<version>2.25.1</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
+	<dependencies>
 		<!-- Jetty HTTP server hosting the UI -->
 		<dependency>
 			<groupId>org.glassfish.jersey.core</groupId>
 			<artifactId>jersey-server</artifactId>
 		</dependency>
+
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>
 			<artifactId>jersey-container-servlet-core</artifactId>
 		</dependency>
+
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>
 			<artifactId>jersey-container-jetty-http</artifactId>
 		</dependency>
+
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>
 			<artifactId>jersey-media-json-jackson</artifactId>
@@ -51,13 +61,8 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.flexiblepower</groupId>
-			<artifactId>api</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.flexiblepower</groupId>
-			<artifactId>commons</artifactId>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
 		</dependency>
 
 		<dependency>
@@ -96,8 +101,15 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<dependency>
+			<groupId>org.flexiblepower</groupId>
+			<artifactId>api</artifactId>
+		</dependency>
 
-
+		<dependency>
+			<groupId>org.flexiblepower</groupId>
+			<artifactId>commons</artifactId>
+		</dependency>
 	</dependencies>
 
 

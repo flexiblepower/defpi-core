@@ -23,6 +23,10 @@ import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Context;
 import org.zeromq.ZMQ.Socket;
 
+import src.main.java.org.flexiblepower.service.ConnectionManager;
+import src.main.java.org.flexiblepower.service.ServiceManager;
+import src.test.java.org.flexiblepower.service.TestService;
+
 /**
  * ConnectionTest
  *
@@ -42,8 +46,8 @@ public class ConnectionTest {
     private static final int TEST_SERVICE_LISTEN_PORT = 5020;
     private static final int TEST_SERVICE_TARGET_PORT = 5025;
 
-    private TestService testService;
-    private ServiceManager manager;
+    private final TestService testService = new TestService();
+    private ServiceManager manager = new ServiceManager(this.testService);
     private Socket managementSocket;
 
     private Socket out;
@@ -53,8 +57,8 @@ public class ConnectionTest {
 
     @Before
     public void initConnection() throws UnknownHostException, InterruptedException, SerializationException {
-        this.testService = new TestService();
-        this.manager = new ServiceManager(this.testService);
+        ConnectionManager.registerConnectionHandlerFactory(TestService.class, this.testService);
+
         this.serializer = new ProtobufMessageSerializer();
         this.serializer.addMessageClass(ConnectionHandshake.class);
         this.serializer.addMessageClass(ConnectionMessage.class);
@@ -65,6 +69,7 @@ public class ConnectionTest {
         this.ctx = ZMQ.context(1);
         this.managementSocket = this.ctx.socket(ZMQ.REQ);
         this.managementSocket.setReceiveTimeOut(5000);
+
         this.managementSocket.connect(managementURI.toString());
 
         final String hostOfTestRunner = InetAddress.getLocalHost().getCanonicalHostName();
@@ -83,14 +88,10 @@ public class ConnectionTest {
         } catch (final SerializationException e1) {
             e1.printStackTrace();
         }
+
         final byte[] response = this.managementSocket.recv();
         ConnectionHandshake message = null;
-        try {
-            message = (ConnectionHandshake) this.serializer.deserialize(response);
-        } catch (final SerializationException e) {
-            System.out.println("Message: " + response);
-            e.printStackTrace();
-        }
+        message = (ConnectionHandshake) this.serializer.deserialize(response);
         Assert.assertNotNull(message);
         Assert.assertEquals(ConnectionState.STARTING, message.getConnectionState());
 
@@ -98,6 +99,7 @@ public class ConnectionTest {
                 .format("tcp://%s:%d", ConnectionTest.TEST_HOST, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
         this.out = this.ctx.socket(ZMQ.PUSH);
         this.out.setSendTimeOut(1000);
+
         this.out.setDelayAttachOnConnect(true);
         this.out.connect(serviceURI.toString());
 
@@ -165,8 +167,8 @@ public class ConnectionTest {
                 .setConnectionState(ConnectionState.STARTING)
                 .build();
 
-        Assert.assertTrue("Sending handshake to start",
-                this.out.send(new String(this.serializer.serialize(correctHandshake))));
+        final String handShakeString = new String(this.serializer.serialize(correctHandshake));
+        this.out.send(handShakeString);
 
         this.testService.resetCount();
         final int numTests = 100;
