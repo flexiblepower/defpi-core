@@ -32,14 +32,17 @@ public class ProcessManager {
 
     private final DockerConnector dockerConnector = new DockerConnector();
     private final MongoDbConnector mongoDbConnector = MongoDbConnector.getInstance();
+    private final UserManager userManager = UserManager.getInstance();
     private final ScheduledExecutorService threadpool = Executors.newScheduledThreadPool(1);
 
     private ProcessManager() {
     }
 
     public static ProcessManager getInstance() {
-        if (ProcessManager.instance == null) {
-            ProcessManager.instance = new ProcessManager();
+        synchronized (ProcessManager.instance) {
+            if (ProcessManager.instance == null) {
+                ProcessManager.instance = new ProcessManager();
+            }
         }
         return ProcessManager.instance;
     }
@@ -78,12 +81,12 @@ public class ProcessManager {
 
         this.threadpool.execute(() -> {
             // Now create the process in Docker
-            final User user = MongoDbConnector.getInstance().getUser(process.getUserId());
+            final User user = this.userManager.getUser(process.getUserId());
             final String dockerId = ProcessManager.this.dockerConnector.newProcess(process, user);
 
             process.setState(ProcessState.INITIALIZING);
             process.setDockerId(dockerId);
-            MongoDbConnector.getInstance().save(process);
+            this.mongoDbConnector.save(process);
 
             ProcessManager.this.threadpool.execute(() -> {
                 // Create management connection
@@ -102,7 +105,7 @@ public class ProcessManager {
     private void validateProcess(final Process process) {
         if (process.getUserId() == null) {
             throw new NullPointerException("userId cannot be null");
-        } else if (this.mongoDbConnector.getUser(process.getUserId()) == null) {
+        } else if (this.userManager.getUser(process.getUserId()) == null) {
             throw new IllegalArgumentException("Could not find user");
         } else if (process.getServiceId() == null) {
             throw new NullPointerException("serviceId cannot be null");
