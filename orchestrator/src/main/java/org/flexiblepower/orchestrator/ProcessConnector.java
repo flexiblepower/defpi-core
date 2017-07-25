@@ -7,6 +7,7 @@ package org.flexiblepower.orchestrator;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -18,6 +19,7 @@ import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Interface;
 import org.flexiblepower.model.InterfaceVersion;
 import org.flexiblepower.model.Process;
+import org.flexiblepower.model.Process.Parameter;
 import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
@@ -32,7 +34,7 @@ import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Socket;
 
 import com.google.protobuf.ByteString;
-import com.google.protobuf.GeneratedMessage;
+import com.google.protobuf.Message;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -74,8 +76,8 @@ public class ProcessConnector {
      * @throws IOException
      * @throws ServiceNotFoundException
      */
-    public boolean addConnection(final Connection connection)
-            throws ProcessNotFoundException, ServiceNotFoundException {
+    public boolean addConnection(final Connection connection) throws ProcessNotFoundException,
+            ServiceNotFoundException {
         final Process process1 = ProcessManager.getInstance().getProcess(connection.getProcess1Id());
         final ProcessConnection pc1 = this.getProcessConnection(process1.getId());
         final Process process2 = ProcessManager.getInstance().getProcess(connection.getProcess2Id());
@@ -99,14 +101,14 @@ public class ProcessConnector {
                     pc1.setUpConnection(connection.getId(),
                             port1,
                             version1.getSendsHash(),
-                            process2.getRunningDockerNodeId(),
+                            process2.getId().toString(),
                             port2,
                             version2.getReceivesHash());
 
                     pc2.setUpConnection(connection.getId(),
                             port2,
                             version2.getSendsHash(),
-                            process1.getRunningDockerNodeId(),
+                            process1.getId().toString(),
                             port1,
                             version1.getReceivesHash());
 
@@ -129,119 +131,6 @@ public class ProcessConnector {
 
     }
 
-    // public void connect(final String id,
-    // final String sendingHost,
-    // final int listeningPort,
-    // final String sendingHash,
-    // final String receivingHost,
-    // final int targetPort,
-    // final String receivingHash) throws ConnectionException {
-    // final String targetAddress = "tcp://" + receivingHost + ":" + targetPort;
-    //
-    // final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
-    // .setConnectionId(id)
-    // .setMode(ConnectionMessage.ModeType.CREATE)
-    // .setTargetAddress(targetAddress)
-    // .setListenPort(listeningPort)
-    // .setReceiveHash(receivingHash)
-    // .setSendHash(sendingHash)
-    // .build();
-    //
-    // this.sendConnectionMessage(sendingHost, connectionMessage, new ConnectionResponseHandler() {
-    //
-    // @Override
-    // public void timeOutOccurred() throws ConnectionException {
-    // throw new ConnectionException("Timeout occurred waiting for " + this.expectedState().name());
-    // }
-    //
-    // @Override
-    // public void handleConnectionResponse(final ConnectionHandshake message) {
-    // ProcessConnector.log.debug("Connection " + id + " status: " + message.getConnectionState().name());
-    // }
-    //
-    // @Override
-    // public ConnectionState expectedState() {
-    // return ConnectionState.CONNECTED;
-    // }
-    // });
-    // }
-    //
-    // void disconnect(final String id, final String sendingHost) throws ConnectionException {
-    // final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
-    // .setConnectionId(id)
-    // .setMode(ConnectionMessage.ModeType.TERMINATE)
-    // .build();
-    //
-    // this.sendConnectionMessage(sendingHost, connectionMessage, new ConnectionResponseHandler() {
-    //
-    // @Override
-    // public void timeOutOccurred() throws ConnectionException {
-    // throw new ConnectionException("Timeout occurred waiting for " + this.expectedState().name());
-    // }
-    //
-    // @Override
-    // public void handleConnectionResponse(final ConnectionHandshake message) {
-    // ProcessConnector.log.debug("Connection " + id + " status: " + message.getConnectionState().name());
-    // }
-    //
-    // @Override
-    // public ConnectionState expectedState() {
-    // return ConnectionState.TERMINATED;
-    // }
-    // });
-    // }
-
-    // /**
-    // * Send a message to the service on the provided IP address, telling him to start a new session with the provided
-    // * details.
-    // *
-    // * @param ip
-    // * @param session
-    // * @return
-    // */
-    // void sendConnectionMessage(final String ip,
-    // final ConnectionMessage session,
-    // final ConnectionResponseHandler handler) {
-    //
-    // final Thread connectionThread = new Thread(() -> {
-    // final String uri = String.format("tcp://%s:%d", ip, ProcessConnector.MANAGEMENT_PORT);
-    // boolean expectedMessageArrived = false;
-    // boolean timeOutOccurred = false;
-    // ProcessConnector.log.info("Sending session {} to {}", session, uri);
-    //
-    // try (Socket socket = ZMQ.context(1).socket(ZMQ.REQ)) {
-    // socket.setDelayAttachOnConnect(true);
-    // socket.connect(uri.toString());
-    //
-    // // This should work okay
-    // socket.setSendTimeOut(ProcessConnector.MANAGEMENT_SOCKET_SEND_TIMEOUT);
-    // socket.setReceiveTimeOut(ProcessConnector.MANAGEMENT_SOCKET_RECV_TIMEOUT);
-    //
-    // if (socket.send(session.toByteArray(), 0)) {
-    // final long start = System.currentTimeMillis();
-    // while (!expectedMessageArrived && !timeOutOccurred) {
-    // final byte[] buffer = socket.recv();
-    // if ((System.currentTimeMillis() - start) > ProcessConnector.EXPECTED_STATE_TIMEOUT) {
-    // handler.timeOutOccurred();
-    // timeOutOccurred = true;
-    // }
-    // if ((buffer != null) && (buffer.length != 0)) {
-    // final ConnectionHandshake message = this.serializer.deserialize(buffer);
-    // handler.handleConnectionResponse(message);
-    // if (handler.expectedState().equals(message.getConnectionState())) {
-    // expectedMessageArrived = true;
-    // }
-    // }
-    // }
-    // }
-    // } catch (SerializationException | ConnectionException e) {
-    // e.printStackTrace();
-    // }
-    // });
-    //
-    // connectionThread.start();
-    // }
-
     public void processConnectionTerminated(final ObjectId processId) {
         this.connections.remove(processId);
     }
@@ -262,19 +151,33 @@ public class ProcessConnector {
         processConnection.terminateProcess();
     }
 
+    /**
+     * @param id
+     * @param configuration
+     * @return
+     */
+    public Process updateConfiguration(final ObjectId processId, final List<Parameter> configuration) {
+        final Process process = MongoDbConnector.getInstance().get(Process.class, processId);
+        process.setConfiguration(configuration);
+        MongoDbConnector.getInstance().save(process);
+        this.getProcessConnection(processId).updateConfiguration();
+        return process;
+    }
+
     private static final class ProcessConnection {
 
-        private static int MANAGEMENT_SOCKET_SEND_TIMEOUT = 1000;
-        private static int MANAGEMENT_SOCKET_RECV_TIMEOUT = 1000;
+        private static int MANAGEMENT_SOCKET_SEND_TIMEOUT = 10000;
+        private static int MANAGEMENT_SOCKET_RECV_TIMEOUT = 10000;
         private static int MANAGEMENT_PORT = 4999;
 
-        private final ProtobufMessageSerializer<GeneratedMessage> serializer = new ProtobufMessageSerializer<>();
+        private final ProtobufMessageSerializer serializer = new ProtobufMessageSerializer();
         private Socket socket = null;
         private final ObjectId processId;
         private String uri;
         private ByteString suspendState;
 
-        ProcessConnection(final ObjectId processId) {
+        public ProcessConnection(final ObjectId processId) {
+            ProcessConnector.log.debug("Creating new ProcessConnection for process " + processId);
             this.processId = processId;
             this.serializer.addMessageClass(GoToProcessStateMessage.class);
             this.serializer.addMessageClass(ResumeProcessMessage.class);
@@ -282,22 +185,27 @@ public class ProcessConnector {
             this.serializer.addMessageClass(SetConfigMessage.class);
             this.serializer.addMessageClass(ConnectionHandshake.class);
             this.serializer.addMessageClass(ConnectionMessage.class);
-            this.connect();
+            this.connectWithProcess();
         }
 
-        public void connect() {
-            final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            if (process == null) {
-                throw new IllegalArgumentException(
-                        "Provided ObjectId for Process " + this.processId + " does not exist");
-            }
-            this.uri = String.format("tcp://%s:%d", process.getDockerId(), ProcessConnection.MANAGEMENT_PORT);
+        public void connectWithProcess() {
+            try {
+                final Process process = ProcessManager.getInstance().getProcess(this.processId);
+                if (process == null) {
+                    throw new IllegalArgumentException(
+                            "Provided ObjectId for Process " + this.processId + " does not exist");
+                }
+                this.uri = String.format("tcp://%s:%d", process.getId().toString(), ProcessConnection.MANAGEMENT_PORT);
 
-            this.socket = ZMQ.context(1).socket(ZMQ.REQ);
-            this.socket.setDelayAttachOnConnect(true);
-            this.socket.connect(this.uri.toString());
-            this.socket.setSendTimeOut(ProcessConnection.MANAGEMENT_SOCKET_SEND_TIMEOUT);
-            this.socket.setReceiveTimeOut(ProcessConnection.MANAGEMENT_SOCKET_RECV_TIMEOUT);
+                this.socket = ZMQ.context(1).socket(ZMQ.REQ);
+                this.socket.setDelayAttachOnConnect(true);
+                this.socket.connect(this.uri.toString());
+                this.socket.setSendTimeOut(ProcessConnection.MANAGEMENT_SOCKET_SEND_TIMEOUT);
+                this.socket.setReceiveTimeOut(ProcessConnection.MANAGEMENT_SOCKET_RECV_TIMEOUT);
+                ProcessConnector.log.debug("Connecting with process on address " + this.uri);
+            } catch (final Throwable t) {
+                ProcessConnector.log.error("Could not connect with container ", t);
+            }
         }
 
         public void setUpConnection(final ObjectId connectionId,
@@ -339,13 +247,16 @@ public class ProcessConnector {
 
         public void startProcess() {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final Builder builder = SetConfigMessage.newBuilder()
-                    .setProcessId(process.getId().toString())
-                    .setIsUpdate(false);
+            final Builder builder = SetConfigMessage.newBuilder().setProcessId(process.getId().toString()).setIsUpdate(
+                    false);
             if (process.getConfiguration() != null) {
-                builder.putAllConfig(process.getConfiguration());
+                for (final Parameter p : process.getConfiguration()) {
+                    builder.putConfig(p.getKey(), p.getValue());
+                }
             }
             final SetConfigMessage msg = builder.build();
+
+            ProcessConnector.log.info("Starting process " + this.processId);
 
             final ProcessStateUpdateMessage response = this.send(msg, ProcessStateUpdateMessage.class);
             if (response != null) {
@@ -367,11 +278,12 @@ public class ProcessConnector {
 
         public void updateConfiguration() {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final Builder builder = SetConfigMessage.newBuilder()
-                    .setProcessId(process.getId().toString())
-                    .setIsUpdate(true);
+            final Builder builder = SetConfigMessage.newBuilder().setProcessId(process.getId().toString()).setIsUpdate(
+                    true);
             if (process.getConfiguration() != null) {
-                builder.putAllConfig(process.getConfiguration());
+                for (final Parameter p : process.getConfiguration()) {
+                    builder.putConfig(p.getKey(), p.getValue());
+                }
             }
             final SetConfigMessage msg = builder.build();
 
@@ -421,11 +333,16 @@ public class ProcessConnector {
         }
 
         @SuppressWarnings("unchecked")
-        private <T> T send(final GeneratedMessage msg, final Class<T> expected) {
-            this.socket.send(this.serializer.serialize(msg));
-            final byte[] recv = this.socket.recv();
+        private <T> T send(final Message msg, final Class<T> expected) {
             try {
-                final GeneratedMessage m = this.serializer.deserialize(recv);
+                this.socket.send(this.serializer.serialize(msg));
+            } catch (final SerializationException e1) {
+                ProcessConnector.log.error("Could not serialize message", e1);
+            }
+            final byte[] recv = this.socket.recv();
+            // TODO could be null?
+            try {
+                final Message m = this.serializer.deserialize(recv);
                 if (expected.isInstance(m)) {
                     return (T) m;
                 } else {
@@ -466,7 +383,6 @@ public class ProcessConnector {
             process.setState(state);
             mongoDbConnector.save(process);
         }
-
     }
 
 }

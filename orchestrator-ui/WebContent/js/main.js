@@ -64,24 +64,14 @@ myApp
 									} ]) ]);
 
 					process.listView().fields(
-							[ nga.field('id'), nga.field('state'),
-									nga.field('userId'),
-									nga.field('serviceId'),
-									nga.field('nodePoolId'),
-									nga.field('privateNodeId'),
-									nga.field('dockerId'),
-									nga.field('runningDockerNodeId') ]);
-
-					process.creationView().fields(
 							[
+									nga.field('id'),
+									nga.field('state'),
 									nga.field('userId', 'reference')
 											.targetEntity(user).targetField(
 													nga.field('username'))
 											.label('User'),
-									nga.field('serviceId', 'reference')
-											.targetEntity(service).targetField(
-													nga.field('id')).label(
-													'Service'),
+									nga.field('serviceId'),
 									nga.field('nodePoolId', 'reference')
 											.targetEntity(nodepool)
 											.targetField(nga.field('name'))
@@ -90,6 +80,90 @@ myApp
 											.targetEntity(prno).targetField(
 													nga.field('dockerId'))
 											.label('PrivateNode') ]);
+
+					process
+							.creationView()
+							.fields(
+									[
+											nga
+													.field('userId',
+															'reference')
+													.targetEntity(user)
+													.targetField(
+															nga
+																	.field('username'))
+													.label('User'),
+											nga.field('serviceId', 'reference')
+													.targetEntity(service)
+													.targetField(
+															nga.field('id'))
+													.label('Service'),
+											nga
+													.field('nodePoolId',
+															'reference')
+													.targetEntity(nodepool)
+													.targetField(
+															nga.field('name'))
+													.label('NodePool'),
+											nga.field('privateNodeId',
+													'reference').targetEntity(
+													prno).targetField(
+													nga.field('dockerId'))
+													.label('PrivateNode'),
+											nga
+													.field('configuration',
+															'embedded_list')
+													.label('Configuration')
+													.targetFields(
+															[
+																	nga
+																			.field('key'),
+																	nga
+																			.field('value') ]) ]);
+					process
+							.editionView()
+							.fields(
+									[
+											nga
+													.field('userId',
+															'reference')
+													.targetEntity(user)
+													.targetField(
+															nga
+																	.field('username'))
+													.label('User').editable(
+															false),
+											nga.field('serviceId', 'reference')
+													.targetEntity(service)
+													.targetField(
+															nga.field('id'))
+													.label('Service').editable(
+															false),
+											nga.field('dockerId').label(
+													'Docker Service ID')
+													.editable(false),
+											nga
+													.field('nodePoolId',
+															'reference')
+													.targetEntity(nodepool)
+													.targetField(
+															nga.field('name'))
+													.label('NodePool'),
+											nga.field('privateNodeId',
+													'reference').targetEntity(
+													prno).targetField(
+													nga.field('dockerId'))
+													.label('PrivateNode'),
+											nga
+													.field('configuration',
+															'embedded_list')
+													.label('Configuration')
+													.targetFields(
+															[
+																	nga
+																			.field('key'),
+																	nga
+																			.field('value') ]) ]);
 
 					service.listView().fields(
 							[ nga.field('id').isDetailLink(true),

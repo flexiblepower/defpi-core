@@ -6,7 +6,13 @@ package org.flexiblepower.proto;
 public final class ServiceProto {
   private ServiceProto() {}
   public static void registerAllExtensions(
+      com.google.protobuf.ExtensionRegistryLite registry) {
+  }
+
+  public static void registerAllExtensions(
       com.google.protobuf.ExtensionRegistry registry) {
+    registerAllExtensions(
+        (com.google.protobuf.ExtensionRegistryLite) registry);
   }
   /**
    * Protobuf enum {@code process.ProcessState}
@@ -16,23 +22,23 @@ public final class ServiceProto {
     /**
      * <code>STARTING = 0;</code>
      */
-    STARTING(0, 0),
+    STARTING(0),
     /**
      * <code>INITIALIZING = 1;</code>
      */
-    INITIALIZING(1, 1),
+    INITIALIZING(1),
     /**
      * <code>RUNNING = 2;</code>
      */
-    RUNNING(2, 2),
+    RUNNING(2),
     /**
      * <code>SUSPENDED = 3;</code>
      */
-    SUSPENDED(3, 3),
+    SUSPENDED(3),
     /**
      * <code>TERMINATED = 4;</code>
      */
-    TERMINATED(4, 4),
+    TERMINATED(4),
     ;
 
     /**
@@ -61,7 +67,15 @@ public final class ServiceProto {
       return value;
     }
 
+    /**
+     * @deprecated Use {@link #forNumber(int)} instead.
+     */
+    @java.lang.Deprecated
     public static ProcessState valueOf(int value) {
+      return forNumber(value);
+    }
+
+    public static ProcessState forNumber(int value) {
       switch (value) {
         case 0: return STARTING;
         case 1: return INITIALIZING;
@@ -80,13 +94,13 @@ public final class ServiceProto {
         ProcessState> internalValueMap =
           new com.google.protobuf.Internal.EnumLiteMap<ProcessState>() {
             public ProcessState findValueByNumber(int number) {
-              return ProcessState.valueOf(number);
+              return ProcessState.forNumber(number);
             }
           };
 
     public final com.google.protobuf.Descriptors.EnumValueDescriptor
         getValueDescriptor() {
-      return getDescriptor().getValues().get(index);
+      return getDescriptor().getValues().get(ordinal());
     }
     public final com.google.protobuf.Descriptors.EnumDescriptor
         getDescriptorForType() {
@@ -108,11 +122,9 @@ public final class ServiceProto {
       return VALUES[desc.getIndex()];
     }
 
-    private final int index;
     private final int value;
 
-    private ProcessState(int index, int value) {
-      this.index = index;
+    private ProcessState(int value) {
       this.value = value;
     }
 
@@ -150,11 +162,11 @@ public final class ServiceProto {
    * Protobuf type {@code process.GoToProcessStateMessage}
    */
   public  static final class GoToProcessStateMessage extends
-      com.google.protobuf.GeneratedMessage implements
+      com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:process.GoToProcessStateMessage)
       GoToProcessStateMessageOrBuilder {
     // Use GoToProcessStateMessage.newBuilder() to construct.
-    private GoToProcessStateMessage(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+    private GoToProcessStateMessage(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
     private GoToProcessStateMessage() {
@@ -169,7 +181,8 @@ public final class ServiceProto {
     }
     private GoToProcessStateMessage(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       this();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
@@ -209,11 +222,10 @@ public final class ServiceProto {
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw new RuntimeException(e.setUnfinishedMessage(this));
+        throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new RuntimeException(
-            new com.google.protobuf.InvalidProtocolBufferException(
-                e.getMessage()).setUnfinishedMessage(this));
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
       } finally {
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
@@ -224,7 +236,7 @@ public final class ServiceProto {
       return org.flexiblepower.proto.ServiceProto.internal_static_process_GoToProcessStateMessage_descriptor;
     }
 
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return org.flexiblepower.proto.ServiceProto.internal_static_process_GoToProcessStateMessage_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
@@ -311,7 +323,7 @@ public final class ServiceProto {
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        com.google.protobuf.GeneratedMessage.writeString(output, 1, processId_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, processId_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         output.writeEnum(2, targetState_);
@@ -325,7 +337,7 @@ public final class ServiceProto {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, processId_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, processId_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
@@ -337,6 +349,61 @@ public final class ServiceProto {
     }
 
     private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage)) {
+        return super.equals(obj);
+      }
+      org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage other = (org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage) obj;
+
+      boolean result = true;
+      result = result && (hasProcessId() == other.hasProcessId());
+      if (hasProcessId()) {
+        result = result && getProcessId()
+            .equals(other.getProcessId());
+      }
+      result = result && (hasTargetState() == other.hasTargetState());
+      if (hasTargetState()) {
+        result = result && targetState_ == other.targetState_;
+      }
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      if (hasProcessId()) {
+        hash = (37 * hash) + PROCESSID_FIELD_NUMBER;
+        hash = (53 * hash) + getProcessId().hashCode();
+      }
+      if (hasTargetState()) {
+        hash = (37 * hash) + TARGETSTATE_FIELD_NUMBER;
+        hash = (53 * hash) + targetState_;
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -360,34 +427,40 @@ public final class ServiceProto {
     }
     public static org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
     public static org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
     }
     public static org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
     public static org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
 
     public Builder newBuilderForType() { return newBuilder(); }
@@ -404,7 +477,7 @@ public final class ServiceProto {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -412,7 +485,7 @@ public final class ServiceProto {
      * Protobuf type {@code process.GoToProcessStateMessage}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
         // @@protoc_insertion_point(builder_implements:process.GoToProcessStateMessage)
         org.flexiblepower.proto.ServiceProto.GoToProcessStateMessageOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
@@ -420,7 +493,7 @@ public final class ServiceProto {
         return org.flexiblepower.proto.ServiceProto.internal_static_process_GoToProcessStateMessage_descriptor;
       }
 
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return org.flexiblepower.proto.ServiceProto.internal_static_process_GoToProcessStateMessage_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
@@ -433,12 +506,13 @@ public final class ServiceProto {
       }
 
       private Builder(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
       private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
         }
       }
       public Builder clear() {
@@ -484,6 +558,32 @@ public final class ServiceProto {
         return result;
       }
 
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage) {
           return mergeFrom((org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage)other);
@@ -527,7 +627,7 @@ public final class ServiceProto {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage) e.getUnfinishedMessage();
-          throw e;
+          throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
             mergeFrom(parsedMessage);
@@ -648,6 +748,16 @@ public final class ServiceProto {
         onChanged();
         return this;
       }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
 
       // @@protoc_insertion_point(builder_scope:process.GoToProcessStateMessage)
     }
@@ -668,16 +778,7 @@ public final class ServiceProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        try {
           return new GoToProcessStateMessage(input, extensionRegistry);
-        } catch (RuntimeException e) {
-          if (e.getCause() instanceof
-              com.google.protobuf.InvalidProtocolBufferException) {
-            throw (com.google.protobuf.InvalidProtocolBufferException)
-                e.getCause();
-          }
-          throw e;
-        }
       }
     };
 
@@ -727,11 +828,11 @@ public final class ServiceProto {
    * Protobuf type {@code process.ResumeProcessMessage}
    */
   public  static final class ResumeProcessMessage extends
-      com.google.protobuf.GeneratedMessage implements
+      com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:process.ResumeProcessMessage)
       ResumeProcessMessageOrBuilder {
     // Use ResumeProcessMessage.newBuilder() to construct.
-    private ResumeProcessMessage(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+    private ResumeProcessMessage(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
     private ResumeProcessMessage() {
@@ -746,7 +847,8 @@ public final class ServiceProto {
     }
     private ResumeProcessMessage(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       this();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
@@ -780,11 +882,10 @@ public final class ServiceProto {
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw new RuntimeException(e.setUnfinishedMessage(this));
+        throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new RuntimeException(
-            new com.google.protobuf.InvalidProtocolBufferException(
-                e.getMessage()).setUnfinishedMessage(this));
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
       } finally {
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
@@ -795,7 +896,7 @@ public final class ServiceProto {
       return org.flexiblepower.proto.ServiceProto.internal_static_process_ResumeProcessMessage_descriptor;
     }
 
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return org.flexiblepower.proto.ServiceProto.internal_static_process_ResumeProcessMessage_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
@@ -881,7 +982,7 @@ public final class ServiceProto {
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        com.google.protobuf.GeneratedMessage.writeString(output, 1, processId_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, processId_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         output.writeBytes(2, stateData_);
@@ -895,7 +996,7 @@ public final class ServiceProto {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, processId_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, processId_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
@@ -907,6 +1008,62 @@ public final class ServiceProto {
     }
 
     private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof org.flexiblepower.proto.ServiceProto.ResumeProcessMessage)) {
+        return super.equals(obj);
+      }
+      org.flexiblepower.proto.ServiceProto.ResumeProcessMessage other = (org.flexiblepower.proto.ServiceProto.ResumeProcessMessage) obj;
+
+      boolean result = true;
+      result = result && (hasProcessId() == other.hasProcessId());
+      if (hasProcessId()) {
+        result = result && getProcessId()
+            .equals(other.getProcessId());
+      }
+      result = result && (hasStateData() == other.hasStateData());
+      if (hasStateData()) {
+        result = result && getStateData()
+            .equals(other.getStateData());
+      }
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      if (hasProcessId()) {
+        hash = (37 * hash) + PROCESSID_FIELD_NUMBER;
+        hash = (53 * hash) + getProcessId().hashCode();
+      }
+      if (hasStateData()) {
+        hash = (37 * hash) + STATEDATA_FIELD_NUMBER;
+        hash = (53 * hash) + getStateData().hashCode();
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static org.flexiblepower.proto.ServiceProto.ResumeProcessMessage parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.flexiblepower.proto.ServiceProto.ResumeProcessMessage parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static org.flexiblepower.proto.ServiceProto.ResumeProcessMessage parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -930,34 +1087,40 @@ public final class ServiceProto {
     }
     public static org.flexiblepower.proto.ServiceProto.ResumeProcessMessage parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static org.flexiblepower.proto.ServiceProto.ResumeProcessMessage parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
     public static org.flexiblepower.proto.ServiceProto.ResumeProcessMessage parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
     }
     public static org.flexiblepower.proto.ServiceProto.ResumeProcessMessage parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
     public static org.flexiblepower.proto.ServiceProto.ResumeProcessMessage parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static org.flexiblepower.proto.ServiceProto.ResumeProcessMessage parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
 
     public Builder newBuilderForType() { return newBuilder(); }
@@ -974,7 +1137,7 @@ public final class ServiceProto {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -982,7 +1145,7 @@ public final class ServiceProto {
      * Protobuf type {@code process.ResumeProcessMessage}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
         // @@protoc_insertion_point(builder_implements:process.ResumeProcessMessage)
         org.flexiblepower.proto.ServiceProto.ResumeProcessMessageOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
@@ -990,7 +1153,7 @@ public final class ServiceProto {
         return org.flexiblepower.proto.ServiceProto.internal_static_process_ResumeProcessMessage_descriptor;
       }
 
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return org.flexiblepower.proto.ServiceProto.internal_static_process_ResumeProcessMessage_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
@@ -1003,12 +1166,13 @@ public final class ServiceProto {
       }
 
       private Builder(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
       private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
         }
       }
       public Builder clear() {
@@ -1054,6 +1218,32 @@ public final class ServiceProto {
         return result;
       }
 
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof org.flexiblepower.proto.ServiceProto.ResumeProcessMessage) {
           return mergeFrom((org.flexiblepower.proto.ServiceProto.ResumeProcessMessage)other);
@@ -1097,7 +1287,7 @@ public final class ServiceProto {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (org.flexiblepower.proto.ServiceProto.ResumeProcessMessage) e.getUnfinishedMessage();
-          throw e;
+          throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
             mergeFrom(parsedMessage);
@@ -1217,6 +1407,16 @@ public final class ServiceProto {
         onChanged();
         return this;
       }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
 
       // @@protoc_insertion_point(builder_scope:process.ResumeProcessMessage)
     }
@@ -1237,16 +1437,7 @@ public final class ServiceProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        try {
           return new ResumeProcessMessage(input, extensionRegistry);
-        } catch (RuntimeException e) {
-          if (e.getCause() instanceof
-              com.google.protobuf.InvalidProtocolBufferException) {
-            throw (com.google.protobuf.InvalidProtocolBufferException)
-                e.getCause();
-          }
-          throw e;
-        }
       }
     };
 
@@ -1305,11 +1496,11 @@ public final class ServiceProto {
    * Protobuf type {@code process.ProcessStateUpdateMessage}
    */
   public  static final class ProcessStateUpdateMessage extends
-      com.google.protobuf.GeneratedMessage implements
+      com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:process.ProcessStateUpdateMessage)
       ProcessStateUpdateMessageOrBuilder {
     // Use ProcessStateUpdateMessage.newBuilder() to construct.
-    private ProcessStateUpdateMessage(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+    private ProcessStateUpdateMessage(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
     private ProcessStateUpdateMessage() {
@@ -1325,7 +1516,8 @@ public final class ServiceProto {
     }
     private ProcessStateUpdateMessage(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       this();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
@@ -1370,11 +1562,10 @@ public final class ServiceProto {
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw new RuntimeException(e.setUnfinishedMessage(this));
+        throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new RuntimeException(
-            new com.google.protobuf.InvalidProtocolBufferException(
-                e.getMessage()).setUnfinishedMessage(this));
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
       } finally {
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
@@ -1385,7 +1576,7 @@ public final class ServiceProto {
       return org.flexiblepower.proto.ServiceProto.internal_static_process_ProcessStateUpdateMessage_descriptor;
     }
 
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return org.flexiblepower.proto.ServiceProto.internal_static_process_ProcessStateUpdateMessage_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
@@ -1487,7 +1678,7 @@ public final class ServiceProto {
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        com.google.protobuf.GeneratedMessage.writeString(output, 1, processId_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, processId_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         output.writeEnum(2, state_);
@@ -1504,7 +1695,7 @@ public final class ServiceProto {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, processId_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, processId_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
@@ -1520,6 +1711,70 @@ public final class ServiceProto {
     }
 
     private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage)) {
+        return super.equals(obj);
+      }
+      org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage other = (org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage) obj;
+
+      boolean result = true;
+      result = result && (hasProcessId() == other.hasProcessId());
+      if (hasProcessId()) {
+        result = result && getProcessId()
+            .equals(other.getProcessId());
+      }
+      result = result && (hasState() == other.hasState());
+      if (hasState()) {
+        result = result && state_ == other.state_;
+      }
+      result = result && (hasStateData() == other.hasStateData());
+      if (hasStateData()) {
+        result = result && getStateData()
+            .equals(other.getStateData());
+      }
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      if (hasProcessId()) {
+        hash = (37 * hash) + PROCESSID_FIELD_NUMBER;
+        hash = (53 * hash) + getProcessId().hashCode();
+      }
+      if (hasState()) {
+        hash = (37 * hash) + STATE_FIELD_NUMBER;
+        hash = (53 * hash) + state_;
+      }
+      if (hasStateData()) {
+        hash = (37 * hash) + STATEDATA_FIELD_NUMBER;
+        hash = (53 * hash) + getStateData().hashCode();
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -1543,34 +1798,40 @@ public final class ServiceProto {
     }
     public static org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
     public static org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
     }
     public static org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
     public static org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
 
     public Builder newBuilderForType() { return newBuilder(); }
@@ -1587,7 +1848,7 @@ public final class ServiceProto {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -1595,7 +1856,7 @@ public final class ServiceProto {
      * Protobuf type {@code process.ProcessStateUpdateMessage}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
         // @@protoc_insertion_point(builder_implements:process.ProcessStateUpdateMessage)
         org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessageOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
@@ -1603,7 +1864,7 @@ public final class ServiceProto {
         return org.flexiblepower.proto.ServiceProto.internal_static_process_ProcessStateUpdateMessage_descriptor;
       }
 
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return org.flexiblepower.proto.ServiceProto.internal_static_process_ProcessStateUpdateMessage_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
@@ -1616,12 +1877,13 @@ public final class ServiceProto {
       }
 
       private Builder(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
       private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
         }
       }
       public Builder clear() {
@@ -1673,6 +1935,32 @@ public final class ServiceProto {
         return result;
       }
 
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage) {
           return mergeFrom((org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage)other);
@@ -1719,7 +2007,7 @@ public final class ServiceProto {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage) e.getUnfinishedMessage();
-          throw e;
+          throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
             mergeFrom(parsedMessage);
@@ -1875,6 +2163,16 @@ public final class ServiceProto {
         onChanged();
         return this;
       }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
 
       // @@protoc_insertion_point(builder_scope:process.ProcessStateUpdateMessage)
     }
@@ -1895,16 +2193,7 @@ public final class ServiceProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        try {
           return new ProcessStateUpdateMessage(input, extensionRegistry);
-        } catch (RuntimeException e) {
-          if (e.getCause() instanceof
-              com.google.protobuf.InvalidProtocolBufferException) {
-            throw (com.google.protobuf.InvalidProtocolBufferException)
-                e.getCause();
-          }
-          throw e;
-        }
       }
     };
 
@@ -1953,18 +2242,46 @@ public final class ServiceProto {
     /**
      * <code>map&lt;string, string&gt; config = 3;</code>
      */
+    int getConfigCount();
+    /**
+     * <code>map&lt;string, string&gt; config = 3;</code>
+     */
+    boolean containsConfig(
+        java.lang.String key);
+    /**
+     * Use {@link #getConfigMap()} instead.
+     */
+    @java.lang.Deprecated
     java.util.Map<java.lang.String, java.lang.String>
     getConfig();
+    /**
+     * <code>map&lt;string, string&gt; config = 3;</code>
+     */
+    java.util.Map<java.lang.String, java.lang.String>
+    getConfigMap();
+    /**
+     * <code>map&lt;string, string&gt; config = 3;</code>
+     */
+
+    java.lang.String getConfigOrDefault(
+        java.lang.String key,
+        java.lang.String defaultValue);
+    /**
+     * <code>map&lt;string, string&gt; config = 3;</code>
+     */
+
+    java.lang.String getConfigOrThrow(
+        java.lang.String key);
   }
   /**
    * Protobuf type {@code process.SetConfigMessage}
    */
   public  static final class SetConfigMessage extends
-      com.google.protobuf.GeneratedMessage implements
+      com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:process.SetConfigMessage)
       SetConfigMessageOrBuilder {
     // Use SetConfigMessage.newBuilder() to construct.
-    private SetConfigMessage(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+    private SetConfigMessage(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
     private SetConfigMessage() {
@@ -1979,7 +2296,8 @@ public final class ServiceProto {
     }
     private SetConfigMessage(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       this();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
@@ -2017,19 +2335,19 @@ public final class ServiceProto {
                 mutable_bitField0_ |= 0x00000004;
               }
               com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
-              config = input.readMessage(
+              config__ = input.readMessage(
                   ConfigDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
-              config_.getMutableMap().put(config.getKey(), config.getValue());
+              config_.getMutableMap().put(
+                  config__.getKey(), config__.getValue());
               break;
             }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw new RuntimeException(e.setUnfinishedMessage(this));
+        throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new RuntimeException(
-            new com.google.protobuf.InvalidProtocolBufferException(
-                e.getMessage()).setUnfinishedMessage(this));
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
       } finally {
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
@@ -2051,7 +2369,7 @@ public final class ServiceProto {
               "Invalid map field number: " + number);
       }
     }
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return org.flexiblepower.proto.ServiceProto.internal_static_process_SetConfigMessage_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
@@ -2135,15 +2453,61 @@ public final class ServiceProto {
       if (config_ == null) {
         return com.google.protobuf.MapField.emptyMapField(
             ConfigDefaultEntryHolder.defaultEntry);
-     }
+      }
       return config_;
+    }
+
+    public int getConfigCount() {
+      return internalGetConfig().getMap().size();
     }
     /**
      * <code>map&lt;string, string&gt; config = 3;</code>
      */
 
+    public boolean containsConfig(
+        java.lang.String key) {
+      if (key == null) { throw new java.lang.NullPointerException(); }
+      return internalGetConfig().getMap().containsKey(key);
+    }
+    /**
+     * Use {@link #getConfigMap()} instead.
+     */
+    @java.lang.Deprecated
     public java.util.Map<java.lang.String, java.lang.String> getConfig() {
+      return getConfigMap();
+    }
+    /**
+     * <code>map&lt;string, string&gt; config = 3;</code>
+     */
+
+    public java.util.Map<java.lang.String, java.lang.String> getConfigMap() {
       return internalGetConfig().getMap();
+    }
+    /**
+     * <code>map&lt;string, string&gt; config = 3;</code>
+     */
+
+    public java.lang.String getConfigOrDefault(
+        java.lang.String key,
+        java.lang.String defaultValue) {
+      if (key == null) { throw new java.lang.NullPointerException(); }
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetConfig().getMap();
+      return map.containsKey(key) ? map.get(key) : defaultValue;
+    }
+    /**
+     * <code>map&lt;string, string&gt; config = 3;</code>
+     */
+
+    public java.lang.String getConfigOrThrow(
+        java.lang.String key) {
+      if (key == null) { throw new java.lang.NullPointerException(); }
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetConfig().getMap();
+      if (!map.containsKey(key)) {
+        throw new java.lang.IllegalArgumentException();
+      }
+      return map.get(key);
     }
 
     private byte memoizedIsInitialized = -1;
@@ -2167,20 +2531,17 @@ public final class ServiceProto {
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        com.google.protobuf.GeneratedMessage.writeString(output, 1, processId_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, processId_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         output.writeBool(2, isUpdate_);
       }
-      for (java.util.Map.Entry<java.lang.String, java.lang.String> entry
-           : internalGetConfig().getMap().entrySet()) {
-        com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
-        config = ConfigDefaultEntryHolder.defaultEntry.newBuilderForType()
-            .setKey(entry.getKey())
-            .setValue(entry.getValue())
-            .build();
-        output.writeMessage(3, config);
-      }
+      com.google.protobuf.GeneratedMessageV3
+        .serializeStringMapTo(
+          output,
+          internalGetConfig(),
+          ConfigDefaultEntryHolder.defaultEntry,
+          3);
       unknownFields.writeTo(output);
     }
 
@@ -2190,7 +2551,7 @@ public final class ServiceProto {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, processId_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, processId_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
@@ -2199,12 +2560,12 @@ public final class ServiceProto {
       for (java.util.Map.Entry<java.lang.String, java.lang.String> entry
            : internalGetConfig().getMap().entrySet()) {
         com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
-        config = ConfigDefaultEntryHolder.defaultEntry.newBuilderForType()
+        config__ = ConfigDefaultEntryHolder.defaultEntry.newBuilderForType()
             .setKey(entry.getKey())
             .setValue(entry.getValue())
             .build();
         size += com.google.protobuf.CodedOutputStream
-            .computeMessageSize(3, config);
+            .computeMessageSize(3, config__);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -2212,6 +2573,69 @@ public final class ServiceProto {
     }
 
     private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof org.flexiblepower.proto.ServiceProto.SetConfigMessage)) {
+        return super.equals(obj);
+      }
+      org.flexiblepower.proto.ServiceProto.SetConfigMessage other = (org.flexiblepower.proto.ServiceProto.SetConfigMessage) obj;
+
+      boolean result = true;
+      result = result && (hasProcessId() == other.hasProcessId());
+      if (hasProcessId()) {
+        result = result && getProcessId()
+            .equals(other.getProcessId());
+      }
+      result = result && (hasIsUpdate() == other.hasIsUpdate());
+      if (hasIsUpdate()) {
+        result = result && (getIsUpdate()
+            == other.getIsUpdate());
+      }
+      result = result && internalGetConfig().equals(
+          other.internalGetConfig());
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      if (hasProcessId()) {
+        hash = (37 * hash) + PROCESSID_FIELD_NUMBER;
+        hash = (53 * hash) + getProcessId().hashCode();
+      }
+      if (hasIsUpdate()) {
+        hash = (37 * hash) + ISUPDATE_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getIsUpdate());
+      }
+      if (!internalGetConfig().getMap().isEmpty()) {
+        hash = (37 * hash) + CONFIG_FIELD_NUMBER;
+        hash = (53 * hash) + internalGetConfig().hashCode();
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static org.flexiblepower.proto.ServiceProto.SetConfigMessage parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.flexiblepower.proto.ServiceProto.SetConfigMessage parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static org.flexiblepower.proto.ServiceProto.SetConfigMessage parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -2235,34 +2659,40 @@ public final class ServiceProto {
     }
     public static org.flexiblepower.proto.ServiceProto.SetConfigMessage parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static org.flexiblepower.proto.ServiceProto.SetConfigMessage parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
     public static org.flexiblepower.proto.ServiceProto.SetConfigMessage parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
     }
     public static org.flexiblepower.proto.ServiceProto.SetConfigMessage parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
     public static org.flexiblepower.proto.ServiceProto.SetConfigMessage parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static org.flexiblepower.proto.ServiceProto.SetConfigMessage parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
 
     public Builder newBuilderForType() { return newBuilder(); }
@@ -2279,7 +2709,7 @@ public final class ServiceProto {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -2287,7 +2717,7 @@ public final class ServiceProto {
      * Protobuf type {@code process.SetConfigMessage}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
         // @@protoc_insertion_point(builder_implements:process.SetConfigMessage)
         org.flexiblepower.proto.ServiceProto.SetConfigMessageOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
@@ -2317,7 +2747,7 @@ public final class ServiceProto {
                 "Invalid map field number: " + number);
         }
       }
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return org.flexiblepower.proto.ServiceProto.internal_static_process_SetConfigMessage_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
@@ -2330,12 +2760,13 @@ public final class ServiceProto {
       }
 
       private Builder(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
       private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
         }
       }
       public Builder clear() {
@@ -2384,6 +2815,32 @@ public final class ServiceProto {
         return result;
       }
 
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof org.flexiblepower.proto.ServiceProto.SetConfigMessage) {
           return mergeFrom((org.flexiblepower.proto.ServiceProto.SetConfigMessage)other);
@@ -2429,7 +2886,7 @@ public final class ServiceProto {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (org.flexiblepower.proto.ServiceProto.SetConfigMessage) e.getUnfinishedMessage();
-          throw e;
+          throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
             mergeFrom(parsedMessage);
@@ -2554,7 +3011,7 @@ public final class ServiceProto {
         if (config_ == null) {
           return com.google.protobuf.MapField.emptyMapField(
               ConfigDefaultEntryHolder.defaultEntry);
-       }
+        }
         return config_;
       }
       private com.google.protobuf.MapField<java.lang.String, java.lang.String>
@@ -2569,15 +3026,80 @@ public final class ServiceProto {
         }
         return config_;
       }
+
+      public int getConfigCount() {
+        return internalGetConfig().getMap().size();
+      }
       /**
        * <code>map&lt;string, string&gt; config = 3;</code>
        */
+
+      public boolean containsConfig(
+          java.lang.String key) {
+        if (key == null) { throw new java.lang.NullPointerException(); }
+        return internalGetConfig().getMap().containsKey(key);
+      }
+      /**
+       * Use {@link #getConfigMap()} instead.
+       */
+      @java.lang.Deprecated
       public java.util.Map<java.lang.String, java.lang.String> getConfig() {
+        return getConfigMap();
+      }
+      /**
+       * <code>map&lt;string, string&gt; config = 3;</code>
+       */
+
+      public java.util.Map<java.lang.String, java.lang.String> getConfigMap() {
         return internalGetConfig().getMap();
       }
       /**
        * <code>map&lt;string, string&gt; config = 3;</code>
        */
+
+      public java.lang.String getConfigOrDefault(
+          java.lang.String key,
+          java.lang.String defaultValue) {
+        if (key == null) { throw new java.lang.NullPointerException(); }
+        java.util.Map<java.lang.String, java.lang.String> map =
+            internalGetConfig().getMap();
+        return map.containsKey(key) ? map.get(key) : defaultValue;
+      }
+      /**
+       * <code>map&lt;string, string&gt; config = 3;</code>
+       */
+
+      public java.lang.String getConfigOrThrow(
+          java.lang.String key) {
+        if (key == null) { throw new java.lang.NullPointerException(); }
+        java.util.Map<java.lang.String, java.lang.String> map =
+            internalGetConfig().getMap();
+        if (!map.containsKey(key)) {
+          throw new java.lang.IllegalArgumentException();
+        }
+        return map.get(key);
+      }
+
+      public Builder clearConfig() {
+        internalGetMutableConfig().getMutableMap()
+            .clear();
+        return this;
+      }
+      /**
+       * <code>map&lt;string, string&gt; config = 3;</code>
+       */
+
+      public Builder removeConfig(
+          java.lang.String key) {
+        if (key == null) { throw new java.lang.NullPointerException(); }
+        internalGetMutableConfig().getMutableMap()
+            .remove(key);
+        return this;
+      }
+      /**
+       * Use alternate mutation accessors instead.
+       */
+      @java.lang.Deprecated
       public java.util.Map<java.lang.String, java.lang.String>
       getMutableConfig() {
         return internalGetMutableConfig().getMutableMap();
@@ -2585,11 +3107,35 @@ public final class ServiceProto {
       /**
        * <code>map&lt;string, string&gt; config = 3;</code>
        */
-      public Builder putAllConfig(
-          java.util.Map<java.lang.String, java.lang.String> values) {
-        getMutableConfig().putAll(values);
+      public Builder putConfig(
+          java.lang.String key,
+          java.lang.String value) {
+        if (key == null) { throw new java.lang.NullPointerException(); }
+        if (value == null) { throw new java.lang.NullPointerException(); }
+        internalGetMutableConfig().getMutableMap()
+            .put(key, value);
         return this;
       }
+      /**
+       * <code>map&lt;string, string&gt; config = 3;</code>
+       */
+
+      public Builder putAllConfig(
+          java.util.Map<java.lang.String, java.lang.String> values) {
+        internalGetMutableConfig().getMutableMap()
+            .putAll(values);
+        return this;
+      }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
 
       // @@protoc_insertion_point(builder_scope:process.SetConfigMessage)
     }
@@ -2610,16 +3156,7 @@ public final class ServiceProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        try {
           return new SetConfigMessage(input, extensionRegistry);
-        } catch (RuntimeException e) {
-          if (e.getCause() instanceof
-              com.google.protobuf.InvalidProtocolBufferException) {
-            throw (com.google.protobuf.InvalidProtocolBufferException)
-                e.getCause();
-          }
-          throw e;
-        }
       }
     };
 
@@ -2638,37 +3175,776 @@ public final class ServiceProto {
 
   }
 
-  private static com.google.protobuf.Descriptors.Descriptor
+  public interface ErrorMessageOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:process.ErrorMessage)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>required string processId = 1;</code>
+     */
+    boolean hasProcessId();
+    /**
+     * <code>required string processId = 1;</code>
+     */
+    java.lang.String getProcessId();
+    /**
+     * <code>required string processId = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getProcessIdBytes();
+
+    /**
+     * <code>required string debugInformation = 2;</code>
+     */
+    boolean hasDebugInformation();
+    /**
+     * <code>required string debugInformation = 2;</code>
+     */
+    java.lang.String getDebugInformation();
+    /**
+     * <code>required string debugInformation = 2;</code>
+     */
+    com.google.protobuf.ByteString
+        getDebugInformationBytes();
+  }
+  /**
+   * Protobuf type {@code process.ErrorMessage}
+   */
+  public  static final class ErrorMessage extends
+      com.google.protobuf.GeneratedMessageV3 implements
+      // @@protoc_insertion_point(message_implements:process.ErrorMessage)
+      ErrorMessageOrBuilder {
+    // Use ErrorMessage.newBuilder() to construct.
+    private ErrorMessage(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      super(builder);
+    }
+    private ErrorMessage() {
+      processId_ = "";
+      debugInformation_ = "";
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return this.unknownFields;
+    }
+    private ErrorMessage(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      this();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField0_ |= 0x00000001;
+              processId_ = bs;
+              break;
+            }
+            case 18: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField0_ |= 0x00000002;
+              debugInformation_ = bs;
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.flexiblepower.proto.ServiceProto.internal_static_process_ErrorMessage_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.flexiblepower.proto.ServiceProto.internal_static_process_ErrorMessage_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.flexiblepower.proto.ServiceProto.ErrorMessage.class, org.flexiblepower.proto.ServiceProto.ErrorMessage.Builder.class);
+    }
+
+    private int bitField0_;
+    public static final int PROCESSID_FIELD_NUMBER = 1;
+    private volatile java.lang.Object processId_;
+    /**
+     * <code>required string processId = 1;</code>
+     */
+    public boolean hasProcessId() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>required string processId = 1;</code>
+     */
+    public java.lang.String getProcessId() {
+      java.lang.Object ref = processId_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          processId_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>required string processId = 1;</code>
+     */
+    public com.google.protobuf.ByteString
+        getProcessIdBytes() {
+      java.lang.Object ref = processId_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        processId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    public static final int DEBUGINFORMATION_FIELD_NUMBER = 2;
+    private volatile java.lang.Object debugInformation_;
+    /**
+     * <code>required string debugInformation = 2;</code>
+     */
+    public boolean hasDebugInformation() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>required string debugInformation = 2;</code>
+     */
+    public java.lang.String getDebugInformation() {
+      java.lang.Object ref = debugInformation_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          debugInformation_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>required string debugInformation = 2;</code>
+     */
+    public com.google.protobuf.ByteString
+        getDebugInformationBytes() {
+      java.lang.Object ref = debugInformation_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        debugInformation_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      if (!hasProcessId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasDebugInformation()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, processId_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 2, debugInformation_);
+      }
+      unknownFields.writeTo(output);
+    }
+
+    public int getSerializedSize() {
+      int size = memoizedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, processId_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, debugInformation_);
+      }
+      size += unknownFields.getSerializedSize();
+      memoizedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof org.flexiblepower.proto.ServiceProto.ErrorMessage)) {
+        return super.equals(obj);
+      }
+      org.flexiblepower.proto.ServiceProto.ErrorMessage other = (org.flexiblepower.proto.ServiceProto.ErrorMessage) obj;
+
+      boolean result = true;
+      result = result && (hasProcessId() == other.hasProcessId());
+      if (hasProcessId()) {
+        result = result && getProcessId()
+            .equals(other.getProcessId());
+      }
+      result = result && (hasDebugInformation() == other.hasDebugInformation());
+      if (hasDebugInformation()) {
+        result = result && getDebugInformation()
+            .equals(other.getDebugInformation());
+      }
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      if (hasProcessId()) {
+        hash = (37 * hash) + PROCESSID_FIELD_NUMBER;
+        hash = (53 * hash) + getProcessId().hashCode();
+      }
+      if (hasDebugInformation()) {
+        hash = (37 * hash) + DEBUGINFORMATION_FIELD_NUMBER;
+        hash = (53 * hash) + getDebugInformation().hashCode();
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static org.flexiblepower.proto.ServiceProto.ErrorMessage parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.flexiblepower.proto.ServiceProto.ErrorMessage parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.flexiblepower.proto.ServiceProto.ErrorMessage parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.flexiblepower.proto.ServiceProto.ErrorMessage parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.flexiblepower.proto.ServiceProto.ErrorMessage parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.flexiblepower.proto.ServiceProto.ErrorMessage parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.flexiblepower.proto.ServiceProto.ErrorMessage parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static org.flexiblepower.proto.ServiceProto.ErrorMessage parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static org.flexiblepower.proto.ServiceProto.ErrorMessage parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
+    }
+    public static org.flexiblepower.proto.ServiceProto.ErrorMessage parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static org.flexiblepower.proto.ServiceProto.ErrorMessage parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static org.flexiblepower.proto.ServiceProto.ErrorMessage parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
+    }
+    public static Builder newBuilder(org.flexiblepower.proto.ServiceProto.ErrorMessage prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code process.ErrorMessage}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:process.ErrorMessage)
+        org.flexiblepower.proto.ServiceProto.ErrorMessageOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return org.flexiblepower.proto.ServiceProto.internal_static_process_ErrorMessage_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return org.flexiblepower.proto.ServiceProto.internal_static_process_ErrorMessage_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.flexiblepower.proto.ServiceProto.ErrorMessage.class, org.flexiblepower.proto.ServiceProto.ErrorMessage.Builder.class);
+      }
+
+      // Construct using org.flexiblepower.proto.ServiceProto.ErrorMessage.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
+        }
+      }
+      public Builder clear() {
+        super.clear();
+        processId_ = "";
+        bitField0_ = (bitField0_ & ~0x00000001);
+        debugInformation_ = "";
+        bitField0_ = (bitField0_ & ~0x00000002);
+        return this;
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.flexiblepower.proto.ServiceProto.internal_static_process_ErrorMessage_descriptor;
+      }
+
+      public org.flexiblepower.proto.ServiceProto.ErrorMessage getDefaultInstanceForType() {
+        return org.flexiblepower.proto.ServiceProto.ErrorMessage.getDefaultInstance();
+      }
+
+      public org.flexiblepower.proto.ServiceProto.ErrorMessage build() {
+        org.flexiblepower.proto.ServiceProto.ErrorMessage result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public org.flexiblepower.proto.ServiceProto.ErrorMessage buildPartial() {
+        org.flexiblepower.proto.ServiceProto.ErrorMessage result = new org.flexiblepower.proto.ServiceProto.ErrorMessage(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.processId_ = processId_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.debugInformation_ = debugInformation_;
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof org.flexiblepower.proto.ServiceProto.ErrorMessage) {
+          return mergeFrom((org.flexiblepower.proto.ServiceProto.ErrorMessage)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(org.flexiblepower.proto.ServiceProto.ErrorMessage other) {
+        if (other == org.flexiblepower.proto.ServiceProto.ErrorMessage.getDefaultInstance()) return this;
+        if (other.hasProcessId()) {
+          bitField0_ |= 0x00000001;
+          processId_ = other.processId_;
+          onChanged();
+        }
+        if (other.hasDebugInformation()) {
+          bitField0_ |= 0x00000002;
+          debugInformation_ = other.debugInformation_;
+          onChanged();
+        }
+        this.mergeUnknownFields(other.unknownFields);
+        onChanged();
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        if (!hasProcessId()) {
+          return false;
+        }
+        if (!hasDebugInformation()) {
+          return false;
+        }
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        org.flexiblepower.proto.ServiceProto.ErrorMessage parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.flexiblepower.proto.ServiceProto.ErrorMessage) e.getUnfinishedMessage();
+          throw e.unwrapIOException();
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      private java.lang.Object processId_ = "";
+      /**
+       * <code>required string processId = 1;</code>
+       */
+      public boolean hasProcessId() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>required string processId = 1;</code>
+       */
+      public java.lang.String getProcessId() {
+        java.lang.Object ref = processId_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            processId_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>required string processId = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getProcessIdBytes() {
+        java.lang.Object ref = processId_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          processId_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>required string processId = 1;</code>
+       */
+      public Builder setProcessId(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        processId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required string processId = 1;</code>
+       */
+      public Builder clearProcessId() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        processId_ = getDefaultInstance().getProcessId();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required string processId = 1;</code>
+       */
+      public Builder setProcessIdBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        processId_ = value;
+        onChanged();
+        return this;
+      }
+
+      private java.lang.Object debugInformation_ = "";
+      /**
+       * <code>required string debugInformation = 2;</code>
+       */
+      public boolean hasDebugInformation() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>required string debugInformation = 2;</code>
+       */
+      public java.lang.String getDebugInformation() {
+        java.lang.Object ref = debugInformation_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            debugInformation_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>required string debugInformation = 2;</code>
+       */
+      public com.google.protobuf.ByteString
+          getDebugInformationBytes() {
+        java.lang.Object ref = debugInformation_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          debugInformation_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>required string debugInformation = 2;</code>
+       */
+      public Builder setDebugInformation(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        debugInformation_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required string debugInformation = 2;</code>
+       */
+      public Builder clearDebugInformation() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        debugInformation_ = getDefaultInstance().getDebugInformation();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required string debugInformation = 2;</code>
+       */
+      public Builder setDebugInformationBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        debugInformation_ = value;
+        onChanged();
+        return this;
+      }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:process.ErrorMessage)
+    }
+
+    // @@protoc_insertion_point(class_scope:process.ErrorMessage)
+    private static final org.flexiblepower.proto.ServiceProto.ErrorMessage DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.flexiblepower.proto.ServiceProto.ErrorMessage();
+    }
+
+    public static org.flexiblepower.proto.ServiceProto.ErrorMessage getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    @java.lang.Deprecated public static final com.google.protobuf.Parser<ErrorMessage>
+        PARSER = new com.google.protobuf.AbstractParser<ErrorMessage>() {
+      public ErrorMessage parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+          return new ErrorMessage(input, extensionRegistry);
+      }
+    };
+
+    public static com.google.protobuf.Parser<ErrorMessage> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<ErrorMessage> getParserForType() {
+      return PARSER;
+    }
+
+    public org.flexiblepower.proto.ServiceProto.ErrorMessage getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_process_GoToProcessStateMessage_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_process_GoToProcessStateMessage_fieldAccessorTable;
-  private static com.google.protobuf.Descriptors.Descriptor
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_process_ResumeProcessMessage_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_process_ResumeProcessMessage_fieldAccessorTable;
-  private static com.google.protobuf.Descriptors.Descriptor
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_process_ProcessStateUpdateMessage_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_process_ProcessStateUpdateMessage_fieldAccessorTable;
-  private static com.google.protobuf.Descriptors.Descriptor
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_process_SetConfigMessage_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_process_SetConfigMessage_fieldAccessorTable;
-  private static com.google.protobuf.Descriptors.Descriptor
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_process_SetConfigMessage_ConfigEntry_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_process_SetConfigMessage_ConfigEntry_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_process_ErrorMessage_descriptor;
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_process_ErrorMessage_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
     return descriptor;
   }
-  private static com.google.protobuf.Descriptors.FileDescriptor
+  private static  com.google.protobuf.Descriptors.FileDescriptor
       descriptor;
   static {
     java.lang.String[] descriptorData = {
@@ -2683,10 +3959,12 @@ public final class ServiceProto {
       "e\022\021\n\tprocessId\030\001 \002(\t\022\020\n\010isUpdate\030\002 \002(\010\0225" +
       "\n\006config\030\003 \003(\0132%.process.SetConfigMessag",
       "e.ConfigEntry\032-\n\013ConfigEntry\022\013\n\003key\030\001 \001(" +
-      "\t\022\r\n\005value\030\002 \001(\t:\0028\001*Z\n\014ProcessState\022\014\n\010" +
-      "STARTING\020\000\022\020\n\014INITIALIZING\020\001\022\013\n\007RUNNING\020" +
-      "\002\022\r\n\tSUSPENDED\020\003\022\016\n\nTERMINATED\020\004B\'\n\027org." +
-      "flexiblepower.protoB\014ServiceProto"
+      "\t\022\r\n\005value\030\002 \001(\t:\0028\001\";\n\014ErrorMessage\022\021\n\t" +
+      "processId\030\001 \002(\t\022\030\n\020debugInformation\030\002 \002(" +
+      "\t*Z\n\014ProcessState\022\014\n\010STARTING\020\000\022\020\n\014INITI" +
+      "ALIZING\020\001\022\013\n\007RUNNING\020\002\022\r\n\tSUSPENDED\020\003\022\016\n" +
+      "\nTERMINATED\020\004B\'\n\027org.flexiblepower.proto" +
+      "B\014ServiceProto"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -2703,33 +3981,39 @@ public final class ServiceProto {
     internal_static_process_GoToProcessStateMessage_descriptor =
       getDescriptor().getMessageTypes().get(0);
     internal_static_process_GoToProcessStateMessage_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_process_GoToProcessStateMessage_descriptor,
         new java.lang.String[] { "ProcessId", "TargetState", });
     internal_static_process_ResumeProcessMessage_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_process_ResumeProcessMessage_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_process_ResumeProcessMessage_descriptor,
         new java.lang.String[] { "ProcessId", "StateData", });
     internal_static_process_ProcessStateUpdateMessage_descriptor =
       getDescriptor().getMessageTypes().get(2);
     internal_static_process_ProcessStateUpdateMessage_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_process_ProcessStateUpdateMessage_descriptor,
         new java.lang.String[] { "ProcessId", "State", "StateData", });
     internal_static_process_SetConfigMessage_descriptor =
       getDescriptor().getMessageTypes().get(3);
     internal_static_process_SetConfigMessage_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_process_SetConfigMessage_descriptor,
         new java.lang.String[] { "ProcessId", "IsUpdate", "Config", });
     internal_static_process_SetConfigMessage_ConfigEntry_descriptor =
       internal_static_process_SetConfigMessage_descriptor.getNestedTypes().get(0);
     internal_static_process_SetConfigMessage_ConfigEntry_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_process_SetConfigMessage_ConfigEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
+    internal_static_process_ErrorMessage_descriptor =
+      getDescriptor().getMessageTypes().get(4);
+    internal_static_process_ErrorMessage_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_process_ErrorMessage_descriptor,
+        new java.lang.String[] { "ProcessId", "DebugInformation", });
   }
 
   // @@protoc_insertion_point(outer_class_scope)

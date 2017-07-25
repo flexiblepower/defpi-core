@@ -37,17 +37,17 @@
 			<groupId>org.glassfish.jersey.core</groupId>
 			<artifactId>jersey-server</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>
 			<artifactId>jersey-container-servlet-core</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>
 			<artifactId>jersey-container-jetty-http</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>
 			<artifactId>jersey-media-json-jackson</artifactId>
@@ -62,7 +62,7 @@
 
 		<dependency>
 			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>	
+			<artifactId>lombok</artifactId>
 		</dependency>
 
 		<dependency>
@@ -94,8 +94,13 @@
 			<groupId>com.spotify</groupId>
 			<artifactId>docker-client</artifactId>
 			<version>8.8.1-SNAPSHOT</version>
+			<exclusions>
+				<exclusion>
+					<groupId>ch.qos.logback</groupId>
+					<artifactId>logback-classic</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
-
 		<dependency>
 			<groupId>org.flexiblepower</groupId>
 			<artifactId>api</artifactId>
@@ -105,8 +110,6 @@
 			<groupId>org.flexiblepower</groupId>
 			<artifactId>commons</artifactId>
 		</dependency>
-
-
 	</dependencies>
 
 
@@ -129,6 +132,11 @@
 							<targetPath>/</targetPath>
 							<directory>${project.build.directory}</directory>
 							<include>*-jar-with-dependencies.jar</include>
+						</resource>
+						<resource>
+							<targetPath>/</targetPath>
+							<directory>${project.basedir}/src/main/resources</directory>
+							<include>log4j2.xml</include>
 						</resource>
 					</resources>
 				</configuration>

@@ -12,14 +12,15 @@ import java.nio.channels.ClosedSelectorException;
 import java.util.Properties;
 
 import org.flexiblepower.exceptions.SerializationException;
-import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
+import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage;
 import org.flexiblepower.proto.ServiceProto.ProcessState;
 import org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage;
 import org.flexiblepower.proto.ServiceProto.ResumeProcessMessage;
 import org.flexiblepower.proto.ServiceProto.SetConfigMessage;
 import org.flexiblepower.serializers.JavaIOSerializer;
+import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.flexiblepower.service.exceptions.ServiceInvocationException;
 import org.slf4j.Logger;
@@ -27,7 +28,9 @@ import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Socket;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.Message;
 
 import zmq.ZError;
 
@@ -48,19 +51,18 @@ public class ServiceManager implements Closeable {
      */
     private static final int MANAGEMENT_SOCKET_RECEIVE_TIMEOUT = 100;
 
-    public static final byte[] SUCCESS = new byte[] {0};
-    public static final byte[] FAILURE = new byte[] {1};
     public static final int MANAGEMENT_PORT = 4999;
 
     // private final Class<? extends Service> serviceClass;
     private boolean configured;
     private volatile boolean keepThreadAlive;
-    private String processId;
+    private String processId = "unknown";
     private final Thread managerThread;
 
     private final ConnectionManager connectionManager;
     private final Service service;
     private final JavaIOSerializer javaIoSerializer = new JavaIOSerializer();
+    private final ProtobufMessageSerializer pbSerializer = new ProtobufMessageSerializer();
     private final Socket managementSocket;
 
     public ServiceManager(final Service service) {
@@ -75,27 +77,52 @@ public class ServiceManager implements Closeable {
         this.managementSocket.setReceiveTimeOut(ServiceManager.MANAGEMENT_SOCKET_RECEIVE_TIMEOUT);
         this.managementSocket.bind(listenAddr);
 
+        // Initializer the ProtoBufe message serializer
+        this.pbSerializer.addMessageClass(GoToProcessStateMessage.class);
+        this.pbSerializer.addMessageClass(SetConfigMessage.class);
+        this.pbSerializer.addMessageClass(ProcessStateUpdateMessage.class);
+        this.pbSerializer.addMessageClass(ResumeProcessMessage.class);
+        this.pbSerializer.addMessageClass(ConnectionMessage.class);
+
         // Because when this exists, it is initializing
         this.configured = false;
         this.keepThreadAlive = true;
         this.managerThread = new Thread(() -> {
             while (this.keepThreadAlive) {
+                // Handle the message
+                Message response;
                 try {
                     final byte[] data = this.managementSocket.recv();
                     if (data != null) {
-                        this.managementSocket.send(this.handleServiceMessage(data));
+                        final Message msg = this.pbSerializer.deserialize(data);
+                        response = this.handleServiceMessage(msg);
+                    } else {
+                        // Not received anything, better luck next iteration
+                        continue;
                     }
+                } catch (final Exception e) {
+                    ServiceManager.log.error("Exception handing message", e);
+                    response = ErrorMessage.newBuilder()
+                            .setProcessId(this.processId)
+                            .setDebugInformation("Error during handling of message: " + e.getMessage())
+                            .build();
+                }
+
+                // Now try to send the response
+                try {
+                    this.managementSocket.send(this.pbSerializer.serialize(response));
+                } catch (final SerializationException e) {
+                    ServiceManager.log
+                            .error("Error during serialization of message type " + response.getClass().getSimpleName());
                 } catch (final ClosedSelectorException | ZError.IOException e) {
                     // Socket is closed, we are stopped
-                    ServiceManager.log.warn("Socket forcibly closed, stopping thread");
+                    ServiceManager.log.warn("Socket forcibly closed, stopping thread", e);
                     break;
-                } catch (final Exception e) {
-                    ServiceManager.log.error("Exception handling message: {}", e.getMessage());
-                    ServiceManager.log.trace("Exception handing message", e);
-                    this.managementSocket.send(ServiceManager.FAILURE);
                 }
             }
             ServiceManager.log.trace("End of thread");
+            this.connectionManager.close();
+            this.managementSocket.close();
         }, "ServiceManager thread");
 
         this.managerThread.start();
@@ -126,53 +153,32 @@ public class ServiceManager implements Closeable {
     }
 
     /**
-     * @param data
+     * @param msg
      * @throws IOException
      * @throws ServiceInvocationException
      * @throws ConnectionModificationException
      */
-    private byte[] handleServiceMessage(final byte[] data)
+    private Message handleServiceMessage(final Message msg)
             throws IOException, ServiceInvocationException, ConnectionModificationException, SerializationException {
-        try {
-            final GoToProcessStateMessage msg = GoToProcessStateMessage.parseFrom(data);
-            return this.handleGoToProcessStateMessage(msg);
-            // } catch (final SerializationException e) {
-            // throw new ServiceInvocationException("Unable to serialize message response: " + e.getMessage(), e);
-        } catch (final InvalidProtocolBufferException e) {
-            // Not this type of message, try next
+
+        if (msg instanceof GoToProcessStateMessage) {
+            return this.handleGoToProcessStateMessage((GoToProcessStateMessage) msg);
+        } else if (msg instanceof ResumeProcessMessage) {
+            return this.handleResumeProcessMessage((ResumeProcessMessage) msg);
+        } else if (msg instanceof SetConfigMessage) {
+            return this.handleSetConfigMessage((SetConfigMessage) msg);
+        } else if (msg instanceof ConnectionMessage) {
+            return this.connectionManager.handleConnectionMessage((ConnectionMessage) msg);
         }
 
-        try {
-            final ResumeProcessMessage msg = ResumeProcessMessage.parseFrom(data);
-            this.handleResumeProcessMessage(msg);
-            return ServiceManager.SUCCESS;
-        } catch (final InvalidProtocolBufferException e) {
-            // Not this type of message, try next
-        }
-
-        try {
-            final SetConfigMessage msg = SetConfigMessage.parseFrom(data);
-            return this.handleSetConfigMessage(msg);
-        } catch (final InvalidProtocolBufferException e) {
-            // Not this type of message, try next
-        }
-
-        try {
-            final ConnectionMessage msg = ConnectionMessage.parseFrom(data);
-            final ConnectionHandshake response = this.connectionManager.handleConnectionMessage(msg);
-            return response.toByteArray();
-        } catch (final InvalidProtocolBufferException e) {
-            // Not this type of message, try next
-        }
-
-        throw new InvalidProtocolBufferException("Invalid protobuf format");
+        throw new InvalidProtocolBufferException("Received unknown message, type: " + msg.getClass().getName());
     }
 
     /**
      * @param message
      * @throws ServiceInvocationException
      */
-    private byte[] handleGoToProcessStateMessage(final GoToProcessStateMessage message)
+    private Message handleGoToProcessStateMessage(final GoToProcessStateMessage message)
             throws ServiceInvocationException, SerializationException {
         ServiceManager.log.info("Received GoToProcessStateMessage for process {} -> {}",
                 message.getProcessId(),
@@ -184,19 +190,19 @@ public class ServiceManager implements Closeable {
             // This is basically a "force start" with no configuration
             this.service.init(new Properties());
             this.configured = true;
-            return ServiceManager.SUCCESS;
+            return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
 
         case SUSPENDED:
             final Serializable state = this.service.suspend();
             this.connectionManager.close();
             this.keepThreadAlive = false;
-            return this.javaIoSerializer.serialize(state);
+            return this.createProcessStateUpdateMessage(ProcessState.SUSPENDED, this.javaIoSerializer.serialize(state));
 
         case TERMINATED:
             this.service.terminate();
             this.connectionManager.close();
             this.keepThreadAlive = false;
-            return ServiceManager.SUCCESS;
+            return this.createProcessStateUpdateMessage(ProcessState.TERMINATED);
 
         case STARTING:
         case INITIALIZING:
@@ -210,13 +216,16 @@ public class ServiceManager implements Closeable {
      * @param msg
      * @throws ServiceInvocationException
      */
-    private void handleResumeProcessMessage(final ResumeProcessMessage msg) throws ServiceInvocationException {
+    private Message handleResumeProcessMessage(final ResumeProcessMessage msg) throws ServiceInvocationException {
         ServiceManager.log.info("Received ResumeProcessMessage for process {}", msg.getProcessId());
         ServiceManager.log.trace("Received message: {}", msg);
+
+        this.processId = msg.getProcessId();
 
         try {
             final Serializable state = this.javaIoSerializer.deserialize(msg.getStateData().toByteArray());
             this.service.resumeFrom(state);
+            return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
         } catch (final Exception e) {
             throw new ServiceInvocationException("Error while resuming process", e);
         }
@@ -227,30 +236,45 @@ public class ServiceManager implements Closeable {
      * @return
      * @throws ServiceInvocationException
      */
-    private byte[] handleSetConfigMessage(final SetConfigMessage message) throws ServiceInvocationException {
+    private Message handleSetConfigMessage(final SetConfigMessage message) throws ServiceInvocationException {
         ServiceManager.log.info("Received SetConfigMessage for process {}", message.getProcessId());
-        ServiceManager.log.debug("Properties to set: {}", message.getConfig());
+        ServiceManager.log.debug("Properties to set: {}", message.getConfigMap().toString());
         ServiceManager.log.trace("Received message: {}", message);
 
         this.processId = message.getProcessId();
 
         final Properties props = new Properties();
-        message.getConfig().forEach((key, value) -> {
+        message.getConfigMap().forEach((key, value) -> {
             props.setProperty(key, value);
         });
 
-        if (this.configured) {
+        if (!this.configured) {
             this.service.init(props);
             this.configured = true;
         } else {
             this.service.modify(props);
         }
 
+        return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
+    }
+
+    private ProcessStateUpdateMessage createProcessStateUpdateMessage(final ProcessState processState) {
+        return this.createProcessStateUpdateMessage(processState, null);
+    }
+
+    private ProcessStateUpdateMessage createProcessStateUpdateMessage(final ProcessState processState,
+            final byte[] data) {
+        ByteString byteString;
+        if ((data == null) || (data.length == 0)) {
+            byteString = ByteString.EMPTY;
+        } else {
+            byteString = ByteString.copyFrom(data);
+        }
         return ProcessStateUpdateMessage.newBuilder()
                 .setProcessId(this.processId)
-                .setState(ProcessState.RUNNING)
-                .build()
-                .toByteArray();
+                .setState(processState)
+                .setStateData(byteString)
+                .build();
     }
 
 }
