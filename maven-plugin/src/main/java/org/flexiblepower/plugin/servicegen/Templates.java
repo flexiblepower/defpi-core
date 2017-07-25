@@ -108,8 +108,12 @@ public class Templates {
                 final String recvHash = this.getHash(descr, ivd, ivd.getReceives());
                 versionList.add(new InterfaceVersion(ivd.getVersionName(), recvHash, sendHash));
             }
-            serviceInterfaces
-                    .add(new Interface(descr.getName(), versionList, descr.isAllowMultiple(), descr.isAutoConnect()));
+            serviceInterfaces.add(new Interface(null,
+                    descr.getName(),
+                    null,
+                    versionList,
+                    descr.isAllowMultiple(),
+                    descr.isAutoConnect()));
         }
 
         final Map<String, String> replace = new HashMap<>();
