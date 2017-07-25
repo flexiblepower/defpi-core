@@ -103,10 +103,10 @@ public class ConnectionTest {
         this.in = this.ctx.socket(ZMQ.PULL);
         this.in.setReceiveTimeOut(200);
         this.in.bind(listenURI.toString());
-        Thread.sleep(500); // Allow remote thread to process the connection message
+        Thread.sleep(1000); // Allow remote thread to process the connection message
     }
 
-    @Test(timeout = 5000000)
+    @Test(timeout = 5000)
     public void testAck() throws InterruptedException, SerializationException {
         // Now start real tests, first send random string
         Assert.assertTrue("Failed to send random string", this.out.send("This is just a not an ack"));
@@ -150,7 +150,9 @@ public class ConnectionTest {
             if (recv.length == 1) {
                 recv = this.in.recv();
             }
-            System.out.println("Received " + new String(recv));
+            if (recv != null) {
+                System.out.println("Received " + new String(recv));
+            }
         }
         return recv;
     }
