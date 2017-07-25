@@ -30,7 +30,7 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
     }
 
     @Override
-    public String newConnection(final Connection connection) throws AuthorizationException, NotFoundException {
+    public Connection newConnection(final Connection connection) throws AuthorizationException, NotFoundException {
         ConnectionRestApi.log.info("newConnection(): " + connection);
         return this.connectionManager.insertConnection(connection);
     }

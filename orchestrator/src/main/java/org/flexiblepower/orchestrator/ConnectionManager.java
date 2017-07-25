@@ -61,8 +61,9 @@ public class ConnectionManager {
      * @param connection
      * @return the id of the newly inserted connection
      */
-    public String insertConnection(final Connection connection) {
-        return this.db.save(connection);
+    public Connection insertConnection(final Connection connection) {
+        this.db.save(connection);
+        return connection;
     }
 
     /**
@@ -72,7 +73,7 @@ public class ConnectionManager {
      * @throws InvalidObjectIdException
      */
     public void deleteConnection(final Connection connection) {
-        this.pc.removeConnection(connection);
+        // this.pc.removeConnection(connection);
         this.db.delete(connection);
     }
 

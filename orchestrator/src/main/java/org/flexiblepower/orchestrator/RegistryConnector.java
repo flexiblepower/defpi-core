@@ -259,14 +259,22 @@ public class RegistryConnector {
             }
             final String image = jsonResponse.getString("name");
             serviceBuilder.repository(ServiceManager.SERVICE_REPOSITORY);
-            serviceBuilder.id(image.substring(image.indexOf("/") + 1) + ":" + version);
+            final String serviceId = image.substring(image.indexOf("/") + 1) + ":" + version;
+            serviceBuilder.id(serviceId);
             serviceBuilder.name(labels.getString("org.flexiblepower.serviceName"));
 
             final Set<Interface> interfaces = new LinkedHashSet<>();
             @SuppressWarnings("unchecked")
             final Set<Object> set = this.gson.fromJson(labels.getString("org.flexiblepower.interfaces"), Set.class);
             for (final Object obj : set) {
-                interfaces.add(this.gson.fromJson(this.gson.toJson(obj), Interface.class));
+                final Interface intf = this.gson.fromJson(this.gson.toJson(obj), Interface.class);
+                final String interfaceId = serviceId + "/" + intf.getName().toLowerCase().replace(" ", "-");
+                interfaces.add(new Interface(interfaceId,
+                        intf.getName(),
+                        serviceId,
+                        intf.getInterfaceVersions(),
+                        intf.isAllowMultiple(),
+                        intf.isAutoConnect()));
             }
             serviceBuilder.interfaces(interfaces);
 
