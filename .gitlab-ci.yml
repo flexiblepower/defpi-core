@@ -21,30 +21,25 @@ cache:
   paths:
     - /cache/maven.repository
  
-# Validate java code using JDK8
+# Validate java code using JDK8; for master this is a sanity check
 java-compile:
-  except:
-    - master
-    - deploy
   stage: build
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml clean test-compile'
 
-# Run Junit tests with maven
+# Run Junit tests with maven; not on master where we will deploy
 java-test:
   stage: test
   except:
     - master
-    - deploy
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml test'
 
-# Plugin template, how test the plugins with the code generator
+# Plugin template, how test the plugins with the code generator; on master we deploy
 .plugin_template: &plugin
   stage: test
   except:
     - master
-    - deploy
   before_script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
   script:
@@ -113,7 +108,6 @@ deploy:orchestrator:
     - defpi1
   only:
     - master
-    - deploy
   stage: deploy
   script:
     - 'docker-compose -f orchestrator/docker-compose.yml pull'
