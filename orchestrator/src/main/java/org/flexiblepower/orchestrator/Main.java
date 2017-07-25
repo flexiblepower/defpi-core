@@ -24,7 +24,7 @@ public class Main {
 
     // Base URI the HTTP server will listen on
     private static final String URI_SCHEME = Scheme.HTTP.name();
-    private static final String URI_HOST = "192.168.239.128";
+    private static final String URI_HOST = "def-pi1.sensorlab.tno.nl";
     private static final int URI_PORT = 8080;
     private static final String URI_PATH = "";
 
