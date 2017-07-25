@@ -96,9 +96,9 @@ public final class MongoDbConnector {
     /**
      * @return a list of all connections that are connected to the process with the provided id
      */
-    public List<Connection> getConnectionsForProcess(final String processId) {
+    public List<Connection> getConnectionsForProcess(final Process process) {
         final Query<Connection> q = this.datastore.find(Connection.class);
-        q.or(q.criteria("container2").equal(processId), q.criteria("container2").equal(processId));
+        q.or(q.criteria("container1").equal(process.getId()), q.criteria("container2").equal(process.getId()));
         return q.asList();
     }
 
@@ -107,9 +107,9 @@ public final class MongoDbConnector {
      *
      * @param processId
      */
-    public void deleteConnectionsForProcess(final String processId) {
+    public void deleteConnectionsForProcess(final Process process) {
         final Query<Connection> q = this.datastore.find(Connection.class);
-        q.or(q.criteria("container2").equal(processId), q.criteria("container2").equal(processId));
+        q.or(q.criteria("container1").equal(process.getId()), q.criteria("container2").equal(process.getId()));
         this.datastore.delete(q);
     }
 
@@ -181,7 +181,7 @@ public final class MongoDbConnector {
      * @return
      * @throws InvalidObjectIdException
      */
-    private static ObjectId stringToObjectId(final String id) throws InvalidObjectIdException {
+    public static ObjectId stringToObjectId(final String id) throws InvalidObjectIdException {
         if (!ObjectId.isValid(id)) {
             throw new InvalidObjectIdException("The provided id is not a valid ObjectId");
         }

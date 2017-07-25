@@ -7,8 +7,10 @@ package org.flexiblepower.orchestrator;
 
 import java.util.List;
 
+import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.model.Connection;
+import org.flexiblepower.model.Process;
 
 /**
  * ConnectionManager
@@ -22,6 +24,7 @@ public class ConnectionManager {
     private static ConnectionManager instance;
 
     private final MongoDbConnector db = MongoDbConnector.getInstance();
+    private final ProcessConnector pc = ProcessConnector.getInstance();
 
     private ConnectionManager() {
         // Private constructor
@@ -50,7 +53,7 @@ public class ConnectionManager {
      * @return the connection that has the provided id, or null
      * @throws InvalidObjectIdException
      */
-    public Connection getConnection(final String connectionId) throws InvalidObjectIdException {
+    public Connection getConnection(final ObjectId connectionId) throws InvalidObjectIdException {
         return this.db.get(Connection.class, connectionId);
     }
 
@@ -67,17 +70,18 @@ public class ConnectionManager {
     /**
      * Removes the connection that has the provided id from the database.
      *
-     * @param connectionId
+     * @param connection
      * @throws InvalidObjectIdException
      */
-    public void deleteConnection(final String connectionId) throws InvalidObjectIdException {
-        this.db.delete(Connection.class, connectionId);
+    public void deleteConnection(final Connection connection) {
+        this.pc.removeConnection(connection);
+        this.db.delete(connection);
     }
 
     /**
      * @return a list of all connections that are connected to the process with the provided id
      */
-    public List<Connection> getConnectionsForProcess(final String processId) {
+    public List<Connection> getConnectionsForProcess(final Process processId) {
         return this.db.getConnectionsForProcess(processId);
     }
 
@@ -86,10 +90,9 @@ public class ConnectionManager {
      *
      * @param processId
      */
-    public void deleteConnectionsForProcess(final String processId) {
+    public void deleteConnectionsForProcess(final Process processId) {
         for (final Connection connection : this.getConnectionsForProcess(processId)) {
-            // DO stuff.
-            this.db.delete(connection);
+            this.deleteConnection(connection);
         }
     }
 

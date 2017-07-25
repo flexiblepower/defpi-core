@@ -6,12 +6,12 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 
 import org.flexiblepower.api.ConnectionApi;
-import org.flexiblepower.exceptions.ConnectionException;
+import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
-import org.flexiblepower.exceptions.ProcessNotFoundException;
-import org.flexiblepower.exceptions.ServiceNotFoundException;
+import org.flexiblepower.exceptions.NotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.orchestrator.ConnectionManager;
+import org.flexiblepower.orchestrator.MongoDbConnector;
 import org.flexiblepower.orchestrator.ProcessConnector;
 
 import lombok.extern.slf4j.Slf4j;
@@ -19,36 +19,32 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ConnectionRestApi extends BaseApi implements ConnectionApi {
 
-    private final ProcessConnector connections;
+    private final ProcessConnector processConnector;
 
-    private final ConnectionManager db = ConnectionManager.getInstance();
+    private final ConnectionManager connectionManager = ConnectionManager.getInstance();
 
     protected ConnectionRestApi(@Context final HttpHeaders httpHeaders) {
         super(httpHeaders);
-        this.connections = ProcessConnector.getInstance();
+        this.processConnector = ProcessConnector.getInstance();
     }
 
     @Override
     public List<Connection> listConnections() {
-        return this.db.getConnections();
+        return this.connectionManager.getConnections();
     }
 
     @Override
-    public String newConnection(final Connection connection) throws ProcessNotFoundException {
+    public String newConnection(final Connection connection) throws AuthorizationException, NotFoundException {
         ConnectionRestApi.log.info("newConnection(): " + connection);
-        try {
-            this.connections.addConnection(connection);
-        } catch (final ConnectionException | ServiceNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        this.processConnector.addConnection(connection);
 
-        return this.db.insertConnection(connection);
+        return this.connectionManager.insertConnection(connection);
     }
 
     @Override
     public void deleteConnection(final String id) throws InvalidObjectIdException {
         ConnectionRestApi.log.info("deleteConnection(): " + id);
-        this.db.deleteConnection(id);
+        this.connectionManager
+                .deleteConnection(this.connectionManager.getConnection(MongoDbConnector.stringToObjectId(id)));
     }
 }
