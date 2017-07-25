@@ -5,10 +5,12 @@
  */
 package org.flexiblepower.orchestrator;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import org.flexiblepower.exceptions.RepositoryNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
+import org.flexiblepower.model.Interface;
 import org.flexiblepower.model.Service;
 
 /**
@@ -26,10 +28,10 @@ public class ServiceManager {
     private final RegistryConnector registryConnectior;
 
     private ServiceManager() {
-        this.registryConnectior = new RegistryConnector();
+        this.registryConnectior = RegistryConnector.getInstance();
     }
 
-    public static ServiceManager getInstance() {
+    public synchronized static ServiceManager getInstance() {
         if (ServiceManager.instance == null) {
             ServiceManager.instance = new ServiceManager();
         }
@@ -59,6 +61,26 @@ public class ServiceManager {
             // Can't happen
             return null;
         }
+    }
+
+    /**
+     * @return
+     */
+    public List<Interface> listInterfaces() {
+        final List<Interface> result = new LinkedList<>();
+        for (final Service s : this.listServices()) {
+            result.addAll(s.getInterfaces());
+        }
+        return result;
+    }
+
+    public Interface getInterfaceById(final String id) {
+        for (final Interface i : this.listInterfaces()) {
+            if (i.getId().equals(id)) {
+                return i;
+            }
+        }
+        return null;
     }
 
 }

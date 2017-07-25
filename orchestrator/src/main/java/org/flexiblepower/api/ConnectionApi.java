@@ -36,14 +36,15 @@ public interface ConnectionApi {
                   value = "List connections",
                   notes = "List all existing connections",
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
-    @ApiResponses(value = {@ApiResponse(code = 200,
-                                        message = "An array of Connections",
-                                        response = Connection.class,
-                                        responseContainer = "List")})
+    @ApiResponses(value = {
+            @ApiResponse(code = 200,
+                         message = "An array of Connections",
+                         response = Connection.class,
+                         responseContainer = "List")})
     public List<Connection> listConnections();
 
     @POST
-    @Produces(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "newConnection",
                   value = "Create a new connection",
@@ -52,12 +53,11 @@ public interface ConnectionApi {
     @ApiResponses(value = {@ApiResponse(code = 200, message = "The id of the new connection", response = String.class),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE),
             @ApiResponse(code = 404, message = ConnectionApi.INTERFACE_NOT_FOUND_MESSAGE)})
-    public String newConnection(
+    public Connection newConnection(
             @ApiParam(name = "connection",
                       value = "The new connection to insert",
                       required = true) final Connection connection)
-            throws AuthorizationException,
-            NotFoundException;
+            throws AuthorizationException, NotFoundException;
 
     @DELETE
     @Path("{id}")
@@ -74,7 +74,5 @@ public interface ConnectionApi {
             @ApiParam(name = "connectionId",
                       value = "The id of the connection to remove",
                       required = true) @PathParam("id") final String id)
-            throws AuthorizationException,
-            InvalidObjectIdException,
-            NotFoundException;
+            throws AuthorizationException, InvalidObjectIdException, NotFoundException;
 }

@@ -23,8 +23,10 @@ myApp
 
 					// Entities
 					var user = nga.entity('user');
-					var process = nga.entity('process');
 					var service = nga.entity('service');
+					var intface = nga.entity('interface');
+					var process = nga.entity('process');
+					var connection = nga.entity('connection');
 					var nodepool = nga.entity('nodepool');
 					var puno = nga.entity('publicnode').label('Public Nodes');
 					var prno = nga.entity('privatenode').label('Private Nodes');
@@ -192,6 +194,79 @@ myApp
 																					'autoConnect',
 																					'boolean') ]) ]);
 
+					intface.listView().fields(
+							[
+									nga.field('id'),
+									nga.field('name'),
+									nga.field('serviceId', 'reference')
+											.targetEntity(service).targetField(
+													nga.field('id')).label(
+													'Service') ]);
+
+					intface
+							.showView()
+							.fields(
+									[
+											nga.field('id'),
+											nga.field('name'),
+											nga.field('serviceId', 'reference')
+													.targetEntity(service)
+													.targetField(
+															nga.field('id'))
+													.label('Service'),
+											nga.field('allowMultiple',
+													'boolean'),
+											nga.field('autoConnect', 'boolean'),
+											nga
+													.field('interfaceVersions',
+															'embedded_list')
+													.targetFields(
+															[
+																	nga
+																			.field('versionName'),
+																	nga
+																			.field('sendsHash'),
+																	nga
+																			.field('receivesHash') ]) ]);
+
+					connection.listView().fields(
+							[
+									nga.field('id'),
+									nga.field('process1Id', 'reference')
+											.targetEntity(process).targetField(
+													nga.field('id')).label(
+													'Process 1'),
+									nga.field('interface1Id', 'reference')
+											.targetEntity(intface).targetField(
+													nga.field('id')).label(
+													'Interface 1'),
+									nga.field('process2Id', 'reference')
+											.targetEntity(process).targetField(
+													nga.field('id')).label(
+													'Process 2'),
+									nga.field('interface2Id', 'reference')
+											.targetEntity(intface).targetField(
+													nga.field('id')).label(
+													'Interface 2') ]);
+					connection.creationView().fields(
+							[
+									nga.field('process1Id', 'reference')
+											.targetEntity(process).targetField(
+													nga.field('id')).label(
+													'Process 1'),
+									nga.field('interface1Id', 'reference')
+											.targetEntity(intface).targetField(
+													nga.field('id')).label(
+													'Interface 1'),
+									nga.field('process2Id', 'reference')
+											.targetEntity(process).targetField(
+													nga.field('id')).label(
+													'Process 2'),
+									nga.field('interface2Id', 'reference')
+											.targetEntity(intface).targetField(
+													nga.field('id')).label(
+													'Interface 2') ]);
+
 					nodepool.listView().fields(
 							[ nga.field('name').isDetailLink(true) ]);
 
@@ -271,8 +346,10 @@ myApp
 
 					// Add entities
 					admin.addEntity(user);
-					admin.addEntity(process);
 					admin.addEntity(service);
+					admin.addEntity(intface);
+					admin.addEntity(process);
+					admin.addEntity(connection);
 					admin.addEntity(nodepool);
 					admin.addEntity(un);
 					admin.addEntity(puno);
@@ -289,14 +366,24 @@ myApp
 															'<span class="glyphicon glyphicon-user"></span>'))
 									.addChild(
 											nga
+													.menu(service)
+													.icon(
+															'<span class="glyphicon glyphicon-play-circle"></span>'))
+									.addChild(
+											nga
+													.menu(intface)
+													.icon(
+															'<span class="glyphicon glyphicon-flash"></span>'))
+									.addChild(
+											nga
 													.menu(process)
 													.icon(
 															'<span class="glyphicon glyphicon-repeat"></span>'))
 									.addChild(
 											nga
-													.menu(service)
+													.menu(connection)
 													.icon(
-															'<span class="glyphicon glyphicon-play-circle"></span>'))
+															'<span class="glyphicon glyphicon-resize-small"></span>'))
 									.addChild(
 											nga
 													.menu(nodepool)

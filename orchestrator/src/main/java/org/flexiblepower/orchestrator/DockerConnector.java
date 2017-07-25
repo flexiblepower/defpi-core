@@ -60,6 +60,8 @@ class DockerConnector {
     private static final String USER_LABEL_KEY = "user.id";
     private static final String NODE_ID_LABEL_KEY = "node.id";
 
+    private static DockerConnector instance = null;
+
     private final DockerClient client;
 
     public static DockerClient init() throws DockerCertificateException {
@@ -72,12 +74,19 @@ class DockerConnector {
         // .dockerCertificates(new DockerCertificates(Paths.get(DockerConnector.CERT_PATH)))
     }
 
-    public DockerConnector() {
+    private DockerConnector() {
         try {
             this.client = DockerConnector.init();
         } catch (final DockerCertificateException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    synchronized static DockerConnector getInstance() {
+        if (DockerConnector.instance == null) {
+            DockerConnector.instance = new DockerConnector();
+        }
+        return DockerConnector.instance;
     }
 
     // /**

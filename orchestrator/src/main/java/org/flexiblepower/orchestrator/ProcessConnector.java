@@ -55,7 +55,7 @@ public class ProcessConnector {
     private ProcessConnector() {
     }
 
-    public static ProcessConnector getInstance() {
+    synchronized static ProcessConnector getInstance() {
         if (ProcessConnector.instance == null) {
             ProcessConnector.instance = new ProcessConnector();
         }
@@ -76,18 +76,18 @@ public class ProcessConnector {
      * @throws IOException
      * @throws ServiceNotFoundException
      */
-    public boolean addConnection(final Connection connection)
-            throws ProcessNotFoundException, ServiceNotFoundException {
-        final Process process1 = ProcessManager.getInstance().getProcess(connection.getProcess1());
+    public boolean addConnection(final Connection connection) throws ProcessNotFoundException,
+            ServiceNotFoundException {
+        final Process process1 = ProcessManager.getInstance().getProcess(connection.getProcess1Id());
         final ProcessConnection pc1 = this.getProcessConnection(process1.getId());
-        final Process process2 = ProcessManager.getInstance().getProcess(connection.getProcess2());
+        final Process process2 = ProcessManager.getInstance().getProcess(connection.getProcess2Id());
         final ProcessConnection pc2 = this.getProcessConnection(process2.getId());
 
         final Service service1 = ServiceManager.getInstance().getService(process1.getServiceId());
         final Service service2 = ServiceManager.getInstance().getService(process2.getServiceId());
 
-        final Interface interface1 = service1.getInterface(connection.getInterface1());
-        final Interface interface2 = service2.getInterface(connection.getInterface2());
+        final Interface interface1 = service1.getInterface(connection.getInterface1Id());
+        final Interface interface2 = service2.getInterface(connection.getInterface2Id());
 
         for (final InterfaceVersion version1 : interface1.getInterfaceVersions()) {
             for (final InterfaceVersion version2 : interface2.getInterfaceVersions()) {
@@ -121,9 +121,9 @@ public class ProcessConnector {
     }
 
     public void removeConnection(final Connection connection) {
-        final Process process1 = ProcessManager.getInstance().getProcess(connection.getProcess1());
+        final Process process1 = ProcessManager.getInstance().getProcess(connection.getProcess1Id());
         final ProcessConnection pc1 = this.getProcessConnection(process1.getId());
-        final Process process2 = ProcessManager.getInstance().getProcess(connection.getProcess2());
+        final Process process2 = ProcessManager.getInstance().getProcess(connection.getProcess2Id());
         final ProcessConnection pc2 = this.getProcessConnection(process2.getId());
 
         pc1.tearDownConnection(connection.getId());
@@ -247,9 +247,8 @@ public class ProcessConnector {
 
         public void startProcess() {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final Builder builder = SetConfigMessage.newBuilder()
-                    .setProcessId(process.getId().toString())
-                    .setIsUpdate(false);
+            final Builder builder = SetConfigMessage.newBuilder().setProcessId(process.getId().toString()).setIsUpdate(
+                    false);
             if (process.getConfiguration() != null) {
                 for (final Parameter p : process.getConfiguration()) {
                     builder.putConfig(p.getKey(), p.getValue());
@@ -279,9 +278,8 @@ public class ProcessConnector {
 
         public void updateConfiguration() {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final Builder builder = SetConfigMessage.newBuilder()
-                    .setProcessId(process.getId().toString())
-                    .setIsUpdate(true);
+            final Builder builder = SetConfigMessage.newBuilder().setProcessId(process.getId().toString()).setIsUpdate(
+                    true);
             if (process.getConfiguration() != null) {
                 for (final Parameter p : process.getConfiguration()) {
                     builder.putConfig(p.getKey(), p.getValue());

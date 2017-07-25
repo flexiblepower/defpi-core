@@ -30,11 +30,9 @@ public class UserManager {
         // Private constructor
     }
 
-    public static UserManager getInstance() {
-        synchronized (UserManager.instance) {
-            if (UserManager.instance == null) {
-                UserManager.instance = new UserManager();
-            }
+    public synchronized static UserManager getInstance() {
+        if (UserManager.instance == null) {
+            UserManager.instance = new UserManager();
         }
         return UserManager.instance;
     }

@@ -30,7 +30,7 @@ public class ProcessManager {
 
     private static ProcessManager instance = null;
 
-    private final DockerConnector dockerConnector = new DockerConnector();
+    private final DockerConnector dockerConnector = DockerConnector.getInstance();
     private final MongoDbConnector mongoDbConnector = MongoDbConnector.getInstance();
     private final UserManager userManager = UserManager.getInstance();
     private final ScheduledExecutorService threadpool = Executors.newScheduledThreadPool(8);
@@ -38,11 +38,9 @@ public class ProcessManager {
     private ProcessManager() {
     }
 
-    public static ProcessManager getInstance() {
-        synchronized (ProcessManager.instance) {
-            if (ProcessManager.instance == null) {
-                ProcessManager.instance = new ProcessManager();
-            }
+    public synchronized static ProcessManager getInstance() {
+        if (ProcessManager.instance == null) {
+            ProcessManager.instance = new ProcessManager();
         }
         return ProcessManager.instance;
     }
