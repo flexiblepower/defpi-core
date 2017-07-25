@@ -42,6 +42,8 @@ public class RegistryConnector {
     private static final String REGISTRY_URL_DFLT = "def-pi1.sensorlab.tno.nl:5000";
     private static final long MAX_CACHE_AGE_MS = 30000;
 
+    private static RegistryConnector instance = null;
+
     private final String registryApiLink;
     private final Gson gson = new Gson();
 
@@ -51,12 +53,19 @@ public class RegistryConnector {
     private long serviceCacheLastUpdate = 0;
     private final Object serviceCacheLock = new Object();
 
-    RegistryConnector() {
+    private RegistryConnector() {
         String registryUrl = System.getenv(RegistryConnector.REGISTRY_URL_KEY);
         if (registryUrl == null) {
             registryUrl = RegistryConnector.REGISTRY_URL_DFLT;
         }
         this.registryApiLink = "https://" + registryUrl + "/v2/";
+    }
+
+    synchronized static RegistryConnector getInstance() {
+        if (RegistryConnector.instance == null) {
+            RegistryConnector.instance = new RegistryConnector();
+        }
+        return RegistryConnector.instance;
     }
 
     List<String> listRepositories() {

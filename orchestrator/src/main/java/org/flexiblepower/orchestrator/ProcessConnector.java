@@ -55,7 +55,7 @@ public class ProcessConnector {
     private ProcessConnector() {
     }
 
-    public static ProcessConnector getInstance() {
+    synchronized static ProcessConnector getInstance() {
         if (ProcessConnector.instance == null) {
             ProcessConnector.instance = new ProcessConnector();
         }

@@ -34,17 +34,15 @@ public class NodeManager {
     private static final long ALLOWED_CACHE_TIME_MS = 60000;
     private static NodeManager instance = null;
 
-    public static NodeManager getInstance() {
-        synchronized (NodeManager.instance) {
-            if (NodeManager.instance == null) {
-                NodeManager.instance = new NodeManager();
-            }
+    public synchronized static NodeManager getInstance() {
+        if (NodeManager.instance == null) {
+            NodeManager.instance = new NodeManager();
         }
         return NodeManager.instance;
     }
 
     private final MongoDbConnector db = MongoDbConnector.getInstance();
-    private final DockerConnector docker = new DockerConnector();
+    private final DockerConnector docker = DockerConnector.getInstance();
 
     private NodeManager() {
 

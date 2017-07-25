@@ -34,11 +34,9 @@ public class ConnectionManager {
         // Private constructor
     }
 
-    public static ConnectionManager getInstance() {
-        synchronized (ConnectionManager.instance) {
-            if (ConnectionManager.instance == null) {
-                ConnectionManager.instance = new ConnectionManager();
-            }
+    public synchronized static ConnectionManager getInstance() {
+        if (ConnectionManager.instance == null) {
+            ConnectionManager.instance = new ConnectionManager();
         }
         return ConnectionManager.instance;
     }

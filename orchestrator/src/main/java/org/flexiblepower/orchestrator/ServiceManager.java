@@ -26,10 +26,10 @@ public class ServiceManager {
     private final RegistryConnector registryConnectior;
 
     private ServiceManager() {
-        this.registryConnectior = new RegistryConnector();
+        this.registryConnectior = RegistryConnector.getInstance();
     }
 
-    public static ServiceManager getInstance() {
+    public synchronized static ServiceManager getInstance() {
         if (ServiceManager.instance == null) {
             ServiceManager.instance = new ServiceManager();
         }
