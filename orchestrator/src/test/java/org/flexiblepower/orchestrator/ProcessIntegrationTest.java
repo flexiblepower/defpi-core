@@ -45,14 +45,14 @@ public class ProcessIntegrationTest {
         final NodeManager nm = NodeManager.getInstance();
         final ProcessManager pm = ProcessManager.getInstance();
         final ProcessConnector cm = ProcessConnector.getInstance();
-        final MongoDbConnector mdc = MongoDbConnector.getInstance();
+        final UserManager um = UserManager.getInstance();
 
         final Service service = ServiceManager.getInstance().getService("echo:0.0.1");
-        User user = mdc.getUser(ProcessIntegrationTest.TEST_USER, ProcessIntegrationTest.TEST_PASS);
+        User user = um.getUser(ProcessIntegrationTest.TEST_USER, ProcessIntegrationTest.TEST_PASS);
 
         if (user == null) {
-            final String uid = mdc.createNewUser(ProcessIntegrationTest.TEST_USER, ProcessIntegrationTest.TEST_PASS);
-            user = mdc.getUser(uid);
+            final String uid = um.createNewUser(ProcessIntegrationTest.TEST_USER, ProcessIntegrationTest.TEST_PASS);
+            user = um.getUser(uid);
         }
 
         final List<UnidentifiedNode> nodeList = nm.getUnidentifiedNodes();

@@ -5,7 +5,7 @@
  */
 package org.flexiblepower.service;
 
-import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Constructor;
 import java.util.Set;
 
 import org.flexiblepower.service.exceptions.ServiceInvocationException;
@@ -92,23 +92,31 @@ public final class ServiceMain {
             try {
                 final InterfaceInfo info = handlerClass.getAnnotation(InterfaceInfo.class);
                 if (info == null) {
-                    ServiceMain.log.warn("Missiong @InterfaceInfo annotation on {}", handlerClass);
+                    ServiceMain.log.debug("Missing @InterfaceInfo annotation on {}, skipping", handlerClass);
                     continue;
                 }
 
                 final Class<? extends ConnectionHandlerFactory> factoryClass = info.factory();
 
                 ConnectionHandlerFactory chf = null;
-                try {
-                    // It should have a constructor with service as argument
-                    chf = factoryClass.getConstructor(Service.class).newInstance(service);
-                } catch (final NoSuchMethodException e) {
+                // It should have a constructor with service as argument
+                for (final Constructor<?> c : factoryClass.getConstructors()) {
+                    if ((c.getParameterCount() == 1) && Service.class.isAssignableFrom(c.getParameterTypes()[0])) {
+                        try {
+                            chf = (ConnectionHandlerFactory) c.newInstance(service);
+                            break;
+                        } catch (final Exception e) {
+                            // Do nothing try next...
+                        }
+                    }
+                }
+                if (chf == null) {
                     // Try the empty constructor if it fails
                     chf = factoryClass.newInstance();
                 }
                 ConnectionManager.registerConnectionHandlerFactory(handlerClass, chf);
 
-            } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            } catch (InstantiationException | IllegalAccessException e) {
                 ServiceMain.log.warn("Unable to instantiate factory for type {} for service ", handlerClass, service);
                 ServiceMain.log.trace("Unable to instantiate factory", e);
 
