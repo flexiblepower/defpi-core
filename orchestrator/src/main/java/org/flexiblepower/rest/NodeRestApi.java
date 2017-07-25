@@ -1,5 +1,6 @@
 package org.flexiblepower.rest;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -127,7 +128,9 @@ public class NodeRestApi extends BaseApi implements NodeApi {
 
     @Override
     public List<PrivateNode> listPrivateNodes() {
-        if (this.sessionUser.isAdmin()) {
+        if (this.sessionUser == null) {
+            return Collections.emptyList();
+        } else if (this.sessionUser.isAdmin()) {
             return this.nodeManager.getPrivateNodes();
         } else {
             return this.nodeManager.getPrivateNodesForUser(this.sessionUser);
