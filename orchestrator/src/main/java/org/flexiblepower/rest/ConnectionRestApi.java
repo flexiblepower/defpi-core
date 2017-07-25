@@ -1,5 +1,6 @@
 package org.flexiblepower.rest;
 
+import java.util.Collections;
 import java.util.List;
 
 import javax.ws.rs.core.Context;
@@ -31,7 +32,9 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
 
     @Override
     public List<Connection> listConnections() {
-        if (this.sessionUser.isAdmin()) {
+        if (this.sessionUser == null) {
+            return Collections.emptyList();
+        } else if (this.sessionUser.isAdmin()) {
             return this.connectionManager.getConnections();
         } else {
             return this.connectionManager.getConnectionsForUser(this.sessionUser);

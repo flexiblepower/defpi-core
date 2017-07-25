@@ -1,5 +1,6 @@
 package org.flexiblepower.rest;
 
+import java.util.Collections;
 import java.util.List;
 
 import javax.ws.rs.core.Context;
@@ -27,7 +28,9 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
 
     @Override
     public List<Process> listProcesses() {
-        if (this.sessionUser.isAdmin()) {
+        if (this.sessionUser == null) {
+            return Collections.emptyList();
+        } else if (this.sessionUser.isAdmin()) {
             return ProcessManager.getInstance().listProcesses();
         } else {
             return ProcessManager.getInstance().listProcesses(this.sessionUser);
