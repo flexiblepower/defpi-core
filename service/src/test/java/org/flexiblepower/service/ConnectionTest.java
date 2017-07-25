@@ -103,7 +103,7 @@ public class ConnectionTest {
         this.in = this.ctx.socket(ZMQ.PULL);
         this.in.setReceiveTimeOut(200);
         this.in.bind(listenURI.toString());
-        Thread.sleep(1000); // Allow remote thread to process the connection message
+        Thread.sleep(5000); // Allow remote thread to process the connection message
     }
 
     @Test(timeout = 5000)

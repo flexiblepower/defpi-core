@@ -14,24 +14,24 @@ image: maven:3.5.0-jdk-8
 stages:
   - build
   - test
-  - plugintest
+  - integrate
   - deploy
-  - deployservice
 
 cache:
   paths:
     - /cache/maven.repository
  
 # Validate merge requests using JDK8
-validate:jdk8:
+java-compile:
   except:
     - deploy
+    - master
   stage: build
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml clean test-compile'
 
 # Verify merge requests using JDK8
-verify:jdk8:
+java-test:
   stage: test
   except:
     - master
@@ -40,7 +40,7 @@ verify:jdk8:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml test'
 
 .plugin_template: &plugin
-  stage: plugintest
+  stage: test
   except:
     - master
     - deploy
@@ -50,55 +50,55 @@ verify:jdk8:
     - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml -P codegen generate-sources'
 
 #Test plugin on xsd
-test-compile:proto:
+plugin-test:proto:
   variables:
     TEST_PROJ: skeleton_proto
   <<: *plugin
 
 #Test plugin on xsd
-test-compile:xsd:
+plugin-test:xsd:
   variables:
     TEST_PROJ: skeleton_xsd
   <<: *plugin
 
 #Deploy to artifactory and registry
-deploy:master:
+integrate:master:
   only:
     - master
     - defpici
-  stage: deploy
+  stage: integrate
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy'
 
-deploy:ui:
+integrate:ui:
   image: docker:17.03.2-ce-git
   only:
     - master
     - defpici
-  stage: deploy
+  stage: integrate
   script:
     - 'docker build orchestrator-ui -t def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator-ui'
     - 'docker push def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator-ui'
 
-.deploy_template: &deployservice
+.integrate_template: &integrate_service
   only:
     - master
     - defpici
-  stage: deployservice
+  stage: deploy
   before_script:  
     - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml -P codegen generate-sources'
   script:
     - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml clean deploy'
 
-deploy:skeleton_proto:
+integrate:skeleton_proto:
   variables:
     TEST_PROJ: skeleton_proto
-  <<: *deployservice 
+  <<: *integrate_service 
 
-deploy:xsd_proto:
+integrate:xsd_proto:
   variables:
     TEST_PROJ: skeleton_xsd
-  <<: *deployservice
+  <<: *integrate_service
 
 # And finally run service on def-pi1
 deploy:orchestrator:
@@ -108,6 +108,6 @@ deploy:orchestrator:
   only:
     - master
     - deploy
-  stage: deployservice
+  stage: deploy
   script:
     - 'docker-compose -p def-pi -f orchestrator/docker-compose.yml up -d'
