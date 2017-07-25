@@ -4,47 +4,92 @@ import java.util.List;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.Response.Status;
 
+import org.bson.types.ObjectId;
 import org.flexiblepower.api.ConnectionApi;
+import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
-import org.flexiblepower.exceptions.NotFoundException;
+import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Connection;
+import org.flexiblepower.model.Process;
 import org.flexiblepower.orchestrator.ConnectionManager;
 import org.flexiblepower.orchestrator.MongoDbConnector;
-import org.flexiblepower.orchestrator.ProcessConnector;
+import org.flexiblepower.orchestrator.ProcessManager;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ConnectionRestApi extends BaseApi implements ConnectionApi {
 
-    private final ProcessConnector processConnector;
-
     private final ConnectionManager connectionManager = ConnectionManager.getInstance();
 
     protected ConnectionRestApi(@Context final HttpHeaders httpHeaders) {
         super(httpHeaders);
-        this.processConnector = ProcessConnector.getInstance();
     }
 
     @Override
     public List<Connection> listConnections() {
-        return this.connectionManager.getConnections();
+        if (this.sessionUser.isAdmin()) {
+            return this.connectionManager.getConnections();
+        } else {
+            return this.connectionManager.getConnectionsForUser(this.sessionUser);
+        }
     }
 
     @Override
-    public String newConnection(final Connection connection) throws AuthorizationException, NotFoundException {
-        ConnectionRestApi.log.info("newConnection(): " + connection);
-        this.processConnector.addConnection(connection);
+    public String newConnection(final Connection connection) throws AuthorizationException, ProcessNotFoundException {
+        final Process p1 = ProcessManager.getInstance().getProcess(connection.getProcess1());
 
-        return this.connectionManager.insertConnection(connection);
+        if (p1 == null) {
+            throw new ProcessNotFoundException(connection.getProcess1().toString());
+        }
+        this.assertUserIsAdminOrEquals(p1.getUserId());
+
+        final Process p2 = ProcessManager.getInstance().getProcess(connection.getProcess2());
+        if (p2 == null) {
+            throw new ProcessNotFoundException(connection.getProcess2().toString());
+        }
+        this.assertUserIsAdminOrEquals(p2.getUserId());
+
+        ConnectionRestApi.log.info("Inserting new Connection {}", connection);
+        return this.connectionManager.insertConnection(connection).toString();
     }
 
     @Override
-    public void deleteConnection(final String id) throws InvalidObjectIdException {
-        ConnectionRestApi.log.info("deleteConnection(): " + id);
-        this.connectionManager
-                .deleteConnection(this.connectionManager.getConnection(MongoDbConnector.stringToObjectId(id)));
+    public Connection getConnection(final String id) throws AuthorizationException,
+            ProcessNotFoundException,
+            InvalidObjectIdException {
+        final ObjectId oid = MongoDbConnector.stringToObjectId(id);
+        final Connection connection = this.connectionManager.getConnection(oid);
+
+        if (connection == null) {
+            throw new ApiException(Status.NOT_FOUND, "Could not find connection with id " + id);
+        }
+
+        final Process p1 = ProcessManager.getInstance().getProcess(connection.getProcess1());
+        if (p1 == null) {
+            throw new ProcessNotFoundException(connection.getProcess1().toString());
+        }
+        this.assertUserIsAdminOrEquals(p1.getUserId());
+
+        final Process p2 = ProcessManager.getInstance().getProcess(connection.getProcess2());
+        if (p2 == null) {
+            throw new ProcessNotFoundException(connection.getProcess2().toString());
+        }
+        this.assertUserIsAdminOrEquals(p2.getUserId());
+
+        return connection;
+    }
+
+    @Override
+    public void deleteConnection(final String id) throws InvalidObjectIdException,
+            ProcessNotFoundException,
+            AuthorizationException {
+        final Connection connection = this.getConnection(id);
+
+        ConnectionRestApi.log.info("Removing connection {}", id);
+        this.connectionManager.deleteConnection(connection);
     }
 }

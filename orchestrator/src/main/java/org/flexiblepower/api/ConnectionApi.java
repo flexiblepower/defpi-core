@@ -14,6 +14,7 @@ import javax.ws.rs.core.MediaType;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.NotFoundException;
+import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Connection;
 
 import io.swagger.annotations.Api;
@@ -41,6 +42,25 @@ public interface ConnectionApi {
                                         response = Connection.class,
                                         responseContainer = "List")})
     public List<Connection> listConnections();
+
+    @GET
+    @Path("{connectionId}")
+    @ApiOperation(nickname = "getConnection",
+                  value = "Get connection data",
+                  notes = "Get the connection with the specified Id",
+                  authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Connection with the specified Id", response = Connection.class),
+            @ApiResponse(code = 400, message = InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE),
+            @ApiResponse(code = 404, message = ProcessApi.PROCESS_NOT_FOUND_MESSAGE),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
+    public Connection getConnection(
+            @ApiParam(name = "connectionId",
+                      value = "The id of the connection",
+                      required = true) @PathParam("connectionId") final String id)
+            throws AuthorizationException,
+            ProcessNotFoundException,
+            InvalidObjectIdException;
 
     @POST
     @Produces(MediaType.TEXT_PLAIN)
@@ -77,4 +97,5 @@ public interface ConnectionApi {
             throws AuthorizationException,
             InvalidObjectIdException,
             NotFoundException;
+
 }

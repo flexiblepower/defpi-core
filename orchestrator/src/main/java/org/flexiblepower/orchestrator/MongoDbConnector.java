@@ -161,8 +161,8 @@ public final class MongoDbConnector {
      * @param entity
      * @return the new objectId of the stored entity
      */
-    public String save(final Object entity) {
-        return this.datastore.save(entity).getId().toString();
+    public ObjectId save(final Object entity) {
+        return (ObjectId) this.datastore.save(entity).getId();
     }
 
     public void delete(final Object entity) {

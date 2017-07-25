@@ -22,8 +22,6 @@ import org.flexiblepower.model.User;
 
 import com.spotify.docker.client.messages.swarm.Node;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * NodeManager
  *
@@ -31,7 +29,6 @@ import lombok.extern.slf4j.Slf4j;
  * @version 0.1
  * @since May 1, 2017
  */
-@Slf4j
 public class NodeManager {
 
     private static final long ALLOWED_CACHE_TIME_MS = 60000;
@@ -174,6 +171,17 @@ public class NodeManager {
 
     public List<PrivateNode> getPrivateNodes() {
         return this.getNodesAndSync(PrivateNode.class);
+    }
+
+    public List<PrivateNode> getPrivateNodesForUser(final User owner) {
+        final List<PrivateNode> allNodes = this.getPrivateNodes();
+        final List<PrivateNode> ret = new ArrayList<>();
+        for (final PrivateNode node : allNodes) {
+            if (node.getUserId().equals(owner.getId())) {
+                ret.add(node);
+            }
+        }
+        return ret;
     }
 
     public PrivateNode getPrivateNode(final ObjectId id) {

@@ -8,6 +8,7 @@ package org.flexiblepower.orchestrator;
 import java.net.InetAddress;
 import java.util.List;
 
+import org.bson.types.ObjectId;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.Process;
@@ -51,7 +52,7 @@ public class ProcessIntegrationTest {
         User user = um.getUser(ProcessIntegrationTest.TEST_USER, ProcessIntegrationTest.TEST_PASS);
 
         if (user == null) {
-            final String uid = um.createNewUser(ProcessIntegrationTest.TEST_USER, ProcessIntegrationTest.TEST_PASS);
+            final ObjectId uid = um.createNewUser(ProcessIntegrationTest.TEST_USER, ProcessIntegrationTest.TEST_PASS);
             user = um.getUser(uid);
         }
 

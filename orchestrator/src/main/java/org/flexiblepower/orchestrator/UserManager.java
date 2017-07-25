@@ -51,17 +51,6 @@ public class UserManager {
      *
      * @param userId
      * @return the user stored with the provided Id, or null
-     * @throws InvalidObjectIdException
-     */
-    public User getUser(final String userId) throws InvalidObjectIdException {
-        return this.db.get(User.class, userId);
-    }
-
-    /**
-     * Get a user object from the database that has the provided userId, or null if no such user exists.
-     *
-     * @param userId
-     * @return the user stored with the provided Id, or null
      */
     public User getUser(final ObjectId userId) {
         return this.db.get(User.class, userId);
@@ -86,7 +75,7 @@ public class UserManager {
      * @param password
      * @return the userId of the newly created user
      */
-    public String createNewUser(final String username, final String password) {
+    public ObjectId createNewUser(final String username, final String password) {
         return this.db.save(new User(username, password));
     }
 
@@ -97,7 +86,7 @@ public class UserManager {
      * @param newUser
      * @return the userId of the inserted user
      */
-    public String saveUser(final User newUser) {
+    public ObjectId saveUser(final User newUser) {
         return this.db.save(newUser);
     }
 
@@ -108,8 +97,8 @@ public class UserManager {
      * @throws AuthorizationException
      * @throws InvalidObjectIdException
      */
-    public void deleteUser(final String userId) throws AuthorizationException, InvalidObjectIdException {
-        this.db.delete(User.class, userId);
+    public void deleteUser(final User user) {
+        this.db.delete(user);
     }
 
     public int countUsers(final Map<String, Object> filter) {

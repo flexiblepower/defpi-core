@@ -9,7 +9,7 @@ import java.util.Base64;
 
 import javax.ws.rs.core.HttpHeaders;
 
-import org.flexiblepower.exceptions.ApiException;
+import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.UserManager;
@@ -60,10 +60,27 @@ public abstract class BaseApi {
      *
      * @throws AuthorizationException
      */
-    protected void assertUserIsAdmin() throws ApiException {
+    protected void assertUserIsAdmin() throws AuthorizationException {
         if ((this.sessionUser == null) || !this.sessionUser.isAdmin()) {
-            throw new ApiException(new AuthorizationException());
+            throw new AuthorizationException();
         }
+    }
+
+    /**
+     * Protected function that only throws an exception if the current logged in user is not an admin or equals the
+     * provided userId.
+     *
+     * @param userId The userId that should be logged in
+     * @throws AuthorizationException
+     */
+    protected void assertUserIsAdminOrEquals(final ObjectId userId) throws AuthorizationException {
+        if (this.sessionUser == null) {
+            throw new AuthorizationException();
+        }
+        if (!this.sessionUser.isAdmin() && !this.sessionUser.getId().equals(userId)) {
+            throw new AuthorizationException();
+        }
+
     }
 
 }

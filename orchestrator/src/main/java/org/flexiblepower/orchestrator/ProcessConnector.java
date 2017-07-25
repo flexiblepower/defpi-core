@@ -76,8 +76,7 @@ public class ProcessConnector {
      * @throws IOException
      * @throws ServiceNotFoundException
      */
-    public boolean addConnection(final Connection connection)
-            throws ProcessNotFoundException, ServiceNotFoundException {
+    public boolean addConnection(final Connection connection) throws ProcessNotFoundException {
         final Process process1 = ProcessManager.getInstance().getProcess(connection.getProcess1());
         final ProcessConnection pc1 = this.getProcessConnection(process1.getId());
         final Process process2 = ProcessManager.getInstance().getProcess(connection.getProcess2());
@@ -247,9 +246,8 @@ public class ProcessConnector {
 
         public void startProcess() {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final Builder builder = SetConfigMessage.newBuilder()
-                    .setProcessId(process.getId().toString())
-                    .setIsUpdate(false);
+            final Builder builder = SetConfigMessage.newBuilder().setProcessId(process.getId().toString()).setIsUpdate(
+                    false);
             if (process.getConfiguration() != null) {
                 for (final Parameter p : process.getConfiguration()) {
                     builder.putConfig(p.getKey(), p.getValue());
@@ -279,9 +277,8 @@ public class ProcessConnector {
 
         public void updateConfiguration() {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final Builder builder = SetConfigMessage.newBuilder()
-                    .setProcessId(process.getId().toString())
-                    .setIsUpdate(true);
+            final Builder builder = SetConfigMessage.newBuilder().setProcessId(process.getId().toString()).setIsUpdate(
+                    true);
             if (process.getConfiguration() != null) {
                 for (final Parameter p : process.getConfiguration()) {
                     builder.putConfig(p.getKey(), p.getValue());
