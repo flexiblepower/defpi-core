@@ -4,6 +4,7 @@ services:
     image: def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator:0.2.1-SNAPSHOT
     ports:
       - 8484:8080
+      - 9999:9999
     volumes:
       - /var/run/docker.sock:/var/run/docker.socks:ro
     links:
