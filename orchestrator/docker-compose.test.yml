@@ -1,0 +1,23 @@
+version: "3"
+services:
+  orchestrator:
+    image: def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator:0.2.1-SNAPSHOT
+    ports:
+      - 8484:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.socks:ro
+    links:
+      - mongo_test
+    environment:
+      - MONGO_HOST=mongo_test
+      - MONGO_DATABASE=def-pi
+      - MONGO_PORT=27017
+      - REGISTRY_URL=def-pi1.sensorlab.tno.nl:5000
+  orchestrator-ui:
+    image: def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator-ui
+    ports:
+      - 84:80
+    environment:
+      - ORCHESTRATOR_URL=http://def-pi1.sensorlab.tno.nl:8484/
+  mongo_test:
+    image: mongo
