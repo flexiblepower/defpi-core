@@ -6,20 +6,9 @@
 		</Console>
 	</Appenders>
 	<Loggers>
-		<Root level="TRACE">
+		<Logger name="org.flexiblepower" level="TRACE" />
+		<Root level="WARN">
 			<AppenderRef ref="Console" />
 		</Root>
-		<Logger name="org.mongodb" level="WARN">
-			<AppenderRef ref="Console" />
-		</Logger>
-		<Logger name="org.eclipse.jetty" level="WARN">
-			<AppenderRef ref="Console" />
-		</Logger>
-		<Logger name="io.swagger" level="WARN">
-			<AppenderRef ref="Console" />
-		</Logger>
-		<Logger name="org.reflections.Reflections" level="WARN">
-			<AppenderRef ref="Console" />
-		</Logger>
 	</Loggers>
 </Configuration>

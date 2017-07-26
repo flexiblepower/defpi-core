@@ -26,31 +26,37 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class BaseApi {
 
+    private static final String AUTH_PREFIX = "Basic ";
+
     protected final User sessionUser;
 
     protected BaseApi(final HttpHeaders httpHeaders) {
-        final String authPrefix = "Basic ";
 
         String authString = httpHeaders.getHeaderString("Authorization");
-        if ((authString == null) || !authString.startsWith(authPrefix)) {
+        if ((authString == null) || !authString.startsWith(BaseApi.AUTH_PREFIX)) {
             BaseApi.log.warn("Client is not using basic authentication, not authenticated");
             this.sessionUser = null;
             return;
         }
 
         // Trim the prefix
-        authString = authString.substring(authPrefix.length());
-        final String[] credentials = new String(Base64.getDecoder().decode(authString)).split(":");
-        if ((credentials.length != 2)) {
+        authString = authString.substring(BaseApi.AUTH_PREFIX.length());
+        final String credentials = new String(Base64.getDecoder().decode(authString));
+        final int pos = credentials.indexOf(':');
+        if ((pos < 1)) {
             BaseApi.log.warn("Unable to parse authentication string, not authenticated");
             this.sessionUser = null;
             return;
         }
 
-        this.sessionUser = UserManager.getInstance().getUser(credentials[0], credentials[1]);
-        // this.loggedInUser = this.db.getUser(credentials[0], credentials[1]);
-        // this.db.setApplicationUser(this.loggedInUser);
-        BaseApi.log.debug("User {} logged in", credentials[0]);
+        this.sessionUser = UserManager.getInstance().getUser(credentials.substring(0, pos),
+                credentials.substring(pos + 1));
+        if (this.sessionUser == null) {
+            BaseApi.log.warn("Unable to find user with provided credentials");
+            return;
+        }
+
+        BaseApi.log.debug("User {} logged in", this.sessionUser.getUsername());
     }
 
     /**

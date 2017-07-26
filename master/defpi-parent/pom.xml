@@ -134,7 +134,8 @@
 
 		<plugins>
 			<plugin>
-				<!-- The resource plugin allows us to use maven variables in the docker files -->
+				<!-- The resource plugin allows us to use maven variables in the docker 
+					files -->
 				<artifactId>maven-resources-plugin</artifactId>
 				<version>3.0.2</version>
 				<configuration>
@@ -148,6 +149,9 @@
 							<directory>${project.resourcedir}/${docker.arm.folder}</directory>
 							<targetPath>${project.build.directory}/${docker.arm.folder}</targetPath>
 							<filtering>true</filtering>
+						</resource>
+						<resource>
+							<directory>${project.resourcedir}</directory>
 						</resource>
 					</resources>
 				</configuration>
