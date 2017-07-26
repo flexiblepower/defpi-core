@@ -26,8 +26,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class BaseApi {
 
-    private final UserManager userManager = UserManager.getInstance();
-
     protected final User sessionUser;
 
     protected BaseApi(final HttpHeaders httpHeaders) {
@@ -49,7 +47,7 @@ public abstract class BaseApi {
             return;
         }
 
-        this.sessionUser = this.userManager.getUser(credentials[0], credentials[1]);
+        this.sessionUser = UserManager.getInstance().getUser(credentials[0], credentials[1]);
         // this.loggedInUser = this.db.getUser(credentials[0], credentials[1]);
         // this.db.setApplicationUser(this.loggedInUser);
         BaseApi.log.debug("User {} logged in", credentials[0]);
