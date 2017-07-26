@@ -81,7 +81,7 @@ ui-test:
     - 'docker build orchestrator-ui -t orchestrator-ui:test'
     - 'docker run --rm --name ui-test -d -p 8756:80 orchestrator-ui:test'
   script:
-    - 'curl -s localhost:8756/login.html | grep "Orchestrator"'
+    - 'wget -q -O - localhost:8756/login.html | grep "Orchestrator"'
   after_script:
     - 'docker stop ui-test'
 
@@ -147,8 +147,8 @@ test-deploy:
     - 'docker-compose -f orchestrator/docker-compose.test.yml pull'
     - 'docker-compose -p def-pi -f orchestrator/docker-compose.test.yml up -d'
   script:
-    - 'curl localhost:84/login.html | grep "Orchestrator"'
-    - 'curl localhost:8484/swagger.json | grep "dEF-Pi API"'
+    - 'wget -q -O - localhost:84/login.html | grep "Orchestrator"'
+    - 'wget -q -O - localhost:8484/swagger.json | grep "dEF-Pi API"'
   after_script:
     - 'docker-compose -p def-pi -f orchestrator/docker-compose.test.yml down'
 
