@@ -63,8 +63,8 @@ public class Process {
 	private String serviceId;
 
 	/**
-	 * The NodePool where this process should be running. Mutually exclusive
-	 * with privateNodeId.
+	 * The NodePool where this process should be running. Mutually exclusive with
+	 * privateNodeId.
 	 */
 	@JsonSerialize(using = ToStringSerializer.class)
 	@JsonDeserialize(using = ObjectIdDeserializer.class)
@@ -85,11 +85,17 @@ public class Process {
 	private String dockerId;
 
 	/**
-	 * The node on which the process is actually running. May be null when the
-	 * state is not RUNNING.
+	 * The node on which the process is actually running. May be null when the state
+	 * is not RUNNING.
 	 */
 	private String runningDockerNodeId;
 
 	private List<Parameter> configuration;
 
+	/**
+	 * To enable debugging of a process, this number should be set to something else
+	 * than 0. Note that this can only be done when serializing a process from JSON.
+	 */
+	private int debuggingPort;
+	
 }
