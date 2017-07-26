@@ -150,6 +150,7 @@ test-deploy:
     - 'apk add --no-cache curl'
     - 'sleep 10'
   script:
+    - 'nc -zv def-pi2.sensorlab.tno.nl:9999'
     - 'curl -s def-pi2.sensorlab.tno.nl:84/login.html | grep "Orchestrator"'
     - 'curl -s def-pi2.sensorlab.tno.nl:8484/swagger.json | grep "dEF-Pi API"'
   after_script:
