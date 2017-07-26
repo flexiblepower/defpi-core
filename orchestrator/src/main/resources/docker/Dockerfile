@@ -2,8 +2,6 @@ FROM java:alpine
 
 ADD ${project.artifactId}-${project.version}-jar-with-dependencies.jar /
 
-ADD log4j2.xml /
-
 COPY def-pi-cacert.crt $JAVA_HOME/jre/lib/security
 
 RUN \
