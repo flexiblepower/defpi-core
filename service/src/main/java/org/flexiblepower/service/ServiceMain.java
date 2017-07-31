@@ -7,6 +7,12 @@ package org.flexiblepower.service;
 
 import java.lang.reflect.Constructor;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.flexiblepower.service.exceptions.ServiceInvocationException;
 import org.reflections.Reflections;
@@ -30,26 +36,26 @@ import org.slf4j.LoggerFactory;
 public final class ServiceMain {
 
     private static final Logger log = LoggerFactory.getLogger(ServiceMain.class);
+    private static final long SERVICE_CONSTRUCTOR_TIMEOUT_SECONDS = 30;
+    private static Service service;
+    private static Exception serviceConstructorException;
 
-    /**
-     * @throws ServiceInvocationException
-     *
-     */
-    public ServiceMain() throws ServiceInvocationException {
+    public static Service createInstance(final ExecutorService executor) throws ServiceInvocationException {
         // Get service from package
-        final Service service = ServiceMain.getService();
-        ServiceMain.registerMessageHandlers(service);
-        ServiceMain.log.info("Started service {}", service);
-
-        final ServiceManager manager = new ServiceManager(service);
-        manager.join();
+        ServiceMain.service = ServiceMain.getService(executor);
+        if (ServiceMain.service == null) {
+            throw new ServiceInvocationException(ServiceMain.serviceConstructorException.getMessage());
+        }
+        ServiceMain.registerMessageHandlers();
+        ServiceMain.log.info("Started service {}", ServiceMain.service);
+        return ServiceMain.service;
     }
 
     /**
      * @return
      * @throws ServiceInvocationException
      */
-    private static Service getService() throws ServiceInvocationException {
+    private static Service getService(final ExecutorService executor) throws ServiceInvocationException {
         final Reflections reflections = new Reflections("org.flexiblepower");
         final Set<Class<? extends Service>> set = reflections.getSubTypesOf(Service.class);
 
@@ -64,12 +70,16 @@ public final class ServiceMain {
         final Class<? extends Service> serviceClass = set.iterator().next();
         ServiceMain.log.debug("Found class {} as service type", serviceClass);
 
+        // Try to create a service with the default constructor
+        final CallableService cs = new CallableService(serviceClass);
+        final Future<Service> future = executor.submit(cs);
+        Service serviceInstance = null;
         try {
-            // Try to create a service with the default constructor
-            return serviceClass.newInstance();
-        } catch (InstantiationException | IllegalAccessException e) {
-            throw new ServiceInvocationException("Unable to start service of type " + serviceClass, e);
+            serviceInstance = future.get(ServiceMain.SERVICE_CONSTRUCTOR_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            ServiceMain.serviceConstructorException = e;
         }
+        return serviceInstance;
     }
 
     /**
@@ -77,7 +87,7 @@ public final class ServiceMain {
      *
      * @param service
      */
-    private static void registerMessageHandlers(final Service service) {
+    private static void registerMessageHandlers() {
         final Reflections reflections = new Reflections("org.flexiblepower");
         final Set<Class<? extends ConnectionHandler>> set = reflections.getSubTypesOf(ConnectionHandler.class);
 
@@ -103,7 +113,7 @@ public final class ServiceMain {
                 for (final Constructor<?> c : factoryClass.getConstructors()) {
                     if ((c.getParameterCount() == 1) && Service.class.isAssignableFrom(c.getParameterTypes()[0])) {
                         try {
-                            chf = (ConnectionHandlerFactory) c.newInstance(service);
+                            chf = (ConnectionHandlerFactory) c.newInstance(ServiceMain.service);
                             break;
                         } catch (final Exception e) {
                             // Do nothing try next...
@@ -117,18 +127,33 @@ public final class ServiceMain {
                 ConnectionManager.registerConnectionHandlerFactory(handlerClass, chf);
 
             } catch (InstantiationException | IllegalAccessException e) {
-                ServiceMain.log.warn("Unable to instantiate factory for type {} for service ", handlerClass, service);
+                ServiceMain.log.warn("Unable to instantiate factory for type {} for service ",
+                        handlerClass,
+                        ServiceMain.service);
                 ServiceMain.log.trace("Unable to instantiate factory", e);
 
                 continue;
             }
         }
     }
+}
 
-    @SuppressWarnings("unused")
-    public static void main(final String[] args) throws ServiceInvocationException {
-        // Launch new service
-        new ServiceMain();
+class CallableService implements Callable<Service> {
+
+    private final Class<? extends Service> serviceClass;
+
+    @Override
+    public Service call() throws Exception {
+        Service serviceInstance = null;
+        try {
+            serviceInstance = this.serviceClass.newInstance();
+        } catch (InstantiationException | IllegalAccessException e) {
+            throw new ServiceInvocationException("Unable to start service of type " + this.serviceClass, e);
+        }
+        return serviceInstance;
     }
 
+    public CallableService(final Class<? extends Service> serviceClass) {
+        this.serviceClass = serviceClass;
+    }
 }
