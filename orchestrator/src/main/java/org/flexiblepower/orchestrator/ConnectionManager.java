@@ -72,8 +72,8 @@ public class ConnectionManager {
     public Connection createConnection(final Connection connection) throws ProcessNotFoundException {
         ConnectionManager.validateConnection(connection);
 
-        this.pc.addConnection(connection);
         this.db.save(connection);
+        this.pc.addConnection(connection);
         return connection;
     }
 
