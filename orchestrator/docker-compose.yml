@@ -13,7 +13,7 @@ services:
     links:
       - mongo
     networks:
-      - orchestrator
+      - management
     environment:
       - MONGO_HOST=mongo
       - MONGO_DATABASE=def-pi
