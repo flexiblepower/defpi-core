@@ -1,4 +1,10 @@
 package org.flexiblepower.rest;
+// @Override
+// public void deleteService(final String repositoryName, final String image, final String tag)
+// throws ServiceNotFoundException,
+// AuthorizationException {
+// this.registryConnector.deleteService(repositoryName, image, tag);
+// }
 
 import java.util.List;
 
@@ -6,6 +12,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 
 import org.flexiblepower.api.ServiceApi;
+import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.orchestrator.ServiceManager;
@@ -16,32 +23,16 @@ public class ServiceRestApi extends BaseApi implements ServiceApi {
         super(httpHeaders);
     }
 
-    // @Override
-    // public List<String> listRepositories() {
-    // return this.registryConnector.listRepositories();
-    // }
-
     @Override
-    public List<Service> listServices() {
+    public List<Service> listServices() throws AuthorizationException {
+        this.assertUserIsLoggedIn();
         return ServiceManager.getInstance().listServices();
     }
 
-    // @Override
-    // public List<String> listTags(final String repositoryName, final String serviceName)
-    // throws ServiceNotFoundException {
-    // return this.registryConnector.listTags(repositoryName, serviceName);
-    // }
-
     @Override
-    public Service getService(final String id) throws ServiceNotFoundException {
+    public Service getService(final String id) throws ServiceNotFoundException, AuthorizationException {
+        this.assertUserIsLoggedIn();
         return ServiceManager.getInstance().getService(id);
     }
-
-    // @Override
-    // public void deleteService(final String repositoryName, final String image, final String tag)
-    // throws ServiceNotFoundException,
-    // AuthorizationException {
-    // this.registryConnector.deleteService(repositoryName, image, tag);
-    // }
 
 }

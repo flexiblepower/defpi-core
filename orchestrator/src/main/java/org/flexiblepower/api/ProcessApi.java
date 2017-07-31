@@ -37,11 +37,12 @@ public interface ProcessApi {
                   value = "List processes",
                   notes = "List all processes that are currently running",
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
-    @ApiResponses(value = {@ApiResponse(code = 200,
-                                        message = "An array of Processes",
-                                        response = Process.class,
-                                        responseContainer = "List")})
-    public List<org.flexiblepower.model.Process> listProcesses();
+    @ApiResponses(value = {
+            @ApiResponse(code = 200,
+                         message = "An array of Processes",
+                         response = Process.class,
+                         responseContainer = "List")})
+    public List<org.flexiblepower.model.Process> listProcesses() throws AuthorizationException;
 
     @GET
     @Path("{processId}")
@@ -58,9 +59,7 @@ public interface ProcessApi {
             @ApiParam(name = "processId",
                       value = "The id of the process",
                       required = true) @PathParam("processId") final String uuid)
-            throws AuthorizationException,
-            NotFoundException,
-            InvalidObjectIdException;
+            throws AuthorizationException, NotFoundException, InvalidObjectIdException;
 
     @PUT
     @Path("{processId}")
@@ -80,9 +79,7 @@ public interface ProcessApi {
             @ApiParam(name = "process",
                       value = "The process definition of the new process to add",
                       required = true) final Process process)
-            throws AuthorizationException,
-            InvalidObjectIdException,
-            ProcessNotFoundException;
+            throws AuthorizationException, InvalidObjectIdException, ProcessNotFoundException;
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)
@@ -114,8 +111,6 @@ public interface ProcessApi {
             @ApiParam(name = "process",
                       value = "The id of process to remove",
                       required = true) @PathParam("processId") final String uuid)
-            throws AuthorizationException,
-            NotFoundException,
-            InvalidObjectIdException;
+            throws AuthorizationException, NotFoundException, InvalidObjectIdException;
 
 }

@@ -8,6 +8,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.NotFoundException;
 import org.flexiblepower.model.Interface;
 
@@ -35,7 +36,7 @@ public interface InterfaceApi {
                          message = "The list of interfaces",
                          response = Interface.class,
                          responseContainer = "List")})
-    public List<Interface> listInterfaces();
+    public List<Interface> listInterfaces() throws AuthorizationException;
 
     @GET
     @Path("{id}")
@@ -48,6 +49,6 @@ public interface InterfaceApi {
             @ApiResponse(code = 404, message = InterfaceApi.INTERFACE_NOT_FOUND_MESSAGE)})
     public Interface getInterface(
             @ApiParam(name = "id", value = "The id of the interface", required = true) @PathParam("id") final String id)
-            throws NotFoundException;
+            throws NotFoundException, AuthorizationException;
 
 }
