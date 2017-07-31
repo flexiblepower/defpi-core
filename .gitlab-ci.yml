@@ -146,7 +146,7 @@ test-deploy:
   stage: predeploy
   before_script:
     - 'docker-compose -f orchestrator/docker-compose.test.yml pull'
-    - 'docker-compose -p def-pi -f orchestrator/docker-compose.test.yml up -d'
+    - 'docker-compose -f orchestrator/docker-compose.test.yml up -d'
     - 'apk add --no-cache curl'
     - 'sleep 10'
   script:

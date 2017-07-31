@@ -80,7 +80,7 @@ public class ProcessManager {
         this.threadpool.execute(() -> {
             // Now create the process in Docker
             final User user = this.userManager.getUser(process.getUserId());
-            final String dockerId = ProcessManager.this.dockerConnector.newProcess(process, user);
+            final String dockerId = DockerConnector.getInstance().newProcess(process, user);
 
             process.setState(ProcessState.INITIALIZING);
             process.setDockerId(dockerId);
