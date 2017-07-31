@@ -25,6 +25,6 @@ services:
     environment:
       - ORCHESTRATOR_URL=http://def-pi1.sensorlab.tno.nl:8080/
   mongo:
-    image: mongo
+    image: mvertes/alpine-mongo
     networks:
       - management
