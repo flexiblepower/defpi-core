@@ -58,7 +58,6 @@ class DockerConnector {
 
     private static final int INTERNAL_DEBUGGING_PORT = 8000;
 
-    // private static final String CERT_PATH = "C:\\Users\\leeuwencjv\\.docker\\machine\\machines\\default";
     private static final String DOCKER_HOST_KEY = "DOCKER_HOST";
 
     private static final String SERVICE_LABEL_KEY = "service.name";
@@ -94,24 +93,6 @@ class DockerConnector {
         return DockerConnector.instance;
     }
 
-    // /**
-    // * @return
-    // */
-    // public List<Process> listProcesses() {
-    // final List<Process> ret = new ArrayList<>();
-    //
-    // try {
-    // final List<Service> serviceList = this.client.listServices();
-    // for (final Service service : serviceList) {
-    // ret.add(DockerConnector.dockerService2Process(service));
-    // }
-    // } catch (DockerException | InterruptedException | ProcessNotFoundException e) {
-    // throw new ApiException(e);
-    // }
-    //
-    // return ret;
-    // }
-
     /**
      * @param json
      * @return
@@ -132,22 +113,6 @@ class DockerConnector {
             throw new ApiException(e);
         }
     }
-
-    // /**
-    // * @param uuid
-    // * @return
-    // * @throws ProcessNotFoundException
-    // */
-    // public Process getProcess(final String uuid) throws ProcessNotFoundException {
-    // try {
-    // final com.spotify.docker.client.messages.swarm.Service service = this.client.inspectService(uuid);
-    // return DockerConnector.dockerService2Process(service);
-    // } catch (DockerException | InterruptedException e) {
-    // DockerConnector.log.error("Error while getting process: {}", e.getMessage());
-    // DockerConnector.log.trace("Error while getting process", e);
-    // throw new ApiException(e);
-    // }
-    // }
 
     /**
      * @param uuid
@@ -245,31 +210,6 @@ class DockerConnector {
         }
     }
 
-    // /**
-    // * Internal function to translate a docker service to a def-pi process definition.
-    // *
-    // * @param service
-    // * @return
-    // * @throws ProcessNotFoundException
-    // */
-    // static Process dockerService2Process(final Service service) throws ProcessNotFoundException {
-    // // Create the def-pi process
-    // final Process process = new Process();
-    // process.setId(service.id());
-    //
-    // // Get additional information from the docker image labels
-    // final Map<String, String> serviceLabels = service.spec().labels();
-    // if (serviceLabels == null) {
-    // throw new ProcessNotFoundException("Missing labels for process " + service.id());
-    // }
-    //
-    // process.setServiceId(serviceLabels.get(DockerConnector.SERVICE_LABEL_KEY));
-    // process.setUserName(serviceLabels.get(DockerConnector.USER_LABEL_KEY));
-    // process.setRunningDockerNodeId(serviceLabels.get(DockerConnector.NODE_ID_LABEL_KEY));
-    //
-    // return process;
-    // }
-
     private static Node determineRunningNode(final Process process) {
         final NodeManager nm = NodeManager.getInstance();
         if (process.getNodePoolId() != null) {
@@ -290,8 +230,10 @@ class DockerConnector {
      * @param process
      * @return
      */
-    private static ServiceSpec
-            createServiceSpec(final Process process, final Service service, final User user, final Node node) {
+    private static ServiceSpec createServiceSpec(final Process process,
+            final Service service,
+            final User user,
+            final Node node) {
 
         final Architecture architecture = node.getArchitecture();
         // Create a name for the service by removing blanks from process name
@@ -304,7 +246,6 @@ class DockerConnector {
                 service.getRegistry() + "/" + ServiceManager.SERVICE_REPOSITORY + "/" + service.getId() + ":"
                         + service.getTags().get(architecture));
 
-        // TODO get tag depending on platform
         final String dockerImage = service.getFullImageName(architecture);
         serviceLabels.put(DockerConnector.USER_LABEL_KEY, user.getUsername());
         serviceLabels.put(DockerConnector.NODE_ID_LABEL_KEY, node.getDockerId());
@@ -353,7 +294,7 @@ class DockerConnector {
         containerSpec.env(envList);
 
         // Add the containerSpec and placement to the taskSpec
-        final Placement placement = Placement.create(Arrays.asList("node.hostname == " + node.getHostname()));
+        final Placement placement = Placement.create(Arrays.asList("node.id == " + node.getDockerId()));
         taskSpec.containerSpec(containerSpec.build()).placement(placement);
         return ServiceSpec.builder()
                 .name(serviceName)
