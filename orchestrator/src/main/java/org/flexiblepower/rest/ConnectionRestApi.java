@@ -40,8 +40,8 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
     }
 
     @Override
-    public Connection newConnection(final Connection connection) throws AuthorizationException,
-            ProcessNotFoundException {
+    public Connection newConnection(final Connection connection)
+            throws AuthorizationException, ProcessNotFoundException {
         final Process p1 = ProcessManager.getInstance().getProcess(connection.getProcess1Id());
 
         if (p1 == null) {
@@ -56,14 +56,17 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
         this.assertUserIsAdminOrEquals(p2.getUserId());
 
         ConnectionRestApi.log.info("Inserting new Connection {}", connection);
-        ConnectionManager.getInstance().insertConnection(connection);
+        try {
+            ConnectionManager.getInstance().createConnection(connection);
+        } catch (final IllegalArgumentException e) {
+            throw new ApiException(400, e.getMessage());
+        }
         return connection;
     }
 
     @Override
-    public Connection getConnection(final String id) throws AuthorizationException,
-            ProcessNotFoundException,
-            InvalidObjectIdException {
+    public Connection getConnection(final String id)
+            throws AuthorizationException, ProcessNotFoundException, InvalidObjectIdException {
         final ObjectId oid = MongoDbConnector.stringToObjectId(id);
         final Connection connection = ConnectionManager.getInstance().getConnection(oid);
 
@@ -87,9 +90,8 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
     }
 
     @Override
-    public void deleteConnection(final String id) throws InvalidObjectIdException,
-            ProcessNotFoundException,
-            AuthorizationException {
+    public void deleteConnection(final String id)
+            throws InvalidObjectIdException, ProcessNotFoundException, AuthorizationException {
         final Connection connection = this.getConnection(id);
 
         ConnectionRestApi.log.info("Removing connection {}", id);
