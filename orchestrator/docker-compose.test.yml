@@ -6,7 +6,7 @@ services:
       - 8484:8080
       - 9999:9999
     volumes:
-      - /var/run/docker.sock:/var/run/docker.socks:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     links:
       - mongo_test
     environment:
@@ -20,6 +20,7 @@ services:
     ports:
       - 84:80
     environment:
-      - ORCHESTRATOR_URL=http://def-pi1.sensorlab.tno.nl:8484/
+      #- ORCHESTRATOR_URL=http://def-pi1.sensorlab.tno.nl:8484/
+      - ORCHESTRATOR_URL=http://localhost:8484/
   mongo_test:
     image: mongo

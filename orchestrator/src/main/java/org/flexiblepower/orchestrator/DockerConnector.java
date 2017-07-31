@@ -5,10 +5,12 @@
  */
 package org.flexiblepower.orchestrator;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.UUID;
 
@@ -28,6 +30,7 @@ import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.Network;
 import com.spotify.docker.client.messages.NetworkConfig;
+import com.spotify.docker.client.messages.mount.Mount;
 import com.spotify.docker.client.messages.swarm.ContainerSpec;
 import com.spotify.docker.client.messages.swarm.EndpointSpec;
 import com.spotify.docker.client.messages.swarm.NetworkAttachmentConfig;
@@ -312,9 +315,12 @@ class DockerConnector {
         final EndpointSpec.Builder endpointSpec = EndpointSpec.builder();
         final ContainerSpec.Builder containerSpec = ContainerSpec.builder().image(dockerImage);
 
+        final Map<String, String> envArgs = new HashMap<>();
         if (process.getDebuggingPort() != 0) {
-            containerSpec.env("JVM_ARGUMENTS=-Xdebug -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address="
-                    + DockerConnector.INTERNAL_DEBUGGING_PORT);
+            envArgs.put("JVM_ARGUMENTS",
+                    String.format("-Xdebug -agentlib:jdwp=transport=dt_socket,server=y,suspend=%s,address=%d",
+                            process.isSuspendOnDebug() ? "y" : "n",
+                            DockerConnector.INTERNAL_DEBUGGING_PORT));
             endpointSpec.addPort(PortConfig.builder()
                     .publishedPort(process.getDebuggingPort())
                     .targetPort(DockerConnector.INTERNAL_DEBUGGING_PORT)
@@ -322,7 +328,12 @@ class DockerConnector {
                     .build());
         }
 
-        // TODO add mounts
+        // Add mounts to the container
+        final List<Mount> mountList = new ArrayList<>();
+        for (final Entry<String, String> mount : process.getMountPoints().entrySet()) {
+            mountList.add(Mount.builder().source(mount.getKey()).target(mount.getValue()).build());
+        }
+        containerSpec.mounts(mountList);
 
         // Add the network attachment to place process in user network
         final NetworkAttachmentConfig orchestratornet = NetworkAttachmentConfig.builder()
@@ -334,6 +345,11 @@ class DockerConnector {
                 .target(user.getUsername() + "-net")
                 .aliases(process.getId().toString())
                 .build();
+
+        // Add all container environment variables
+        final List<String> envList = new ArrayList<>();
+        envArgs.forEach((key, value) -> envList.add(key + "=" + value));
+        containerSpec.env(envList);
 
         // Add the containerSpec and placement to the taskSpec
         final Placement placement = Placement.create(Arrays.asList("node.hostname == " + node.getHostname()));
