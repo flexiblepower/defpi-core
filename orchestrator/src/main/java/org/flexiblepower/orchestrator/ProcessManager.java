@@ -11,7 +11,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.bson.types.ObjectId;
-import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.model.User;
@@ -32,6 +31,7 @@ public class ProcessManager {
 
     private final DockerConnector dockerConnector = DockerConnector.getInstance();
     private final MongoDbConnector mongoDbConnector = MongoDbConnector.getInstance();
+    private final ProcessConnector processConnector = ProcessConnector.getInstance();
     private final UserManager userManager = UserManager.getInstance();
     private final ScheduledExecutorService threadpool = Executors.newScheduledThreadPool(8);
 
@@ -143,7 +143,7 @@ public class ProcessManager {
             // Delete Docker service
             try {
                 this.dockerConnector.removeProcess(process);
-            } catch (final ProcessNotFoundException e) {
+            } catch (final Exception e) {
                 // That's fine, we didn't want it anyway
             }
             // Delete record from MongoDB
@@ -155,6 +155,10 @@ public class ProcessManager {
         this.validateProcess(newProcess);
 
         Process currentProcess = MongoDbConnector.getInstance().get(Process.class, newProcess.getId());
+
+        if (!newProcess.getUserId().equals(currentProcess.getUserId())) {
+            throw new IllegalArgumentException("A process cannot be assigned to a different user");
+        }
 
         // Should the process be moved?
         boolean move = false;
@@ -174,7 +178,7 @@ public class ProcessManager {
         } else {
             // Did the configuration change?
             if (!newProcess.getConfiguration().equals(currentProcess.getConfiguration())) {
-                currentProcess = ProcessManager.updateConfiguration(currentProcess, newProcess);
+                currentProcess = this.updateConfiguration(currentProcess, newProcess);
             }
         }
 
@@ -187,8 +191,29 @@ public class ProcessManager {
      * @return
      */
     private Process moveProcess(final Process currentProcess, final Process newProcess) {
-        // TODO Auto-generated method stub
-        return null;
+        final Process updatedProcess = currentProcess;
+        updatedProcess.setConfiguration(newProcess.getConfiguration());
+        updatedProcess.setPrivateNodeId(newProcess.getPrivateNodeId());
+        updatedProcess.setNodePoolId(newProcess.getNodePoolId());
+        // write change to database
+        this.mongoDbConnector.save(updatedProcess);
+
+        this.threadpool.execute(() -> {
+            // Tell the process to suspend
+            final byte[] suspendProcess = this.processConnector.suspendProcess(currentProcess.getId());
+            // Remove the Docker service
+            try {
+                this.dockerConnector.removeProcess(currentProcess);
+            } catch (final Exception e) {
+                ProcessManager.log
+                        .error("Could not remove Docker Service when moving process " + currentProcess.getId(), e);
+            }
+            // Create a new Docker Service
+            this.dockerConnector.newProcess(updatedProcess, UserManager.getInstance().getUser(newProcess.getUserId()));
+            // Tell the new process to resume
+            this.processConnector.resume(updatedProcess.getId(), suspendProcess);
+        });
+        return updatedProcess;
     }
 
     /**
@@ -196,9 +221,8 @@ public class ProcessManager {
      * @param newProcess
      * @return
      */
-    private static Process updateConfiguration(final Process currentProcess, final Process newProcess) {
-        return ProcessConnector.getInstance().updateConfiguration(currentProcess.getId(),
-                newProcess.getConfiguration());
+    private Process updateConfiguration(final Process currentProcess, final Process newProcess) {
+        return this.processConnector.updateConfiguration(currentProcess.getId(), newProcess.getConfiguration());
     }
 
 }
