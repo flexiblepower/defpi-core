@@ -30,13 +30,13 @@ import org.flexiblepower.proto.ServiceProto.ResumeProcessMessage;
 import org.flexiblepower.proto.ServiceProto.SetConfigMessage;
 import org.flexiblepower.proto.ServiceProto.SetConfigMessage.Builder;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Socket;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * ConnectionManager
@@ -45,8 +45,9 @@ import lombok.extern.slf4j.Slf4j;
  * @version 0.1
  * @since Apr 19, 2017
  */
-@Slf4j
 public class ProcessConnector {
+
+    protected final static Logger log = LoggerFactory.getLogger(ProcessConnector.class);
 
     private static ProcessConnector instance = null;
 
@@ -179,9 +180,12 @@ public class ProcessConnector {
 
     private static final class ProcessConnection {
 
-        private static int MANAGEMENT_SOCKET_SEND_TIMEOUT = 10000;
-        private static int MANAGEMENT_SOCKET_RECV_TIMEOUT = 10000;
-        private static int MANAGEMENT_PORT = 4999;
+        private static final int NUM_CONNECT_TRIES = 60;
+        private static final long RETRY_TIMEOUT = 1000;
+
+        private static final int MANAGEMENT_SOCKET_SEND_TIMEOUT = 10000;
+        private static final int MANAGEMENT_SOCKET_RECV_TIMEOUT = 10000;
+        private static final int MANAGEMENT_PORT = 4999;
 
         private final ProtobufMessageSerializer serializer = new ProtobufMessageSerializer();
         private Socket socket = null;
@@ -201,22 +205,33 @@ public class ProcessConnector {
         }
 
         public void connectWithProcess() {
-            try {
-                final Process process = ProcessManager.getInstance().getProcess(this.processId);
-                if (process == null) {
-                    throw new IllegalArgumentException(
-                            "Provided ObjectId for Process " + this.processId + " does not exist");
-                }
-                this.uri = String.format("tcp://%s:%d", process.getId().toString(), ProcessConnection.MANAGEMENT_PORT);
+            for (int i = 0; i < ProcessConnection.NUM_CONNECT_TRIES; i++) {
+                try {
+                    final Process process = ProcessManager.getInstance().getProcess(this.processId);
+                    if (process == null) {
+                        throw new IllegalArgumentException(
+                                "Provided ObjectId for Process " + this.processId + " does not exist");
+                    }
+                    this.uri = String
+                            .format("tcp://%s:%d", process.getId().toString(), ProcessConnection.MANAGEMENT_PORT);
 
-                this.socket = ZMQ.context(1).socket(ZMQ.REQ);
-                this.socket.setDelayAttachOnConnect(true);
-                this.socket.connect(this.uri.toString());
-                this.socket.setSendTimeOut(ProcessConnection.MANAGEMENT_SOCKET_SEND_TIMEOUT);
-                this.socket.setReceiveTimeOut(ProcessConnection.MANAGEMENT_SOCKET_RECV_TIMEOUT);
-                ProcessConnector.log.debug("Connecting with process on address " + this.uri);
-            } catch (final Throwable t) {
-                ProcessConnector.log.error("Could not connect with container ", t);
+                    this.socket = ZMQ.context(1).socket(ZMQ.REQ);
+                    this.socket.setDelayAttachOnConnect(true);
+                    this.socket.connect(this.uri.toString());
+                    this.socket.setSendTimeOut(ProcessConnection.MANAGEMENT_SOCKET_SEND_TIMEOUT);
+                    this.socket.setReceiveTimeOut(ProcessConnection.MANAGEMENT_SOCKET_RECV_TIMEOUT);
+                    ProcessConnector.log.debug("Connected with process on address " + this.uri);
+                    return;
+                } catch (final Throwable t) {
+                    ProcessConnector.log.error("Could not connect with container");
+                    ProcessConnector.log.trace("Could not connect with container ", t);
+                    try {
+                        Thread.sleep(ProcessConnection.RETRY_TIMEOUT);
+                    } catch (final InterruptedException e) {
+                        ProcessConnector.log.error("Interrupted while retrying...");
+                        ProcessConnector.log.trace("Interrupted while retrying", e);
+                    }
+                }
             }
         }
 
@@ -259,9 +274,8 @@ public class ProcessConnector {
 
         public void startProcess() {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final Builder builder = SetConfigMessage.newBuilder()
-                    .setProcessId(process.getId().toString())
-                    .setIsUpdate(false);
+            final Builder builder = SetConfigMessage.newBuilder().setProcessId(process.getId().toString()).setIsUpdate(
+                    false);
             if (process.getConfiguration() != null) {
                 for (final Parameter p : process.getConfiguration()) {
                     builder.putConfig(p.getKey(), p.getValue());
@@ -291,9 +305,8 @@ public class ProcessConnector {
 
         public void updateConfiguration() {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final Builder builder = SetConfigMessage.newBuilder()
-                    .setProcessId(process.getId().toString())
-                    .setIsUpdate(true);
+            final Builder builder = SetConfigMessage.newBuilder().setProcessId(process.getId().toString()).setIsUpdate(
+                    true);
             if (process.getConfiguration() != null) {
                 for (final Parameter p : process.getConfiguration()) {
                     builder.putConfig(p.getKey(), p.getValue());
