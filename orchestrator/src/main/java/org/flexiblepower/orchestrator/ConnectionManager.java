@@ -111,6 +111,10 @@ public class ConnectionManager {
             throw new IllegalArgumentException("The Service of Process 2 with id " + c.getProcess2Id()
                     + " does not contain the interface " + c.getInterface2Id());
         }
+        if (!if1.isCompatibleWith(if2)) {
+            throw new IllegalArgumentException("Interface " + c.getInterface1Id() + " and interface "
+                    + c.getInterface2Id() + " are not compatible with each other");
+        }
     }
 
     /**
