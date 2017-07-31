@@ -152,6 +152,20 @@ public class ProcessConnector {
 
     /**
      * @param id
+     * @param suspendState
+     */
+    public void resume(final ObjectId processId, final byte[] suspendState) {
+        final ProcessConnection processConnection = this.getProcessConnection(processId);
+        processConnection.resumeProcess(suspendState);
+    }
+
+    public byte[] suspendProcess(final ObjectId processId) {
+        final ProcessConnection processConnection = this.getProcessConnection(processId);
+        return processConnection.suspendProcess();
+    }
+
+    /**
+     * @param id
      * @param configuration
      * @return
      */
@@ -173,7 +187,6 @@ public class ProcessConnector {
         private Socket socket = null;
         private final ObjectId processId;
         private String uri;
-        private ByteString suspendState;
 
         public ProcessConnection(final ObjectId processId) {
             ProcessConnector.log.debug("Creating new ProcessConnection for process " + processId);
@@ -246,8 +259,9 @@ public class ProcessConnector {
 
         public void startProcess() {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final Builder builder = SetConfigMessage.newBuilder().setProcessId(process.getId().toString()).setIsUpdate(
-                    false);
+            final Builder builder = SetConfigMessage.newBuilder()
+                    .setProcessId(process.getId().toString())
+                    .setIsUpdate(false);
             if (process.getConfiguration() != null) {
                 for (final Parameter p : process.getConfiguration()) {
                     builder.putConfig(p.getKey(), p.getValue());
@@ -263,10 +277,10 @@ public class ProcessConnector {
             }
         }
 
-        public void resumeProcess() {
+        public void resumeProcess(final byte[] suspendState) {
             final ResumeProcessMessage msg = ResumeProcessMessage.newBuilder()
                     .setProcessId(this.processId.toString())
-                    .setStateData(this.suspendState)
+                    .setStateData(ByteString.copyFrom(suspendState))
                     .build();
 
             final ProcessStateUpdateMessage response = this.send(msg, ProcessStateUpdateMessage.class);
@@ -277,8 +291,9 @@ public class ProcessConnector {
 
         public void updateConfiguration() {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final Builder builder = SetConfigMessage.newBuilder().setProcessId(process.getId().toString()).setIsUpdate(
-                    true);
+            final Builder builder = SetConfigMessage.newBuilder()
+                    .setProcessId(process.getId().toString())
+                    .setIsUpdate(true);
             if (process.getConfiguration() != null) {
                 for (final Parameter p : process.getConfiguration()) {
                     builder.putConfig(p.getKey(), p.getValue());
@@ -292,7 +307,8 @@ public class ProcessConnector {
             }
         }
 
-        public void suspendProcess() {
+        public byte[] suspendProcess() {
+            byte[] suspendState = null;
             final GoToProcessStateMessage msg = GoToProcessStateMessage.newBuilder()
                     .setProcessId(this.processId.toString())
                     .setTargetState(org.flexiblepower.proto.ServiceProto.ProcessState.SUSPENDED)
@@ -301,12 +317,16 @@ public class ProcessConnector {
 
             if (response != null) {
                 this.updateProcessStateInDb(response.getState());
-                this.suspendState = response.getStateData();
+                suspendState = response.getStateData().toByteArray();
                 if (!response.getState().equals(org.flexiblepower.proto.ServiceProto.ProcessState.SUSPENDED)) {
                     ProcessConnector.log.error("Sended terminate insruction to Process " + this.processId.toString()
                             + ", but the process did not go to suspeded state.");
                 }
             }
+
+            this.close();
+
+            return suspendState;
         }
 
         public void terminateProcess() {
@@ -325,6 +345,10 @@ public class ProcessConnector {
                 }
             }
 
+            this.close();
+        }
+
+        private void close() {
             // Terminate connection with process
             this.socket.disconnect(this.uri);
             this.socket.close();
@@ -382,6 +406,7 @@ public class ProcessConnector {
             process.setState(state);
             mongoDbConnector.save(process);
         }
+
     }
 
 }

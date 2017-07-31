@@ -32,8 +32,8 @@
           "versionName": "v0.0.2",
           "type": "proto",
           "location": "echoProtocol2.proto",
-          "sends": [],
-          "receives": ["Msg"]
+          "sends": ["Msg", "Reply"],
+          "receives": ["Msg", "Reply"]
         }
       ]
     }

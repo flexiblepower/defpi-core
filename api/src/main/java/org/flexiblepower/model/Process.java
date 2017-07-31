@@ -6,6 +6,7 @@
 package org.flexiblepower.model;
 
 import java.util.List;
+import java.util.Map;
 
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.annotations.Entity;
@@ -29,6 +30,10 @@ import lombok.Setter;
  * @author coenvl
  * @version 0.1
  * @since Mar 30, 2017
+ */
+/**
+ * @author coenvl
+ *
  */
 @Entity
 @Getter
@@ -63,8 +68,8 @@ public class Process {
 	private String serviceId;
 
 	/**
-	 * The NodePool where this process should be running. Mutually exclusive
-	 * with privateNodeId.
+	 * The NodePool where this process should be running. Mutually exclusive with
+	 * privateNodeId.
 	 */
 	@JsonSerialize(using = ToStringSerializer.class)
 	@JsonDeserialize(using = ObjectIdDeserializer.class)
@@ -85,11 +90,24 @@ public class Process {
 	private String dockerId;
 
 	/**
-	 * The node on which the process is actually running. May be null when the
-	 * state is not RUNNING.
+	 * The node on which the process is actually running. May be null when the state
+	 * is not RUNNING.
 	 */
 	private String runningDockerNodeId;
 
 	private List<Parameter> configuration;
 
+	/**
+	 * To enable debugging of a process, this number should be set to something else
+	 * than 0. Note that this can only be done when serializing a process from JSON.
+	 */
+	private int debuggingPort;
+
+	private boolean suspendOnDebug = true;
+
+	/**
+	 * Mount points can be added in order to allow physical devices be used from the
+	 * java process. e.g. to use a usb device from /dev/usb0
+	 */
+	private Map<String, String> mountPoints;
 }
