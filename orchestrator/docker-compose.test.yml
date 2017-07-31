@@ -27,7 +27,7 @@ services:
     environment:
       - ORCHESTRATOR_URL=http://localhost:8484/
   mongo_test:
-    image: mongo
+    image: mvertes/alpine-mongo
     ports:
       - 0.0.0.0:27017:27017
     networks:
