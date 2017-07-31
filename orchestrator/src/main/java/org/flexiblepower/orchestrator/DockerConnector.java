@@ -329,10 +329,12 @@ class DockerConnector {
 
         // Add mounts to the container
         final List<Mount> mountList = new ArrayList<>();
-        for (final Entry<String, String> mount : process.getMountPoints().entrySet()) {
-            mountList.add(Mount.builder().source(mount.getKey()).target(mount.getValue()).build());
+        if (process.getMountPoints() != null) {
+            for (final Entry<String, String> mount : process.getMountPoints().entrySet()) {
+                mountList.add(Mount.builder().source(mount.getKey()).target(mount.getValue()).build());
+            }
+            containerSpec.mounts(mountList);
         }
-        containerSpec.mounts(mountList);
 
         // Add the network attachment to place process in user network
         final NetworkAttachmentConfig orchestratornet = NetworkAttachmentConfig.builder()

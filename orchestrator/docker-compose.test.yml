@@ -28,5 +28,7 @@ services:
       - ORCHESTRATOR_URL=http://localhost:8484/
   mongo_test:
     image: mongo
+    ports:
+      - 0.0.0.0:27017:27017
     networks:
       - management
