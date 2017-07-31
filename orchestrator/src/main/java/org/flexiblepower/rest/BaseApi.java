@@ -70,6 +70,12 @@ public abstract class BaseApi {
         }
     }
 
+    protected void assertUserIsLoggedIn() throws AuthorizationException {
+        if (this.sessionUser == null) {
+            throw new AuthorizationException();
+        }
+    }
+
     /**
      * Protected function that only throws an exception if the current logged in user is not an admin or equals the
      * provided userId.

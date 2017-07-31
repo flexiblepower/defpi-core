@@ -1,6 +1,5 @@
 package org.flexiblepower.rest;
 
-import java.util.Collections;
 import java.util.List;
 
 import javax.ws.rs.core.Context;
@@ -27,9 +26,9 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
     }
 
     @Override
-    public List<Process> listProcesses() {
+    public List<Process> listProcesses() throws AuthorizationException {
         if (this.sessionUser == null) {
-            return Collections.emptyList();
+            throw new AuthorizationException();
         } else if (this.sessionUser.isAdmin()) {
             return ProcessManager.getInstance().listProcesses();
         } else {
@@ -38,9 +37,8 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
     }
 
     @Override
-    public Process getProcess(final String id) throws ProcessNotFoundException,
-            InvalidObjectIdException,
-            AuthorizationException {
+    public Process getProcess(final String id)
+            throws ProcessNotFoundException, InvalidObjectIdException, AuthorizationException {
         final ObjectId oid = MongoDbConnector.stringToObjectId(id);
         final Process ret = ProcessManager.getInstance().getProcess(oid);
         if (ret == null) {
@@ -61,9 +59,8 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
     }
 
     @Override
-    public Process updateProcess(final String id, final Process process) throws AuthorizationException,
-            InvalidObjectIdException,
-            ProcessNotFoundException {
+    public Process updateProcess(final String id, final Process process)
+            throws AuthorizationException, InvalidObjectIdException, ProcessNotFoundException {
         // Immediately do all relevant checks...
         final Process currentProcess = this.getProcess(id);
 
@@ -76,9 +73,8 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
     }
 
     @Override
-    public void removeProcess(final String id) throws ProcessNotFoundException,
-            InvalidObjectIdException,
-            AuthorizationException {
+    public void removeProcess(final String id)
+            throws ProcessNotFoundException, InvalidObjectIdException, AuthorizationException {
         // Immediately do all relevant checks...
         final Process process = this.getProcess(id);
 
