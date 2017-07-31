@@ -154,7 +154,7 @@ test-deploy:
     - 'curl -s def-pi2.sensorlab.tno.nl:84/login.html | grep "Orchestrator"'
     - 'curl -s def-pi2.sensorlab.tno.nl:8484/swagger.json | grep "dEF-Pi API"'
   after_script:
-    - 'docker-compose -p def-pi -f orchestrator/docker-compose.test.yml down'
+    - 'docker-compose -f orchestrator/docker-compose.test.yml down'
 
       # *** FINAL DEPLOY JOBS *** #
 
@@ -169,4 +169,4 @@ deploy:
   before_script:
     - 'docker-compose -f orchestrator/docker-compose.yml pull'
   script:
-    - 'docker-compose -p def-pi -f orchestrator/docker-compose.yml up -d'
+    - 'docker-compose -f orchestrator/docker-compose.yml up -d'
