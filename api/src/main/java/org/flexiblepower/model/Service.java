@@ -98,11 +98,11 @@ public class Service {
 	}
 
 	/**
-	 * @param interfaceName
+	 * @param interfaceId
 	 */
-	public final Interface getInterface(final String interfaceName) {
+	public final Interface getInterface(final String interfaceId) {
 		for (final Interface itf : this.interfaces) {
-			if (itf.getName().equals(interfaceName)) {
+			if (itf.getId().equals(interfaceId)) {
 				return itf;
 			}
 		}
