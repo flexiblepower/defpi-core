@@ -12,6 +12,15 @@ myApp.config(function(RestangularProvider) {
 		'Accept' : 'application/json',
 		'Authorization' : 'Basic ' + token
 	});
+
+	RestangularProvider.setErrorInterceptor(function(response) {
+		if (response.status == 401
+				&& !response.config.url.endsWith("unidentifiednode")) {
+			logout();
+		} else {
+			return true;
+		}
+	});
 });
 
 myApp

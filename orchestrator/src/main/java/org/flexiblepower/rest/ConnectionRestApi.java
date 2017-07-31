@@ -1,6 +1,5 @@
 package org.flexiblepower.rest;
 
-import java.util.Collections;
 import java.util.List;
 
 import javax.ws.rs.core.Context;
@@ -29,9 +28,9 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
     }
 
     @Override
-    public List<Connection> listConnections() {
+    public List<Connection> listConnections() throws AuthorizationException {
         if (this.sessionUser == null) {
-            return Collections.emptyList();
+            throw new AuthorizationException();
         } else if (this.sessionUser.isAdmin()) {
             return ConnectionManager.getInstance().getConnections();
         } else {
@@ -93,6 +92,18 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
     public void deleteConnection(final String id)
             throws InvalidObjectIdException, ProcessNotFoundException, AuthorizationException {
         final Connection connection = this.getConnection(id);
+
+        final Process p1 = ProcessManager.getInstance().getProcess(connection.getProcess1Id());
+        if (p1 == null) {
+            throw new ProcessNotFoundException(connection.getProcess1Id().toString());
+        }
+        this.assertUserIsAdminOrEquals(p1.getUserId());
+
+        final Process p2 = ProcessManager.getInstance().getProcess(connection.getProcess2Id());
+        if (p2 == null) {
+            throw new ProcessNotFoundException(connection.getProcess2Id().toString());
+        }
+        this.assertUserIsAdminOrEquals(p2.getUserId());
 
         ConnectionRestApi.log.info("Removing connection {}", id);
         ConnectionManager.getInstance().deleteConnection(connection);
