@@ -201,17 +201,22 @@ public class ProcessManager {
         this.threadpool.execute(() -> {
             // Tell the process to suspend
             final byte[] suspendProcess = this.processConnector.suspendProcess(currentProcess.getId());
-            // Remove the Docker service
-            try {
-                this.dockerConnector.removeProcess(currentProcess);
-            } catch (final Exception e) {
-                ProcessManager.log
-                        .error("Could not remove Docker Service when moving process " + currentProcess.getId(), e);
-            }
-            // Create a new Docker Service
-            this.dockerConnector.newProcess(updatedProcess, UserManager.getInstance().getUser(newProcess.getUserId()));
-            // Tell the new process to resume
-            this.processConnector.resume(updatedProcess.getId(), suspendProcess);
+            this.threadpool.schedule(() -> {
+                // Remove the Docker service
+                try {
+                    this.dockerConnector.removeProcess(currentProcess);
+                } catch (final Exception e) {
+                    ProcessManager.log
+                            .error("Could not remove Docker Service when moving process " + currentProcess.getId(), e);
+                }
+                this.threadpool.schedule(() -> {
+                    // Create a new Docker Service
+                    this.dockerConnector.newProcess(updatedProcess,
+                            UserManager.getInstance().getUser(newProcess.getUserId()));
+                    // Tell the new process to resume
+                    this.processConnector.resume(updatedProcess.getId(), suspendProcess);
+                }, 3, TimeUnit.SECONDS);
+            }, 3, TimeUnit.SECONDS);
         });
         return updatedProcess;
     }
