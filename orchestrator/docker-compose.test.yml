@@ -1,4 +1,7 @@
 version: "3"
+networks:
+  management:
+    driver: overlay
 services:
   orchestrator:
     image: def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator:0.2.1-SNAPSHOT
@@ -6,9 +9,11 @@ services:
       - 8484:8080
       - 9999:9999
     volumes:
-      - /var/run/docker.sock:/var/run/docker.socks:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     links:
       - mongo_test
+    networks:
+      - management
     environment:
       - JVM_ARGUMENTS=-Xdebug -agentlib:jdwp=transport=dt_socket,address=9999,server=y,suspend=n
       - MONGO_HOST=mongo_test
@@ -20,6 +25,8 @@ services:
     ports:
       - 84:80
     environment:
-      - ORCHESTRATOR_URL=http://def-pi1.sensorlab.tno.nl:8484/
+      - ORCHESTRATOR_URL=http://localhost:8484/
   mongo_test:
     image: mongo
+    networks:
+     - management

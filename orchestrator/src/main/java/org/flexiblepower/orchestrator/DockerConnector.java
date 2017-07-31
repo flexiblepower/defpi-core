@@ -13,7 +13,6 @@ import java.util.Random;
 import java.util.UUID;
 
 import org.flexiblepower.exceptions.ApiException;
-import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Architecture;
 import org.flexiblepower.model.Node;
 import org.flexiblepower.model.NodePool;
@@ -51,7 +50,7 @@ class DockerConnector {
     /**
      *
      */
-    private static final String ORCHESTRATOR_NETWORK_NAME = "orchestrator";
+    private static final String ORCHESTRATOR_NETWORK_NAME = "orchestrator_management";
 
     // private static final String CERT_PATH = "C:\\Users\\leeuwencjv\\.docker\\machine\\machines\\default";
     private static final String DOCKER_HOST_KEY = "DOCKER_HOST";
@@ -148,7 +147,7 @@ class DockerConnector {
      * @param uuid
      * @return
      */
-    public void removeProcess(final Process process) throws ProcessNotFoundException {
+    public void removeProcess(final Process process) {
         if (process.getDockerId() != null) {
             try {
                 this.client.removeService(process.getDockerId());

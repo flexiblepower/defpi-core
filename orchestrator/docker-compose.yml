@@ -1,6 +1,6 @@
 version: "3"
 networks:
-  orchestrator:
+  management:
     driver: overlay
 services:
   orchestrator:
@@ -24,10 +24,10 @@ services:
     ports:
       - 80:80
     networks:
-      - orchestrator
+      - management
     environment:
       - ORCHESTRATOR_URL=http://def-pi1.sensorlab.tno.nl:8080/
   mongo:
     image: mongo
     networks:
-      - orchestrator
+      - management
