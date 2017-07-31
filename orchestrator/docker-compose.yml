@@ -4,7 +4,7 @@ networks:
     driver: overlay
 services:
   orchestrator:
-    image: def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator:0.2.1-SNAPSHOT
+    image: def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator
     ports:
       - 0.0.0.0:8080:8080
     volumes:
