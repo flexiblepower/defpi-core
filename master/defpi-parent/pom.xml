@@ -24,7 +24,7 @@
 		<docker.folder>docker</docker.folder>
 		<docker.arm.folder>docker-arm</docker.arm.folder>
 		<docker.registry>def-pi1.sensorlab.tno.nl:5000</docker.registry>
-		<docker.imageName>${docker.registry}/services/${project.artifactId}:${project.version}</docker.imageName>
+		<docker.imageName>${docker.registry}/services/${project.artifactId}</docker.imageName>
 	</properties>
 
 	<modules>
@@ -81,7 +81,6 @@
 					<version>1.0.0</version>
 					<configuration>
 						<buildDirectory>${project.build.directory}/docker_build</buildDirectory>
-						<imageName>${docker.imageName}</imageName>
 						<dockerDirectory>${project.build.directory}/${docker.folder}</dockerDirectory>
 						<resources>
 							<resource>
@@ -98,6 +97,13 @@
 							<goals>
 								<goal>build</goal>
 							</goals>
+							<configuration>
+								<imageName>${docker.imageName}</imageName>
+								<imageTags>
+									<imageTag>${project.version}</imageTag>
+									<imageTag>latest</imageTag>
+								</imageTags>
+							</configuration>
 						</execution>
 						<execution>
 							<id>push-image</id>
@@ -105,7 +111,21 @@
 							<goals>
 								<goal>push</goal>
 							</goals>
+							<configuration>
+								<imageName>${docker.imageName}:${project.version}</imageName>
+							</configuration>
 						</execution>
+						<execution>
+							<id>push-image-latest</id>
+							<phase>deploy</phase>
+							<goals>
+								<goal>push</goal>
+							</goals>
+							<configuration>
+								<imageName>${docker.imageName}:latest</imageName>
+							</configuration>
+						</execution>
+						
 						<execution>
 							<id>build-image-arm</id>
 							<phase>package</phase>
@@ -114,7 +134,11 @@
 							</goals>
 							<configuration>
 								<dockerDirectory>${project.build.directory}/${docker.arm.folder}</dockerDirectory>
-								<imageName>${docker.imageName}-arm</imageName>
+								<imageName>${docker.imageName}:${project.version}-arm</imageName>
+								<imageTags>
+									<imageTag>${project.version}-arm</imageTag>
+									<imageTag>latest-arm</imageTag>
+								</imageTags>
 							</configuration>
 						</execution>
 						<execution>
@@ -124,7 +148,17 @@
 								<goal>push</goal>
 							</goals>
 							<configuration>
-								<imageName>${docker.imageName}-arm</imageName>
+								<imageName>${docker.imageName}:${project.version}-arm</imageName>
+							</configuration>
+						</execution>
+						<execution>
+							<id>push-image-arm-latest</id>
+							<phase>deploy</phase>
+							<goals>
+								<goal>push</goal>
+							</goals>
+							<configuration>
+								<imageName>${docker.imageName}:latest-arm</imageName>
 							</configuration>
 						</execution>
 					</executions>
