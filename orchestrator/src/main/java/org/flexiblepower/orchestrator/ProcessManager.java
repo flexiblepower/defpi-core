@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.model.Connection;
+import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.model.User;
@@ -120,8 +121,14 @@ public class ProcessManager {
         } else if (process.getPrivateNodeId() != null) {
             if (process.getNodePoolId() != null) {
                 throw new IllegalArgumentException("Either the nodepool or the privatenode should be set");
-            } else if (NodeManager.getInstance().getPrivateNode(process.getPrivateNodeId()) == null) {
-                throw new IllegalArgumentException("Could not find NodePool");
+            } else {
+                final PrivateNode privateNode = NodeManager.getInstance().getPrivateNode(process.getPrivateNodeId());
+                if (privateNode == null) {
+                    throw new IllegalArgumentException("Could not find Private Node");
+                } else if (!privateNode.getUserId().equals(process.getUserId())) {
+                    throw new IllegalArgumentException(
+                            "The Process cannot be assigned to the private node of another user");
+                }
             }
         } else if ((process.getPrivateNodeId() == null) && (process.getNodePoolId() == null)) {
             throw new IllegalArgumentException("Either the nodepool or the privatenode should be set");
