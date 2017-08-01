@@ -15,6 +15,7 @@ import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.serializers.JavaIOSerializer;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
+import org.flexiblepower.service.exceptions.ServiceInvocationException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -43,7 +44,7 @@ public class ConnectionTest {
     private static final int TEST_SERVICE_TARGET_PORT = 5025;
 
     private final TestService testService = new TestService();
-    private ServiceManager manager = new ServiceManager(this.testService);
+    private ServiceManager manager;
     private Socket managementSocket;
 
     private Socket out;
@@ -52,7 +53,11 @@ public class ConnectionTest {
     private Context ctx;
 
     @Before
-    public void initConnection() throws UnknownHostException, InterruptedException, SerializationException {
+    public void initConnection() throws UnknownHostException,
+            InterruptedException,
+            SerializationException,
+            ServiceInvocationException {
+        this.manager = new ServiceManager(this.testService);
         ConnectionManager.registerConnectionHandlerFactory(TestService.class, this.testService);
 
         this.serializer = new ProtobufMessageSerializer();
