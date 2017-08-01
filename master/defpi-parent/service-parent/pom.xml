@@ -15,7 +15,7 @@
 
 	<properties>
 		<!-- Main class for any service should be the main from the library -->
-		<mainClass>org.flexiblepower.service.ServiceMain</mainClass>
+		<mainClass>org.flexiblepower.service.ServiceManager</mainClass>
 	</properties>
 
 	<dependencies>
