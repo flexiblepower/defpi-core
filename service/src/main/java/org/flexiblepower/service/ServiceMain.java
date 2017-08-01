@@ -39,8 +39,10 @@ public final class ServiceMain {
     private static final long SERVICE_CONSTRUCTOR_TIMEOUT_SECONDS = 30;
     private static Service service;
     private static Exception serviceConstructorException;
+    private static Reflections reflections;
 
     public static Service createInstance(final ExecutorService executor) throws ServiceInvocationException {
+        ServiceMain.reflections = new Reflections(); // TODO: this could be nicer
         // Get service from package
         ServiceMain.service = ServiceMain.getService(executor);
         if (ServiceMain.service == null) {
@@ -56,8 +58,7 @@ public final class ServiceMain {
      * @throws ServiceInvocationException
      */
     private static Service getService(final ExecutorService executor) throws ServiceInvocationException {
-        final Reflections reflections = new Reflections("org.flexiblepower");
-        final Set<Class<? extends Service>> set = reflections.getSubTypesOf(Service.class);
+        final Set<Class<? extends Service>> set = ServiceMain.reflections.getSubTypesOf(Service.class);
 
         // Must have exactly 1 result
         if (set.size() > 1) {
@@ -88,8 +89,8 @@ public final class ServiceMain {
      * @param service
      */
     private static void registerMessageHandlers() {
-        final Reflections reflections = new Reflections("org.flexiblepower");
-        final Set<Class<? extends ConnectionHandler>> set = reflections.getSubTypesOf(ConnectionHandler.class);
+        final Set<Class<? extends ConnectionHandler>> set = ServiceMain.reflections
+                .getSubTypesOf(ConnectionHandler.class);
 
         if (set.isEmpty()) {
             ServiceMain.log
