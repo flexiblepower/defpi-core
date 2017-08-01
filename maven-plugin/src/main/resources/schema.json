@@ -88,7 +88,7 @@
     "name": {
       "type": "string",
       "maxLength": 64,
-      "minLength": 4
+      "minLength": 1
     }
   }
 }

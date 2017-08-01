@@ -13,7 +13,9 @@ import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
+import org.flexiblepower.model.Interface;
 import org.flexiblepower.model.Process;
+import org.flexiblepower.model.Service;
 import org.flexiblepower.model.User;
 
 /**
@@ -67,12 +69,52 @@ public class ConnectionManager {
      * @throws ServiceNotFoundException
      * @throws ProcessNotFoundException
      */
-    public Connection insertConnection(final Connection connection) throws ProcessNotFoundException {
-        // TODO: validate connection, does interface exist in process? etc.
+    public Connection createConnection(final Connection connection) throws ProcessNotFoundException {
+        ConnectionManager.validateConnection(connection);
 
-        this.pc.addConnection(connection);
         this.db.save(connection);
+        this.pc.addConnection(connection);
         return connection;
+    }
+
+    private static void validateConnection(final Connection c) {
+        if ((c.getProcess1Id() == null) || (c.getProcess2Id() == null)) {
+            throw new IllegalArgumentException("ProcessId cannot be null");
+        }
+        if ((c.getInterface1Id() == null) || c.getInterface1Id().isEmpty() || (c.getInterface2Id() == null)
+                || c.getInterface2Id().isEmpty()) {
+            throw new IllegalArgumentException("Interface identifier cannot be empty");
+        }
+        final Process process1 = ProcessManager.getInstance().getProcess(c.getProcess1Id());
+        if (process1 == null) {
+            throw new IllegalArgumentException("No process with id " + c.getProcess1Id() + " known");
+        }
+        final Process process2 = ProcessManager.getInstance().getProcess(c.getProcess2Id());
+        if (process2 == null) {
+            throw new IllegalArgumentException("No process with id " + c.getProcess2Id() + " known");
+        }
+        final Service service1 = ServiceManager.getInstance().getService(process1.getServiceId());
+        if (service1 == null) {
+            throw new IllegalArgumentException("Could not find service " + process1.getServiceId());
+        }
+        final Service service2 = ServiceManager.getInstance().getService(process2.getServiceId());
+        if (service2 == null) {
+            throw new IllegalArgumentException("Could not find service " + process2.getServiceId());
+        }
+        final Interface if1 = service1.getInterface(c.getInterface1Id());
+        if (if1 == null) {
+            throw new IllegalArgumentException("The Service of Process 1 with id " + c.getProcess1Id()
+                    + " does not contain the interface " + c.getInterface1Id());
+        }
+        final Interface if2 = service1.getInterface(c.getInterface2Id());
+        if (if2 == null) {
+            throw new IllegalArgumentException("The Service of Process 2 with id " + c.getProcess2Id()
+                    + " does not contain the interface " + c.getInterface2Id());
+        }
+        if (!if1.isCompatibleWith(if2)) {
+            throw new IllegalArgumentException("Interface " + c.getInterface1Id() + " and interface "
+                    + c.getInterface2Id() + " are not compatible with each other");
+        }
     }
 
     /**

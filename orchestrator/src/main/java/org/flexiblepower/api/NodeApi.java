@@ -57,9 +57,7 @@ public interface NodeApi {
             @ApiParam(name = "newNode",
                       value = "The definition of the node to create",
                       required = true) final PrivateNode newNode)
-            throws AuthorizationException,
-            NotFoundException,
-            InvalidObjectIdException;
+            throws AuthorizationException, NotFoundException, InvalidObjectIdException;
 
     @POST
     @Path("/publicnode")
@@ -78,9 +76,7 @@ public interface NodeApi {
             @ApiParam(name = "newNode",
                       value = "The definition of the node to create",
                       required = true) final PublicNode newNode)
-            throws AuthorizationException,
-            NotFoundException,
-            InvalidObjectIdException;
+            throws AuthorizationException, NotFoundException, InvalidObjectIdException;
 
     @DELETE
     @Path("/privatenode/{node_id}")
@@ -96,9 +92,7 @@ public interface NodeApi {
     public void deletePrivateNode(
             @ApiParam(value = "The id of the Node that needs to be deleted",
                       required = true) @PathParam("node_id") final String nodeId)
-            throws AuthorizationException,
-            NotFoundException,
-            InvalidObjectIdException;
+            throws AuthorizationException, NotFoundException, InvalidObjectIdException;
 
     @DELETE
     @Path("/publicnode/{node_id}")
@@ -114,9 +108,7 @@ public interface NodeApi {
     public void deletePublicNode(
             @ApiParam(value = "The id of the Node that needs to be feleted",
                       required = true) @PathParam("node_id") final String nodeId)
-            throws AuthorizationException,
-            NotFoundException,
-            InvalidObjectIdException;
+            throws AuthorizationException, NotFoundException, InvalidObjectIdException;
 
     @GET
     @Path("/privatenode/{node_id}")
@@ -133,9 +125,7 @@ public interface NodeApi {
     public PrivateNode getPrivateNode(
             @ApiParam(value = "The id of the Node that needs to be fetched",
                       required = true) @PathParam("node_id") final String nodeId)
-            throws AuthorizationException,
-            NotFoundException,
-            InvalidObjectIdException;
+            throws AuthorizationException, NotFoundException, InvalidObjectIdException;
 
     @GET
     @Path("/publicnode/{node_id}")
@@ -150,8 +140,7 @@ public interface NodeApi {
     public PublicNode getPublicNode(
             @ApiParam(value = "The id of the Node that needs to be fetched",
                       required = true) @PathParam("node_id") final String nodeId)
-            throws NotFoundException,
-            InvalidObjectIdException;
+            throws NotFoundException, InvalidObjectIdException, AuthorizationException;
 
     @GET
     @Path("/privatenode")
@@ -166,7 +155,7 @@ public interface NodeApi {
                                         message = "List of private nodes owned by this user",
                                         response = PrivateNode.class,
                                         responseContainer = "List")})
-    public List<PrivateNode> listPrivateNodes();
+    public List<PrivateNode> listPrivateNodes() throws AuthorizationException;
 
     @GET
     @Path("/publicnode")
@@ -177,11 +166,12 @@ public interface NodeApi {
                   response = PublicNode.class,
                   responseContainer = "List",
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
-    @ApiResponses(value = {@ApiResponse(code = 200,
-                                        message = "List all public nodes",
-                                        response = PublicNode.class,
-                                        responseContainer = "List")})
-    public List<PublicNode> listPublicNodes();
+    @ApiResponses(value = {
+            @ApiResponse(code = 200,
+                         message = "List all public nodes",
+                         response = PublicNode.class,
+                         responseContainer = "List")})
+    public List<PublicNode> listPublicNodes() throws AuthorizationException;
 
     @GET
     @Path("/unidentifiednode")
@@ -230,9 +220,7 @@ public interface NodeApi {
             @ApiParam(value = "The id of the NodePool that needs to be deleted",
                       required = true) @PathParam("nodepool_id") final String nodePoolId,
             @ApiParam(value = "The NodePool to update", required = true) final NodePool updatedNodePool)
-            throws AuthorizationException,
-            NodePoolNotFoundException,
-            InvalidObjectIdException;
+            throws AuthorizationException, NodePoolNotFoundException, InvalidObjectIdException;
 
     @DELETE
     @Path("/nodepool/{nodepool_id}")
@@ -249,9 +237,7 @@ public interface NodeApi {
     public void deleteNodePool(
             @ApiParam(value = "The id of the NodePool that needs to be deleted",
                       required = true) @PathParam("nodepool_id") final String nodePoolId)
-            throws AuthorizationException,
-            InvalidObjectIdException,
-            NotFoundException;
+            throws AuthorizationException, InvalidObjectIdException, NotFoundException;
 
     @GET
     @Path("/nodepool/{nodepool_id}")
@@ -267,9 +253,7 @@ public interface NodeApi {
     public NodePool getNodePool(
             @ApiParam(value = "The id of the NodePool that needs to be fetched",
                       required = true) @PathParam("nodepool_id") final String nodePoolId)
-            throws AuthorizationException,
-            InvalidObjectIdException,
-            NotFoundException;
+            throws AuthorizationException, InvalidObjectIdException, NotFoundException;
 
     @GET
     @Path("/nodepool")

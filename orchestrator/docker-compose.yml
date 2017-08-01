@@ -1,19 +1,18 @@
 version: "3"
 networks:
-  orchestrator:
+  management:
     driver: overlay
 services:
   orchestrator:
-    image: def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator:0.2.1-SNAPSHOT
+    image: def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator
     ports:
       - 0.0.0.0:8080:8080
-      - 0.0.0.0:9999:9999
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     links:
       - mongo
     networks:
-      - orchestrator
+      - management
     environment:
       - MONGO_HOST=mongo
       - MONGO_DATABASE=def-pi
@@ -23,11 +22,9 @@ services:
     image: def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator-ui
     ports:
       - 80:80
-    networks:
-      - orchestrator
     environment:
       - ORCHESTRATOR_URL=http://def-pi1.sensorlab.tno.nl:8080/
   mongo:
-    image: mongo
+    image: mvertes/alpine-mongo
     networks:
-      - orchestrator
+      - management

@@ -182,20 +182,20 @@ public class Templates {
             for (final String type : version.getSends()) {
                 sendClasses.add(type + ".class");
             }
-            replaceMap.put("itf.sendClasses", String.join("., ", sendClasses));
+            replaceMap.put("itf.sendClasses", String.join(", ", sendClasses));
 
             // Add handler definitions and implementations for the connection handlers (and implementations
             // respectively)
-            String handlers = "";
-            String handlerImpls = "";
+            final Set<String> handlers = new HashSet<>();
+            final Set<String> handlerImpls = new HashSet<>();
             for (final String type : version.getReceives()) {
                 final Map<String, String> handlerReplace = new HashMap<>();
                 handlerReplace.put("handle.type", type);
-                handlers += Templates.replaceMap(this.getTemplate("Handler"), handlerReplace);
-                handlerImpls += Templates.replaceMap(this.getTemplate("HandlerImpl"), handlerReplace);
+                handlers.add(Templates.replaceMap(this.getTemplate("Handler"), handlerReplace));
+                handlerImpls.add(Templates.replaceMap(this.getTemplate("HandlerImpl"), handlerReplace));
             }
-            replaceMap.put("handlers", handlers);
-            replaceMap.put("handlerImpls", handlerImpls);
+            replaceMap.put("handlers", String.join("\n\n", handlers));
+            replaceMap.put("handlerImpls", String.join("\n\n", handlerImpls));
 
             // Add imports for the handlers
             final Set<String> imports = new HashSet<>();

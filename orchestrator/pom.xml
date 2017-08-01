@@ -16,7 +16,7 @@
 
 	<properties>
 		<mainClass>org.flexiblepower.orchestrator.Main</mainClass>
-		<docker.imageName>${docker.registry}/defpi/${project.artifactId}:${project.version}</docker.imageName>
+		<docker.imageName>${docker.registry}/defpi/${project.artifactId}</docker.imageName>
 	</properties>
 
 	<dependencyManagement>
