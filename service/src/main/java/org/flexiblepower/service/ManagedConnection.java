@@ -8,13 +8,18 @@ package org.flexiblepower.service;
 import java.io.Closeable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
+import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.serializers.MessageSerializer;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
@@ -47,6 +52,8 @@ final class ManagedConnection implements Connection, Closeable {
     private static final byte[] PING = new byte[] {(byte) 0xA};
     private static final byte[] PONG = new byte[] {(byte) 0xB};
     private static final int HEARTBEAT_MSG_LENGTH = 1;
+    private static final long CONN_INVOKE_TIMEOUT_SECONDS = 1;
+    private static final TimeUnit SECONDS = TimeUnit.SECONDS;
 
     private ConnectionState state;
     private volatile boolean keepThreadAlive;
@@ -61,6 +68,7 @@ final class ManagedConnection implements Connection, Closeable {
     private final String connectionId;
     private boolean pinged;
     private ScheduledFuture<?> heartBeatThread;
+    private final ExecutorService executor;
 
     /**
      * @param targetAddress
@@ -73,9 +81,11 @@ final class ManagedConnection implements Connection, Closeable {
     ManagedConnection(final String connectionId,
             final int listenPort,
             final String targetAddress,
-            final ConnectionHandler handler) throws ConnectionModificationException {
+            final ConnectionHandler handler,
+            final ExecutorService executor) throws ConnectionModificationException {
         this.connectionId = connectionId;
         this.handler = handler;
+        this.executor = executor;
         this.info = ManagedConnection.getInfoFromHandler(handler);
 
         // Add serializer to the connection for user-defined messages
@@ -130,7 +140,14 @@ final class ManagedConnection implements Connection, Closeable {
                             this.publishSocket.send(heartbeat);
                         } else {
                             // If no PONG was received since the last PING, assume connection was interrupted!
-                            handler.onInterrupt();
+                            final Future<?> future = executor.submit(() -> {
+                                handler.onInterrupt();
+                            });
+                            try {
+                                future.get(ManagedConnection.CONN_INVOKE_TIMEOUT_SECONDS, ManagedConnection.SECONDS);
+                            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                                ManagedConnection.log.error("Invoking onInterrupt() failed because " + e);
+                            }
                         }
                     },
                             ManagedConnection.INITIAL_HEARTBEAT_DELAY,
@@ -233,17 +250,26 @@ final class ManagedConnection implements Connection, Closeable {
                 }
                 final ConnectionHandshake handShakeMessage = (ConnectionHandshake) receivedMsg;
                 if (handShakeMessage.getConnectionId().equals(this.connectionId)) {
+                    Message response;
                     ManagedConnection.log.debug("Received acknowledge string: {}", handShakeMessage);
 
                     this.state = ConnectionState.CONNECTED;
-                    this.handler.onConnected(this);
+
+                    final Future<ConnectionHandshake> future = this.executor.submit(() -> {
+                        this.handler.onConnected(this);
+                        return ConnectionHandshake.newBuilder()
+                                .setConnectionId(this.connectionId)
+                                .setConnectionState(ConnectionState.CONNECTED)
+                                .build();
+                    });
+
+                    try {
+                        response = future.get(ManagedConnection.CONN_INVOKE_TIMEOUT_SECONDS, ManagedConnection.SECONDS);
+                    } catch (InterruptedException | ExecutionException | TimeoutException e1) {
+                        response = this.createErrorMessage(this.connectionId, e1.getMessage());
+                    }
 
                     ManagedConnection.log.debug("Updated state to {}, replying ack", this.state);
-
-                    final ConnectionHandshake response = ConnectionHandshake.newBuilder()
-                            .setConnectionId(this.connectionId)
-                            .setConnectionState(ConnectionState.CONNECTED)
-                            .build();
 
                     try {
                         this.publishSocket.send(this.protoBufSerializer.serialize(response));
@@ -309,19 +335,63 @@ final class ManagedConnection implements Connection, Closeable {
         return this.state;
     }
 
-    public void resume() {
+    public Message resume() {
         final ConnectionState previous = this.state;
+        Future<ConnectionHandshake> future = null;
+
         this.state = ConnectionState.CONNECTED;
+
         if (previous.equals(ConnectionState.SUSPENDED)) {
-            this.handler.resumeAfterSuspend();
+            future = this.executor.submit(() -> {
+                this.handler.resumeAfterSuspend();
+                return ConnectionHandshake.newBuilder()
+                        .setConnectionId(this.connectionId)
+                        .setConnectionState(ConnectionState.CONNECTED)
+                        .build();
+            });
         } else if (previous.equals(ConnectionState.INTERRUPTED)) {
-            this.handler.resumeAfterInterrupt();
+            future = this.executor.submit(() -> {
+                this.handler.resumeAfterInterrupt();
+                return ConnectionHandshake.newBuilder()
+                        .setConnectionId(this.connectionId)
+                        .setConnectionState(ConnectionState.CONNECTED)
+                        .build();
+            });
+        }
+        try {
+            if (future != null) {
+                return future.get(ManagedConnection.CONN_INVOKE_TIMEOUT_SECONDS, ManagedConnection.SECONDS);
+            } else {
+                return this.createErrorMessage(this.connectionId, "Cannot resume from state: " + previous);
+            }
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            return this.createErrorMessage(this.connectionId, e.getMessage());
         }
     }
 
-    public void suspend() {
+    /**
+     * @param connectionId2
+     * @param e
+     * @return
+     */
+    private Message createErrorMessage(final String connectionId, final String e) {
+        return ErrorMessage.newBuilder().setDebugInformation(e).setProcessId(connectionId).build();
+    }
+
+    public Message suspend() {
         this.state = ConnectionState.SUSPENDED;
-        this.handler.onSuspend();
+        final Future<ConnectionHandshake> future = this.executor.submit(() -> {
+            this.handler.onSuspend();
+            return ConnectionHandshake.newBuilder()
+                    .setConnectionId(this.connectionId)
+                    .setConnectionState(ConnectionState.SUSPENDED)
+                    .build();
+        });
+        try {
+            return future.get(ManagedConnection.CONN_INVOKE_TIMEOUT_SECONDS, ManagedConnection.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            return this.createErrorMessage(this.connectionId, e.getMessage());
+        }
     }
 
     @Override

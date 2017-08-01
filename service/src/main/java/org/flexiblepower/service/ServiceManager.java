@@ -61,7 +61,7 @@ public class ServiceManager implements Closeable {
      */
     private static final int MANAGEMENT_SOCKET_RECEIVE_TIMEOUT = 100;
     public static final int MANAGEMENT_PORT = 4999;
-    private static final long SERVICE_IMPL_TIMEOUT_SECONDS = 30;
+    private static final long SERVICE_IMPL_TIMEOUT_SECONDS = 1;
 
     // private final Class<? extends Service> serviceClass;
     private boolean configured;
@@ -82,7 +82,7 @@ public class ServiceManager implements Closeable {
 
     public ServiceManager(final Service service) throws ServiceInvocationException {
         this.service = service;
-        this.connectionManager = new ConnectionManager();
+        this.connectionManager = new ConnectionManager(ServiceManager.serviceExecutor);
 
         this.managementSocket = ZMQ.context(1).socket(ZMQ.REP);
 
