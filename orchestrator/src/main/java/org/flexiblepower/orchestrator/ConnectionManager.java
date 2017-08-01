@@ -159,4 +159,18 @@ public class ConnectionManager {
             this.deleteConnection(connection);
         }
     }
+
+    /**
+     * @param c
+     */
+    public void suspendConnection(final Connection c) {
+        this.pc.suspendConnection(c);
+    }
+
+    /**
+     * @param c
+     */
+    public void resumeConnection(final Connection c) {
+        this.pc.resumeConnection(c);
+    }
 }

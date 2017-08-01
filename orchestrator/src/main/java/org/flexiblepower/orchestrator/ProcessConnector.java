@@ -131,6 +131,32 @@ public class ProcessConnector {
 
     }
 
+    /**
+     * @param c
+     */
+    public void suspendConnection(final Connection connection) {
+        final Process process1 = ProcessManager.getInstance().getProcess(connection.getProcess1Id());
+        final ProcessConnection pc1 = this.getProcessConnection(process1.getId());
+        final Process process2 = ProcessManager.getInstance().getProcess(connection.getProcess2Id());
+        final ProcessConnection pc2 = this.getProcessConnection(process2.getId());
+
+        pc1.suspendConnection(connection.getId());
+        pc2.suspendConnection(connection.getId());
+    }
+
+    /**
+     * @param c
+     */
+    public void resumeConnection(final Connection connection) {
+        final Process process1 = ProcessManager.getInstance().getProcess(connection.getProcess1Id());
+        final ProcessConnection pc1 = this.getProcessConnection(process1.getId());
+        final Process process2 = ProcessManager.getInstance().getProcess(connection.getProcess2Id());
+        final ProcessConnection pc2 = this.getProcessConnection(process2.getId());
+
+        pc1.resumeConnection(connection.getId());
+        pc2.resumeConnection(connection.getId());
+    }
+
     public void processConnectionTerminated(final ObjectId processId) {
         this.connections.remove(processId);
     }
@@ -212,8 +238,9 @@ public class ProcessConnector {
                         throw new IllegalArgumentException(
                                 "Provided ObjectId for Process " + this.processId + " does not exist");
                     }
-                    this.uri = String
-                            .format("tcp://%s:%d", process.getId().toString(), ProcessConnection.MANAGEMENT_PORT);
+                    this.uri = String.format("tcp://%s:%d",
+                            process.getId().toString(),
+                            ProcessConnection.MANAGEMENT_PORT);
 
                     this.socket = ZMQ.context(1).socket(ZMQ.REQ);
                     this.socket.setDelayAttachOnConnect(true);
@@ -272,10 +299,37 @@ public class ProcessConnector {
             }
         }
 
+        public void suspendConnection(final ObjectId connectionId) {
+            final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
+                    .setConnectionId(connectionId.toString())
+                    .setMode(ConnectionMessage.ModeType.SUSPEND)
+                    .build();
+
+            final ConnectionHandshake response = this.send(connectionMessage, ConnectionHandshake.class);
+            if (response != null) {
+                ProcessConnector.log
+                        .debug("Connection " + connectionId + " status: " + response.getConnectionState().name());
+            }
+        }
+
+        public void resumeConnection(final ObjectId connectionId) {
+            final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
+                    .setConnectionId(connectionId.toString())
+                    .setMode(ConnectionMessage.ModeType.RESUME)
+                    .build();
+
+            final ConnectionHandshake response = this.send(connectionMessage, ConnectionHandshake.class);
+            if (response != null) {
+                ProcessConnector.log
+                        .debug("Connection " + connectionId + " status: " + response.getConnectionState().name());
+            }
+        }
+
         public void startProcess() {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final Builder builder = SetConfigMessage.newBuilder().setProcessId(process.getId().toString()).setIsUpdate(
-                    false);
+            final Builder builder = SetConfigMessage.newBuilder()
+                    .setProcessId(process.getId().toString())
+                    .setIsUpdate(false);
             if (process.getConfiguration() != null) {
                 for (final Parameter p : process.getConfiguration()) {
                     builder.putConfig(p.getKey(), p.getValue());
@@ -305,8 +359,9 @@ public class ProcessConnector {
 
         public void updateConfiguration() {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final Builder builder = SetConfigMessage.newBuilder().setProcessId(process.getId().toString()).setIsUpdate(
-                    true);
+            final Builder builder = SetConfigMessage.newBuilder()
+                    .setProcessId(process.getId().toString())
+                    .setIsUpdate(true);
             if (process.getConfiguration() != null) {
                 for (final Parameter p : process.getConfiguration()) {
                     builder.putConfig(p.getKey(), p.getValue());
