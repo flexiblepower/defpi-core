@@ -35,7 +35,8 @@ public interface InterfaceApi {
             @ApiResponse(code = 200,
                          message = "The list of interfaces",
                          response = Interface.class,
-                         responseContainer = "List")})
+                         responseContainer = "List"),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public List<Interface> listInterfaces() throws AuthorizationException;
 
     @GET
@@ -49,6 +50,7 @@ public interface InterfaceApi {
             @ApiResponse(code = 404, message = InterfaceApi.INTERFACE_NOT_FOUND_MESSAGE)})
     public Interface getInterface(
             @ApiParam(name = "id", value = "The id of the interface", required = true) @PathParam("id") final String id)
-            throws NotFoundException, AuthorizationException;
+            throws NotFoundException,
+            AuthorizationException;
 
 }

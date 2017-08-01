@@ -38,7 +38,8 @@ public interface ServiceApi {
                          message = "An array of services",
                          response = Service.class,
                          responseContainer = "List"),
-            @ApiResponse(code = 404, message = RepositoryNotFoundException.REPOSITORY_NOT_FOUND_MESSAGE)})
+            @ApiResponse(code = 404, message = RepositoryNotFoundException.REPOSITORY_NOT_FOUND_MESSAGE),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public List<Service> listServices() throws NotFoundException, AuthorizationException;
 
     @GET
@@ -50,9 +51,11 @@ public interface ServiceApi {
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "The definition of the service", response = Service.class),
-            @ApiResponse(code = 404, message = ServiceNotFoundException.SERVICE_NOT_FOUND_MESSAGE)})
+            @ApiResponse(code = 404, message = ServiceNotFoundException.SERVICE_NOT_FOUND_MESSAGE),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public Service getService(
             @ApiParam(name = "id", value = "The id of the service", required = true) @PathParam("id") final String id)
-            throws NotFoundException, AuthorizationException;
+            throws NotFoundException,
+            AuthorizationException;
 
 }
