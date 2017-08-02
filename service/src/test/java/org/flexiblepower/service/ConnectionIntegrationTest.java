@@ -12,8 +12,10 @@ import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore // These tests are usefull, but take very long
 public class ConnectionIntegrationTest {
 
     @InterfaceInfo(name = "Test",
