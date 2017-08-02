@@ -7,18 +7,16 @@ package org.flexiblepower.service;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.concurrent.ExecutionException;
+import java.nio.channels.ClosedSelectorException;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
-import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.serializers.MessageSerializer;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
@@ -31,12 +29,9 @@ import org.zeromq.ZMQException;
 
 import com.google.protobuf.Message;
 
-import zmq.ZError;
-
 /**
  * ManagedConnection
  *
- * @author coenvl
  * @version 0.1
  * @since May 12, 2017
  */
@@ -45,29 +40,31 @@ final class ManagedConnection implements Connection {
     private static final Logger log = LoggerFactory.getLogger(ManagedConnection.class);
     private static final int RECEIVE_TIMEOUT = 100;
     private static final int MAX_HEARTBEAT_THREADS = 1;
-    private static final long HEARTBEAT_PERIOD_IN_SECONDS = 60;
+    private static final long HEARTBEAT_PERIOD_IN_SECONDS = 10;
     private static final long INITIAL_HEARTBEAT_DELAY = 2;
-    private static final int CONNECT_RETRY_DELAY_IN_SECONDS = 5;
+    private static final long MAX_BACKOFF_MS = 60000;
     private static final byte[] PING = new byte[] {(byte) 0xA};
     private static final byte[] PONG = new byte[] {(byte) 0xB};
     private static final int HEARTBEAT_MSG_LENGTH = 1;
-    private static final long CONN_INVOKE_TIMEOUT_SECONDS = 1;
-    private static final TimeUnit SECONDS = TimeUnit.SECONDS;
 
-    private ConnectionState state;
-    private volatile boolean keepThreadAlive;
-    private Context zmqContext;
+    private volatile ConnectionState state;
+    private final Context zmqContext;
     private Socket subscribeSocket;
     private Socket publishSocket;
     private Thread connectionThread;
     private final ConnectionHandler handler;
     private final MessageSerializer<Object> userMessageSerializer;
-    private final ProtobufMessageSerializer protoBufSerializer;
+    private final ProtobufMessageSerializer connectionHandshakeSerializer;
     private InterfaceInfo info = null;
     private final String connectionId;
     private boolean pinged;
-    private ScheduledFuture<?> heartBeatThread;
+    private ScheduledFuture<?> heartBeatFuture;
     private final ExecutorService serviceExecutor;
+    private final Object suspendLock = new Object();
+
+    private int listenPort;
+    private String targetAddress;
+    private final ScheduledThreadPoolExecutor heartBeatExecutor;
 
     /**
      * @param targetAddress
@@ -86,6 +83,10 @@ final class ManagedConnection implements Connection {
         this.handler = handler;
         this.serviceExecutor = serviceExecutor;
         this.info = ManagedConnection.getInfoFromHandler(handler);
+        this.listenPort = listenPort;
+        this.targetAddress = targetAddress;
+
+        this.heartBeatExecutor = new ScheduledThreadPoolExecutor(ManagedConnection.MAX_HEARTBEAT_THREADS);
 
         // Add serializer to the connection for user-defined messages
         try {
@@ -99,106 +100,391 @@ final class ManagedConnection implements Connection {
         }
 
         // Add Protobuf serializer to connection for ConnectionHandshake messages
-        this.protoBufSerializer = new ProtobufMessageSerializer();
-        this.protoBufSerializer.addMessageClass(ConnectionHandshake.class);
+        this.connectionHandshakeSerializer = new ProtobufMessageSerializer();
+        this.connectionHandshakeSerializer.addMessageClass(ConnectionHandshake.class);
 
-        this.state = ConnectionState.STARTING;
-        this.connect(listenPort, targetAddress);
+        // Init ZMQ
+        this.zmqContext = ZMQ.context(1);
+
+        // Start main loop
+        this.startMainLoop();
     }
 
-    private void connect(final int listenPort, final String targetAddress) {
-        this.zmqContext = ZMQ.context(1);
-        this.publishSocket = this.zmqContext.socket(ZMQ.PUSH);
-        this.subscribeSocket = this.zmqContext.socket(ZMQ.PULL);
+    private void startMainLoop() {
+        this.state = ConnectionState.STARTING;
 
-        ManagedConnection.log.debug("Creating publishSocket to {}", targetAddress);
-        this.publishSocket.setSendTimeOut(0); // ManagedConnection.SEND_TIMEOUT);
-        this.publishSocket.setDelayAttachOnConnect(true);
-
-        this.keepThreadAlive = true;
+        this.initListening();
 
         this.connectionThread = new Thread(() -> {
-            this.tryToConnect(targetAddress);
+            long backOffMs = 100;
+            while (this.state != ConnectionState.TERMINATED) {
 
-            final String listenAddress = "tcp://*:" + listenPort;
-            ManagedConnection.log.debug("Creating subscribeSocket listening on port {}", listenAddress);
-            this.subscribeSocket.setReceiveTimeOut(ManagedConnection.RECEIVE_TIMEOUT);
-            this.subscribeSocket.bind(listenAddress);
+                if (this.state == ConnectionState.STARTING) {
+                    // State is STARTING, goal is to connect
+                    final boolean success = this.tryConnectSending();
+                    if (success) {
+                        // Update state
+                        this.state = ConnectionState.CONNECTED;
 
-            final ConnectionHandshake initHandshakeMessage = ConnectionHandshake.newBuilder()
-                    .setConnectionId(this.connectionId)
-                    .setConnectionState(ConnectionState.STARTING)
-                    .build();
-            try {
-                this.publishSocket.send(this.protoBufSerializer.serialize(initHandshakeMessage));
-            } catch (final SerializationException e) {
-                ManagedConnection.log.error("Error in serializing message: " + initHandshakeMessage);
-            }
+                        // reset backOff
+                        backOffMs = 100;
 
-            final ScheduledThreadPoolExecutor heartBeatExecutor = new ScheduledThreadPoolExecutor(
-                    ManagedConnection.MAX_HEARTBEAT_THREADS);
-            this.heartBeatThread = heartBeatExecutor.scheduleAtFixedRate(() -> {
-                if (!this.pinged) {
-                    final byte[] heartbeat = ManagedConnection.PING;
-                    this.pinged = true;
-                    this.publishSocket.send(heartbeat);
-                } else {
-                    // If no PONG was received since the last PING, assume connection was interrupted!
-                    final Future<?> future = this.serviceExecutor.submit(() -> {
+                        // Notify Service implementation
+                        this.serviceExecutor.submit(() -> {
+                            try {
+                                this.handler.onConnected(this);
+                            } catch (final Throwable e) {
+                                ManagedConnection.log.error("Error while calling onConnected(Connection)", e);
+                            }
+                        });
+                    } else {
+                        backOffMs = Math.min(ManagedConnection.MAX_BACKOFF_MS, backOffMs * 2);
                         try {
-                            this.handler.onInterrupt();
-                        } catch (final Throwable t) {
-                            ManagedConnection.log.error("Error while calling onInterrupt()", t);
+                            Thread.sleep(backOffMs);
+                        } catch (final InterruptedException e) {
+                            // Don't care, we'll see you next iteration
                         }
-                    });
-                    try {
-                        future.get(ManagedConnection.CONN_INVOKE_TIMEOUT_SECONDS, ManagedConnection.SECONDS);
-                    } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                        ManagedConnection.log.error("Invoking onInterrupt() failed", e);
                     }
-                }
-            },
-                    ManagedConnection.INITIAL_HEARTBEAT_DELAY,
-                    ManagedConnection.HEARTBEAT_PERIOD_IN_SECONDS,
-                    TimeUnit.SECONDS);
+                } else if (this.state == ConnectionState.CONNECTED) {
+                    // State is CONNECTED, goal is to handle messages
+                    this.tryReceiveMessage();
 
-            while (this.keepThreadAlive) {
-                try {
-                    this.handleByteArray(this.subscribeSocket.recv());
-                } catch (final ZMQException e) {
-                    if (e.getErrorCode() == 156384765) {
-                        ManagedConnection.log.info("Socket closed, Attempting to reconnect");
-                        this.tryToConnect(targetAddress);
+                } else if (this.state == ConnectionState.SUSPENDED) {
+                    // State is SUSPENDED, there are two options: try to reconnect or wait for instructions to reconnect
+                    if (this.listenPort == 0) {
+                        // We are suspended and have received no instruction to resume, wait for instruction
+                        synchronized (this.suspendLock) {
+                            try {
+                                this.suspendLock.wait();
+                            } catch (final InterruptedException e) {
+                                // Don't care, we'll see you next iteration
+                            }
+                        }
+                    } else {
+                        // We are suspended, but we want to go back to CONNECTED, try to connect
+                        final boolean success = this.tryConnectSending();
+                        if (success) {
+                            // Update state
+                            this.state = ConnectionState.CONNECTED;
+
+                            // reset backOff
+                            backOffMs = 100;
+
+                            // Notify Service implementation
+                            this.serviceExecutor.submit(() -> {
+                                try {
+                                    this.handler.resumeAfterSuspend();
+                                } catch (final Throwable e) {
+                                    ManagedConnection.log.error("Error while calling resumeAfterSuspend()", e);
+                                }
+                            });
+                        } else {
+                            backOffMs = Math.min(ManagedConnection.MAX_BACKOFF_MS, backOffMs * 2);
+                            try {
+                                Thread.sleep(backOffMs);
+                            } catch (final InterruptedException e) {
+                                // Don't care, we'll see you next iteration
+                            }
+                        }
                     }
-                } catch (final Exception e) {
-                    ManagedConnection.log.error("Exception handling message: {}", e.getMessage());
-                    ManagedConnection.log.trace("Exception handing message", e);
+
+                } else if (this.state == ConnectionState.INTERRUPTED) {
+                    // State is INTERRUPTED, we have to try to reconnect
+                    final boolean success = this.tryConnectSending();
+                    if (success) {
+                        // reset backOff
+                        backOffMs = 100;
+
+                        this.resumeAfterInterruptedState();
+                    } else {
+                        backOffMs = Math.min(ManagedConnection.MAX_BACKOFF_MS, backOffMs * 2);
+                        try {
+                            Thread.sleep(backOffMs);
+                        } catch (final InterruptedException e) {
+                            // Don't care, we'll see you next iteration
+                        }
+                    }
                 }
             }
-            ManagedConnection.log.trace("End of thread");
-            this.heartBeatThread.cancel(true);
-            heartBeatExecutor.shutdownNow();
-        }, "Managed " + this.info.name() + " handler thread");
+
+            // State is TERMINATED, cleanup
+            this.disconnectListening();
+            this.disconnectSending();
+            this.zmqContext.close();
+            this.heartBeatExecutor.shutdownNow();
+        });
         this.connectionThread.start();
     }
 
-    private void tryToConnect(final String targetAddress) {
-        boolean connected = false;
-        while (!connected) {
+    private void initListening() {
+        this.subscribeSocket = this.zmqContext.socket(ZMQ.PULL);
+        final String listenAddress = "tcp://*:" + this.listenPort;
+        ManagedConnection.log.debug("Creating subscribeSocket listening on port {}", listenAddress);
+        this.subscribeSocket.setReceiveTimeOut(ManagedConnection.RECEIVE_TIMEOUT);
+        this.subscribeSocket.bind(listenAddress);
+    }
+
+    private void disconnectListening() {
+        if (this.subscribeSocket != null) {
+            this.subscribeSocket.close();
+            this.subscribeSocket = null;
+        }
+    }
+
+    private boolean tryConnectSending() {
+        // Initialize socket
+        if (this.publishSocket == null) {
+            this.publishSocket = this.zmqContext.socket(ZMQ.PUSH);
+            this.publishSocket.setSendTimeOut(0); // ManagedConnection.SEND_TIMEOUT);
+            this.publishSocket.setDelayAttachOnConnect(true);
+        }
+
+        // Try to connect
+        try {
+            this.publishSocket.connect(this.targetAddress);
+        } catch (final IllegalArgumentException e) {
+            // Could not resolve hostname, other container is not yet ready
+            return false;
+        }
+
+        // Send the handshake
+        final ConnectionHandshake initHandshakeMessage = ConnectionHandshake.newBuilder()
+                .setConnectionId(this.connectionId)
+                .setConnectionState(this.state)
+                .build();
+        try {
+            if (!this.publishSocket.send(this.connectionHandshakeSerializer.serialize(initHandshakeMessage))) {
+                // Failed sending handshake
+                return false;
+            }
+        } catch (final SerializationException e) {
+            // This should not happen
+            ManagedConnection.log.error("Error in serializing message: " + initHandshakeMessage);
+            return false;
+        }
+
+        // Receive the HandShake
+        for (int i = 0; (this.state != ConnectionState.TERMINATED) && (i < 100); i++) {
+            byte[] data = null;
             try {
-                this.publishSocket.connect(targetAddress);
-                connected = true;
-            } catch (final IllegalArgumentException e) {
-                ManagedConnection.log.debug("Target" + targetAddress + " is still not up. Retrying in "
-                        + ManagedConnection.CONNECT_RETRY_DELAY_IN_SECONDS + " seconds...");
-                try {
-                    Thread.sleep(ManagedConnection.CONNECT_RETRY_DELAY_IN_SECONDS * 1000);
-                } catch (final InterruptedException e1) {
-                    e1.printStackTrace();
-                    break;
-                }
+                data = this.subscribeSocket.recv();
+            } catch (final Exception e) {
+                // The subscribeSocket is closed, probably the session was suspended before it was running
+                return false;
+            }
+            if (data == null) {
+                // That can happen, try again
+                continue;
+            }
+            if (data.length == ManagedConnection.HEARTBEAT_MSG_LENGTH) {
+                // Whoops, that's a heart beat, try again
+                continue;
+            }
+            Message receivedMsg;
+            try {
+                receivedMsg = this.connectionHandshakeSerializer.deserialize(data);
+            } catch (final SerializationException e) {
+                ManagedConnection.log.error("Could not deserialize conenctionhandshake message", e);
+                continue;
+            }
+            final ConnectionHandshake handShakeMessage = (ConnectionHandshake) receivedMsg;
+
+            if (handShakeMessage.getConnectionId().equals(this.connectionId)) {
+                ManagedConnection.log.debug("Received acknowledge string: {}", handShakeMessage);
+                // Success! Prepare for real communication.
+                this.startHeartBeat();
+                return true;
+            } else {
+                ManagedConnection.log
+                        .warn("Invalid Connection ID in Handshake message : " + handShakeMessage.getConnectionId());
+                continue;
             }
         }
+        // Still no luck
+        return false;
+    }
+
+    private void disconnectSending() {
+        if (this.publishSocket != null) {
+            this.publishSocket.close();
+            this.publishSocket = null;
+        }
+    }
+
+    /**
+     * Go to the INTERRUPTED state. This method is called when sending fails or when no heartbeats are received.
+     */
+    private void goToInterruptedState() {
+        if (this.state == ConnectionState.INTERRUPTED) {
+            return;
+        }
+
+        // Update state
+        this.state = ConnectionState.INTERRUPTED;
+
+        // Stop heartbeat
+        this.stopHeartBeat();
+
+        // Notify Service implementation
+        this.serviceExecutor.submit(() -> {
+            try {
+                this.handler.onInterrupt();
+            } catch (final Throwable e) {
+                ManagedConnection.log.error("Error while calling onInterrupt()", e);
+            }
+        });
+    }
+
+    private void resumeAfterInterruptedState() {
+        // Update state
+        this.state = ConnectionState.CONNECTED;
+
+        // Notify Service implementation
+        this.serviceExecutor.submit(() -> {
+            try {
+                this.handler.resumeAfterInterrupt();
+            } catch (final Throwable e) {
+                ManagedConnection.log.error("Error while calling resumeAfterInterrupt()", e);
+            }
+        });
+    }
+
+    private void tryReceiveMessage() {
+        byte[] buff = null;
+        try {
+            buff = this.subscribeSocket.recv();
+        } catch (final ZMQException e) {
+            if (e.getErrorCode() == 156384765) {
+                ManagedConnection.log.info("Socket closed, Attempting to reconnect");
+                this.goToInterruptedState();
+                return;
+            }
+        } catch (final ClosedSelectorException | AssertionError e) {
+            // The connection was suspended or terimanted
+            return;
+        }
+        if (buff == null) {
+            return;
+        }
+
+        if (buff.length == ManagedConnection.HEARTBEAT_MSG_LENGTH) {
+            // If message is only 1 byte long, it can only be a Heatbeat!
+            if (Arrays.equals(buff, ManagedConnection.PONG)) {
+                // If ponged, it is a response to our ping
+                this.pinged = false;
+            } else if (Arrays.equals(buff, ManagedConnection.PING)) {
+                // If pinged, respond with a pong
+                final byte[] response = ManagedConnection.PONG;
+                this.publishSocket.send(response);
+            }
+
+        } else {
+            // It can only be a user-defined process message!
+            try {
+                final Object message = this.userMessageSerializer.deserialize(buff);
+                final Class<?> messageType = message.getClass();
+                final Method[] allMethods = this.handler.getClass().getMethods();
+                for (final Method method : allMethods) {
+                    if ((method.getName().startsWith("handle")) && (method.getName().endsWith("Message"))
+                            && (method.getParameterCount() == 1) && method.getParameterTypes()[0].equals(messageType)) {
+                        this.serviceExecutor.submit(() -> {
+                            try {
+                                method.invoke(this.handler, message);
+                            } catch (IllegalAccessException | IllegalArgumentException e) {
+                                ManagedConnection.log.error("Message handling method is not properly formatted", e);
+                            } catch (final InvocationTargetException e) {
+                                ManagedConnection.log.error("Exception while invoking " + method.getName() + "("
+                                        + messageType.getSimpleName() + ") method", e.getTargetException());
+                            }
+                        });
+                    }
+                }
+            } catch (final SerializationException e) {
+                // Not a user-defined message, so ignore with grace!
+                ManagedConnection.log.warn("Received unknown message : " + new String(buff) + ". Ignoring...");
+            }
+        }
+    }
+
+    /**
+     * Try to go back from SUSPENDED to CONNECTED. This message prepares the main loop to try to connect again.
+     *
+     * @param listenPort
+     * @param targetAddress
+     */
+    public void resumeAfterSuspendedState(final int listenPort, final String targetAddress) {
+        // Make sure we know that we want to go from SUSPENDED to RUNNING
+        this.listenPort = listenPort;
+        this.targetAddress = targetAddress;
+
+        // Make sure we are ready to listen
+        this.initListening();
+
+        // Wake up the main loop, so it tries to connect the sending
+        synchronized (this.suspendLock) {
+            this.suspendLock.notifyAll();
+        }
+    }
+
+    public void goToTerminatedState() {
+        // Notify Service implementation
+        this.serviceExecutor.submit(() -> {
+            try {
+                this.handler.terminated();
+            } catch (final Throwable e) {
+                ManagedConnection.log.error("Error while calling onSuspend()", e);
+            }
+        });
+
+        // Update the state
+        this.state = ConnectionState.TERMINATED;
+    }
+
+    /**
+     * Go to the SUSPENDED State. In the SUSPENDED state all communication is stopped (both listening and receiving).
+     * The connection is waiting until it receives instruction to reconnect.
+     */
+    public void goToSuspendedState() {
+        // Notify Service implementation
+        this.serviceExecutor.submit(() -> {
+            try {
+                this.handler.onSuspend();
+            } catch (final Throwable e) {
+                ManagedConnection.log.error("Error while calling onSuspend()", e);
+            }
+        });
+
+        // Stop communication
+        this.disconnectListening();
+        this.disconnectSending();
+
+        // Indicate that we have received no instruction to resume
+        this.listenPort = 0;
+        this.targetAddress = null;
+
+        // Update the state
+        this.state = ConnectionState.SUSPENDED;
+    }
+
+    private void startHeartBeat() {
+        if (this.heartBeatFuture != null) {
+            this.heartBeatFuture.cancel(true);
+        }
+        this.pinged = false;
+        this.heartBeatFuture = this.heartBeatExecutor.scheduleAtFixedRate(() -> {
+            if (!this.pinged) {
+                this.pinged = true;
+                this.publishSocket.send(ManagedConnection.PING);
+            } else {
+                // If no PONG was received since the last PING, assume connection was interrupted!
+                this.goToInterruptedState();
+            }
+        }, ManagedConnection.INITIAL_HEARTBEAT_DELAY, ManagedConnection.HEARTBEAT_PERIOD_IN_SECONDS, TimeUnit.SECONDS);
+    }
+
+    private void stopHeartBeat() {
+        this.heartBeatFuture.cancel(true);
+        this.heartBeatFuture = null;
     }
 
     /**
@@ -220,95 +506,6 @@ final class ManagedConnection implements Connection {
         throw new ConnectionModificationException("No interface information found on connection handler");
     }
 
-    /**
-     * @param buff
-     * @throws InvocationTargetException
-     * @throws IllegalArgumentException
-     * @throws IllegalAccessException
-     * @throws SerializationException
-     */
-    private void handleByteArray(final byte[] buff)
-            throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-        if (buff == null) {
-            return;
-        }
-
-        if (buff.length == ManagedConnection.HEARTBEAT_MSG_LENGTH) {
-            // If message is only 1 byte long, it can only be a Heatbeat!
-            if (buff.equals(ManagedConnection.PONG)) {
-                // If ponged, it is a response to our ping
-                this.pinged = false;
-            } else {
-                // If pinged, respond with a pong
-                final byte[] response = ManagedConnection.PONG;
-                this.publishSocket.send(response);
-            }
-
-        } else {
-            // If message is longer than 1 byte, it can be a ConnectionHandshake or a user-defined process message!
-            if (this.state.equals(ConnectionState.STARTING) || this.state.equals(ConnectionState.SUSPENDED)) {
-                // If connection state is STARTING or SUSPENDED, it can only be a Connection Handshake!
-                Message receivedMsg = null;
-                try {
-                    receivedMsg = this.protoBufSerializer.deserialize(buff);
-                } catch (final SerializationException e1) {
-                    // Ignore it...
-                    ManagedConnection.log.warn("Expected handshake, but failed to parse, ignoring message");
-                    return;
-                }
-                final ConnectionHandshake handShakeMessage = (ConnectionHandshake) receivedMsg;
-                if (handShakeMessage.getConnectionId().equals(this.connectionId)) {
-                    Message response;
-                    ManagedConnection.log.debug("Received acknowledge string: {}", handShakeMessage);
-
-                    this.state = ConnectionState.CONNECTED;
-
-                    final Future<ConnectionHandshake> future = this.serviceExecutor.submit(() -> {
-                        this.handler.onConnected(this);
-                        return ConnectionHandshake.newBuilder()
-                                .setConnectionId(this.connectionId)
-                                .setConnectionState(ConnectionState.CONNECTED)
-                                .build();
-                    });
-
-                    try {
-                        response = future.get(ManagedConnection.CONN_INVOKE_TIMEOUT_SECONDS, ManagedConnection.SECONDS);
-                    } catch (InterruptedException | ExecutionException | TimeoutException e1) {
-                        response = ManagedConnection.createErrorMessage(this.connectionId, e1.getMessage());
-                    }
-
-                    ManagedConnection.log.debug("Updated state to {}, replying ack", this.state);
-
-                    try {
-                        this.publishSocket.send(this.protoBufSerializer.serialize(response));
-                    } catch (final SerializationException e) {
-                        ManagedConnection.log.error("Error in serializing " + response);
-                    }
-                } else {
-                    ManagedConnection.log
-                            .warn("Invalid Connection ID in Handshake message : " + handShakeMessage.getConnectionId());
-                }
-            } else {
-                // If connection state is CONNECTED, it can only be a user-defined process message!
-                try {
-                    final Object message = this.userMessageSerializer.deserialize(buff);
-                    final Class<?> messageType = message.getClass();
-                    final Method[] allMethods = this.handler.getClass().getMethods();
-                    for (final Method method : allMethods) {
-                        if ((method.getName().startsWith("handle")) && (method.getName().endsWith("Message"))
-                                && (method.getParameterCount() == 1)
-                                && method.getParameterTypes()[0].equals(messageType)) {
-                            method.invoke(this.handler, message);
-                        }
-                    }
-                } catch (final SerializationException e) {
-                    // Not a user-defined message, so ignore with grace!
-                    ManagedConnection.log.warn("Received unknown message : " + new String(buff) + ". Ignoring...");
-                }
-            }
-        }
-    }
-
     /*
      * (non-Javadoc)
      *
@@ -320,13 +517,30 @@ final class ManagedConnection implements Connection {
             return;
         }
 
+        boolean valid = false;
+        for (final Class<?> c : this.info.sendTypes()) {
+            if (c.isInstance(message)) {
+                valid = true;
+                break;
+            }
+        }
+        if (!valid) {
+            throw new IllegalArgumentException(
+                    "The message type '" + message.getClass().getSimpleName() + "' is not defined in the interface");
+        }
+
         if (this.getState().equals(ConnectionState.CONNECTED)) {
+            boolean success = false;
             try {
                 // Do the send
-                this.publishSocket.send(this.userMessageSerializer.serialize(message));
+                success = this.publishSocket.send(this.userMessageSerializer.serialize(message));
+            } catch (final SerializationException e) {
+                throw new IllegalArgumentException(e);
             } catch (final Exception e) {
-                this.state = ConnectionState.INTERRUPTED;
-                // TODO Recover from the Interrupted state (or via resume?)
+                success = false;
+            }
+            if (!success) {
+                this.goToInterruptedState();
             }
         } else {
             ManagedConnection.log.warn("Unable to send when connection state is {}!", this.state);
@@ -343,178 +557,9 @@ final class ManagedConnection implements Connection {
         return this.state;
     }
 
-    // public Message resume() {
-    // final ConnectionState previous = this.state;
-    // Future<ConnectionHandshake> future = null;
-    //
-    // this.state = ConnectionState.CONNECTED;
-    //
-    // if (previous.equals(ConnectionState.SUSPENDED)) {
-    // future = this.serviceExecutor.submit(() -> {
-    // this.handler.resumeAfterSuspend();
-    // return ConnectionHandshake.newBuilder()
-    // .setConnectionId(this.connectionId)
-    // .setConnectionState(ConnectionState.CONNECTED)
-    // .build();
-    // });
-    // } else if (previous.equals(ConnectionState.INTERRUPTED)) {
-    // future = this.serviceExecutor.submit(() -> {
-    // this.handler.resumeAfterInterrupt();
-    // return ConnectionHandshake.newBuilder()
-    // .setConnectionId(this.connectionId)
-    // .setConnectionState(ConnectionState.CONNECTED)
-    // .build();
-    // });
-    // }
-    // try {
-    // if (future != null) {
-    // return future.get(ManagedConnection.CONN_INVOKE_TIMEOUT_SECONDS, ManagedConnection.SECONDS);
-    // } else {
-    // return this.createErrorMessage(this.connectionId, "Cannot resume from state: " + previous);
-    // }
-    // } catch (InterruptedException | ExecutionException | TimeoutException e) {
-    // return this.createErrorMessage(this.connectionId, e.getMessage());
-    // }
-    // }
-
-    public Message resumeAfterSuspend(final int listenPort, final String targetAddress) {
-        this.connect(listenPort, targetAddress);
-        final Future<Throwable> future = this.serviceExecutor.submit(() -> {
-            try {
-                this.handler.resumeAfterSuspend();
-                return null;
-            } catch (final Throwable e) {
-                ManagedConnection.log.error("Error while calling onSuspend()", e);
-                return e;
-            }
-        });
-        try {
-            final Throwable e = future.get(ManagedConnection.CONN_INVOKE_TIMEOUT_SECONDS, ManagedConnection.SECONDS);
-            if (e == null) {
-                return ConnectionHandshake.newBuilder()
-                        .setConnectionId(this.connectionId)
-                        .setConnectionState(ConnectionState.SUSPENDED)
-                        .build();
-            } else {
-                return ManagedConnection.createErrorMessage(this.connectionId, e.getMessage());
-            }
-        } catch (InterruptedException | TimeoutException | ExecutionException e) {
-            return ManagedConnection.createErrorMessage(this.connectionId, e.getMessage());
-        }
-    }
-
-    // public Message resumeAfterInterrupt() {
-    // final Future<Throwable> future = this.serviceExecutor.submit(() -> {
-    // try {
-    // this.handler.onSuspend();
-    // return null;
-    // } catch (final Throwable e) {
-    // ManagedConnection.log.error("Error while calling onSuspend()", e);
-    // return e;
-    // }
-    // });
-    // this.disconnect(ConnectionState.SUSPENDED);
-    // try {
-    // final Throwable e = future.get(ManagedConnection.CONN_INVOKE_TIMEOUT_SECONDS, ManagedConnection.SECONDS);
-    // if (e == null) {
-    // return ConnectionHandshake.newBuilder()
-    // .setConnectionId(this.connectionId)
-    // .setConnectionState(ConnectionState.SUSPENDED)
-    // .build();
-    // } else {
-    // return ManagedConnection.createErrorMessage(this.connectionId, e.getMessage());
-    // }
-    // } catch (InterruptedException | TimeoutException | ExecutionException e) {
-    // return ManagedConnection.createErrorMessage(this.connectionId, e.getMessage());
-    // }
-    // }
-
-    /**
-     * @param connectionId2
-     * @param e
-     * @return
-     */
-    private static Message createErrorMessage(final String connectionId, final String e) {
-        return ErrorMessage.newBuilder().setDebugInformation(e).setProcessId(connectionId).build();
-    }
-
-    public Message suspend() {
-        final Future<Throwable> future = this.serviceExecutor.submit(() -> {
-            try {
-                this.handler.onSuspend();
-                return null;
-            } catch (final Throwable e) {
-                ManagedConnection.log.error("Error while calling onSuspend()", e);
-                return e;
-            }
-        });
-        this.disconnect(ConnectionState.SUSPENDED);
-        try {
-            final Throwable e = future.get(ManagedConnection.CONN_INVOKE_TIMEOUT_SECONDS, ManagedConnection.SECONDS);
-            if (e == null) {
-                return ConnectionHandshake.newBuilder()
-                        .setConnectionId(this.connectionId)
-                        .setConnectionState(ConnectionState.SUSPENDED)
-                        .build();
-            } else {
-                return ManagedConnection.createErrorMessage(this.connectionId, e.getMessage());
-            }
-        } catch (InterruptedException | TimeoutException | ExecutionException e) {
-            return ManagedConnection.createErrorMessage(this.connectionId, e.getMessage());
-        }
-    }
-
-    public Message terminate() {
-        final Future<Throwable> future = this.serviceExecutor.submit(() -> {
-            try {
-                this.handler.terminated();
-                return null;
-            } catch (final Throwable e) {
-                ManagedConnection.log.error("Error while calling terminated()", e);
-                return e;
-            }
-        });
-        this.disconnect(ConnectionState.TERMINATED);
-        try {
-            final Throwable e = future.get(ManagedConnection.CONN_INVOKE_TIMEOUT_SECONDS, ManagedConnection.SECONDS);
-            if (e == null) {
-                return ConnectionHandshake.newBuilder()
-                        .setConnectionId(this.connectionId)
-                        .setConnectionState(ConnectionState.TERMINATED)
-                        .build();
-            } else {
-                return ManagedConnection.createErrorMessage(this.connectionId, e.getMessage());
-            }
-        } catch (InterruptedException | TimeoutException | ExecutionException e) {
-            return ManagedConnection.createErrorMessage(this.connectionId, e.getMessage());
-        }
-    }
-
-    public void disconnect(final ConnectionState goToState) {
-        this.keepThreadAlive = false;
-        this.state = goToState;
-
-        try {
+    public void waitTillFinished() throws InterruptedException {
+        if (this.connectionThread.isAlive()) {
             this.connectionThread.join();
-        } catch (final InterruptedException e) {
-            // Do nothing
-        }
-
-        if (this.publishSocket != null) {
-            this.publishSocket.close();
-        }
-
-        if (this.subscribeSocket != null) {
-            this.subscribeSocket.close();
-        }
-
-        if (this.zmqContext != null) {
-            try {
-                this.zmqContext.close();
-            } catch (final ZError.IOException e) {
-                // Do nothing
-                // This happens apparently if the socket is closed while someone is polling it.
-            }
         }
     }
 

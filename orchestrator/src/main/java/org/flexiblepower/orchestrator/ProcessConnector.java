@@ -153,8 +153,37 @@ public class ProcessConnector {
         final Process process2 = ProcessManager.getInstance().getProcess(connection.getProcess2Id());
         final ProcessConnection pc2 = this.getProcessConnection(process2.getId());
 
-        pc1.resumeConnection(connection.getId());
-        pc2.resumeConnection(connection.getId());
+        final Service service1 = ServiceManager.getInstance().getService(process1.getServiceId());
+        final Service service2 = ServiceManager.getInstance().getService(process2.getServiceId());
+
+        final Interface interface1 = service1.getInterface(connection.getInterface1Id());
+        final Interface interface2 = service2.getInterface(connection.getInterface2Id());
+
+        for (final InterfaceVersion version1 : interface1.getInterfaceVersions()) {
+            for (final InterfaceVersion version2 : interface2.getInterfaceVersions()) {
+                if (version1.getReceivesHash().equals(version2.getSendsHash())
+                        && version2.getReceivesHash().equals(version1.getSendsHash())) {
+
+                    final int port1 = 5000 + new Random().nextInt(5000);
+                    final int port2 = 5000 + new Random().nextInt(5000);
+                    // TODO maybe random is not the best strategy?
+
+                    pc1.resumeConnection(connection.getId(),
+                            port1,
+                            version1.getSendsHash(),
+                            process2.getId().toString(),
+                            port2,
+                            version2.getReceivesHash());
+
+                    pc2.resumeConnection(connection.getId(),
+                            port2,
+                            version2.getSendsHash(),
+                            process1.getId().toString(),
+                            port1,
+                            version1.getReceivesHash());
+                }
+            }
+        }
     }
 
     public void processConnectionTerminated(final ObjectId processId) {
@@ -312,10 +341,21 @@ public class ProcessConnector {
             }
         }
 
-        public void resumeConnection(final ObjectId connectionId) {
+        public void resumeConnection(final ObjectId connectionId,
+                final int listeningPort,
+                final String sendingHash,
+                final String receivingHost,
+                final int targetPort,
+                final String receivingHash) {
+            final String targetAddress = "tcp://" + receivingHost + ":" + targetPort;
+
             final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
                     .setConnectionId(connectionId.toString())
                     .setMode(ConnectionMessage.ModeType.RESUME)
+                    .setTargetAddress(targetAddress)
+                    .setListenPort(listeningPort)
+                    .setReceiveHash(receivingHash)
+                    .setSendHash(sendingHash)
                     .build();
 
             final ConnectionHandshake response = this.send(connectionMessage, ConnectionHandshake.class);

@@ -65,12 +65,24 @@ public class ConnectionManager implements Closeable {
         case CREATE:
             return this.createConnection(connectionId, message);
         case RESUME:
-            return this.connections.get(connectionId).resumeAfterSuspend(message.getListenPort(),
+            this.connections.get(connectionId).resumeAfterSuspendedState(message.getListenPort(),
                     message.getTargetAddress());
+            return ConnectionHandshake.newBuilder()
+                    .setConnectionId(connectionId)
+                    .setConnectionState(ConnectionState.CONNECTED)
+                    .build();
         case SUSPEND:
-            return this.connections.get(connectionId).suspend();
+            this.connections.get(connectionId).goToSuspendedState();
+            return ConnectionHandshake.newBuilder()
+                    .setConnectionId(connectionId)
+                    .setConnectionState(ConnectionState.SUSPENDED)
+                    .build();
         case TERMINATE:
-            return this.connections.remove(connectionId).terminate();
+            this.connections.remove(connectionId).goToTerminatedState();
+            return ConnectionHandshake.newBuilder()
+                    .setConnectionId(connectionId)
+                    .setConnectionState(ConnectionState.TERMINATED)
+                    .build();
         default:
             throw new ConnectionModificationException("Invalid connection modification type");
         }
@@ -132,7 +144,14 @@ public class ConnectionManager implements Closeable {
     @Override
     public void close() {
         for (final ManagedConnection conn : this.connections.values()) {
-            conn.disconnect(ConnectionState.TERMINATED);
+            conn.goToTerminatedState();
+        }
+        for (final ManagedConnection conn : this.connections.values()) {
+            try {
+                conn.waitTillFinished();
+            } catch (final InterruptedException e) {
+                ConnectionManager.log.warn("Interrupted while waiting for cloning connection", e);
+            }
         }
     }
 

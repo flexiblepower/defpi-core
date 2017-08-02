@@ -32,7 +32,7 @@ public class ManagedConnectionTest {
                 new TestService(),
                 Executors.newSingleThreadExecutor());
         Assert.assertEquals(ConnectionState.STARTING, conn.getState());
-        conn.disconnect(ConnectionState.TERMINATED);
+        conn.goToTerminatedState();
         Assert.assertEquals(ConnectionState.TERMINATED, conn.getState());
     }
 

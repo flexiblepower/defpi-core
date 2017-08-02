@@ -174,10 +174,8 @@ public class ServiceManager implements Closeable {
      * @throws ServiceInvocationException
      * @throws ConnectionModificationException
      */
-    private Message handleServiceMessage(final Message msg) throws IOException,
-            ServiceInvocationException,
-            ConnectionModificationException,
-            SerializationException {
+    private Message handleServiceMessage(final Message msg)
+            throws IOException, ServiceInvocationException, ConnectionModificationException, SerializationException {
 
         if (msg instanceof GoToProcessStateMessage) {
             return this.handleGoToProcessStateMessage((GoToProcessStateMessage) msg);
@@ -197,54 +195,60 @@ public class ServiceManager implements Closeable {
      * @throws ServiceInvocationException
      */
     private Message handleGoToProcessStateMessage(final GoToProcessStateMessage message)
-            throws ServiceInvocationException,
-            SerializationException {
-        Future<ProcessStateUpdateMessage> future;
+            throws ServiceInvocationException, SerializationException {
         final String processId = message.getProcessId();
-        ServiceManager.log
-                .info("Received GoToProcessStateMessage for process {} -> {}", processId, message.getTargetState());
+        ServiceManager.log.info("Received GoToProcessStateMessage for process {} -> {}",
+                processId,
+                message.getTargetState());
         ServiceManager.log.trace("Received message: {}", message);
 
         switch (message.getTargetState()) {
         case RUNNING:
             // This is basically a "force start" with no configuration
-            future = ServiceManager.serviceExecutor.submit(() -> {
-                ServiceManager.this.service.init(new Properties());
-                ServiceManager.this.configured = true;
-                return ServiceManager.this.createProcessStateUpdateMessage(ProcessState.RUNNING);
+            ServiceManager.serviceExecutor.submit(() -> {
+                try {
+                    this.service.init(new Properties());
+                } catch (final Throwable t) {
+                    ServiceManager.log.error("Error while calling init(Properties)", t);
+                }
             });
-            break;
-
+            ServiceManager.this.configured = true;
+            return ServiceManager.this.createProcessStateUpdateMessage(ProcessState.RUNNING);
         case SUSPENDED:
-            future = ServiceManager.serviceExecutor.submit(() -> {
-                final Serializable state = this.service.suspend();
-                this.connectionManager.close();
-                this.keepThreadAlive = false;
-                return this.createProcessStateUpdateMessage(ProcessState.SUSPENDED,
-                        this.javaIoSerializer.serialize(state));
+            final Future<Serializable> future = ServiceManager.serviceExecutor.submit(() -> {
+                try {
+                    return this.service.suspend();
+                } catch (final Throwable t) {
+                    ServiceManager.log.error("Error while calling suspend()", t);
+                    return null;
+                }
             });
-            break;
-
+            this.connectionManager.close();
+            this.keepThreadAlive = false;
+            byte[] stateData = null;
+            try {
+                stateData = this.javaIoSerializer
+                        .serialize(future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+            } catch (final TimeoutException | InterruptedException | ExecutionException e) {
+                ServiceManager.log.error("Calling suspend() method took too much time");
+            }
+            return this.createProcessStateUpdateMessage(ProcessState.SUSPENDED, stateData);
         case TERMINATED:
-            future = ServiceManager.serviceExecutor.submit(() -> {
-                this.service.terminate();
-                this.connectionManager.close();
-                this.keepThreadAlive = false;
-                return this.createProcessStateUpdateMessage(ProcessState.TERMINATED);
+            ServiceManager.serviceExecutor.submit(() -> {
+                try {
+                    this.service.terminate();
+                } catch (final Throwable t) {
+                    ServiceManager.log.error("Error while calling terminate()", t);
+                }
             });
-            break;
-
+            this.connectionManager.close();
+            this.keepThreadAlive = false;
+            return this.createProcessStateUpdateMessage(ProcessState.TERMINATED);
         case STARTING:
         case INITIALIZING:
         default:
             // The manager should not receive this type of messages
             throw new ServiceInvocationException("Invalid target state: " + message.getTargetState());
-        }
-
-        try {
-            return future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, ServiceManager.SECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            return this.createErrorMessage(processId, e);
         }
     }
 
@@ -266,7 +270,7 @@ public class ServiceManager implements Closeable {
             });
             return future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, ServiceManager.SECONDS);
         } catch (final Exception e) {
-            return this.createErrorMessage(processId, e);
+            return ServiceManager.createErrorMessage(processId, e);
         }
     }
 
@@ -301,7 +305,7 @@ public class ServiceManager implements Closeable {
         try {
             return future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, ServiceManager.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            return this.createErrorMessage(this.processId, e);
+            return ServiceManager.createErrorMessage(this.processId, e);
         }
     }
 
@@ -324,7 +328,7 @@ public class ServiceManager implements Closeable {
                 .build();
     }
 
-    private ErrorMessage createErrorMessage(final String processId, final Exception e) {
+    private static ErrorMessage createErrorMessage(final String processId, final Exception e) {
         return ErrorMessage.newBuilder().setDebugInformation(e.getMessage()).setProcessId(processId).build();
     }
 
