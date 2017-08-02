@@ -131,6 +131,61 @@ public class ProcessConnector {
 
     }
 
+    /**
+     * @param c
+     */
+    public void suspendConnection(final Connection connection) {
+        final Process process1 = ProcessManager.getInstance().getProcess(connection.getProcess1Id());
+        final ProcessConnection pc1 = this.getProcessConnection(process1.getId());
+        final Process process2 = ProcessManager.getInstance().getProcess(connection.getProcess2Id());
+        final ProcessConnection pc2 = this.getProcessConnection(process2.getId());
+
+        pc1.suspendConnection(connection.getId());
+        pc2.suspendConnection(connection.getId());
+    }
+
+    /**
+     * @param c
+     */
+    public void resumeConnection(final Connection connection) {
+        final Process process1 = ProcessManager.getInstance().getProcess(connection.getProcess1Id());
+        final ProcessConnection pc1 = this.getProcessConnection(process1.getId());
+        final Process process2 = ProcessManager.getInstance().getProcess(connection.getProcess2Id());
+        final ProcessConnection pc2 = this.getProcessConnection(process2.getId());
+
+        final Service service1 = ServiceManager.getInstance().getService(process1.getServiceId());
+        final Service service2 = ServiceManager.getInstance().getService(process2.getServiceId());
+
+        final Interface interface1 = service1.getInterface(connection.getInterface1Id());
+        final Interface interface2 = service2.getInterface(connection.getInterface2Id());
+
+        for (final InterfaceVersion version1 : interface1.getInterfaceVersions()) {
+            for (final InterfaceVersion version2 : interface2.getInterfaceVersions()) {
+                if (version1.getReceivesHash().equals(version2.getSendsHash())
+                        && version2.getReceivesHash().equals(version1.getSendsHash())) {
+
+                    final int port1 = 5000 + new Random().nextInt(5000);
+                    final int port2 = 5000 + new Random().nextInt(5000);
+                    // TODO maybe random is not the best strategy?
+
+                    pc1.resumeConnection(connection.getId(),
+                            port1,
+                            version1.getSendsHash(),
+                            process2.getId().toString(),
+                            port2,
+                            version2.getReceivesHash());
+
+                    pc2.resumeConnection(connection.getId(),
+                            port2,
+                            version2.getSendsHash(),
+                            process1.getId().toString(),
+                            port1,
+                            version1.getReceivesHash());
+                }
+            }
+        }
+    }
+
     public void processConnectionTerminated(final ObjectId processId) {
         this.connections.remove(processId);
     }
@@ -212,8 +267,9 @@ public class ProcessConnector {
                         throw new IllegalArgumentException(
                                 "Provided ObjectId for Process " + this.processId + " does not exist");
                     }
-                    this.uri = String
-                            .format("tcp://%s:%d", process.getId().toString(), ProcessConnection.MANAGEMENT_PORT);
+                    this.uri = String.format("tcp://%s:%d",
+                            process.getId().toString(),
+                            ProcessConnection.MANAGEMENT_PORT);
 
                     this.socket = ZMQ.context(1).socket(ZMQ.REQ);
                     this.socket.setDelayAttachOnConnect(true);
@@ -272,10 +328,48 @@ public class ProcessConnector {
             }
         }
 
+        public void suspendConnection(final ObjectId connectionId) {
+            final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
+                    .setConnectionId(connectionId.toString())
+                    .setMode(ConnectionMessage.ModeType.SUSPEND)
+                    .build();
+
+            final ConnectionHandshake response = this.send(connectionMessage, ConnectionHandshake.class);
+            if (response != null) {
+                ProcessConnector.log
+                        .debug("Connection " + connectionId + " status: " + response.getConnectionState().name());
+            }
+        }
+
+        public void resumeConnection(final ObjectId connectionId,
+                final int listeningPort,
+                final String sendingHash,
+                final String receivingHost,
+                final int targetPort,
+                final String receivingHash) {
+            final String targetAddress = "tcp://" + receivingHost + ":" + targetPort;
+
+            final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
+                    .setConnectionId(connectionId.toString())
+                    .setMode(ConnectionMessage.ModeType.RESUME)
+                    .setTargetAddress(targetAddress)
+                    .setListenPort(listeningPort)
+                    .setReceiveHash(receivingHash)
+                    .setSendHash(sendingHash)
+                    .build();
+
+            final ConnectionHandshake response = this.send(connectionMessage, ConnectionHandshake.class);
+            if (response != null) {
+                ProcessConnector.log
+                        .debug("Connection " + connectionId + " status: " + response.getConnectionState().name());
+            }
+        }
+
         public void startProcess() {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final Builder builder = SetConfigMessage.newBuilder().setProcessId(process.getId().toString()).setIsUpdate(
-                    false);
+            final Builder builder = SetConfigMessage.newBuilder()
+                    .setProcessId(process.getId().toString())
+                    .setIsUpdate(false);
             if (process.getConfiguration() != null) {
                 for (final Parameter p : process.getConfiguration()) {
                     builder.putConfig(p.getKey(), p.getValue());
@@ -305,8 +399,9 @@ public class ProcessConnector {
 
         public void updateConfiguration() {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final Builder builder = SetConfigMessage.newBuilder().setProcessId(process.getId().toString()).setIsUpdate(
-                    true);
+            final Builder builder = SetConfigMessage.newBuilder()
+                    .setProcessId(process.getId().toString())
+                    .setIsUpdate(true);
             if (process.getConfiguration() != null) {
                 for (final Parameter p : process.getConfiguration()) {
                     builder.putConfig(p.getKey(), p.getValue());

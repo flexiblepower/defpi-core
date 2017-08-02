@@ -8,16 +8,11 @@ package org.flexiblepower.service;
 import java.io.Closeable;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
-import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,8 +37,6 @@ public class ConnectionManager implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(ConnectionManager.class);
     private static final Map<String, ConnectionHandlerFactory> connectionHandlers = new HashMap<>();
-    private static final long CONN_INVOKE_TIMEOUT_SECONDS = 1;
-    private static final TimeUnit SECONDS = TimeUnit.SECONDS;
 
     private final Map<String, ManagedConnection> connections = new HashMap<>();
     private final ExecutorService executor;
@@ -63,30 +56,33 @@ public class ConnectionManager implements Closeable {
      */
     public Message handleConnectionMessage(final ConnectionMessage message) throws ConnectionModificationException {
         final String connectionId = message.getConnectionId();
-        ConnectionManager.log
-                .info("Received ConnectionMessage for connection {} ({})", connectionId, message.getMode());
+        ConnectionManager.log.info("Received ConnectionMessage for connection {} ({})",
+                connectionId,
+                message.getMode());
         ConnectionManager.log.trace("Received message:\n{}", message);
 
         switch (message.getMode()) {
         case CREATE:
             return this.createConnection(connectionId, message);
         case RESUME:
-            return this.connections.get(connectionId).resume();
+            this.connections.get(connectionId).resumeAfterSuspendedState(message.getListenPort(),
+                    message.getTargetAddress());
+            return ConnectionHandshake.newBuilder()
+                    .setConnectionId(connectionId)
+                    .setConnectionState(ConnectionState.CONNECTED)
+                    .build();
         case SUSPEND:
-            return this.connections.get(connectionId).suspend();
+            this.connections.get(connectionId).goToSuspendedState();
+            return ConnectionHandshake.newBuilder()
+                    .setConnectionId(connectionId)
+                    .setConnectionState(ConnectionState.SUSPENDED)
+                    .build();
         case TERMINATE:
-            final Future<ConnectionHandshake> future = this.executor.submit(() -> {
-                this.connections.remove(connectionId).close();
-                return ConnectionHandshake.newBuilder()
-                        .setConnectionId(connectionId)
-                        .setConnectionState(ConnectionState.TERMINATED)
-                        .build();
-            });
-            try {
-                return future.get(ConnectionManager.CONN_INVOKE_TIMEOUT_SECONDS, ConnectionManager.SECONDS);
-            } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                return ErrorMessage.newBuilder().setDebugInformation(e.getMessage()).setProcessId(connectionId).build();
-            }
+            this.connections.remove(connectionId).goToTerminatedState();
+            return ConnectionHandshake.newBuilder()
+                    .setConnectionId(connectionId)
+                    .setConnectionState(ConnectionState.TERMINATED)
+                    .build();
         default:
             throw new ConnectionModificationException("Invalid connection modification type");
         }
@@ -96,7 +92,6 @@ public class ConnectionManager implements Closeable {
      * @param message
      * @throws ConnectionModificationException
      */
-    @SuppressWarnings("resource")
     private Message createConnection(final String connectionId, final ConnectionMessage message)
             throws ConnectionModificationException {
         // First find the correct handler to attach to the connection
@@ -149,7 +144,14 @@ public class ConnectionManager implements Closeable {
     @Override
     public void close() {
         for (final ManagedConnection conn : this.connections.values()) {
-            conn.close();
+            conn.goToTerminatedState();
+        }
+        for (final ManagedConnection conn : this.connections.values()) {
+            try {
+                conn.waitTillFinished();
+            } catch (final InterruptedException e) {
+                ConnectionManager.log.warn("Interrupted while waiting for cloning connection", e);
+            }
         }
     }
 

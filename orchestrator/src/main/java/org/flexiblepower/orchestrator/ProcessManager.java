@@ -11,6 +11,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.bson.types.ObjectId;
+import org.flexiblepower.model.Connection;
+import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.model.User;
@@ -119,8 +121,14 @@ public class ProcessManager {
         } else if (process.getPrivateNodeId() != null) {
             if (process.getNodePoolId() != null) {
                 throw new IllegalArgumentException("Either the nodepool or the privatenode should be set");
-            } else if (NodeManager.getInstance().getPrivateNode(process.getPrivateNodeId()) == null) {
-                throw new IllegalArgumentException("Could not find NodePool");
+            } else {
+                final PrivateNode privateNode = NodeManager.getInstance().getPrivateNode(process.getPrivateNodeId());
+                if (privateNode == null) {
+                    throw new IllegalArgumentException("Could not find Private Node");
+                } else if (!privateNode.getUserId().equals(process.getUserId())) {
+                    throw new IllegalArgumentException(
+                            "The Process cannot be assigned to the private node of another user");
+                }
             }
         } else if ((process.getPrivateNodeId() == null) && (process.getNodePoolId() == null)) {
             throw new IllegalArgumentException("Either the nodepool or the privatenode should be set");
@@ -199,6 +207,13 @@ public class ProcessManager {
         this.mongoDbConnector.save(updatedProcess);
 
         this.threadpool.execute(() -> {
+            final ConnectionManager connectionManager = ConnectionManager.getInstance();
+            // Tell all connections to suspend
+            final List<Connection> connectionsForProcess = connectionManager.getConnectionsForProcess(currentProcess);
+            for (final Connection c : connectionsForProcess) {
+                connectionManager.suspendConnection(c);
+            }
+
             // Tell the process to suspend
             final byte[] suspendProcess = this.processConnector.suspendProcess(currentProcess.getId());
             this.threadpool.schedule(() -> {
@@ -215,6 +230,10 @@ public class ProcessManager {
                             UserManager.getInstance().getUser(newProcess.getUserId()));
                     // Tell the new process to resume
                     this.processConnector.resume(updatedProcess.getId(), suspendProcess);
+                    // Tell the connections to resume
+                    for (final Connection c : connectionsForProcess) {
+                        connectionManager.resumeConnection(c);
+                    }
                 }, 3, TimeUnit.SECONDS);
             }, 3, TimeUnit.SECONDS);
         });
