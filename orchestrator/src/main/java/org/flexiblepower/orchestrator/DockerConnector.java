@@ -54,6 +54,11 @@ class DockerConnector {
     /**
      *
      */
+    private static final String ORCHESTRATOR_CONTAINER_NAME = "orchestrator_orchestrator_1";
+
+    /**
+     *
+     */
     private static final String ORCHESTRATOR_NETWORK_NAME = "orchestrator_management";
 
     private static final int INTERNAL_DEBUGGING_PORT = 8000;
@@ -188,8 +193,14 @@ class DockerConnector {
      */
     public String newNetwork(final String networkName) {
         try {
-            final NetworkConfig networkConfig = NetworkConfig.builder().driver("overlay").name(networkName).build();
-            return this.client.createNetwork(networkConfig).id();
+            final NetworkConfig networkConfig = NetworkConfig.builder()
+                    .driver("overlay")
+                    .attachable(true)
+                    .name(networkName)
+                    .build();
+            final String ret = this.client.createNetwork(networkConfig).id();
+            this.client.connectToNetwork(DockerConnector.ORCHESTRATOR_CONTAINER_NAME, networkName);
+            return ret;
         } catch (DockerException | InterruptedException e) {
             DockerConnector.log.error("Error while creating new network: {}", e.getMessage());
             DockerConnector.log.trace("Error while creating new network", e);
@@ -202,6 +213,7 @@ class DockerConnector {
      */
     public void removeNetwork(final String networkId) {
         try {
+            this.client.disconnectFromNetwork(DockerConnector.ORCHESTRATOR_CONTAINER_NAME, networkId);
             this.client.removeNetwork(networkId);
         } catch (DockerException | InterruptedException e) {
             DockerConnector.log.error("Error while removing network: {}", e.getMessage());
@@ -230,10 +242,8 @@ class DockerConnector {
      * @param process
      * @return
      */
-    private static ServiceSpec createServiceSpec(final Process process,
-            final Service service,
-            final User user,
-            final Node node) {
+    private static ServiceSpec
+            createServiceSpec(final Process process, final Service service, final User user, final Node node) {
 
         final Architecture architecture = node.getArchitecture();
         // Create a name for the service by removing blanks from process name

@@ -24,6 +24,7 @@
 		<docker.folder>docker</docker.folder>
 		<docker.arm.folder>docker-arm</docker.arm.folder>
 		<docker.registry>def-pi1.sensorlab.tno.nl:5000</docker.registry>
+		<!-- docker.registry>defpi.hesilab.nl:5000</docker.registry -->
 		<docker.imageName>${docker.registry}/services/${project.artifactId}</docker.imageName>
 	</properties>
 

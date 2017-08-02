@@ -44,6 +44,7 @@ public class RegistryConnector {
 
     private static RegistryConnector instance = null;
 
+    private final String registryName;
     private final String registryApiLink;
     private final Gson gson = new Gson();
 
@@ -54,11 +55,9 @@ public class RegistryConnector {
     private final Object serviceCacheLock = new Object();
 
     private RegistryConnector() {
-        String registryUrl = System.getenv(RegistryConnector.REGISTRY_URL_KEY);
-        if (registryUrl == null) {
-            registryUrl = RegistryConnector.REGISTRY_URL_DFLT;
-        }
-        this.registryApiLink = "https://" + registryUrl + "/v2/";
+        final String registryNameFromEnv = System.getenv(RegistryConnector.REGISTRY_URL_KEY);
+        this.registryName = (registryNameFromEnv != null ? registryNameFromEnv : RegistryConnector.REGISTRY_URL_DFLT);
+        this.registryApiLink = "https://" + this.registryName + "/v2/";
     }
 
     synchronized static RegistryConnector getInstance() {
@@ -224,8 +223,8 @@ public class RegistryConnector {
     // return this.getService(url);
     // }
 
-    Service getService(final String repository, final String id)
-            throws ServiceNotFoundException, RepositoryNotFoundException {
+    Service getService(final String repository, final String id) throws ServiceNotFoundException,
+            RepositoryNotFoundException {
         for (final Service service : this.listServices(repository)) {
             if (service.getId().equals(id)) {
                 return service;
@@ -287,7 +286,7 @@ public class RegistryConnector {
 
         }
 
-        serviceBuilder.tags(tags).registry(RegistryConnector.REGISTRY_URL_DFLT).version(version);
+        serviceBuilder.tags(tags).registry(this.registryName).version(version);
 
         return serviceBuilder.build();
         //

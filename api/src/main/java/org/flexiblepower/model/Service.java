@@ -86,8 +86,6 @@ public class Service {
 	public static Architecture getArchitectureFromTag(String tag) {
 		if (tag.endsWith("-arm")) {
 			return Architecture.ARM;
-		} else if (tag.endsWith("-x86")) {
-			return Architecture.X86;
 		} else if (!tag.contains("-")) {
 			// 64bit is default
 			return Architecture.X86_64;
