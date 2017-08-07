@@ -19,12 +19,13 @@
 		<!-- A shorthand to point to the resources folder that should be included 
 			in packaged JARs (and docker) -->
 		<project.resourcedir>${project.basedir}/src/main/resources</project.resourcedir>
+		<project.testresourcedir>${project.basedir}/src/test/resources</project.testresourcedir>
 
 		<!-- Specific setting for the docker image -->
 		<docker.folder>docker</docker.folder>
 		<docker.arm.folder>docker-arm</docker.arm.folder>
-		<docker.registry>def-pi1.sensorlab.tno.nl:5000</docker.registry>
-		<!-- docker.registry>defpi.hesilab.nl:5000</docker.registry -->
+		<!-- docker.registry>def-pi1.sensorlab.tno.nl:5000</docker.registry -->
+		<docker.registry>defpi.hesilab.nl:5000</docker.registry>
 		<docker.imageName>${docker.registry}/services/${project.artifactId}</docker.imageName>
 	</properties>
 
@@ -64,6 +65,7 @@
 						<descriptorRefs>
 							<descriptorRef>jar-with-dependencies</descriptorRef>
 						</descriptorRefs>
+						<includeProjectBuildFilters>true</includeProjectBuildFilters>
 					</configuration>
 					<executions>
 						<execution>
@@ -75,7 +77,7 @@
 						</execution>
 					</executions>
 				</plugin>
-
+				
 				<plugin>
 					<groupId>com.spotify</groupId>
 					<artifactId>docker-maven-plugin</artifactId>
@@ -126,7 +128,7 @@
 								<imageName>${docker.imageName}:latest</imageName>
 							</configuration>
 						</execution>
-						
+
 						<execution>
 							<id>build-image-arm</id>
 							<phase>package</phase>

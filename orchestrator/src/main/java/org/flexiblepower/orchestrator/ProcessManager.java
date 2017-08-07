@@ -11,6 +11,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.bson.types.ObjectId;
+import org.flexiblepower.exceptions.ProcessConnectionException;
+import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.Process;
@@ -84,6 +86,7 @@ public class ProcessManager {
             final User user = this.userManager.getUser(process.getUserId());
             final String dockerId = DockerConnector.getInstance().newProcess(process, user);
 
+            // process.setHostname(process.getId().toString());
             process.setState(ProcessState.INITIALIZING);
             process.setDockerId(dockerId);
             this.mongoDbConnector.save(process);
@@ -91,7 +94,11 @@ public class ProcessManager {
             ProcessManager.this.threadpool.execute(() -> {
                 // Create management connection
                 ProcessManager.log.info("Going to configure process " + process.getId());
-                ProcessConnector.getInstance().initNewProcess(process.getId());
+                try {
+                    ProcessConnector.getInstance().initNewProcess(process.getId());
+                } catch (final ProcessConnectionException e) {
+                    ProcessManager.log.error("Unable to start process {}: {}", process, e.getMessage());
+                }
             });
 
         });
@@ -135,16 +142,19 @@ public class ProcessManager {
         }
     }
 
-    public void deleteProcess(final Process process) {
+    public void deleteProcess(final Process process, final boolean kill) {
         // Notify process
-        this.threadpool.execute(() -> {
-            try {
-                ProcessConnector.getInstance().terminate(process.getId());
-            } catch (final Exception e) {
-                // If notification doesn't work, that's too bad, make sure it gets removed anyway
-                ProcessManager.log.warn("Could not notify process it is going to terminate. Terminating anyway.", e);
-            }
-        });
+        if (!kill) {
+            this.threadpool.execute(() -> {
+                try {
+                    ProcessConnector.getInstance().terminate(process.getId());
+                } catch (final Exception e) {
+                    // If notification doesn't work, that's too bad, make sure it gets removed anyway
+                    ProcessManager.log.warn("Could not notify process it is going to terminate. Terminating anyway.",
+                            e);
+                }
+            });
+        }
 
         // Now give it some time to shut down
         this.threadpool.schedule(() -> {
@@ -156,10 +166,14 @@ public class ProcessManager {
             }
             // Delete record from MongoDB
             this.mongoDbConnector.delete(process);
-        }, 5, TimeUnit.SECONDS);
+        }, kill ? 0 : 5, TimeUnit.SECONDS);
     }
 
-    public Process updateProcess(final Process newProcess) {
+    public void deleteProcess(final Process process) {
+        this.deleteProcess(process, false);
+    }
+
+    public Process updateProcess(final Process newProcess) throws ProcessNotFoundException {
         this.validateProcess(newProcess);
 
         Process currentProcess = MongoDbConnector.getInstance().get(Process.class, newProcess.getId());
@@ -211,28 +225,54 @@ public class ProcessManager {
             // Tell all connections to suspend
             final List<Connection> connectionsForProcess = connectionManager.getConnectionsForProcess(currentProcess);
             for (final Connection c : connectionsForProcess) {
-                connectionManager.suspendConnection(c);
+                try {
+                    connectionManager.suspendConnection(c);
+                } catch (final ProcessNotFoundException e) {
+                    e.printStackTrace();
+                    return;
+                }
             }
 
             // Tell the process to suspend
-            final byte[] suspendProcess = this.processConnector.suspendProcess(currentProcess.getId());
+            byte[] processState;
+            try {
+                processState = this.processConnector.suspendProcess(currentProcess.getId());
+            } catch (final ProcessNotFoundException e) {
+                ProcessManager.log.error("Unable to suspend process {}: {}", currentProcess, e.getMessage());
+                return;
+            }
+
             this.threadpool.schedule(() -> {
                 // Remove the Docker service
                 try {
                     this.dockerConnector.removeProcess(currentProcess);
                 } catch (final Exception e) {
-                    ProcessManager.log
-                            .error("Could not remove Docker Service when moving process " + currentProcess.getId(), e);
+                    ProcessManager.log.error("Could not remove Docker Service when moving process {}: {} ",
+                            currentProcess.getId(),
+                            e.getMessage());
+                    // Do not create a new one...
+                    return;
                 }
+
                 this.threadpool.schedule(() -> {
                     // Create a new Docker Service
                     this.dockerConnector.newProcess(updatedProcess,
                             UserManager.getInstance().getUser(newProcess.getUserId()));
+
                     // Tell the new process to resume
-                    this.processConnector.resume(updatedProcess.getId(), suspendProcess);
+                    try {
+                        this.processConnector.resume(updatedProcess.getId(), processState);
+                    } catch (final ProcessNotFoundException e) {
+                        ProcessManager.log.error("Unable to resume process {}: {}", currentProcess.getId(), e);
+                        return;
+                    }
                     // Tell the connections to resume
                     for (final Connection c : connectionsForProcess) {
-                        connectionManager.resumeConnection(c);
+                        try {
+                            connectionManager.resumeConnection(c);
+                        } catch (final ProcessNotFoundException e) {
+                            ProcessManager.log.error("Unable to resume connection {}: {}", c, e);
+                        }
                     }
                 }, 3, TimeUnit.SECONDS);
             }, 3, TimeUnit.SECONDS);
@@ -244,8 +284,10 @@ public class ProcessManager {
      * @param currentProcess
      * @param newProcess
      * @return
+     * @throws ProcessNotFoundException
      */
-    private Process updateConfiguration(final Process currentProcess, final Process newProcess) {
+    private Process updateConfiguration(final Process currentProcess, final Process newProcess)
+            throws ProcessNotFoundException {
         return this.processConnector.updateConfiguration(currentProcess.getId(), newProcess.getConfiguration());
     }
 

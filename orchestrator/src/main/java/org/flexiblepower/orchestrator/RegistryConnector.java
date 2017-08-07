@@ -322,9 +322,7 @@ public class RegistryConnector {
         final Response response = ClientBuilder.newClient().target(uri).request().get();
         RegistryConnector.validateResponse(response);
 
-        final String ret = response.readEntity(String.class);
-        RegistryConnector.log.trace("Received response: {}", ret);
-        return ret;
+        return response.readEntity(String.class);
     }
 
     /**
