@@ -19,7 +19,6 @@
 		<!-- A shorthand to point to the resources folder that should be included 
 			in packaged JARs (and docker) -->
 		<project.resourcedir>${project.basedir}/src/main/resources</project.resourcedir>
-		<project.testresourcedir>${project.basedir}/src/test/resources</project.testresourcedir>
 
 		<!-- Specific setting for the docker image -->
 		<docker.folder>docker</docker.folder>

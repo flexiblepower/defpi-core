@@ -170,7 +170,7 @@
 			    <configuration>
 			        <systemProperties>
 			            <property>
-			                 <name>log4j2.configurationFile</name>
+			                 <name>log4j.configurationFile</name>
 			                 <value>src/test/resources/log4j2.xml</value>
 			            </property>
 			        </systemProperties>
