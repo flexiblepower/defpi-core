@@ -3,7 +3,7 @@
  *
  * Copyright 2017 TNO
  */
-package org.flexiblepower.orchestrator;
+package org.flexiblepower.connectors;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,6 +22,8 @@ import org.flexiblepower.model.Process;
 import org.flexiblepower.model.PublicNode;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.model.User;
+import org.flexiblepower.orchestrator.NodeManager;
+import org.flexiblepower.orchestrator.ServiceManager;
 
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
@@ -49,7 +51,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since 20 mrt. 2017
  */
 @Slf4j
-class DockerConnector {
+public class DockerConnector {
 
     /**
      *
@@ -91,7 +93,7 @@ class DockerConnector {
         }
     }
 
-    synchronized static DockerConnector getInstance() {
+    public synchronized static DockerConnector getInstance() {
         if (DockerConnector.instance == null) {
             DockerConnector.instance = new DockerConnector();
         }
@@ -242,8 +244,10 @@ class DockerConnector {
      * @param process
      * @return
      */
-    private static ServiceSpec
-            createServiceSpec(final Process process, final Service service, final User user, final Node node) {
+    private static ServiceSpec createServiceSpec(final Process process,
+            final Service service,
+            final User user,
+            final Node node) {
 
         final Architecture architecture = node.getArchitecture();
         // Create a name for the service by removing blanks from process name

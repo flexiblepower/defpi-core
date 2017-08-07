@@ -7,6 +7,7 @@ package org.flexiblepower.orchestrator;
 
 import java.util.UUID;
 
+import org.flexiblepower.connectors.ProcessConnector;
 import org.junit.Before;
 
 /**

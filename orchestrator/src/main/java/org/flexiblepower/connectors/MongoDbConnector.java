@@ -1,5 +1,6 @@
-package org.flexiblepower.orchestrator;
+package org.flexiblepower.connectors;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -10,9 +11,11 @@ import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.UnidentifiedNode;
 import org.flexiblepower.model.User;
+import org.flexiblepower.orchestrator.pendingchange.PendingChange;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
 import org.mongodb.morphia.query.Query;
+import org.mongodb.morphia.query.UpdateOperations;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -39,6 +42,7 @@ public final class MongoDbConnector {
     private final static String MONGO_PORT_DFLT = "27017";
     private final static String MONGO_DATABASE_KEY = "MONGO_DATABASE";
     private final static String MONGO_DATABASE_DFLT = "def-pi";
+    private static final long PENDING_CHANGE_TIMEOUT_MS = 5 * 60 * 1000;
 
     private static MongoDbConnector instance = null;
 
@@ -76,7 +80,7 @@ public final class MongoDbConnector {
         this.datastore.ensureIndexes();
     }
 
-    synchronized static MongoDbConnector getInstance() {
+    public synchronized static MongoDbConnector getInstance() {
         if (MongoDbConnector.instance == null) {
             MongoDbConnector.instance = new MongoDbConnector();
         }
@@ -211,5 +215,36 @@ public final class MongoDbConnector {
         final Query<UnidentifiedNode> q = this.datastore.find(UnidentifiedNode.class);
         q.criteria("dockerId").equal(dockerId);
         return q.get();
+    }
+
+    /**
+     * Retrieve the next PendingChange. It uses the findAndModify option to make sure that no tasks gets taken from the
+     * queue twice.
+     *
+     * See http://www.programcreek.com/java-api-examples/index.php?api=com.google.code.morphia.query.UpdateOperations
+     * for the polymorphism trick.
+     *
+     * @return The next unobtained PendingChange, null if there are no pendingChanges
+     */
+    public PendingChange getNextPendingChange() {
+        final Query<PendingChange> query = this.datastore.createQuery(PendingChange.class)
+                .field("obtainedAt")
+                .equal(null) // Must be null
+                .field("state")
+                .notEqual(PendingChange.State.FAILED_PERMANENTLY) // Not failed
+                .field("runAt")
+                .lessThanOrEq(System.currentTimeMillis()) // No future task
+                .order("runAt")
+                .disableValidation();
+        final UpdateOperations<PendingChange> update = this.datastore.createUpdateOperations(PendingChange.class)
+                .set("obtainedAt", System.currentTimeMillis());
+        return this.datastore.findAndModify(query, update);
+    }
+
+    public PendingChange getAbendonedPendingChanges() {
+        return this.datastore.createQuery(PendingChange.class)
+                .filter("obtainedAt <",
+                        new Date(System.currentTimeMillis() - MongoDbConnector.PENDING_CHANGE_TIMEOUT_MS))
+                .get();
     }
 }

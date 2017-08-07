@@ -3,12 +3,14 @@
  *
  * Copyright 2017 TNO
  */
-package org.flexiblepower.orchestrator;
+package org.flexiblepower.process;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.types.ObjectId;
+import org.flexiblepower.connectors.MongoDbConnector;
+import org.flexiblepower.connectors.ProcessConnector;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
@@ -17,6 +19,7 @@ import org.flexiblepower.model.Interface;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.model.User;
+import org.flexiblepower.orchestrator.ServiceManager;
 
 /**
  * ConnectionManager

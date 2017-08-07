@@ -3,7 +3,7 @@
  *
  * Copyright 2017 TNO
  */
-package org.flexiblepower.orchestrator;
+package org.flexiblepower.process;
 
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -11,11 +11,19 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.bson.types.ObjectId;
+import org.flexiblepower.connectors.MongoDbConnector;
+import org.flexiblepower.connectors.ProcessConnector;
+import org.flexiblepower.connectors.DockerConnector;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.Process;
+import org.flexiblepower.model.Process.Parameter;
 import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.model.User;
+import org.flexiblepower.orchestrator.NodeManager;
+import org.flexiblepower.orchestrator.ServiceManager;
+import org.flexiblepower.orchestrator.UserManager;
+import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -159,7 +167,7 @@ public class ProcessManager {
         }, 5, TimeUnit.SECONDS);
     }
 
-    public Process updateProcess(final Process newProcess) {
+    public void updateProcess(final Process newProcess) {
         this.validateProcess(newProcess);
 
         Process currentProcess = MongoDbConnector.getInstance().get(Process.class, newProcess.getId());
@@ -186,11 +194,9 @@ public class ProcessManager {
         } else {
             // Did the configuration change?
             if (!newProcess.getConfiguration().equals(currentProcess.getConfiguration())) {
-                currentProcess = this.updateConfiguration(currentProcess, newProcess);
+                this.updateConfiguration(currentProcess, newProcess.getConfiguration());
             }
         }
-
-        return currentProcess;
     }
 
     /**
@@ -241,12 +247,15 @@ public class ProcessManager {
     }
 
     /**
-     * @param currentProcess
-     * @param newProcess
+     * @param process
+     * @param newConfiguration
      * @return
      */
-    private Process updateConfiguration(final Process currentProcess, final Process newProcess) {
-        return this.processConnector.updateConfiguration(currentProcess.getId(), newProcess.getConfiguration());
+    private void updateConfiguration(final Process process, final List<Parameter> newConfiguration) {
+        final ChangeProcessConfiguration pendingChange = new ChangeProcessConfiguration(process.getUserId(),
+                process.getId(),
+                newConfiguration);
+        PendingChangeManager.getInstance().submit(pendingChange);
     }
 
 }

@@ -9,12 +9,14 @@ import java.net.InetAddress;
 import java.util.List;
 
 import org.bson.types.ObjectId;
+import org.flexiblepower.connectors.ProcessConnector;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.model.UnidentifiedNode;
 import org.flexiblepower.model.User;
+import org.flexiblepower.process.ProcessManager;
 import org.junit.Assert;
 
 import lombok.extern.slf4j.Slf4j;

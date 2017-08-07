@@ -3,7 +3,7 @@
  *
  * Copyright 2017 TNO
  */
-package org.flexiblepower.orchestrator;
+package org.flexiblepower.connectors;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -21,6 +21,8 @@ import org.flexiblepower.model.InterfaceVersion;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Process.Parameter;
 import org.flexiblepower.model.Process.ProcessState;
+import org.flexiblepower.orchestrator.ServiceManager;
+import org.flexiblepower.process.ProcessManager;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
@@ -56,7 +58,7 @@ public class ProcessConnector {
     private ProcessConnector() {
     }
 
-    synchronized static ProcessConnector getInstance() {
+    public synchronized static ProcessConnector getInstance() {
         if (ProcessConnector.instance == null) {
             ProcessConnector.instance = new ProcessConnector();
         }
@@ -65,7 +67,12 @@ public class ProcessConnector {
 
     private ProcessConnection getProcessConnection(final ObjectId processId) {
         if (!this.connections.containsKey(processId)) {
-            this.connections.put(processId, new ProcessConnection(processId));
+            final ProcessConnection processConnection = new ProcessConnection(processId);
+            if (processConnection.connectWithProcess()) {
+                this.connections.put(processId, processConnection);
+            } else {
+                return null;
+            }
         }
         return this.connections.get(processId);
     }
@@ -225,17 +232,17 @@ public class ProcessConnector {
      * @param configuration
      * @return
      */
-    public Process updateConfiguration(final ObjectId processId, final List<Parameter> configuration) {
-        final Process process = MongoDbConnector.getInstance().get(Process.class, processId);
-        process.setConfiguration(configuration);
-        MongoDbConnector.getInstance().save(process);
-        this.getProcessConnection(processId).updateConfiguration();
-        return process;
+    public boolean updateConfiguration(final ObjectId processId, final List<Parameter> configuration) {
+        final ProcessConnection connection = this.getProcessConnection(processId);
+        if (connection == null) {
+            return false;
+        } else {
+            return connection.updateConfiguration(configuration);
+        }
     }
 
     private static final class ProcessConnection {
 
-        private static final int NUM_CONNECT_TRIES = 60;
         private static final long RETRY_TIMEOUT = 1000;
 
         private static final int MANAGEMENT_SOCKET_SEND_TIMEOUT = 10000;
@@ -256,38 +263,34 @@ public class ProcessConnector {
             this.serializer.addMessageClass(SetConfigMessage.class);
             this.serializer.addMessageClass(ConnectionHandshake.class);
             this.serializer.addMessageClass(ConnectionMessage.class);
-            this.connectWithProcess();
         }
 
-        public void connectWithProcess() {
-            for (int i = 0; i < ProcessConnection.NUM_CONNECT_TRIES; i++) {
-                try {
-                    final Process process = ProcessManager.getInstance().getProcess(this.processId);
-                    if (process == null) {
-                        throw new IllegalArgumentException(
-                                "Provided ObjectId for Process " + this.processId + " does not exist");
-                    }
-                    this.uri = String.format("tcp://%s:%d",
-                            process.getId().toString(),
-                            ProcessConnection.MANAGEMENT_PORT);
-
-                    this.socket = ZMQ.context(1).socket(ZMQ.REQ);
-                    this.socket.setDelayAttachOnConnect(true);
-                    this.socket.connect(this.uri.toString());
-                    this.socket.setSendTimeOut(ProcessConnection.MANAGEMENT_SOCKET_SEND_TIMEOUT);
-                    this.socket.setReceiveTimeOut(ProcessConnection.MANAGEMENT_SOCKET_RECV_TIMEOUT);
-                    ProcessConnector.log.debug("Connected with process on address " + this.uri);
-                    return;
-                } catch (final Throwable t) {
-                    ProcessConnector.log.error("Could not connect with container");
-                    ProcessConnector.log.trace("Could not connect with container ", t);
-                    try {
-                        Thread.sleep(ProcessConnection.RETRY_TIMEOUT);
-                    } catch (final InterruptedException e) {
-                        ProcessConnector.log.error("Interrupted while retrying...");
-                        ProcessConnector.log.trace("Interrupted while retrying", e);
-                    }
+        public boolean connectWithProcess() {
+            try {
+                final Process process = ProcessManager.getInstance().getProcess(this.processId);
+                if (process == null) {
+                    throw new IllegalArgumentException(
+                            "Provided ObjectId for Process " + this.processId + " does not exist");
                 }
+                this.uri = String.format("tcp://%s:%d", process.getId().toString(), ProcessConnection.MANAGEMENT_PORT);
+
+                this.socket = ZMQ.context(1).socket(ZMQ.REQ);
+                this.socket.setDelayAttachOnConnect(true);
+                this.socket.connect(this.uri.toString());
+                this.socket.setSendTimeOut(ProcessConnection.MANAGEMENT_SOCKET_SEND_TIMEOUT);
+                this.socket.setReceiveTimeOut(ProcessConnection.MANAGEMENT_SOCKET_RECV_TIMEOUT);
+                ProcessConnector.log.debug("Connected with process on address " + this.uri);
+                return true;
+            } catch (final Throwable t) {
+                ProcessConnector.log.error("Could not connect with container");
+                ProcessConnector.log.trace("Could not connect with container ", t);
+                try {
+                    Thread.sleep(ProcessConnection.RETRY_TIMEOUT);
+                } catch (final InterruptedException e) {
+                    ProcessConnector.log.error("Interrupted while retrying...");
+                    ProcessConnector.log.trace("Interrupted while retrying", e);
+                }
+                return false;
             }
         }
 
@@ -397,21 +400,25 @@ public class ProcessConnector {
             }
         }
 
-        public void updateConfiguration() {
-            final Process process = ProcessManager.getInstance().getProcess(this.processId);
+        /**
+         * @param newConfiguration
+         * @return true if successful, false in failed
+         */
+        public boolean updateConfiguration(final List<Parameter> newConfiguration) {
             final Builder builder = SetConfigMessage.newBuilder()
-                    .setProcessId(process.getId().toString())
+                    .setProcessId(this.processId.toString())
                     .setIsUpdate(true);
-            if (process.getConfiguration() != null) {
-                for (final Parameter p : process.getConfiguration()) {
-                    builder.putConfig(p.getKey(), p.getValue());
-                }
+            for (final Parameter p : newConfiguration) {
+                builder.putConfig(p.getKey(), p.getValue());
             }
             final SetConfigMessage msg = builder.build();
 
             final ProcessStateUpdateMessage response = this.send(msg, ProcessStateUpdateMessage.class);
-            if (response != null) {
+            if (response == null) {
+                return false;
+            } else {
                 this.updateProcessStateInDb(response.getState());
+                return true;
             }
         }
 

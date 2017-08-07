@@ -5,6 +5,7 @@ import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 
 import org.apache.http.client.utils.URIBuilder;
+import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.model.User;
 import org.flexiblepower.rest.OrchestratorApplication;
