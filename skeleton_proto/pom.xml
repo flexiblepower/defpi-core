@@ -20,9 +20,6 @@
     <xsd.input.directory>${project.resourcedir}</xsd.input.directory>
     <xsd.resource.directory>${project.resourcedir}/xsds</xsd.resource.directory>
     <xsd.output.package>xsd</xsd.output.package>
-
-    <docker.folder>docker1</docker.folder>
-    <docker.arm.folder>docker2</docker.arm.folder>
   </properties>
 
   <build>
