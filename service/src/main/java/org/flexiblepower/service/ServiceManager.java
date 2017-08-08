@@ -174,8 +174,10 @@ public class ServiceManager implements Closeable {
      * @throws ServiceInvocationException
      * @throws ConnectionModificationException
      */
-    private Message handleServiceMessage(final Message msg)
-            throws IOException, ServiceInvocationException, ConnectionModificationException, SerializationException {
+    private Message handleServiceMessage(final Message msg) throws IOException,
+            ServiceInvocationException,
+            ConnectionModificationException,
+            SerializationException {
 
         if (msg instanceof GoToProcessStateMessage) {
             return this.handleGoToProcessStateMessage((GoToProcessStateMessage) msg);
@@ -195,10 +197,10 @@ public class ServiceManager implements Closeable {
      * @throws ServiceInvocationException
      */
     private Message handleGoToProcessStateMessage(final GoToProcessStateMessage message)
-            throws ServiceInvocationException, SerializationException {
-        final String processId = message.getProcessId();
+            throws ServiceInvocationException,
+            SerializationException {
         ServiceManager.log.info("Received GoToProcessStateMessage for process {} -> {}",
-                processId,
+                message.getProcessId(),
                 message.getTargetState());
         ServiceManager.log.trace("Received message: {}", message);
 

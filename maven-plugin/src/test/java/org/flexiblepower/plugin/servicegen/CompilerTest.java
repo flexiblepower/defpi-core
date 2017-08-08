@@ -12,6 +12,8 @@ import org.flexiblepower.plugin.servicegen.compiler.ProtoCompiler;
 import org.flexiblepower.plugin.servicegen.compiler.XjcCompiler;
 import org.junit.Test;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * CompilerTest
  *
@@ -19,13 +21,14 @@ import org.junit.Test;
  * @version 0.1
  * @since Jun 27, 2017
  */
+@Slf4j
 @SuppressWarnings("static-method")
 public class CompilerTest {
 
     @Test
     public void testGetArchitectures() {
-        System.out.println(ProtoCompiler.getOsName());
-        System.out.println(ProtoCompiler.getArchitecture());
+        log.info("Detected  OS name: {}", ProtoCompiler.getOsName());
+        log.info("Detected architecture: {}", ProtoCompiler.getArchitecture());
     }
 
     @Test

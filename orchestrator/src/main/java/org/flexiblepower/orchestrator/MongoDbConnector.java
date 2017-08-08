@@ -33,10 +33,10 @@ import lombok.extern.slf4j.Slf4j;
 public final class MongoDbConnector {
 
     // private final static String host = "efpi-rd1.sensorlab.tno.nl";
-    private final static String MONGO_HOST_KEY = "MONGO_HOST";
-    private final static String MONGO_HOST_DFLT = "localhost";
-    private final static String MONGO_PORT_KEY = "MONGO_PORT";
-    private final static String MONGO_PORT_DFLT = "27017";
+    protected final static String MONGO_HOST_KEY = "MONGO_HOST";
+    protected final static String MONGO_HOST_DFLT = "localhost";
+    protected final static String MONGO_PORT_KEY = "MONGO_PORT";
+    protected final static String MONGO_PORT_DFLT = "27017";
     private final static String MONGO_DATABASE_KEY = "MONGO_DATABASE";
     private final static String MONGO_DATABASE_DFLT = "def-pi";
 

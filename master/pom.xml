@@ -4,7 +4,7 @@
 
 	<groupId>org.flexiblepower</groupId>
 	<artifactId>master</artifactId>
-	<version>0.2.1-SNAPSHOT</version>
+	<version>0.2.2-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<properties>
@@ -12,17 +12,18 @@
 		<java.source>1.8</java.source>
 		<java.target>1.8</java.target>
 
-		<def-pi.version>0.2.1-SNAPSHOT</def-pi.version>
-
 		<!-- The plugin needs the protobuf version to obtain the compiler from 
 			maven central explicitly -->
 		<protobuf.version>3.3.0</protobuf.version>
 	</properties>
 
 	<modules>
-		<module>defpi-parent</module>
-		<module>../maven-plugin</module>
+		<module>service-parent</module>
 		<module>../api</module>
+		<module>../commons</module>
+		<module>../maven-plugin</module>
+		<module>../orchestrator</module>
+		<module>../service</module>
 	</modules>
 
 	<!-- Where to push the maven compiled jars -->
@@ -107,17 +108,28 @@
 				<version>1.3.2</version>
 			</dependency>
 
-			<!-- Force usage of same version of def-pi modules -->
+			<dependency>
+				<groupId>com.google.protobuf</groupId>
+				<artifactId>protobuf-java</artifactId>
+				<version>${protobuf.version}</version>
+			</dependency>
+	
+			<dependency>
+				<groupId>org.zeromq</groupId>
+				<artifactId>jeromq</artifactId>
+				<version>0.3.5</version>
+			</dependency>
+
 			<dependency>
 				<groupId>org.flexiblepower</groupId>
 				<artifactId>api</artifactId>
-				<version>${def-pi.version}</version>
+				<version>${project.version}</version>
 			</dependency>
 
 			<dependency>
 				<groupId>org.flexiblepower</groupId>
 				<artifactId>commons</artifactId>
-				<version>${def-pi.version}</version>
+				<version>${project.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -152,16 +164,33 @@
 	</dependencies>
 
 	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.6.1</version>
-				<configuration>
-					<source>${java.source}</source>
-					<target>${java.target}</target>
-				</configuration>
-			</plugin>
-		</plugins>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<version>3.6.1</version>
+					<configuration>
+						<source>${java.source}</source>
+						<target>${java.target}</target>
+					</configuration>
+				</plugin>
+
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<version>2.20</version>
+					<configuration>
+						<systemProperties>
+							<property>
+								<name>log4j.configurationFile</name>
+								<value>src/test/resources/log4j2.xml</value>
+							</property>
+						</systemProperties>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 	</build>
+
 </project>

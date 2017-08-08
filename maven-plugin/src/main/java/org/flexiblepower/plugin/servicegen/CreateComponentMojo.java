@@ -62,7 +62,7 @@ import com.github.fge.jsonschema.main.JsonSchemaFactory;
  * @version 0.1
  * @since Jun 28, 2017
  */
-@Mojo(name = "create", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
+@Mojo(name = "generate", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
 public class CreateComponentMojo extends AbstractMojo {
 
     /**
@@ -147,14 +147,14 @@ public class CreateComponentMojo extends AbstractMojo {
     /**
      * Folder where the protobuf definitions should be copied to
      */
-    @Parameter(property = "docker.folder", defaultValue = "docker")
-    private String dockerLocation;
+    // @Parameter(property = "docker.folder", defaultValue = "docker")
+    private final String dockerLocation = "docker";
 
     /**
      * Folder where the protobuf definitions should be copied to
      */
-    @Parameter(property = "docker.arm.folder", defaultValue = "docker-arm")
-    private String dockerArmLocation;
+    // @Parameter(property = "docker.arm.folder", defaultValue = "docker-arm")
+    private final String dockerArmLocation = "docker-arm";
 
     private Path resourcePath;
     private final Map<String, String> hashes = new HashMap<>();
