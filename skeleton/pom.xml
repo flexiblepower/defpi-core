@@ -9,7 +9,6 @@
     <relativePath>../master/service-parent/pom.xml</relativePath>
   </parent>
 
-  <groupId>org.flexiblepower</groupId>
   <artifactId>skeleton</artifactId>
   <version>0.0.1</version>
 

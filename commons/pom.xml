@@ -14,4 +14,11 @@
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
+	<dependencies>
+		<dependency>
+			<groupId>com.google.protobuf</groupId>
+			<artifactId>protobuf-java</artifactId>
+		</dependency>
+	</dependencies>
+
 </project>

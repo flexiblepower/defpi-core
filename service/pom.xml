@@ -20,6 +20,11 @@
 		</dependency>
 		
 		<dependency>
+			<groupId>org.zeromq</groupId>
+			<artifactId>jeromq</artifactId>
+		</dependency>
+		
+		<dependency>
 			<groupId>org.flexiblepower</groupId>
 			<artifactId>commons</artifactId>
 		</dependency>
