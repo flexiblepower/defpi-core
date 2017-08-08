@@ -9,17 +9,6 @@ COPY ${project.artifactId}-${project.version}-jar-with-dependencies.jar /
 LABEL org.flexiblepower.serviceName="Echo Service" 
 LABEL org.flexiblepower.interfaces='[ { \ 
   "id" : null, \ 
-  "name" : "Echo Interface", \ 
-  "serviceId" : null, \ 
-  "interfaceVersions" : [ { \ 
-    "versionName" : "v0.0.1", \ 
-    "receivesHash" : "40dce38e5cc67a436a96c98e376836ea13a22d03f3ad6c468da4301fc59d64b", \ 
-    "sendsHash" : "40dce38e5cc67a436a96c98e376836ea13a22d03f3ad6c468da4301fc59d64b" \ 
-  } ], \ 
-  "allowMultiple" : false, \ 
-  "autoConnect" : false \ 
-}, { \ 
-  "id" : null, \ 
   "name" : "Dropback Interface", \ 
   "serviceId" : null, \ 
   "interfaceVersions" : [ { \ 
@@ -32,6 +21,17 @@ LABEL org.flexiblepower.interfaces='[ { \
     "sendsHash" : "93cb88bbfbd04ef32cf4be90ca2aa9d41fa2eed1f550119fc7ba7bfcd86e8240" \ 
   } ], \ 
   "allowMultiple" : true, \ 
+  "autoConnect" : false \ 
+}, { \ 
+  "id" : null, \ 
+  "name" : "Echo Interface", \ 
+  "serviceId" : null, \ 
+  "interfaceVersions" : [ { \ 
+    "versionName" : "v0.0.1", \ 
+    "receivesHash" : "40dce38e5cc67a436a96c98e376836ea13a22d03f3ad6c468da4301fc59d64b", \ 
+    "sendsHash" : "40dce38e5cc67a436a96c98e376836ea13a22d03f3ad6c468da4301fc59d64b" \ 
+  } ], \ 
+  "allowMultiple" : false, \ 
   "autoConnect" : false \ 
 } ]' 
 

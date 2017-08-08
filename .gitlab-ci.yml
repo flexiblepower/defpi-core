@@ -55,7 +55,7 @@ java-test:
   before_script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
   script:
-    - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml -P codegen generate-sources'
+    - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml defpi:generate'
 
 # Test plugin on xsd
 plugin-test:proto:
@@ -119,7 +119,7 @@ ui-integrate:
   stage: predeploy
   before_script:
     # In this stage the plugin should be available from artifactory
-    - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml -P codegen generate-sources'
+    - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml defpi:generate'
   script:
     - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml clean deploy'
 

@@ -5,6 +5,7 @@
  */
 package org.flexiblepower.orchestrator;
 
+import java.net.Socket;
 import java.time.Duration;
 import java.util.List;
 
@@ -16,6 +17,8 @@ import org.flexiblepower.model.UnidentifiedNode;
 import org.flexiblepower.model.User;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.spotify.docker.client.DefaultDockerClient;
@@ -42,6 +45,25 @@ public class ProcessIntegrationTest {
     final ProcessManager pm = ProcessManager.getInstance();
     final ConnectionManager cm = ConnectionManager.getInstance();
     final ServiceManager sm = ServiceManager.getInstance();
+
+    @BeforeClass
+    public static void init() {
+        String mongoHost = System.getenv(MongoDbConnector.MONGO_HOST_KEY);
+        if (mongoHost == null) {
+            mongoHost = MongoDbConnector.MONGO_HOST_DFLT;
+        }
+        String mongoPort = System.getenv(MongoDbConnector.MONGO_PORT_KEY);
+        if (mongoPort == null) {
+            mongoPort = MongoDbConnector.MONGO_PORT_DFLT;
+        }
+
+        try (final Socket socket = new Socket(mongoHost, Integer.parseInt(mongoPort))) {
+            // Do nothing
+        } catch (final Exception e) {
+            ProcessIntegrationTest.log.warn("Exception while connecting to MongoDb: {}", e.getMessage());
+            Assume.assumeNoException("Skipping tests because there is no Mongo service", e);
+        }
+    }
 
     @Test(timeout = 80000)
     public void runTest() throws Exception {
