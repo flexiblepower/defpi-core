@@ -5,7 +5,13 @@
  */
 package org.flexiblepower.orchestrator.pendingchange;
 
+import java.util.Date;
+
 import org.flexiblepower.connectors.MongoDbConnector;
+import org.flexiblepower.orchestrator.pendingchange.PendingChange.Result;
+import org.flexiblepower.orchestrator.pendingchange.PendingChange.State;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * ChangeManager
@@ -14,6 +20,7 @@ import org.flexiblepower.connectors.MongoDbConnector;
  * @version 0.1
  * @since Aug 7, 2017
  */
+@Slf4j
 public class PendingChangeManager {
 
     private static PendingChangeManager instance;
@@ -35,7 +42,7 @@ public class PendingChangeManager {
                         }
                     }
                 } else {
-                    pc.run();
+                    this.runPendingChange(pc);
                 }
             }
         }).start();
@@ -78,8 +85,36 @@ public class PendingChangeManager {
 
     }
 
-    private PendingChange getNext() {
-        return this.db.getNextPendingChange();
+    private void runPendingChange(final PendingChange pc) {
+        PendingChangeManager.log.debug("Running PendingChange of type " + this.getClass().getSimpleName());
+        Result result;
+        try {
+            result = pc.execute();
+        } catch (final Throwable e) {
+            PendingChangeManager.log.error("Error while executing PendingChange of type "
+                    + this.getClass().getSimpleName() + ", marking it as failed permanently", e);
+            result = Result.FAILED_PERMANENTLY;
+        }
+        pc.incrementCount();
+        switch (result) {
+        case FAILED_PERMANENTLY:
+            pc.setState(State.FAILED_PERMANENTLY);
+            break;
+        case FAILED_TEMPORARY:
+            if (pc.getCount() <= pc.maxRetryCount()) {
+                pc.setState(State.FAILED_TEMPORARY);
+                pc.setRunAt(new Date(pc.getRunAt().getTime() + pc.retryIntervalMs()));
+            } else {
+                pc.setState(State.FAILED_PERMANENTLY);
+            }
+            break;
+        case SUCCESS:
+            pc.setState(State.FINISHED);
+            break;
+        default:
+            break;
+        }
+        this.update(pc);
     }
 
 }

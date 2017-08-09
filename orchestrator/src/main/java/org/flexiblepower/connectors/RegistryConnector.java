@@ -41,7 +41,7 @@ public class RegistryConnector {
 
     public static final String REGISTRY_URL_KEY = "REGISTRY_URL";
     private static final String REGISTRY_URL_DFLT = "def-pi1.sensorlab.tno.nl:5000";
-    private static final long MAX_CACHE_AGE_MS = 30000;
+    private static final long MAX_CACHE_AGE_MS = 300000; // TODO remove zero
 
     private static RegistryConnector instance = null;
 

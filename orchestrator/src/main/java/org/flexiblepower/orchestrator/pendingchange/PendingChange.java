@@ -7,11 +7,12 @@ import org.mongodb.morphia.annotations.Entity;
 import org.mongodb.morphia.annotations.Id;
 
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Entity("PendingChange") // All subclasses must have the exact same annotation!
-public abstract class PendingChange implements Runnable {
+public abstract class PendingChange {
 
     public static enum Result {
         SUCCESS,
@@ -31,28 +32,29 @@ public abstract class PendingChange implements Runnable {
 
     private Date created;
 
-    private long retryIntervalMs;
-
+    @Getter
+    @Setter
     private Date runAt;
 
     Date obtainedAt;
 
     private ObjectId userId;
 
+    @Getter
     private int count;
 
     @Getter
+    @Setter
     private State state;
 
     public PendingChange() {
 
     }
 
-    public PendingChange(final long delayMs, final long retryIntervalMs, final ObjectId userId) {
+    public PendingChange(final ObjectId userId) {
         final long now = System.currentTimeMillis();
         this.created = new Date(now);
-        this.retryIntervalMs = retryIntervalMs;
-        this.runAt = new Date(now + delayMs);
+        this.runAt = new Date(now + this.delayMs());
         this.obtainedAt = null;
         this.state = State.NEW;
         this.userId = userId;
@@ -61,33 +63,16 @@ public abstract class PendingChange implements Runnable {
 
     public abstract String description();
 
+    public abstract long delayMs();
+
+    public abstract long retryIntervalMs();
+
+    public abstract int maxRetryCount();
+
     public abstract Result execute();
 
-    @Override
-    public void run() {
-        Result result;
-        try {
-            result = this.execute();
-        } catch (final Throwable e) {
-            PendingChange.log.error("Error while executing PendingChange, marking it as failed permanently", e);
-            result = Result.FAILED_PERMANENTLY;
-        }
+    public void incrementCount() {
         this.count += 1;
-        switch (result) {
-        case FAILED_PERMANENTLY:
-            this.state = State.FAILED_PERMANENTLY;
-            break;
-        case FAILED_TEMPORARY:
-            this.state = State.FAILED_TEMPORARY;
-            this.runAt = new Date(this.runAt.getTime() + this.retryIntervalMs);
-            break;
-        case SUCCESS:
-            this.state = State.FINISHED;
-            break;
-        default:
-            break;
-        }
-        PendingChangeManager.getInstance().update(this);
     }
 
 }

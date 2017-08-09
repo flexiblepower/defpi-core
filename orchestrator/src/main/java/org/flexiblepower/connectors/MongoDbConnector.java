@@ -233,7 +233,7 @@ public final class MongoDbConnector {
                 .field("state")
                 .notEqual(PendingChange.State.FAILED_PERMANENTLY) // Not failed
                 .field("runAt")
-                .lessThanOrEq(System.currentTimeMillis()) // No future task
+                .lessThanOrEq(new Date()) // No future task
                 .order("runAt")
                 .disableValidation();
         final UpdateOperations<PendingChange> update = this.datastore.createUpdateOperations(PendingChange.class)

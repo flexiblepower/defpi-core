@@ -38,7 +38,7 @@ public class ChangeProcessConfiguration extends PendingChange {
     public ChangeProcessConfiguration(final ObjectId userId,
             final ObjectId processId,
             final List<Parameter> newConfiguration) {
-        super(0, 5000, userId);
+        super(userId);
         this.processId = processId;
         this.newConfigurtaion = newConfiguration;
     }
@@ -66,6 +66,36 @@ public class ChangeProcessConfiguration extends PendingChange {
             ChangeProcessConfiguration.log.debug("Changing configuration of process " + this.processId + " failed");
             return Result.FAILED_TEMPORARY;
         }
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see org.flexiblepower.orchestrator.pendingchange.PendingChange#delayMs()
+     */
+    @Override
+    public long delayMs() {
+        return 0;
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see org.flexiblepower.orchestrator.pendingchange.PendingChange#retryIntervalMs()
+     */
+    @Override
+    public long retryIntervalMs() {
+        return 5000;
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see org.flexiblepower.orchestrator.pendingchange.PendingChange#maxRetryCount()
+     */
+    @Override
+    public int maxRetryCount() {
+        return 100;
     }
 
 }
