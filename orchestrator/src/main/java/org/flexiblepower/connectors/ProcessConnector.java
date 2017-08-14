@@ -465,7 +465,9 @@ public class ProcessConnector {
                 ProcessConnector.log.error("Could not serialize message", e1);
             }
             final byte[] recv = this.socket.recv();
-            // TODO could be null?
+            if (recv == null) {
+                return null;
+            }
             try {
                 final Message m = this.serializer.deserialize(recv);
                 if (expected.isInstance(m)) {

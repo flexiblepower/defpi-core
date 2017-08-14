@@ -92,7 +92,7 @@ public class PendingChangeManager {
             result = pc.execute();
         } catch (final Throwable e) {
             PendingChangeManager.log.error("Error while executing PendingChange of type "
-                    + this.getClass().getSimpleName() + ", marking it as failed permanently", e);
+                    + pc.getClass().getSimpleName() + ", marking it as failed permanently", e);
             result = Result.FAILED_PERMANENTLY;
         }
         pc.incrementCount();
