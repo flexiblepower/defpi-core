@@ -237,7 +237,7 @@ public final class MongoDbConnector {
                 .order("runAt")
                 .disableValidation();
         final UpdateOperations<PendingChange> update = this.datastore.createUpdateOperations(PendingChange.class)
-                .set("obtainedAt", System.currentTimeMillis());
+                .set("obtainedAt", new Date());
         return this.datastore.findAndModify(query, update);
     }
 

@@ -41,16 +41,16 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
     @Override
     public Connection newConnection(final Connection connection)
             throws AuthorizationException, ProcessNotFoundException {
-        final Process p1 = ProcessManager.getInstance().getProcess(connection.getProcess1Id());
+        final Process p1 = ProcessManager.getInstance().getProcess(connection.getEndpoint1().getProcessId());
 
         if (p1 == null) {
-            throw new ProcessNotFoundException(connection.getProcess1Id().toString());
+            throw new ProcessNotFoundException(connection.getEndpoint1().getProcessId().toString());
         }
         this.assertUserIsAdminOrEquals(p1.getUserId());
 
-        final Process p2 = ProcessManager.getInstance().getProcess(connection.getProcess2Id());
+        final Process p2 = ProcessManager.getInstance().getProcess(connection.getEndpoint2().getProcessId());
         if (p2 == null) {
-            throw new ProcessNotFoundException(connection.getProcess2Id().toString());
+            throw new ProcessNotFoundException(connection.getEndpoint2().getProcessId().toString());
         }
         this.assertUserIsAdminOrEquals(p2.getUserId());
 
@@ -73,15 +73,15 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
             throw new ApiException(Status.NOT_FOUND, "Could not find connection with id " + id);
         }
 
-        final Process p1 = ProcessManager.getInstance().getProcess(connection.getProcess1Id());
+        final Process p1 = ProcessManager.getInstance().getProcess(connection.getEndpoint1().getProcessId());
         if (p1 == null) {
-            throw new ProcessNotFoundException(connection.getProcess1Id().toString());
+            throw new ProcessNotFoundException(connection.getEndpoint1().getProcessId().toString());
         }
         this.assertUserIsAdminOrEquals(p1.getUserId());
 
-        final Process p2 = ProcessManager.getInstance().getProcess(connection.getProcess2Id());
+        final Process p2 = ProcessManager.getInstance().getProcess(connection.getEndpoint2().getProcessId());
         if (p2 == null) {
-            throw new ProcessNotFoundException(connection.getProcess2Id().toString());
+            throw new ProcessNotFoundException(connection.getEndpoint2().getProcessId().toString());
         }
         this.assertUserIsAdminOrEquals(p2.getUserId());
 
@@ -93,19 +93,19 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
             throws InvalidObjectIdException, ProcessNotFoundException, AuthorizationException {
         final Connection connection = this.getConnection(id);
 
-        final Process p1 = ProcessManager.getInstance().getProcess(connection.getProcess1Id());
+        final Process p1 = ProcessManager.getInstance().getProcess(connection.getEndpoint1().getProcessId());
         if (p1 == null) {
-            throw new ProcessNotFoundException(connection.getProcess1Id().toString());
+            throw new ProcessNotFoundException(connection.getEndpoint1().getProcessId().toString());
         }
         this.assertUserIsAdminOrEquals(p1.getUserId());
 
-        final Process p2 = ProcessManager.getInstance().getProcess(connection.getProcess2Id());
+        final Process p2 = ProcessManager.getInstance().getProcess(connection.getEndpoint2().getProcessId());
         if (p2 == null) {
-            throw new ProcessNotFoundException(connection.getProcess2Id().toString());
+            throw new ProcessNotFoundException(connection.getEndpoint2().getProcessId().toString());
         }
         this.assertUserIsAdminOrEquals(p2.getUserId());
 
         ConnectionRestApi.log.info("Removing connection {}", id);
-        ConnectionManager.getInstance().deleteConnection(connection);
+        ConnectionManager.getInstance().terminateConnection(connection);
     }
 }

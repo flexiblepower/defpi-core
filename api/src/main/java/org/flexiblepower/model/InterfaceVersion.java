@@ -23,12 +23,21 @@ import lombok.NoArgsConstructor;
 @Embedded
 @AllArgsConstructor
 @NoArgsConstructor
-public class InterfaceVersion {
+public class InterfaceVersion implements Comparable<InterfaceVersion> {
 
 	private String versionName = null;
 
 	private String receivesHash = null;
 
 	private String sendsHash = null;
+
+	public boolean isCompatibleWith(InterfaceVersion other) {
+		return receivesHash.equals(other.getSendsHash()) && sendsHash.equals(other.getReceivesHash());
+	}
+
+	@Override
+	public int compareTo(InterfaceVersion o) {
+		return versionName.compareTo(o.getVersionName());
+	}
 
 }

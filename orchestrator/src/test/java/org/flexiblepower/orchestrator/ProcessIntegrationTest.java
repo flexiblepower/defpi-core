@@ -11,6 +11,7 @@ import java.util.List;
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.ProcessConnector;
 import org.flexiblepower.model.Connection;
+import org.flexiblepower.model.Connection.Endpoint;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Service;
@@ -75,7 +76,10 @@ public class ProcessIntegrationTest {
 
         final String localhostName = InetAddress.getLocalHost().getHostName();
 
-        Assert.assertTrue(cm.addConnection(new Connection(null, process1.getId(), "Echo", process1.getId(), "Echo")));
+        final Connection connection = new Connection(null,
+                new Endpoint(process1.getId(), "Echo", null, 0),
+                new Endpoint(process1.getId(), "Echo", null, 0));
+        Assert.assertTrue(cm.createConnectionEndpoint(connection, connection.getEndpoint1()));
     }
 
     //

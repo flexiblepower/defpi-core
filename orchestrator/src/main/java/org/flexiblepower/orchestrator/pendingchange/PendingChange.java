@@ -63,11 +63,35 @@ public abstract class PendingChange {
 
     public abstract String description();
 
-    public abstract long delayMs();
+    /**
+     * The time the PendingChange should wait before starting after being submitted. Default value is 0, overwrite if
+     * this should be something else.
+     *
+     * @return number of milliseconds to wait before starting the task
+     */
+    public long delayMs() {
+        return 0;
+    }
 
-    public abstract long retryIntervalMs();
+    /**
+     * Time to wait before retrying after a temporary failure. Default value is 5000, overwrite if it should be
+     * different.
+     *
+     * @return Time to wait before retrying in milliseconds.
+     */
+    public long retryIntervalMs() {
+        return Math.min(5000 + (2 ^ this.getCount()), 21600);
+    }
 
-    public abstract int maxRetryCount();
+    /**
+     * The number of times the PendingChange should be attempted before being marked as failed permanently. Default
+     * value is 1000, overwrite if it should be changed.
+     *
+     * @return Number of times to try before failing permanently.
+     */
+    public int maxRetryCount() {
+        return 1000;
+    }
 
     public abstract Result execute();
 

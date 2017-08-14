@@ -45,7 +45,7 @@ public class ChangeProcessConfiguration extends PendingChange {
 
     @Override
     public String description() {
-        return "Update configuration of process ";
+        return "Update configuration of process " + this.processId;
     }
 
     @Override
@@ -66,36 +66,6 @@ public class ChangeProcessConfiguration extends PendingChange {
             ChangeProcessConfiguration.log.debug("Changing configuration of process " + this.processId + " failed");
             return Result.FAILED_TEMPORARY;
         }
-    }
-
-    /*
-     * (non-Javadoc)
-     *
-     * @see org.flexiblepower.orchestrator.pendingchange.PendingChange#delayMs()
-     */
-    @Override
-    public long delayMs() {
-        return 0;
-    }
-
-    /*
-     * (non-Javadoc)
-     *
-     * @see org.flexiblepower.orchestrator.pendingchange.PendingChange#retryIntervalMs()
-     */
-    @Override
-    public long retryIntervalMs() {
-        return 5000;
-    }
-
-    /*
-     * (non-Javadoc)
-     *
-     * @see org.flexiblepower.orchestrator.pendingchange.PendingChange#maxRetryCount()
-     */
-    @Override
-    public int maxRetryCount() {
-        return 100;
     }
 
 }

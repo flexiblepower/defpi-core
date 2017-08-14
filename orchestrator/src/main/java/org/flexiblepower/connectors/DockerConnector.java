@@ -24,6 +24,7 @@ import org.flexiblepower.model.Service;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.NodeManager;
 import org.flexiblepower.orchestrator.ServiceManager;
+import org.flexiblepower.orchestrator.UserManager;
 
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
@@ -104,8 +105,9 @@ public class DockerConnector {
      * @param json
      * @return
      */
-    public String newProcess(final Process process, final User user) {
+    public String newProcess(final Process process) {
         try {
+            final User user = UserManager.getInstance().getUser(process.getUserId());
             this.ensureUserNetworkExists(user);
             this.ensureOrchestratorNetworkExists();
             final Service service = ServiceManager.getInstance().getService(process.getServiceId());
@@ -115,9 +117,7 @@ public class DockerConnector {
             DockerConnector.log.info("Created process with Id {}", id);
             return id;
         } catch (DockerException | InterruptedException e) {
-            DockerConnector.log.error("Error while creating process: {}", e.getMessage());
-            DockerConnector.log.trace("Error while creating process", e);
-            throw new ApiException(e);
+            return null;
         }
     }
 
@@ -125,16 +125,16 @@ public class DockerConnector {
      * @param uuid
      * @return
      */
-    public void removeProcess(final Process process) {
+    public boolean removeProcess(final Process process) {
         if (process.getDockerId() != null) {
             try {
                 this.client.removeService(process.getDockerId());
+                return true;
             } catch (DockerException | InterruptedException e) {
                 DockerConnector.log.error("Error while removing process: {}", e.getMessage());
-                DockerConnector.log.trace("Error while removing process", e);
-                throw new ApiException(e);
             }
         }
+        return false;
     }
 
     public void ensureOrchestratorNetworkExists() {

@@ -6,19 +6,13 @@
 package org.flexiblepower.process;
 
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
-import org.flexiblepower.connectors.ProcessConnector;
-import org.flexiblepower.connectors.DockerConnector;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Process.Parameter;
-import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.NodeManager;
 import org.flexiblepower.orchestrator.ServiceManager;
@@ -39,11 +33,8 @@ public class ProcessManager {
 
     private static ProcessManager instance = null;
 
-    private final DockerConnector dockerConnector = DockerConnector.getInstance();
     private final MongoDbConnector mongoDbConnector = MongoDbConnector.getInstance();
-    private final ProcessConnector processConnector = ProcessConnector.getInstance();
     private final UserManager userManager = UserManager.getInstance();
-    private final ScheduledExecutorService threadpool = Executors.newScheduledThreadPool(8);
 
     private ProcessManager() {
     }
@@ -83,26 +74,7 @@ public class ProcessManager {
         }
         this.validateProcess(process);
 
-        // This is a valid state, create the database record
-        process.setState(ProcessState.STARTING);
-        this.mongoDbConnector.save(process);
-
-        this.threadpool.execute(() -> {
-            // Now create the process in Docker
-            final User user = this.userManager.getUser(process.getUserId());
-            final String dockerId = DockerConnector.getInstance().newProcess(process, user);
-
-            process.setState(ProcessState.INITIALIZING);
-            process.setDockerId(dockerId);
-            this.mongoDbConnector.save(process);
-
-            ProcessManager.this.threadpool.execute(() -> {
-                // Create management connection
-                ProcessManager.log.info("Going to configure process " + process.getId());
-                ProcessConnector.getInstance().initNewProcess(process.getId());
-            });
-
-        });
+        PendingChangeManager.getInstance().submit(new CreateProcess.CreateDockerService(process));
 
         return process;
     }
@@ -144,33 +116,15 @@ public class ProcessManager {
     }
 
     public void deleteProcess(final Process process) {
-        // Notify process
-        this.threadpool.execute(() -> {
-            try {
-                ProcessConnector.getInstance().terminate(process.getId());
-            } catch (final Exception e) {
-                // If notification doesn't work, that's too bad, make sure it gets removed anyway
-                ProcessManager.log.warn("Could not notify process it is going to terminate. Terminating anyway.", e);
-            }
-        });
-
-        // Now give it some time to shut down
-        this.threadpool.schedule(() -> {
-            // Delete Docker service
-            try {
-                this.dockerConnector.removeProcess(process);
-            } catch (final Exception e) {
-                // That's fine, we didn't want it anyway
-            }
-            // Delete record from MongoDB
-            this.mongoDbConnector.delete(process);
-        }, 5, TimeUnit.SECONDS);
+        // Start two pendingchanges. The second one has a delay of 5000ms.
+        PendingChangeManager.getInstance().submit(new TerminateProcess.SendTerminateSignal(process));
+        PendingChangeManager.getInstance().submit(new TerminateProcess.RemoveDockerService(process));
     }
 
     public void updateProcess(final Process newProcess) {
         this.validateProcess(newProcess);
 
-        Process currentProcess = MongoDbConnector.getInstance().get(Process.class, newProcess.getId());
+        final Process currentProcess = MongoDbConnector.getInstance().get(Process.class, newProcess.getId());
 
         if (!newProcess.getUserId().equals(currentProcess.getUserId())) {
             throw new IllegalArgumentException("A process cannot be assigned to a different user");
@@ -190,12 +144,12 @@ public class ProcessManager {
             }
         }
         if (move) {
-            currentProcess = this.moveProcess(currentProcess, newProcess);
-        } else {
-            // Did the configuration change?
-            if (!newProcess.getConfiguration().equals(currentProcess.getConfiguration())) {
-                this.updateConfiguration(currentProcess, newProcess.getConfiguration());
-            }
+            this.moveProcess(currentProcess, newProcess);
+        }
+
+        // Did the configuration change?
+        if (!newProcess.getConfiguration().equals(currentProcess.getConfiguration())) {
+            this.updateConfiguration(currentProcess, newProcess.getConfiguration());
         }
     }
 
@@ -204,46 +158,19 @@ public class ProcessManager {
      * @param newProcess
      * @return
      */
-    private Process moveProcess(final Process currentProcess, final Process newProcess) {
-        final Process updatedProcess = currentProcess;
-        updatedProcess.setConfiguration(newProcess.getConfiguration());
-        updatedProcess.setPrivateNodeId(newProcess.getPrivateNodeId());
-        updatedProcess.setNodePoolId(newProcess.getNodePoolId());
-        // write change to database
-        this.mongoDbConnector.save(updatedProcess);
+    private void moveProcess(final Process currentProcess, final Process newProcess) {
+        final PendingChangeManager pcm = PendingChangeManager.getInstance();
 
-        this.threadpool.execute(() -> {
-            final ConnectionManager connectionManager = ConnectionManager.getInstance();
-            // Tell all connections to suspend
-            final List<Connection> connectionsForProcess = connectionManager.getConnectionsForProcess(currentProcess);
-            for (final Connection c : connectionsForProcess) {
-                connectionManager.suspendConnection(c);
-            }
+        // Suspend connections
+        for (final Connection c : ConnectionManager.getInstance().getConnectionsForProcess(currentProcess)) {
+            pcm.submit(new MoveProcess.SupsendConnection(currentProcess.getUserId(), c, c.getEndpoint1()));
+            pcm.submit(new MoveProcess.SupsendConnection(currentProcess.getUserId(), c, c.getEndpoint2()));
+        }
 
-            // Tell the process to suspend
-            final byte[] suspendProcess = this.processConnector.suspendProcess(currentProcess.getId());
-            this.threadpool.schedule(() -> {
-                // Remove the Docker service
-                try {
-                    this.dockerConnector.removeProcess(currentProcess);
-                } catch (final Exception e) {
-                    ProcessManager.log
-                            .error("Could not remove Docker Service when moving process " + currentProcess.getId(), e);
-                }
-                this.threadpool.schedule(() -> {
-                    // Create a new Docker Service
-                    this.dockerConnector.newProcess(updatedProcess,
-                            UserManager.getInstance().getUser(newProcess.getUserId()));
-                    // Tell the new process to resume
-                    this.processConnector.resume(updatedProcess.getId(), suspendProcess);
-                    // Tell the connections to resume
-                    for (final Connection c : connectionsForProcess) {
-                        connectionManager.resumeConnection(c);
-                    }
-                }, 3, TimeUnit.SECONDS);
-            }, 3, TimeUnit.SECONDS);
-        });
-        return updatedProcess;
+        // Suspend process. This PendingChange will start all other PendingChanges.
+        pcm.submit(new MoveProcess.SupsendProcess(currentProcess,
+                newProcess.getNodePoolId(),
+                newProcess.getPrivateNodeId()));
     }
 
     /**
