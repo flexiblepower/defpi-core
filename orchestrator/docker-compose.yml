@@ -4,7 +4,7 @@ networks:
     driver: overlay
 services:
   orchestrator:
-    image: def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator
+    image: defpi.heislab.nl:5000/defpi/orchestrator
     ports:
       - 0.0.0.0:8080:8080
     volumes:
@@ -17,9 +17,9 @@ services:
       - MONGO_HOST=mongo
       - MONGO_DATABASE=def-pi
       - MONGO_PORT=27017
-      - REGISTRY_URL=def-pi1.sensorlab.tno.nl:5000
+      - REGISTRY_URL=defpi.hesilab.nl:5000
   orchestrator-ui:
-    image: def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator-ui
+    image: defpi.hesilab.nl:5000/defpi/orchestrator-ui
     ports:
       - 80:80
     environment:
