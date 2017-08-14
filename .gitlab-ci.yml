@@ -81,7 +81,7 @@ ui-test:
     - 'docker build orchestrator-ui -t orchestrator-ui:test'
     - 'docker run --rm --name ui-test -d -p 8756:80 orchestrator-ui:test'
     - 'apk add --no-cache curl'
-    - 'sleep 20'
+    - 'sleep 600'
   script:
     - 'curl -s def-pi2.sensorlab.tno.nl:8756/login.html | grep "Orchestrator"'
   after_script:
