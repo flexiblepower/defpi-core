@@ -105,9 +105,9 @@ ui-integrate:
     - defpici
   stage: integrate
   before_script:  
-    - 'docker build orchestrator-ui -t defpi.hesilab.tno.nl:5000/defpi/orchestrator-ui'
+    - 'docker build orchestrator-ui -t defpi.hesilab.nl:5000/defpi/orchestrator-ui'
   script:
-    - 'docker push defpi.hesilab.tno.nl:5000/defpi/orchestrator-ui'
+    - 'docker push defpi.hesilab.nl:5000/defpi/orchestrator-ui'
 
       # *** PRE-DEPLOYMENT JOBS *** #
 
