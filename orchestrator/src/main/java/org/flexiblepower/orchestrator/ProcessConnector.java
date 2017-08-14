@@ -242,7 +242,7 @@ public class ProcessConnector {
 
     private static final class ProcessConnection {
 
-        private static final int NUM_CONNECT_TRIES = 60;
+        private static final int NUM_CONNECT_TRIES = 300;
         private static final long RETRY_TIMEOUT = 1000;
 
         private static final int MANAGEMENT_SOCKET_SEND_TIMEOUT = 10000;
