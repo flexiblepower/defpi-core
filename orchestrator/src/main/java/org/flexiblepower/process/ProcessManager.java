@@ -13,6 +13,7 @@ import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Process.Parameter;
+import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.NodeManager;
 import org.flexiblepower.orchestrator.ServiceManager;
@@ -74,6 +75,11 @@ public class ProcessManager {
         }
         this.validateProcess(process);
 
+        // Save with starting state and save
+        process.setState(ProcessState.STARTING);
+        MongoDbConnector.getInstance().save(process);
+
+        // Submit PendingChange to actually start it
         PendingChangeManager.getInstance().submit(new CreateProcess.CreateDockerService(process));
 
         return process;

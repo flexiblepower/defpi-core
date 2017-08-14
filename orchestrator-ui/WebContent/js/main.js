@@ -241,40 +241,40 @@ myApp
 					connection.listView().fields(
 							[
 									nga.field('id'),
-									nga.field('process1Id', 'reference')
-											.targetEntity(process).targetField(
-													nga.field('id')).label(
-													'Process 1'),
-									nga.field('interface1Id', 'reference')
-											.targetEntity(intface).targetField(
-													nga.field('id')).label(
-													'Interface 1'),
-									nga.field('process2Id', 'reference')
-											.targetEntity(process).targetField(
-													nga.field('id')).label(
-													'Process 2'),
-									nga.field('interface2Id', 'reference')
-											.targetEntity(intface).targetField(
-													nga.field('id')).label(
-													'Interface 2') ]);
+									nga.field('endpoint1.processId',
+											'reference').targetEntity(process)
+											.targetField(nga.field('id'))
+											.label('Process 1'),
+									nga.field('endpoint1.interfaceId',
+											'reference').targetEntity(intface)
+											.targetField(nga.field('id'))
+											.label('Interface 1'),
+									nga.field('endpoint1.processId',
+											'reference').targetEntity(process)
+											.targetField(nga.field('id'))
+											.label('Process 2'),
+									nga.field('endpoint2.interfaceId',
+											'reference').targetEntity(intface)
+											.targetField(nga.field('id'))
+											.label('Interface 2') ]);
 					connection.creationView().fields(
 							[
-									nga.field('process1Id', 'reference')
-											.targetEntity(process).targetField(
-													nga.field('id')).label(
-													'Process 1'),
-									nga.field('interface1Id', 'reference')
-											.targetEntity(intface).targetField(
-													nga.field('id')).label(
-													'Interface 1'),
-									nga.field('process2Id', 'reference')
-											.targetEntity(process).targetField(
-													nga.field('id')).label(
-													'Process 2'),
-									nga.field('interface2Id', 'reference')
-											.targetEntity(intface).targetField(
-													nga.field('id')).label(
-													'Interface 2') ]);
+									nga.field('endpoint1.processId',
+											'reference').targetEntity(process)
+											.targetField(nga.field('id'))
+											.label('Process 1'),
+									nga.field('endpoint1.interfaceId',
+											'reference').targetEntity(intface)
+											.targetField(nga.field('id'))
+											.label('Interface 1'),
+									nga.field('endpoint2.processId',
+											'reference').targetEntity(process)
+											.targetField(nga.field('id'))
+											.label('Process 2'),
+									nga.field('endpoint2.interfaceId',
+											'reference').targetEntity(intface)
+											.targetField(nga.field('id'))
+											.label('Interface 2') ]);
 
 					nodepool.listView().fields(
 							[ nga.field('name').isDetailLink(true) ]);
