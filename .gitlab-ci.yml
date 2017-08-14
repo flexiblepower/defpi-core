@@ -84,7 +84,7 @@ ui-test:
   script:
     - 'wget -q def-pi2.sensorlab.tno.nl:8756/login.html -O -| grep "Orchestrator"'
   after_script:
-    #- 'docker stop ui-test'
+    - 'docker stop ui-test'
 
       # *** INTEGRATION JOBS *** #
 
@@ -147,7 +147,7 @@ test-deploy:
   before_script:
     - 'docker-compose -p test -f orchestrator/docker-compose.test.yml pull'
     - 'docker-compose -p test -f orchestrator/docker-compose.test.yml up -d'
-    - 'sleep 10'
+    - 'sleep 120'
   script:
     - 'nc -zv def-pi2.sensorlab.tno.nl:9999'
     - 'wget -q def-pi2.sensorlab.tno.nl:84/login.html -O - | grep "Orchestrator"'
