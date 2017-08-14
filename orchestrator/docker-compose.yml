@@ -4,7 +4,7 @@ networks:
     driver: overlay
 services:
   orchestrator:
-    image: defpi.heislab.nl:5000/defpi/orchestrator
+    image: defpi.hesilab.nl:5000/defpi/orchestrator
     ports:
       - 0.0.0.0:8080:8080
     volumes:
