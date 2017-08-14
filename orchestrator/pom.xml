@@ -183,9 +183,8 @@
 									<include>${project.artifactId}-${project.version}-jar-with-dependencies.jar</include>
 								</resource>
 							</resources>
-							<imageName>${docker.imageName}</imageName>
+							<imageName>${docker.imageName}:latest</imageName>
 							<imageTags>
-								<imageTag>latest</imageTag>
 								<imageTag>${project.version}</imageTag>
 							</imageTags>
 						</configuration>

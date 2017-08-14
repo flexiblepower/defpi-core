@@ -80,11 +80,11 @@ ui-test:
   before_script:
     - 'docker build orchestrator-ui -t orchestrator-ui:test'
     - 'docker run --rm --name ui-test -d -p 8756:80 orchestrator-ui:test'
-    - 'apk add --no-cache curl'
+    - 'sleep 10'
   script:
-    - 'curl -s def-pi2.sensorlab.tno.nl:8756/login.html | grep "Orchestrator"'
+    - 'wget -q def-pi2.sensorlab.tno.nl:8756/login.html -O -| grep "Orchestrator"'
   after_script:
-    - 'docker stop ui-test'
+    #- 'docker stop ui-test'
 
       # *** INTEGRATION JOBS *** #
 
@@ -105,9 +105,9 @@ ui-integrate:
     - defpici
   stage: integrate
   before_script:  
-    - 'docker build orchestrator-ui -t def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator-ui'
+    - 'docker build orchestrator-ui -t defpi.hesilab.tno.nl:5000/defpi/orchestrator-ui'
   script:
-    - 'docker push def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator-ui'
+    - 'docker push defpi.hesilab.tno.nl:5000/defpi/orchestrator-ui'
 
       # *** PRE-DEPLOYMENT JOBS *** #
 
@@ -147,14 +147,13 @@ test-deploy:
   before_script:
     - 'docker-compose -p test -f orchestrator/docker-compose.test.yml pull'
     - 'docker-compose -p test -f orchestrator/docker-compose.test.yml up -d'
-    - 'apk add --no-cache curl'
     - 'sleep 10'
   script:
     - 'nc -zv def-pi2.sensorlab.tno.nl:9999'
-    - 'curl -s def-pi2.sensorlab.tno.nl:84/login.html | grep "Orchestrator"'
-    - 'curl -s def-pi2.sensorlab.tno.nl:8484/swagger.json | grep "dEF-Pi API"'
+    - 'wget -q def-pi2.sensorlab.tno.nl:84/login.html -O - | grep "Orchestrator"'
+    - 'wget -q def-pi2.sensorlab.tno.nl:8484/swagger.json -O - | grep "dEF-Pi API"'
   after_script:
-    # - 'docker-compose -p test -f orchestrator/docker-compose.test.yml down'
+    - 'docker-compose -p test -f orchestrator/docker-compose.test.yml down'
 
       # *** FINAL DEPLOY JOBS *** #
 
