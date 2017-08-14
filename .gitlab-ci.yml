@@ -81,11 +81,11 @@ ui-test:
     - 'docker build orchestrator-ui -t orchestrator-ui:test'
     - 'docker run --rm --name ui-test -d -p 8756:80 orchestrator-ui:test'
     - 'apk add --no-cache curl'
-    - 'sleep 600'
+    - 'sleep 20'
   script:
     - 'curl -s def-pi2.sensorlab.tno.nl:8756/login.html | grep "Orchestrator"'
   after_script:
-    - 'docker stop ui-test'
+    #- 'docker stop ui-test'
 
       # *** INTEGRATION JOBS *** #
 
@@ -149,13 +149,13 @@ test-deploy:
     - 'docker-compose -p test -f orchestrator/docker-compose.test.yml pull'
     - 'docker-compose -p test -f orchestrator/docker-compose.test.yml up -d'
     - 'apk add --no-cache curl'
-    - 'sleep 10'
+    - 'sleep 20'
   script:
     - 'nc -zv def-pi2.sensorlab.tno.nl:9999'
     - 'curl -s def-pi2.sensorlab.tno.nl:84/login.html | grep "Orchestrator"'
     - 'curl -s def-pi2.sensorlab.tno.nl:8484/swagger.json | grep "dEF-Pi API"'
   after_script:
-    # - 'docker-compose -p test -f orchestrator/docker-compose.test.yml down'
+    - 'docker-compose -p test -f orchestrator/docker-compose.test.yml down'
 
       # *** FINAL DEPLOY JOBS *** #
 
