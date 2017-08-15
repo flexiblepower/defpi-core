@@ -30,12 +30,12 @@
 		<repository>
 			<id>def-pi-artifactory</id>
 			<name>def-pi release repository</name>
-			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-release-local</url>
+			<url>http://defpi.hesilab.nl:8081/artifactory/libs-release-local</url>
 		</repository>
 		<snapshotRepository>
 			<id>def-pi-artifactory</id>
 			<name>def-pi snapshot repository</name>
-			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-snapshot-local</url>
+			<url>http://defpi.hesilab.nl:8081/artifactory/libs-snapshot-local</url>
 		</snapshotRepository>
 	</distributionManagement>
 
@@ -44,7 +44,7 @@
 		<repository>
 			<id>def-pi-release</id>
 			<name>def-pi release repository</name>
-			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-release</url>
+			<url>http://defpi.hesilab.nl:8081/artifactory/libs-release</url>
 			<snapshots>
 				<enabled>false</enabled>
 			</snapshots>
@@ -53,7 +53,7 @@
 		<repository>
 			<id>def-pi-snapshot</id>
 			<name>def-pi snapshot repository</name>
-			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-snapshot</url>
+			<url>http://defpi.hesilab.nl:8081/artifactory/libs-snapshot</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
@@ -65,7 +65,7 @@
 		<pluginRepository>
 			<id>def-pi-release</id>
 			<name>def-pi release repository</name>
-			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-release</url>
+			<url>http://defpi.hesilab.nl:8081/artifactory/libs-release</url>
 			<snapshots>
 				<enabled>false</enabled>
 			</snapshots>
@@ -74,7 +74,7 @@
 		<pluginRepository>
 			<id>def-pi-snapshot</id>
 			<name>def-pi snapshot repository</name>
-			<url>http://def-pi1.sensorlab.tno.nl:8081/artifactory/libs-snapshot</url>
+			<url>http://defpi.hesilab.nl:8081/artifactory/libs-snapshot</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
