@@ -452,7 +452,7 @@ public class ProcessConnector {
         }
 
         void close() {
-            log.debug("Terminating connection with process " + processId);
+            ProcessConnector.log.debug("Terminating connection with process " + this.processId);
             // Terminate connection with process
             this.socket.disconnect(this.uri);
             this.socket.close();
@@ -471,7 +471,9 @@ public class ProcessConnector {
                 recv = this.socket.recv();
             } catch (final ZMQException e) {
                 if (e.getErrorCode() == 156384763) {
-                    ProcessConnector.log.error("That weird error again", e);
+                    ProcessConnector.log
+                            .error("Got ZMQ error 156384763. Disconnecting with process, try to reconnect.");
+                    this.close();
                 }
             }
             if (recv == null) {
