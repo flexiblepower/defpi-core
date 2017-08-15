@@ -10,11 +10,17 @@ import java.time.Duration;
 import java.util.List;
 
 import org.bson.types.ObjectId;
+import org.flexiblepower.connectors.MongoDbConnector;
+import org.flexiblepower.connectors.ProcessConnector;
+import org.flexiblepower.model.Connection;
+import org.flexiblepower.model.Connection.Endpoint;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.model.UnidentifiedNode;
 import org.flexiblepower.model.User;
+import org.flexiblepower.process.ConnectionManager;
+import org.flexiblepower.process.ProcessManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -125,6 +131,11 @@ public class ProcessIntegrationTest {
         // Creating a connection can only be done when started as a container. From JUnit test, we cannot access the
         // user-net
 
+        final Connection connection = new Connection(null,
+                new Endpoint(process1.getId(), "Echo", null, 0),
+                new Endpoint(process1.getId(), "Echo", null, 0));
+        Assert.assertTrue(
+                ProcessConnector.getInstance().createConnectionEndpoint(connection, connection.getEndpoint1()));
     }
 
     @After
@@ -136,7 +147,7 @@ public class ProcessIntegrationTest {
             final List<Process> myProcesses = this.pm.listProcesses(user);
             for (final Process process : myProcesses) {
                 try {
-                    this.pm.deleteProcess(process, true);
+                    this.pm.deleteProcess(process);
                     ProcessIntegrationTest.log.info("Removed process {}", process);
                 } catch (final Throwable e) {
                     ProcessIntegrationTest.log.info("Unable to remove process {}", process);

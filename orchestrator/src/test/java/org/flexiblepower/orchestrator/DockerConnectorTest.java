@@ -7,6 +7,7 @@ package org.flexiblepower.orchestrator;
 
 import java.util.List;
 
+import org.flexiblepower.connectors.DockerConnector;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;

@@ -11,6 +11,7 @@ import javax.ws.rs.core.Response.Status;
 import org.bson.types.ObjectId;
 import org.flexiblepower.api.NodeApi;
 import org.flexiblepower.api.UserApi;
+import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
@@ -21,7 +22,6 @@ import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.PublicNode;
 import org.flexiblepower.model.UnidentifiedNode;
 import org.flexiblepower.model.User;
-import org.flexiblepower.orchestrator.MongoDbConnector;
 import org.flexiblepower.orchestrator.NodeManager;
 import org.flexiblepower.orchestrator.UserManager;
 

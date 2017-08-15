@@ -1,4 +1,4 @@
-package org.flexiblepower.orchestrator;
+package org.flexiblepower.connectors;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -26,6 +26,7 @@ import org.flexiblepower.model.Architecture;
 import org.flexiblepower.model.Interface;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.model.Service.ServiceBuilder;
+import org.flexiblepower.orchestrator.ServiceManager;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -60,14 +61,14 @@ public class RegistryConnector {
         this.registryApiLink = "https://" + this.registryName + "/v2/";
     }
 
-    synchronized static RegistryConnector getInstance() {
+    public synchronized static RegistryConnector getInstance() {
         if (RegistryConnector.instance == null) {
             RegistryConnector.instance = new RegistryConnector();
         }
         return RegistryConnector.instance;
     }
 
-    List<String> listRepositories() {
+    public List<String> listRepositories() {
         RegistryConnector.log.info("Listing all repositories");
         final Set<String> ret = new HashSet<>();
         try {
@@ -111,7 +112,7 @@ public class RegistryConnector {
         }
     }
 
-    List<Service> listServices(final String repository) throws RepositoryNotFoundException {
+    public List<Service> listServices(final String repository) throws RepositoryNotFoundException {
         synchronized (this.serviceCacheLock) {
             final long cacheAge = System.currentTimeMillis() - this.serviceCacheLastUpdate;
             if (cacheAge > RegistryConnector.MAX_CACHE_AGE_MS) {
@@ -223,8 +224,8 @@ public class RegistryConnector {
     // return this.getService(url);
     // }
 
-    Service getService(final String repository, final String id) throws ServiceNotFoundException,
-            RepositoryNotFoundException {
+    public Service getService(final String repository, final String id)
+            throws ServiceNotFoundException, RepositoryNotFoundException {
         for (final Service service : this.listServices(repository)) {
             if (service.getId().equals(id)) {
                 return service;

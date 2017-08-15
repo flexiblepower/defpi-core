@@ -8,6 +8,7 @@ package org.flexiblepower.orchestrator;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.flexiblepower.connectors.RegistryConnector;
 import org.flexiblepower.exceptions.RepositoryNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Interface;
