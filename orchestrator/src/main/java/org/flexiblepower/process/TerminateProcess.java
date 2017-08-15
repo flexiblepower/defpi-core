@@ -98,6 +98,8 @@ public class TerminateProcess {
 
         @Override
         public Result execute() {
+            ProcessConnector.getInstance().disconnect(this.process.getId());
+
             if (DockerConnector.getInstance().removeProcess(this.process)) {
                 RemoveDockerService.log
                         .debug("Removing Docker service for process " + this.process.getId() + " was successful");

@@ -102,7 +102,8 @@ public final class MongoDbConnector {
      */
     public List<Connection> getConnectionsForProcess(final Process process) {
         final Query<Connection> q = this.datastore.find(Connection.class);
-        q.or(q.criteria("container1").equal(process.getId()), q.criteria("container2").equal(process.getId()));
+        q.or(q.criteria("endpoint1.processId").equal(process.getId()),
+                q.criteria("endpoint2.processId").equal(process.getId()));
         return q.asList();
     }
 

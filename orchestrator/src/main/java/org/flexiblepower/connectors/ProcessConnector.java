@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Socket;
+import org.zeromq.ZMQException;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
@@ -450,7 +451,8 @@ public class ProcessConnector {
             return response != null;
         }
 
-        private void close() {
+        void close() {
+            ProcessConnector.log.debug("Terminating connection with process " + this.processId);
             // Terminate connection with process
             this.socket.disconnect(this.uri);
             this.socket.close();
@@ -464,7 +466,16 @@ public class ProcessConnector {
             } catch (final SerializationException e1) {
                 ProcessConnector.log.error("Could not serialize message", e1);
             }
-            final byte[] recv = this.socket.recv();
+            byte[] recv = null;
+            try {
+                recv = this.socket.recv();
+            } catch (final ZMQException e) {
+                if (e.getErrorCode() == 156384763) {
+                    ProcessConnector.log
+                            .error("Got ZMQ error 156384763. Disconnecting with process, try to reconnect.");
+                    this.close();
+                }
+            }
             if (recv == null) {
                 return null;
             }
@@ -511,6 +522,16 @@ public class ProcessConnector {
             mongoDbConnector.save(process);
         }
 
+    }
+
+    /**
+     * @param id
+     */
+    public void disconnect(final ObjectId processId) {
+        final ProcessConnection processConnection = this.connections.get(processId);
+        if (processConnection != null) {
+            processConnection.close();
+        }
     }
 
 }

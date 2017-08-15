@@ -154,7 +154,8 @@ public class ProcessManager {
         }
 
         // Did the configuration change?
-        if (!newProcess.getConfiguration().equals(currentProcess.getConfiguration())) {
+        if ((newProcess.getConfiguration() != null)
+                && !newProcess.getConfiguration().equals(currentProcess.getConfiguration())) {
             this.updateConfiguration(currentProcess, newProcess.getConfiguration());
         }
     }

@@ -177,6 +177,8 @@ public class MoveProcess {
 
         @Override
         public Result execute() {
+            ProcessConnector.getInstance().disconnect(this.process.getId());
+
             if (DockerConnector.getInstance().removeProcess(this.process)) {
                 RemoveDockerService.log.info(
                         "Removed Docker Service for process " + this.process.getId() + " while moving the process");
@@ -206,6 +208,11 @@ public class MoveProcess {
             super();
         }
 
+        @Override
+        public long delayMs() {
+            return 5000;
+        }
+
         public CreateDockerService(final Process process,
                 final ObjectId nodePoolId,
                 final ObjectId privateNodeId,
@@ -222,7 +229,7 @@ public class MoveProcess {
 
         @Override
         public String description() {
-            return "Crerate Docker Service for process " + this.process.getId() + " while moving process";
+            return "Create Docker Service for process " + this.process.getId() + " while moving process";
         }
 
         @Override
@@ -230,11 +237,13 @@ public class MoveProcess {
             this.process.setNodePoolId(this.nodePoolId);
             this.process.setPrivateNodeId(this.privateNodeId);
 
-            if (DockerConnector.getInstance().newProcess(this.process) != null) {
+            final String newDockerId = DockerConnector.getInstance().newProcess(this.process);
+            if (newDockerId != null) {
                 CreateDockerService.log.info(
                         "Created Docker Service for process " + this.process.getId() + " while moving the process");
 
                 // save in database
+                this.process.setDockerId(newDockerId);
                 MongoDbConnector.getInstance().save(this.process);
 
                 // Start next step
