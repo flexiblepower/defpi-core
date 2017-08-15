@@ -165,6 +165,7 @@ public class ConnectionManager {
      * Removes the connection that has the provided id from the database.
      *
      * @param connection
+     * @throws ProcessNotFoundException
      * @throws InvalidObjectIdException
      */
     public void terminateConnection(final Connection connection) {
@@ -203,8 +204,9 @@ public class ConnectionManager {
      * Removes all connections that are connected to the process with the provided id from the database.
      *
      * @param process
+     * @throws ProcessNotFoundException
      */
-    public void deleteConnectionsForProcess(final Process process) {
+    public void deleteConnectionsForProcess(final Process process) throws ProcessNotFoundException {
         for (final Connection connection : this.getConnectionsForProcess(process)) {
             this.terminateConnection(connection);
         }

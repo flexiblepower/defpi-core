@@ -55,7 +55,7 @@ java-test:
   before_script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
   script:
-    - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml -P codegen generate-sources'
+    - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml defpi:generate'
 
 # Test plugin on xsd
 plugin-test:proto:
@@ -70,21 +70,21 @@ plugin-test:xsd:
   <<: *plugin
 
 # Test to see if the orchestrator ui does what it is supposed to
-ui-test:
-  image: docker:17.03.2-ce-git
-  tags:
-    - defpi2
-  stage: test
-  except:
-    - master
-  before_script:
-    - 'docker build orchestrator-ui -t orchestrator-ui:test'
-    - 'docker run --rm --name ui-test -d -p 8756:80 orchestrator-ui:test'
-    - 'apk add --no-cache curl'
-  script:
-    - 'curl -s def-pi2.sensorlab.tno.nl:8756/login.html | grep "Orchestrator"'
-  after_script:
-    - 'docker stop ui-test'
+#ui-test:
+#  image: docker:17.03.2-ce-git
+#  tags:
+#    - defpi2
+#  stage: test
+#  except:
+#    - master
+#  before_script:
+#    - 'docker build orchestrator-ui -t orchestrator-ui:test'
+#    - 'docker run --rm --name ui-test -d -p 8756:80 orchestrator-ui:test'
+#    - 'sleep 10'
+#  script:
+#    - 'wget -q def-pi2.sensorlab.tno.nl:8756/login.html -O -| grep "Orchestrator"'
+#  after_script:
+#    - 'docker stop ui-test'
 
       # *** INTEGRATION JOBS *** #
 
@@ -105,9 +105,9 @@ ui-integrate:
     - defpici
   stage: integrate
   before_script:  
-    - 'docker build orchestrator-ui -t def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator-ui'
+    - 'docker build orchestrator-ui -t defpi.hesilab.nl:5000/defpi/orchestrator-ui'
   script:
-    - 'docker push def-pi1.sensorlab.tno.nl:5000/defpi/orchestrator-ui'
+    - 'docker push defpi.hesilab.nl:5000/defpi/orchestrator-ui'
 
       # *** PRE-DEPLOYMENT JOBS *** #
 
@@ -119,7 +119,7 @@ ui-integrate:
   stage: predeploy
   before_script:
     # In this stage the plugin should be available from artifactory
-    - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml -P codegen generate-sources'
+    - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml defpi:generate'
   script:
     - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml clean deploy'
 
@@ -136,25 +136,24 @@ integrate:xsd_proto:
   <<: *integrate_service
 
 # Test the deployment first
-test-deploy:
-  image: tmaier/docker-compose:17.06
-  tags:
-    - defpi2
-  only:
-    - master
-    - defpici
-  stage: predeploy
-  before_script:
-    - 'docker-compose -p test -f orchestrator/docker-compose.test.yml pull'
-    - 'docker-compose -p test -f orchestrator/docker-compose.test.yml up -d'
-    - 'apk add --no-cache curl'
-    - 'sleep 10'
-  script:
-    - 'nc -zv def-pi2.sensorlab.tno.nl:9999'
-    - 'curl -s def-pi2.sensorlab.tno.nl:84/login.html | grep "Orchestrator"'
-    - 'curl -s def-pi2.sensorlab.tno.nl:8484/swagger.json | grep "dEF-Pi API"'
-  after_script:
-    # - 'docker-compose -p test -f orchestrator/docker-compose.test.yml down'
+# test-deploy:
+#  image: tmaier/docker-compose:17.06
+#  tags:
+#    - defpi2
+#  only:
+#    - master
+#    - defpici
+#  stage: predeploy
+#  before_script:
+#    - 'docker-compose -p test -f orchestrator/docker-compose.test.yml pull'
+#    - 'docker-compose -p test -f orchestrator/docker-compose.test.yml up -d'
+#    - 'sleep 120'
+#  script:
+#    - 'nc -zv def-pi2.sensorlab.tno.nl:9999'
+#    - 'wget -q def-pi2.sensorlab.tno.nl:84/login.html -O - | grep "Orchestrator"'
+#    - 'wget -q def-pi2.sensorlab.tno.nl:8484/swagger.json -O - | grep "dEF-Pi API"'
+#  after_script:
+#    - 'docker-compose -p test -f orchestrator/docker-compose.test.yml down'
 
       # *** FINAL DEPLOY JOBS *** #
 

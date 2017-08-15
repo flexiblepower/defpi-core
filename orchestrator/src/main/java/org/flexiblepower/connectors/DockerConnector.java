@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
-import java.util.UUID;
 
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.model.Architecture;
@@ -28,8 +27,10 @@ import org.flexiblepower.orchestrator.UserManager;
 
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.DockerClient.ListContainersParam;
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
+import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.Network;
 import com.spotify.docker.client.messages.NetworkConfig;
 import com.spotify.docker.client.messages.mount.Mount;
@@ -58,11 +59,6 @@ public class DockerConnector {
      *
      */
     private static final String ORCHESTRATOR_CONTAINER_NAME = "orchestrator_orchestrator_1";
-
-    /**
-     *
-     */
-    private static final String ORCHESTRATOR_NETWORK_NAME = "orchestrator_management";
 
     private static final int INTERNAL_DEBUGGING_PORT = 8000;
 
@@ -105,11 +101,11 @@ public class DockerConnector {
      * @param json
      * @return
      */
-    public String newProcess(final Process process) {
+    public synchronized String newProcess(final Process process) {
         try {
             final User user = UserManager.getInstance().getUser(process.getUserId());
-            this.ensureUserNetworkExists(user);
-            this.ensureOrchestratorNetworkExists();
+            this.ensureNetworkExists(user.getUsername() + "-net");
+            // this.ensureOrchestratorNetworkExists();
             final Service service = ServiceManager.getInstance().getService(process.getServiceId());
             final Node node = DockerConnector.determineRunningNode(process);
             final ServiceSpec serviceSpec = DockerConnector.createServiceSpec(process, service, user, node);
@@ -125,7 +121,7 @@ public class DockerConnector {
      * @param uuid
      * @return
      */
-    public boolean removeProcess(final Process process) {
+    public synchronized boolean removeProcess(final Process process) {
         if (process.getDockerId() != null) {
             try {
                 this.client.removeService(process.getDockerId());
@@ -137,51 +133,12 @@ public class DockerConnector {
         return false;
     }
 
-    public void ensureOrchestratorNetworkExists() {
-        for (final String networkName : this.listNetworks().values()) {
-            if (networkName.equals(DockerConnector.ORCHESTRATOR_NETWORK_NAME)) {
-                return;
-            }
-        }
-        this.newNetwork(DockerConnector.ORCHESTRATOR_NETWORK_NAME);
-    }
-
-    public void ensureUserNetworkExists(final User user) {
-        // check if it exists
-        final String userNetworkName = user.getUsername() + "-net";
-        for (final String networkName : this.listNetworks().values()) {
-            if (networkName.equals(userNetworkName)) {
-                return;
-            }
-        }
-        this.newNetwork(userNetworkName);
-    }
-
     /**
      * @return
      */
-    public Map<String, String> listNetworks() {
+    public synchronized List<com.spotify.docker.client.messages.swarm.Node> listNodes() {
         try {
-            final List<Network> networks = this.client.listNetworks();
-            final Map<String, String> ret = new HashMap<>();
-            networks.forEach((x) -> {
-                ret.put(x.id(), x.name());
-            });
-            return ret;
-        } catch (DockerException | InterruptedException e) {
-            DockerConnector.log.error("Error while listing networks: {}", e.getMessage());
-            DockerConnector.log.trace("Error while listing networks", e);
-            throw new ApiException(e);
-        }
-    }
-
-    /**
-     * @return
-     */
-    public List<com.spotify.docker.client.messages.swarm.Node> listNodes() {
-        try {
-            final List<com.spotify.docker.client.messages.swarm.Node> nodes = this.client.listNodes();
-            return nodes;
+            return this.client.listNodes();
         } catch (DockerException | InterruptedException e) {
             DockerConnector.log.error("Error while listing nodes: {}", e.getMessage());
             DockerConnector.log.trace("Error while listing nodes", e);
@@ -189,39 +146,62 @@ public class DockerConnector {
         }
     }
 
-    /**
-     * @param networkName
-     * @return
-     */
-    public String newNetwork(final String networkName) {
-        try {
-            final NetworkConfig networkConfig = NetworkConfig.builder()
-                    .driver("overlay")
-                    .attachable(true)
-                    .name(networkName)
-                    .build();
-            final String ret = this.client.createNetwork(networkConfig).id();
-            this.client.connectToNetwork(DockerConnector.ORCHESTRATOR_CONTAINER_NAME, networkName);
-            return ret;
-        } catch (DockerException | InterruptedException e) {
-            DockerConnector.log.error("Error while creating new network: {}", e.getMessage());
-            DockerConnector.log.trace("Error while creating new network", e);
-            throw new ApiException(e);
+    private void ensureNetworkExists(final String networkName) throws DockerException, InterruptedException {
+        // check if it exists
+        if (!this.listNetworks().values().contains(networkName)) {
+            this.newNetwork(networkName);
         }
     }
 
     /**
-     * @param networkId
+     * @return
+     * @throws InterruptedException
+     * @throws DockerException
      */
-    public void removeNetwork(final String networkId) {
-        try {
-            this.client.disconnectFromNetwork(DockerConnector.ORCHESTRATOR_CONTAINER_NAME, networkId);
-            this.client.removeNetwork(networkId);
-        } catch (DockerException | InterruptedException e) {
-            DockerConnector.log.error("Error while removing network: {}", e.getMessage());
-            DockerConnector.log.trace("Error while removing network", e);
-            throw new ApiException(e);
+    private Map<String, String> listNetworks() throws DockerException, InterruptedException {
+        final List<Network> networks = this.client.listNetworks();
+        final Map<String, String> ret = new HashMap<>();
+        networks.forEach((x) -> ret.put(x.id(), x.name()));
+        return ret;
+    }
+
+    /**
+     * @param networkName
+     * @return
+     * @throws InterruptedException
+     * @throws DockerException
+     */
+    private String newNetwork(final String networkName) throws DockerException, InterruptedException {
+        final NetworkConfig networkConfig = NetworkConfig.builder()
+                .driver("overlay")
+                .attachable(true)
+                .name(networkName)
+                .build();
+        final String ret = this.client.createNetwork(networkConfig).id();
+
+        // And connect to the new network
+        final List<Container> orchestratorContainers = this.client
+                .listContainers(ListContainersParam.filter("name", DockerConnector.ORCHESTRATOR_CONTAINER_NAME));
+        if (!orchestratorContainers.isEmpty()) {
+            // If the list is empty this next statement is not going to work anyway
+            this.client.connectToNetwork(DockerConnector.ORCHESTRATOR_CONTAINER_NAME, networkName);
+        } else {
+            DockerConnector.log.warn("No container running with expected name {}. Not connecting to network {}.",
+                    DockerConnector.ORCHESTRATOR_CONTAINER_NAME,
+                    networkName);
         }
+
+        return ret;
+    }
+
+    /**
+     * @param networkId
+     * @throws InterruptedException
+     * @throws DockerException
+     */
+    private void removeNetwork(final String networkId) throws DockerException, InterruptedException {
+        this.client.disconnectFromNetwork(DockerConnector.ORCHESTRATOR_CONTAINER_NAME, networkId);
+        this.client.removeNetwork(networkId);
     }
 
     private static Node determineRunningNode(final Process process) {
@@ -251,8 +231,9 @@ public class DockerConnector {
 
         final Architecture architecture = node.getArchitecture();
         // Create a name for the service by removing blanks from process name
-        String serviceName = service.getName() + UUID.randomUUID().getLeastSignificantBits();
-        serviceName = serviceName.replaceAll("\\h", "");
+        // String serviceName = service.getName() + UUID.randomUUID().getLeastSignificantBits();
+        // serviceName = serviceName.replaceAll("\\h", "");
+        final String serviceName = process.getId().toString();
 
         // Create labels to add to the container
         final Map<String, String> serviceLabels = new HashMap<>();
@@ -292,10 +273,10 @@ public class DockerConnector {
         }
 
         // Add the network attachment to place process in user network
-        final NetworkAttachmentConfig orchestratornet = NetworkAttachmentConfig.builder()
-                .target(DockerConnector.ORCHESTRATOR_NETWORK_NAME)
-                .aliases(process.getId().toString())
-                .build();
+        // final NetworkAttachmentConfig orchestratornet = NetworkAttachmentConfig.builder()
+        // .target(DockerConnector.ORCHESTRATOR_NETWORK_NAME)
+        // .aliases(process.getId().toString())
+        // .build();
 
         final NetworkAttachmentConfig usernet = NetworkAttachmentConfig.builder()
                 .target(user.getUsername() + "-net")
@@ -315,7 +296,7 @@ public class DockerConnector {
                 .labels(serviceLabels)
                 .taskTemplate(taskSpec.build())
                 .endpointSpec(endpointSpec.build())
-                .networks(orchestratornet, usernet)
+                .networks(usernet)
                 .build();
     }
 
