@@ -56,15 +56,17 @@ public class ConnectionManager implements Closeable {
      */
     public Message handleConnectionMessage(final ConnectionMessage message) throws ConnectionModificationException {
         final String connectionId = message.getConnectionId();
-        ConnectionManager.log.info("Received ConnectionMessage for connection {} ({})",
-                connectionId,
-                message.getMode());
+        ConnectionManager.log
+                .info("Received ConnectionMessage for connection {} ({})", connectionId, message.getMode());
         ConnectionManager.log.trace("Received message:\n{}", message);
 
         switch (message.getMode()) {
         case CREATE:
             return this.createConnection(connectionId, message);
         case RESUME:
+            if (!this.connections.containsKey(connectionId)) {
+                this.createConnection(connectionId, message);
+            }
             this.connections.get(connectionId).resumeAfterSuspendedState(message.getListenPort(),
                     message.getTargetAddress());
             return ConnectionHandshake.newBuilder()

@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -24,6 +25,7 @@ public class Connection {
 	@Getter
 	@NoArgsConstructor
 	@AllArgsConstructor
+	@EqualsAndHashCode
 	public static class Endpoint {
 		@JsonSerialize(using = ToStringSerializer.class)
 		@JsonDeserialize(using = ObjectIdDeserializer.class)
@@ -60,7 +62,7 @@ public class Connection {
 		}
 	}
 
-	public Endpoint getEndpoirtForProcess(ObjectId processId) {
+	public Endpoint getEndpointForProcess(ObjectId processId) {
 		if (processId.equals(endpoint1.getProcessId())) {
 			return endpoint1;
 		} else if (processId.equals(endpoint2.getProcessId())) {

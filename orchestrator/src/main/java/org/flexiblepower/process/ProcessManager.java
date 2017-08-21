@@ -9,6 +9,8 @@ import java.util.List;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
+import org.flexiblepower.exceptions.ProcessNotFoundException;
+import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.Process;
@@ -47,8 +49,12 @@ public class ProcessManager {
         return ProcessManager.instance;
     }
 
-    public Process getProcess(final ObjectId processId) {
-        return this.mongoDbConnector.get(Process.class, processId);
+    public Process getProcess(final ObjectId processId) throws ProcessNotFoundException {
+        final Process ret = this.mongoDbConnector.get(Process.class, processId);
+        if (ret == null) {
+            throw new ProcessNotFoundException(processId.toString());
+        }
+        return ret;
     }
 
     /**
@@ -90,15 +96,26 @@ public class ProcessManager {
      * @throws
      */
     private void validateProcess(final Process process) {
+        // Validate user
         if (process.getUserId() == null) {
             throw new NullPointerException("userId cannot be null");
         } else if (this.userManager.getUser(process.getUserId()) == null) {
             throw new IllegalArgumentException("Could not find user");
-        } else if (process.getServiceId() == null) {
+        }
+
+        // Validate service
+        if (process.getServiceId() == null) {
             throw new NullPointerException("serviceId cannot be null");
-        } else if (ServiceManager.getInstance().getService(process.getServiceId()) == null) {
-            throw new IllegalArgumentException("Could not find service");
-        } else if (process.getNodePoolId() != null) {
+        } else {
+            try {
+                ServiceManager.getInstance().getService(process.getServiceId());
+            } catch (final ServiceNotFoundException e) {
+                throw new IllegalArgumentException("Could not find service");
+            }
+        }
+
+        // Validate node allocation
+        if (process.getNodePoolId() != null) {
             if (process.getPrivateNodeId() != null) {
                 throw new IllegalArgumentException("Either the nodepool or the privatenode should be set");
             } else if (NodeManager.getInstance().getNodePool(process.getNodePoolId()) == null) {
@@ -121,8 +138,10 @@ public class ProcessManager {
         }
     }
 
-    public void deleteProcess(final Process process) {
+    public void deleteProcess(final Process process) throws ProcessNotFoundException {
         // Start two pendingchanges. The second one has a delay of 5000ms.
+        ConnectionManager.getInstance().deleteConnectionsForProcess(process);
+
         PendingChangeManager.getInstance().submit(new TerminateProcess.SendTerminateSignal(process));
         PendingChangeManager.getInstance().submit(new TerminateProcess.RemoveDockerService(process));
     }
@@ -170,12 +189,12 @@ public class ProcessManager {
 
         // Suspend connections
         for (final Connection c : ConnectionManager.getInstance().getConnectionsForProcess(currentProcess)) {
-            pcm.submit(new MoveProcess.SupsendConnection(currentProcess.getUserId(), c, c.getEndpoint1()));
-            pcm.submit(new MoveProcess.SupsendConnection(currentProcess.getUserId(), c, c.getEndpoint2()));
+            pcm.submit(new MoveProcess.SuspendConnection(currentProcess.getUserId(), c, c.getEndpoint1()));
+            pcm.submit(new MoveProcess.SuspendConnection(currentProcess.getUserId(), c, c.getEndpoint2()));
         }
 
         // Suspend process. This PendingChange will start all other PendingChanges.
-        pcm.submit(new MoveProcess.SupsendProcess(currentProcess,
+        pcm.submit(new MoveProcess.SuspendProcess(currentProcess,
                 newProcess.getNodePoolId(),
                 newProcess.getPrivateNodeId()));
     }

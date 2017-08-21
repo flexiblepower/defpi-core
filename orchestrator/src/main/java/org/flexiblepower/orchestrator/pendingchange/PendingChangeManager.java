@@ -24,29 +24,14 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class PendingChangeManager {
 
+    private static final int NUM_THREADS = 16;
     private static PendingChangeManager instance;
-    private final MongoDbConnector db;
-    private final Object waitLock = new Object();
+    protected final Object waitLock = new Object();
 
     private PendingChangeManager() {
-        this.db = MongoDbConnector.getInstance();
-        new Thread(() -> {
-            while (true) {
-                final PendingChange pc = this.db.getNextPendingChange();
-                if (pc == null) {
-                    // Nothing to do, take a break...
-                    synchronized (this.waitLock) {
-                        try {
-                            this.waitLock.wait(5000);
-                        } catch (final InterruptedException e) {
-                            // Don't care
-                        }
-                    }
-                } else {
-                    this.runPendingChange(pc);
-                }
-            }
-        }).start();
+        for (int i = 0; i < PendingChangeManager.NUM_THREADS; i++) {
+            new Thread(new PendingChangeRunner()).start();
+        }
     }
 
     public synchronized static PendingChangeManager getInstance() {
@@ -57,9 +42,9 @@ public class PendingChangeManager {
     }
 
     public void submit(final PendingChange pendingChange) {
-        this.db.save(pendingChange);
+        MongoDbConnector.getInstance().save(pendingChange);
         synchronized (this.waitLock) {
-            this.waitLock.notifyAll();
+            this.waitLock.notify();
         }
     }
 
@@ -67,14 +52,14 @@ public class PendingChangeManager {
         pendingChange.obtainedAt = null;
         switch (pendingChange.getState()) {
         case FAILED_PERMANENTLY:
-            this.db.save(pendingChange);
+            MongoDbConnector.getInstance().save(pendingChange);
             break;
         case FAILED_TEMPORARY:
             this.submit(pendingChange);
             break;
         case FINISHED:
             // Awesome!
-            this.db.delete(pendingChange);
+            MongoDbConnector.getInstance().delete(pendingChange);
             break;
         case NEW:
             // Wut?
@@ -83,11 +68,10 @@ public class PendingChangeManager {
             // Wut?
             break;
         }
-
     }
 
-    private void runPendingChange(final PendingChange pc) {
-        PendingChangeManager.log.debug("Running PendingChange of type " + this.getClass().getSimpleName());
+    protected void runPendingChange(final PendingChange pc) {
+        PendingChangeManager.log.debug("Running PendingChange of type " + pc.getClass().getSimpleName());
         Result result;
         try {
             result = pc.execute();
@@ -104,7 +88,7 @@ public class PendingChangeManager {
         case FAILED_TEMPORARY:
             if (pc.getCount() <= pc.maxRetryCount()) {
                 pc.setState(State.FAILED_TEMPORARY);
-                pc.setRunAt(new Date(pc.getRunAt().getTime() + pc.retryIntervalMs()));
+                pc.setRunAt(new Date(System.currentTimeMillis() + pc.retryIntervalMs()));
             } else {
                 pc.setState(State.FAILED_PERMANENTLY);
             }
@@ -127,6 +111,39 @@ public class PendingChangeManager {
      */
     public void deletePendingChange(final ObjectId pendingChangeId) {
         MongoDbConnector.getInstance().delete(PendingChange.class, pendingChangeId);
+    }
+
+    private class PendingChangeRunner implements Runnable {
+
+        public PendingChangeRunner() {
+            // TODO Auto-generated constructor stub
+        }
+
+        /*
+         * (non-Javadoc)
+         *
+         * @see java.lang.Runnable#run()
+         */
+        @Override
+        public void run() {
+            final MongoDbConnector db = MongoDbConnector.getInstance();
+            while (true) {
+                final PendingChange pc = db.getNextPendingChange();
+                if (pc == null) {
+                    // Nothing to do, take a break...
+                    synchronized (PendingChangeManager.this.waitLock) {
+                        try {
+                            PendingChangeManager.this.waitLock.wait(5000);
+                        } catch (final InterruptedException e) {
+                            // Don't care
+                        }
+                    }
+                } else {
+                    PendingChangeManager.this.runPendingChange(pc);
+                }
+            }
+        }
+
     }
 
 }

@@ -60,8 +60,8 @@ public class ServiceManager implements Closeable {
      * boolean is still true
      */
     private static final int MANAGEMENT_SOCKET_RECEIVE_TIMEOUT = 100;
-    public static final int MANAGEMENT_PORT = 4999;
     private static final long SERVICE_IMPL_TIMEOUT_SECONDS = 1;
+    public static final int MANAGEMENT_PORT = 4999;
 
     // private final Class<? extends Service> serviceClass;
     private boolean configured;
@@ -261,18 +261,19 @@ public class ServiceManager implements Closeable {
     private Message handleResumeProcessMessage(final ResumeProcessMessage msg) throws ServiceInvocationException {
         Future<ProcessStateUpdateMessage> future;
         ServiceManager.log.info("Received ResumeProcessMessage for process {}", msg.getProcessId());
-        ServiceManager.log.trace("Received message: {}", msg);
-        final String processId = msg.getProcessId();
 
         try {
-            final Serializable state = this.javaIoSerializer.deserialize(msg.getStateData().toByteArray());
+            final Serializable state = msg.getStateData().isEmpty() ? null
+                    : this.javaIoSerializer.deserialize(msg.getStateData().toByteArray());
             future = ServiceManager.serviceExecutor.submit(() -> {
                 this.service.resumeFrom(state);
                 return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
             });
             return future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, ServiceManager.SECONDS);
         } catch (final Exception e) {
-            return ServiceManager.createErrorMessage(processId, e);
+            ServiceManager.log.error("Exception while resuming from suspended: {}", e.getMessage());
+            ServiceManager.log.trace(e.getMessage(), e);
+            return ServiceManager.createErrorMessage(this.processId, e);
         }
     }
 

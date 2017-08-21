@@ -217,11 +217,15 @@ final class ManagedConnection implements Connection {
     }
 
     private void initListening() {
-        this.subscribeSocket = this.zmqContext.socket(ZMQ.PULL);
-        final String listenAddress = "tcp://*:" + this.listenPort;
-        ManagedConnection.log.debug("Creating subscribeSocket listening on port {}", listenAddress);
-        this.subscribeSocket.setReceiveTimeOut(ManagedConnection.RECEIVE_TIMEOUT);
-        this.subscribeSocket.bind(listenAddress);
+        if (this.subscribeSocket == null) {
+            this.subscribeSocket = this.zmqContext.socket(ZMQ.PULL);
+            final String listenAddress = "tcp://*:" + this.listenPort;
+            ManagedConnection.log.debug("Creating subscribeSocket listening on port {}", listenAddress);
+            this.subscribeSocket.setReceiveTimeOut(ManagedConnection.RECEIVE_TIMEOUT);
+            this.subscribeSocket.bind(listenAddress);
+        } else {
+            ManagedConnection.log.debug("Not re-creating subscribesocket");
+        }
     }
 
     private void disconnectListening() {
@@ -477,6 +481,7 @@ final class ManagedConnection implements Connection {
                 this.publishSocket.send(ManagedConnection.PING);
             } else {
                 // If no PONG was received since the last PING, assume connection was interrupted!
+                ManagedConnection.log.warn("No heartbeat received on connection, goto {}", ConnectionState.INTERRUPTED);
                 this.goToInterruptedState();
             }
         }, ManagedConnection.INITIAL_HEARTBEAT_DELAY, ManagedConnection.HEARTBEAT_PERIOD_IN_SECONDS, TimeUnit.SECONDS);
@@ -540,6 +545,8 @@ final class ManagedConnection implements Connection {
                 success = false;
             }
             if (!success) {
+                ManagedConnection.log.warn("Failed to send message through socket, goto {}",
+                        ConnectionState.INTERRUPTED);
                 this.goToInterruptedState();
             }
         } else {

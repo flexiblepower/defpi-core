@@ -224,12 +224,15 @@ public class RegistryConnector {
     // return this.getService(url);
     // }
 
-    public Service getService(final String repository, final String id)
-            throws ServiceNotFoundException, RepositoryNotFoundException {
-        for (final Service service : this.listServices(repository)) {
-            if (service.getId().equals(id)) {
-                return service;
+    public Service getService(final String repository, final String id) throws ServiceNotFoundException {
+        try {
+            for (final Service service : this.listServices(repository)) {
+                if (service.getId().equals(id)) {
+                    return service;
+                }
             }
+        } catch (final RepositoryNotFoundException e) {
+            throw new ServiceNotFoundException(e);
         }
         throw new ServiceNotFoundException();
     }

@@ -8,6 +8,7 @@ package org.flexiblepower.process;
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.ProcessConnector;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
+import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Connection.Endpoint;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange;
@@ -24,16 +25,16 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Entity("PendingChange")
 @Slf4j
-public class CreateConnection extends PendingChange {
+public class CreateConnectionEndpoint extends PendingChange {
 
     private Connection connection;
     private Endpoint endpoint;
 
-    public CreateConnection() {
+    public CreateConnectionEndpoint() {
         super();
     }
 
-    public CreateConnection(final ObjectId userId, final Connection connection, final Connection.Endpoint endpoint) {
+    public CreateConnectionEndpoint(final ObjectId userId, final Connection connection, final Connection.Endpoint endpoint) {
         super(userId);
         this.connection = connection;
         this.endpoint = endpoint;
@@ -51,17 +52,19 @@ public class CreateConnection extends PendingChange {
     public Result execute() {
         try {
             if (ProcessConnector.getInstance().createConnectionEndpoint(this.connection, this.endpoint)) {
-                CreateConnection.log.info("Successfully signaled process " + this.endpoint.getProcessId()
+                CreateConnectionEndpoint.log.info("Successfully signaled process " + this.endpoint.getProcessId()
                         + " to create connection " + this.connection.getId());
                 return Result.SUCCESS;
             } else {
-                CreateConnection.log.debug("Failed to signal process " + this.endpoint.getProcessId()
+                CreateConnectionEndpoint.log.debug("Failed to signal process " + this.endpoint.getProcessId()
                         + " to create connection " + this.connection.getId());
                 return Result.FAILED_TEMPORARY;
             }
-        } catch (final ProcessNotFoundException e) {
-            CreateConnection.log.error("Could not signal process " + this.endpoint.getProcessId()
-                    + " to create connection " + this.connection.getId());
+        } catch (final ProcessNotFoundException | ServiceNotFoundException e) {
+            CreateConnectionEndpoint.log.error("Could not signal process {} to create connection {} ({})",
+                    this.endpoint.getProcessId(),
+                    this.connection.getId(),
+                    e.getMessage());
             return Result.FAILED_PERMANENTLY;
         }
     }

@@ -7,6 +7,7 @@ package org.flexiblepower.process;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.ProcessConnector;
+import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Connection.Endpoint;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange;
@@ -48,14 +49,20 @@ public class TerminateConnection extends PendingChange {
 
     @Override
     public Result execute() {
-        if (ProcessConnector.getInstance().terminateConnectionEndpoint(this.connection, this.endpoint)) {
-            TerminateConnection.log.info("Successfully signaled process " + this.endpoint.getProcessId()
-                    + " to terminate connection " + this.connection.getId());
-            return Result.SUCCESS;
-        } else {
-            TerminateConnection.log.debug("Failed to signal process " + this.endpoint.getProcessId()
-                    + " to terminate connection " + this.connection.getId());
-            return Result.FAILED_TEMPORARY;
+        try {
+            if (ProcessConnector.getInstance().terminateConnectionEndpoint(this.connection, this.endpoint)) {
+                TerminateConnection.log.info("Successfully signaled process " + this.endpoint.getProcessId()
+                        + " to terminate connection " + this.connection.getId());
+                return Result.SUCCESS;
+            } else {
+                TerminateConnection.log.debug("Failed to signal process " + this.endpoint.getProcessId()
+                        + " to terminate connection " + this.connection.getId());
+                return Result.FAILED_TEMPORARY;
+            }
+        } catch (final ProcessNotFoundException e) {
+            TerminateConnection.log.info("Failed to terminate process {}, failed permanently",
+                    this.endpoint.getProcessId());
+            return Result.FAILED_PERMANENTLY;
         }
     }
 

@@ -11,6 +11,8 @@ import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.DockerConnector;
 import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.connectors.ProcessConnector;
+import org.flexiblepower.exceptions.ProcessNotFoundException;
+import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Connection.Endpoint;
 import org.flexiblepower.model.Process;
@@ -33,16 +35,16 @@ public class MoveProcess {
 
     @Entity("PendingChange")
     @Slf4j
-    public static class SupsendConnection extends PendingChange {
+    public static class SuspendConnection extends PendingChange {
 
         private Connection connection;
         private Endpoint endpoint;
 
-        public SupsendConnection() {
+        public SuspendConnection() {
             super();
         }
 
-        public SupsendConnection(final ObjectId userId,
+        public SuspendConnection(final ObjectId userId,
                 final Connection connection,
                 final Connection.Endpoint endpoint) {
             super(userId);
@@ -60,31 +62,37 @@ public class MoveProcess {
 
         @Override
         public Result execute() {
-            if (ProcessConnector.getInstance().suspendConnectionEndpoint(this.connection, this.endpoint)) {
-                SupsendConnection.log.info("Successfully signaled process " + this.endpoint.getProcessId()
-                        + " to suspend connection " + this.connection.getId());
-                return Result.SUCCESS;
-            } else {
-                SupsendConnection.log.debug("Failed to signal process " + this.endpoint.getProcessId()
-                        + " to suspend connection " + this.connection.getId());
-                return Result.FAILED_TEMPORARY;
+            try {
+                if (ProcessConnector.getInstance().suspendConnectionEndpoint(this.connection, this.endpoint)) {
+                    SuspendConnection.log.info("Successfully signaled process " + this.endpoint.getProcessId()
+                            + " to suspend connection " + this.connection.getId());
+                    return Result.SUCCESS;
+                } else {
+                    SuspendConnection.log.debug("Failed to signal process " + this.endpoint.getProcessId()
+                            + " to suspend connection " + this.connection.getId());
+                    return Result.FAILED_TEMPORARY;
+                }
+            } catch (final ProcessNotFoundException e) {
+                SuspendConnection.log.error("Process {} not present in DB, fail permanently",
+                        this.endpoint.getProcessId());
+                return Result.FAILED_PERMANENTLY;
             }
         }
     }
 
     @Entity("PendingChange")
     @Slf4j
-    public static class SupsendProcess extends PendingChange {
+    public static class SuspendProcess extends PendingChange {
 
         private Process process;
         private ObjectId nodePoolId;
         private ObjectId privateNodeId;
 
-        public SupsendProcess() {
+        public SuspendProcess() {
             super();
         }
 
-        public SupsendProcess(final Process process, final ObjectId nodePoolId, final ObjectId privateNodeId) {
+        public SuspendProcess(final Process process, final ObjectId nodePoolId, final ObjectId privateNodeId) {
             super(process.getUserId());
             this.process = process;
             this.nodePoolId = nodePoolId;
@@ -113,7 +121,15 @@ public class MoveProcess {
 
         @Override
         public Result execute() {
-            final byte[] suspendProcess = ProcessConnector.getInstance().suspendProcess(this.process.getId());
+            byte[] suspendProcess;
+
+            try {
+                suspendProcess = ProcessConnector.getInstance().suspendProcess(this.process.getId());
+            } catch (final ProcessNotFoundException e) {
+                SuspendProcess.log.error("No such process {}, failed permanently", this.process.getId());
+                return Result.FAILED_PERMANENTLY;
+            }
+
             if (suspendProcess == null) {
                 // that means it was not successful
 
@@ -127,7 +143,7 @@ public class MoveProcess {
                 return Result.FAILED_TEMPORARY;
             } else {
                 // success!
-                SupsendProcess.log.info("Suspended process " + this.process.getId() + " to move it");
+                SuspendProcess.log.info("Suspended process " + this.process.getId() + " to move it");
 
                 // Update the database
                 this.process.setState(ProcessState.SUSPENDED);
@@ -179,18 +195,26 @@ public class MoveProcess {
         public Result execute() {
             ProcessConnector.getInstance().disconnect(this.process.getId());
 
-            if (DockerConnector.getInstance().removeProcess(this.process)) {
-                RemoveDockerService.log.info(
-                        "Removed Docker Service for process " + this.process.getId() + " while moving the process");
-                // Start next step
-                PendingChangeManager.getInstance().submit(
-                        new CreateDockerService(this.process, this.nodePoolId, this.privateNodeId, this.suspendState));
+            try {
+                if (DockerConnector.getInstance().removeProcess(this.process)) {
+                    RemoveDockerService.log.info(
+                            "Removed Docker Service for process " + this.process.getId() + " while moving the process");
+                    // Start next step
+                    PendingChangeManager.getInstance()
+                            .submit(new CreateDockerService(this.process,
+                                    this.nodePoolId,
+                                    this.privateNodeId,
+                                    this.suspendState));
 
-                return Result.SUCCESS;
-            } else {
-                RemoveDockerService.log.info("Failed to remove Docker Service for process " + this.process.getId()
-                        + " while moving the process");
-                return Result.FAILED_TEMPORARY;
+                    return Result.SUCCESS;
+                } else {
+                    RemoveDockerService.log.info("Failed to remove Docker Service for process " + this.process.getId()
+                            + " while moving the process");
+                    return Result.FAILED_TEMPORARY;
+                }
+            } catch (final ProcessNotFoundException e) {
+                RemoveDockerService.log.info("No such process {}", this.process.getId());
+                return Result.FAILED_PERMANENTLY;
             }
         }
     }
@@ -234,26 +258,31 @@ public class MoveProcess {
 
         @Override
         public Result execute() {
-            this.process.setNodePoolId(this.nodePoolId);
-            this.process.setPrivateNodeId(this.privateNodeId);
+            try {
+                this.process.setNodePoolId(this.nodePoolId);
+                this.process.setPrivateNodeId(this.privateNodeId);
 
-            final String newDockerId = DockerConnector.getInstance().newProcess(this.process);
-            if (newDockerId != null) {
-                CreateDockerService.log.info(
-                        "Created Docker Service for process " + this.process.getId() + " while moving the process");
+                final String newDockerId = DockerConnector.getInstance().newProcess(this.process);
+                if (newDockerId != null) {
+                    CreateDockerService.log.info(
+                            "Created Docker Service for process " + this.process.getId() + " while moving the process");
 
-                // save in database
-                this.process.setDockerId(newDockerId);
-                MongoDbConnector.getInstance().save(this.process);
+                    // save in database
+                    this.process.setDockerId(newDockerId);
+                    MongoDbConnector.getInstance().save(this.process);
 
-                // Start next step
-                PendingChangeManager.getInstance().submit(new ResumeProcess(this.process, this.suspendState));
+                    // Start next step
+                    PendingChangeManager.getInstance().submit(new ResumeProcess(this.process, this.suspendState));
 
-                return Result.SUCCESS;
-            } else {
-                CreateDockerService.log.info("Failed to create Docker Service for process " + this.process.getId()
-                        + " while moving the process");
-                return Result.FAILED_TEMPORARY;
+                    return Result.SUCCESS;
+                } else {
+                    CreateDockerService.log.info("Failed to create Docker Service for process " + this.process.getId()
+                            + " while moving the process");
+                    return Result.FAILED_TEMPORARY;
+                }
+            } catch (final ServiceNotFoundException e) {
+                SuspendConnection.log.error("Process {} not present in DB, fail permanently", this.process.getId());
+                return Result.FAILED_PERMANENTLY;
             }
         }
     }
@@ -285,21 +314,26 @@ public class MoveProcess {
         public Result execute() {
             this.process.setConfiguration(this.configuration);
 
-            if (ProcessConnector.getInstance().resume(this.process.getId(), this.suspendState)) {
-                ResumeProcess.log.info("Resumed process " + this.process.getId() + " after moving the process");
+            try {
+                if (ProcessConnector.getInstance().resume(this.process.getId(), this.suspendState)) {
+                    ResumeProcess.log.info("Resumed process " + this.process.getId() + " after moving the process");
 
-                // resume connections
-                final PendingChangeManager pcm = PendingChangeManager.getInstance();
-                for (final Connection c : ConnectionManager.getInstance().getConnectionsForProcess(this.process)) {
-                    pcm.submit(new MoveProcess.ResumeConnection(this.process.getUserId(), c, c.getEndpoint1()));
-                    pcm.submit(new MoveProcess.ResumeConnection(this.process.getUserId(), c, c.getEndpoint2()));
+                    // resume connections
+                    final PendingChangeManager pcm = PendingChangeManager.getInstance();
+                    for (final Connection c : ConnectionManager.getInstance().getConnectionsForProcess(this.process)) {
+                        pcm.submit(new MoveProcess.ResumeConnection(this.process.getUserId(), c, c.getEndpoint1()));
+                        pcm.submit(new MoveProcess.ResumeConnection(this.process.getUserId(), c, c.getEndpoint2()));
+                    }
+
+                    return Result.SUCCESS;
+                } else {
+                    ResumeProcess.log
+                            .info("Failed to resume process " + this.process.getId() + " after moving the process");
+                    return Result.FAILED_TEMPORARY;
                 }
-
-                return Result.SUCCESS;
-            } else {
-                ResumeProcess.log
-                        .info("Failed to resume process " + this.process.getId() + " after moving the process");
-                return Result.FAILED_TEMPORARY;
+            } catch (final ProcessNotFoundException e) {
+                ResumeProcess.log.error("No such process {}, failed permanently", this.process.getId());
+                return Result.FAILED_PERMANENTLY;
             }
         }
 
@@ -334,14 +368,24 @@ public class MoveProcess {
 
         @Override
         public Result execute() {
-            if (ProcessConnector.getInstance().resumeConnectionEndpoint(this.connection, this.endpoint)) {
-                ResumeConnection.log.info("Successfully signaled process " + this.endpoint.getProcessId()
-                        + " to resume connection " + this.connection.getId());
-                return Result.SUCCESS;
-            } else {
-                ResumeConnection.log.debug("Failed to signal process " + this.endpoint.getProcessId()
-                        + " to resume connection " + this.connection.getId());
-                return Result.FAILED_TEMPORARY;
+            try {
+                if (ProcessConnector.getInstance().resumeConnectionEndpoint(this.connection, this.endpoint)) {
+                    ResumeConnection.log.info("Successfully signaled process " + this.endpoint.getProcessId()
+                            + " to resume connection " + this.connection.getId());
+                    return Result.SUCCESS;
+                } else {
+                    ResumeConnection.log.debug("Failed to signal process " + this.endpoint.getProcessId()
+                            + " to resume connection " + this.connection.getId());
+                    return Result.FAILED_TEMPORARY;
+                }
+            } catch (final ProcessNotFoundException e) {
+                ResumeConnection.log.info("Failed to resume connection for unkown process {}, failed permanently",
+                        this.endpoint.getProcessId());
+                return Result.FAILED_PERMANENTLY;
+            } catch (final ServiceNotFoundException e) {
+                ResumeConnection.log.info("Could not find service for process {}, failed permanently",
+                        this.endpoint.getProcessId());
+                return Result.FAILED_PERMANENTLY;
             }
         }
     }

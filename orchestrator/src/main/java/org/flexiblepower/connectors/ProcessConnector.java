@@ -12,6 +12,7 @@ import java.util.Map;
 import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.SerializationException;
+import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Connection.Endpoint;
 import org.flexiblepower.model.Interface;
@@ -24,6 +25,7 @@ import org.flexiblepower.orchestrator.ServiceManager;
 import org.flexiblepower.process.ProcessManager;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
+import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage;
 import org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage;
 import org.flexiblepower.proto.ServiceProto.ResumeProcessMessage;
@@ -64,7 +66,10 @@ public class ProcessConnector {
         return ProcessConnector.instance;
     }
 
-    private ProcessConnection getProcessConnection(final ObjectId processId) {
+    private ProcessConnection getProcessConnection(final ObjectId processId) throws ProcessNotFoundException {
+        // Let's throw a message if the process is not present in DB
+        ProcessManager.getInstance().getProcess(processId);
+
         if (!this.connections.containsKey(processId)) {
             final ProcessConnection processConnection = new ProcessConnection(processId);
             if (processConnection.connectWithProcess()) {
@@ -77,7 +82,8 @@ public class ProcessConnector {
     }
 
     public boolean createConnectionEndpoint(final Connection connection, final Endpoint endpoint)
-            throws ProcessNotFoundException {
+            throws ProcessNotFoundException,
+            ServiceNotFoundException {
         final Endpoint otherEndpoint = connection.getOtherEndpoint(endpoint);
         final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
 
@@ -100,33 +106,32 @@ public class ProcessConnector {
 
     }
 
-    public boolean terminateConnectionEndpoint(final Connection connection, final Endpoint endpoint) {
+    public boolean terminateConnectionEndpoint(final Connection connection, final Endpoint endpoint)
+            throws ProcessNotFoundException {
         final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
         final ProcessConnection pc = this.getProcessConnection(process.getId());
-        if (pc == null) {
-            return false;
-        }
-
-        return pc.tearDownConnection(connection.getId());
+        return pc == null ? false : pc.tearDownConnection(connection.getId());
     }
 
     /**
      * @param c
+     * @throws ProcessNotFoundException
      */
-    public boolean suspendConnectionEndpoint(final Connection connection, final Endpoint endpoint) {
-        final Process process = ProcessManager.getInstance().getProcess(connection.getEndpoint1().getProcessId());
+    public boolean suspendConnectionEndpoint(final Connection connection, final Endpoint endpoint)
+            throws ProcessNotFoundException {
+        final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
         final ProcessConnection pc = this.getProcessConnection(process.getId());
-        if (pc == null) {
-            return false;
-        }
-
-        return pc.suspendConnection(connection.getId());
+        return pc == null ? false : pc.suspendConnection(connection.getId());
     }
 
     /**
      * @param c
+     * @throws ServiceNotFoundException
+     * @throws ProcessNotFoundException
      */
-    public boolean resumeConnectionEndpoint(final Connection connection, final Endpoint endpoint) {
+    public boolean resumeConnectionEndpoint(final Connection connection, final Endpoint endpoint)
+            throws ServiceNotFoundException,
+            ProcessNotFoundException {
         final Endpoint otherEndpoint = connection.getOtherEndpoint(endpoint);
         final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
 
@@ -155,56 +160,47 @@ public class ProcessConnector {
 
     /**
      * @param id
+     * @throws ProcessNotFoundException
      */
-    public boolean initNewProcess(final ObjectId processId) {
+    public boolean initNewProcess(final ObjectId processId) throws ProcessNotFoundException {
         final ProcessConnection processConnection = this.getProcessConnection(processId);
-        if (processConnection == null) {
-            return false;
-        } else {
-            return processConnection.startProcess();
-        }
+        return processConnection == null ? false : processConnection.startProcess();
     }
 
     /**
      * @param id
+     * @throws ProcessNotFoundException
      */
-    public boolean terminate(final ObjectId processId) {
+    public boolean terminate(final ObjectId processId) throws ProcessNotFoundException {
         final ProcessConnection processConnection = this.getProcessConnection(processId);
-        return processConnection.terminateProcess();
+        return processConnection == null ? false : processConnection.terminateProcess();
     }
 
     /**
      * @param id
      * @param suspendState
+     * @throws ProcessNotFoundException
      */
-    public boolean resume(final ObjectId processId, final byte[] suspendState) {
+    public boolean resume(final ObjectId processId, final byte[] suspendState) throws ProcessNotFoundException {
         final ProcessConnection processConnection = this.getProcessConnection(processId);
-        if (processConnection == null) {
-            return false;
-        }
-        return processConnection.resumeProcess(suspendState);
+        return processConnection == null ? false : processConnection.resumeProcess(suspendState);
     }
 
-    public byte[] suspendProcess(final ObjectId processId) {
+    public byte[] suspendProcess(final ObjectId processId) throws ProcessNotFoundException {
         final ProcessConnection processConnection = this.getProcessConnection(processId);
-        if (processConnection == null) {
-            return null;
-        }
-        return processConnection.suspendProcess();
+        return processConnection == null ? null : processConnection.suspendProcess();
     }
 
     /**
      * @param id
      * @param configuration
      * @return
+     * @throws ProcessNotFoundException
      */
-    public boolean updateConfiguration(final ObjectId processId, final List<Parameter> configuration) {
-        final ProcessConnection connection = this.getProcessConnection(processId);
-        if (connection == null) {
-            return false;
-        } else {
-            return connection.updateConfiguration(configuration);
-        }
+    public boolean updateConfiguration(final ObjectId processId, final List<Parameter> configuration)
+            throws ProcessNotFoundException {
+        final ProcessConnection processConnection = this.getProcessConnection(processId);
+        return processConnection == null ? false : processConnection.updateConfiguration(configuration);
     }
 
     private static final class ProcessConnection {
@@ -229,11 +225,13 @@ public class ProcessConnector {
             this.serializer.addMessageClass(SetConfigMessage.class);
             this.serializer.addMessageClass(ConnectionHandshake.class);
             this.serializer.addMessageClass(ConnectionMessage.class);
+            this.serializer.addMessageClass(ErrorMessage.class);
         }
 
         public boolean connectWithProcess() {
             try {
                 final Process process = ProcessManager.getInstance().getProcess(this.processId);
+                DockerConnector.getInstance().ensureProcessNetworkIsAttached(process);
                 if (process == null) {
                     throw new IllegalArgumentException(
                             "Provided ObjectId for Process " + this.processId + " does not exist");
@@ -346,11 +344,10 @@ public class ProcessConnector {
             }
         }
 
-        public boolean startProcess() {
+        public boolean startProcess() throws ProcessNotFoundException {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final Builder builder = SetConfigMessage.newBuilder()
-                    .setProcessId(process.getId().toString())
-                    .setIsUpdate(false);
+            final Builder builder = SetConfigMessage.newBuilder().setProcessId(process.getId().toString()).setIsUpdate(
+                    false);
             if (process.getConfiguration() != null) {
                 for (final Parameter p : process.getConfiguration()) {
                     builder.putConfig(p.getKey(), p.getValue());
@@ -372,7 +369,7 @@ public class ProcessConnector {
         public boolean resumeProcess(final byte[] suspendState) {
             final ResumeProcessMessage msg = ResumeProcessMessage.newBuilder()
                     .setProcessId(this.processId.toString())
-                    .setStateData(ByteString.copyFrom(suspendState))
+                    .setStateData(suspendState == null ? ByteString.EMPTY : ByteString.copyFrom(suspendState))
                     .build();
 
             final ProcessStateUpdateMessage response = this.send(msg, ProcessStateUpdateMessage.class);
@@ -389,9 +386,8 @@ public class ProcessConnector {
          * @return true if successful, false in failed
          */
         public boolean updateConfiguration(final List<Parameter> newConfiguration) {
-            final Builder builder = SetConfigMessage.newBuilder()
-                    .setProcessId(this.processId.toString())
-                    .setIsUpdate(true);
+            final Builder builder = SetConfigMessage.newBuilder().setProcessId(this.processId.toString()).setIsUpdate(
+                    true);
             for (final Parameter p : newConfiguration) {
                 builder.putConfig(p.getKey(), p.getValue());
             }
@@ -465,7 +461,16 @@ public class ProcessConnector {
                 this.socket.send(this.serializer.serialize(msg));
             } catch (final SerializationException e1) {
                 ProcessConnector.log.error("Could not serialize message", e1);
+                return null;
+            } catch (final ZMQException e) {
+                if (e.getErrorCode() == 156384763) {
+                    ProcessConnector.log
+                            .error("Got ZMQ error 156384763. Disconnecting with process, try to reconnect.");
+                    this.close();
+                    return null;
+                }
             }
+
             byte[] recv = null;
             try {
                 recv = this.socket.recv();
