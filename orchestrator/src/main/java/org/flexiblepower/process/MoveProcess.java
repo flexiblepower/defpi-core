@@ -35,16 +35,16 @@ public class MoveProcess {
 
     @Entity("PendingChange")
     @Slf4j
-    public static class SupsendConnection extends PendingChange {
+    public static class SuspendConnection extends PendingChange {
 
         private Connection connection;
         private Endpoint endpoint;
 
-        public SupsendConnection() {
+        public SuspendConnection() {
             super();
         }
 
-        public SupsendConnection(final ObjectId userId,
+        public SuspendConnection(final ObjectId userId,
                 final Connection connection,
                 final Connection.Endpoint endpoint) {
             super(userId);
@@ -64,16 +64,16 @@ public class MoveProcess {
         public Result execute() {
             try {
                 if (ProcessConnector.getInstance().suspendConnectionEndpoint(this.connection, this.endpoint)) {
-                    SupsendConnection.log.info("Successfully signaled process " + this.endpoint.getProcessId()
+                    SuspendConnection.log.info("Successfully signaled process " + this.endpoint.getProcessId()
                             + " to suspend connection " + this.connection.getId());
                     return Result.SUCCESS;
                 } else {
-                    SupsendConnection.log.debug("Failed to signal process " + this.endpoint.getProcessId()
+                    SuspendConnection.log.debug("Failed to signal process " + this.endpoint.getProcessId()
                             + " to suspend connection " + this.connection.getId());
                     return Result.FAILED_TEMPORARY;
                 }
             } catch (final ProcessNotFoundException e) {
-                SupsendConnection.log.error("Process {} not present in DB, fail permanently",
+                SuspendConnection.log.error("Process {} not present in DB, fail permanently",
                         this.endpoint.getProcessId());
                 return Result.FAILED_PERMANENTLY;
             }
@@ -82,17 +82,17 @@ public class MoveProcess {
 
     @Entity("PendingChange")
     @Slf4j
-    public static class SupsendProcess extends PendingChange {
+    public static class SuspendProcess extends PendingChange {
 
         private Process process;
         private ObjectId nodePoolId;
         private ObjectId privateNodeId;
 
-        public SupsendProcess() {
+        public SuspendProcess() {
             super();
         }
 
-        public SupsendProcess(final Process process, final ObjectId nodePoolId, final ObjectId privateNodeId) {
+        public SuspendProcess(final Process process, final ObjectId nodePoolId, final ObjectId privateNodeId) {
             super(process.getUserId());
             this.process = process;
             this.nodePoolId = nodePoolId;
@@ -126,7 +126,7 @@ public class MoveProcess {
             try {
                 suspendProcess = ProcessConnector.getInstance().suspendProcess(this.process.getId());
             } catch (final ProcessNotFoundException e) {
-                SupsendProcess.log.error("No such process {}, failed permanently", this.process.getId());
+                SuspendProcess.log.error("No such process {}, failed permanently", this.process.getId());
                 return Result.FAILED_PERMANENTLY;
             }
 
@@ -143,7 +143,7 @@ public class MoveProcess {
                 return Result.FAILED_TEMPORARY;
             } else {
                 // success!
-                SupsendProcess.log.info("Suspended process " + this.process.getId() + " to move it");
+                SuspendProcess.log.info("Suspended process " + this.process.getId() + " to move it");
 
                 // Update the database
                 this.process.setState(ProcessState.SUSPENDED);
@@ -281,7 +281,7 @@ public class MoveProcess {
                     return Result.FAILED_TEMPORARY;
                 }
             } catch (final ServiceNotFoundException e) {
-                SupsendConnection.log.error("Process {} not present in DB, fail permanently", this.process.getId());
+                SuspendConnection.log.error("Process {} not present in DB, fail permanently", this.process.getId());
                 return Result.FAILED_PERMANENTLY;
             }
         }

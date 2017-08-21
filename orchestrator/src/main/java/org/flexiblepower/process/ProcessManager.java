@@ -189,12 +189,12 @@ public class ProcessManager {
 
         // Suspend connections
         for (final Connection c : ConnectionManager.getInstance().getConnectionsForProcess(currentProcess)) {
-            pcm.submit(new MoveProcess.SupsendConnection(currentProcess.getUserId(), c, c.getEndpoint1()));
-            pcm.submit(new MoveProcess.SupsendConnection(currentProcess.getUserId(), c, c.getEndpoint2()));
+            pcm.submit(new MoveProcess.SuspendConnection(currentProcess.getUserId(), c, c.getEndpoint1()));
+            pcm.submit(new MoveProcess.SuspendConnection(currentProcess.getUserId(), c, c.getEndpoint2()));
         }
 
         // Suspend process. This PendingChange will start all other PendingChanges.
-        pcm.submit(new MoveProcess.SupsendProcess(currentProcess,
+        pcm.submit(new MoveProcess.SuspendProcess(currentProcess,
                 newProcess.getNodePoolId(),
                 newProcess.getPrivateNodeId()));
     }

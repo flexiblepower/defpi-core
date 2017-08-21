@@ -481,6 +481,7 @@ final class ManagedConnection implements Connection {
                 this.publishSocket.send(ManagedConnection.PING);
             } else {
                 // If no PONG was received since the last PING, assume connection was interrupted!
+                ManagedConnection.log.warn("No heartbeat received on connection, goto {}", ConnectionState.INTERRUPTED);
                 this.goToInterruptedState();
             }
         }, ManagedConnection.INITIAL_HEARTBEAT_DELAY, ManagedConnection.HEARTBEAT_PERIOD_IN_SECONDS, TimeUnit.SECONDS);
@@ -544,6 +545,8 @@ final class ManagedConnection implements Connection {
                 success = false;
             }
             if (!success) {
+                ManagedConnection.log.warn("Failed to send message through socket, goto {}",
+                        ConnectionState.INTERRUPTED);
                 this.goToInterruptedState();
             }
         } else {
