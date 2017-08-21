@@ -217,11 +217,15 @@ final class ManagedConnection implements Connection {
     }
 
     private void initListening() {
-        this.subscribeSocket = this.zmqContext.socket(ZMQ.PULL);
-        final String listenAddress = "tcp://*:" + this.listenPort;
-        ManagedConnection.log.debug("Creating subscribeSocket listening on port {}", listenAddress);
-        this.subscribeSocket.setReceiveTimeOut(ManagedConnection.RECEIVE_TIMEOUT);
-        this.subscribeSocket.bind(listenAddress);
+        if (this.subscribeSocket == null) {
+            this.subscribeSocket = this.zmqContext.socket(ZMQ.PULL);
+            final String listenAddress = "tcp://*:" + this.listenPort;
+            ManagedConnection.log.debug("Creating subscribeSocket listening on port {}", listenAddress);
+            this.subscribeSocket.setReceiveTimeOut(ManagedConnection.RECEIVE_TIMEOUT);
+            this.subscribeSocket.bind(listenAddress);
+        } else {
+            ManagedConnection.log.debug("Not re-creating subscribesocket");
+        }
     }
 
     private void disconnectListening() {

@@ -81,9 +81,9 @@ public class ConnectionManager {
         MongoDbConnector.getInstance().save(connection);
 
         PendingChangeManager.getInstance()
-                .submit(new CreateConnection(process1.getUserId(), connection, connection.getEndpoint1()));
+                .submit(new CreateConnectionEndpoint(process1.getUserId(), connection, connection.getEndpoint1()));
         PendingChangeManager.getInstance()
-                .submit(new CreateConnection(process1.getUserId(), connection, connection.getEndpoint2()));
+                .submit(new CreateConnectionEndpoint(process1.getUserId(), connection, connection.getEndpoint2()));
     }
 
     private static void setInterfaceNames(final Connection connection) {

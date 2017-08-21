@@ -25,6 +25,7 @@ import org.flexiblepower.orchestrator.ServiceManager;
 import org.flexiblepower.process.ProcessManager;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
+import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage;
 import org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage;
 import org.flexiblepower.proto.ServiceProto.ResumeProcessMessage;
@@ -65,7 +66,10 @@ public class ProcessConnector {
         return ProcessConnector.instance;
     }
 
-    private ProcessConnection getProcessConnection(final ObjectId processId) {
+    private ProcessConnection getProcessConnection(final ObjectId processId) throws ProcessNotFoundException {
+        // Let's throw a message if the process is not present in DB
+        ProcessManager.getInstance().getProcess(processId);
+
         if (!this.connections.containsKey(processId)) {
             final ProcessConnection processConnection = new ProcessConnection(processId);
             if (processConnection.connectWithProcess()) {
@@ -165,8 +169,9 @@ public class ProcessConnector {
 
     /**
      * @param id
+     * @throws ProcessNotFoundException
      */
-    public boolean terminate(final ObjectId processId) {
+    public boolean terminate(final ObjectId processId) throws ProcessNotFoundException {
         final ProcessConnection processConnection = this.getProcessConnection(processId);
         return processConnection == null ? false : processConnection.terminateProcess();
     }
@@ -174,13 +179,14 @@ public class ProcessConnector {
     /**
      * @param id
      * @param suspendState
+     * @throws ProcessNotFoundException
      */
-    public boolean resume(final ObjectId processId, final byte[] suspendState) {
+    public boolean resume(final ObjectId processId, final byte[] suspendState) throws ProcessNotFoundException {
         final ProcessConnection processConnection = this.getProcessConnection(processId);
         return processConnection == null ? false : processConnection.resumeProcess(suspendState);
     }
 
-    public byte[] suspendProcess(final ObjectId processId) {
+    public byte[] suspendProcess(final ObjectId processId) throws ProcessNotFoundException {
         final ProcessConnection processConnection = this.getProcessConnection(processId);
         return processConnection == null ? null : processConnection.suspendProcess();
     }
@@ -189,8 +195,10 @@ public class ProcessConnector {
      * @param id
      * @param configuration
      * @return
+     * @throws ProcessNotFoundException
      */
-    public boolean updateConfiguration(final ObjectId processId, final List<Parameter> configuration) {
+    public boolean updateConfiguration(final ObjectId processId, final List<Parameter> configuration)
+            throws ProcessNotFoundException {
         final ProcessConnection processConnection = this.getProcessConnection(processId);
         return processConnection == null ? false : processConnection.updateConfiguration(configuration);
     }
@@ -217,11 +225,13 @@ public class ProcessConnector {
             this.serializer.addMessageClass(SetConfigMessage.class);
             this.serializer.addMessageClass(ConnectionHandshake.class);
             this.serializer.addMessageClass(ConnectionMessage.class);
+            this.serializer.addMessageClass(ErrorMessage.class);
         }
 
         public boolean connectWithProcess() {
             try {
                 final Process process = ProcessManager.getInstance().getProcess(this.processId);
+                DockerConnector.getInstance().ensureProcessNetworkIsAttached(process);
                 if (process == null) {
                     throw new IllegalArgumentException(
                             "Provided ObjectId for Process " + this.processId + " does not exist");
@@ -359,7 +369,7 @@ public class ProcessConnector {
         public boolean resumeProcess(final byte[] suspendState) {
             final ResumeProcessMessage msg = ResumeProcessMessage.newBuilder()
                     .setProcessId(this.processId.toString())
-                    .setStateData(ByteString.copyFrom(suspendState))
+                    .setStateData(suspendState == null ? ByteString.EMPTY : ByteString.copyFrom(suspendState))
                     .build();
 
             final ProcessStateUpdateMessage response = this.send(msg, ProcessStateUpdateMessage.class);

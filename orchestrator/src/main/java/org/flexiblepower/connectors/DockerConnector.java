@@ -22,10 +22,8 @@ import org.flexiblepower.model.NodePool;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.PublicNode;
 import org.flexiblepower.model.Service;
-import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.NodeManager;
 import org.flexiblepower.orchestrator.ServiceManager;
-import org.flexiblepower.orchestrator.UserManager;
 
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
@@ -106,13 +104,12 @@ public class DockerConnector {
      */
     public synchronized String newProcess(final Process process) throws ServiceNotFoundException {
         try {
-            final User user = UserManager.getInstance().getUser(process.getUserId());
-            this.ensureNetworkExists(user.getUsername() + "-net");
-            this.ensureNetworkIsAttached(user.getUsername() + "-net");
+            this.ensureProcessNetworkExists(process);
+            this.ensureProcessNetworkIsAttached(process);
 
             final Service service = ServiceManager.getInstance().getService(process.getServiceId());
             final Node node = DockerConnector.determineRunningNode(process);
-            final ServiceSpec serviceSpec = DockerConnector.createServiceSpec(process, service, user, node);
+            final ServiceSpec serviceSpec = DockerConnector.createServiceSpec(process, service, node);
             final String id = this.client.createService(serviceSpec).id();
             DockerConnector.log.info("Created process with Id {}", id);
             return id;
@@ -155,11 +152,16 @@ public class DockerConnector {
         }
     }
 
-    private void ensureNetworkExists(final String networkName) throws DockerException, InterruptedException {
+    private void ensureProcessNetworkExists(final Process process) throws DockerException, InterruptedException {
+        final String networkName = DockerConnector.getNetworkFromProcess(process);
         // check if it exists
         if (!this.listNetworks().values().contains(networkName)) {
             this.newNetwork(networkName);
         }
+    }
+
+    private static String getNetworkFromProcess(final Process process) {
+        return "usernet-" + process.getUserId().toString();
     }
 
     /**
@@ -169,7 +171,8 @@ public class DockerConnector {
      * @throws InterruptedException
      * @throws DockerException
      */
-    private void ensureNetworkIsAttached(final String networkName) throws DockerException, InterruptedException {
+    public void ensureProcessNetworkIsAttached(final Process process) throws DockerException, InterruptedException {
+        final String networkName = DockerConnector.getNetworkFromProcess(process);
         final List<Container> orchestratorContainers = this.client
                 .listContainers(ListContainersParam.filter("name", DockerConnector.ORCHESTRATOR_CONTAINER_NAME));
         if (!orchestratorContainers.isEmpty()) {
@@ -252,8 +255,7 @@ public class DockerConnector {
      * @param process
      * @return
      */
-    private static ServiceSpec
-            createServiceSpec(final Process process, final Service service, final User user, final Node node) {
+    private static ServiceSpec createServiceSpec(final Process process, final Service service, final Node node) {
 
         final Architecture architecture = node.getArchitecture();
         // Create a name for the service by removing blanks from process name
@@ -268,7 +270,7 @@ public class DockerConnector {
                         + service.getTags().get(architecture));
 
         final String dockerImage = service.getFullImageName(architecture);
-        serviceLabels.put(DockerConnector.USER_LABEL_KEY, user.getUsername());
+        serviceLabels.put(DockerConnector.USER_LABEL_KEY, process.getUserId().toString());
         serviceLabels.put(DockerConnector.NODE_ID_LABEL_KEY, node.getDockerId());
 
         // Create the builders for the task template
@@ -305,7 +307,7 @@ public class DockerConnector {
         // .build();
 
         final NetworkAttachmentConfig usernet = NetworkAttachmentConfig.builder()
-                .target(user.getUsername() + "-net")
+                .target(DockerConnector.getNetworkFromProcess(process))
                 .aliases(process.getId().toString())
                 .build();
 

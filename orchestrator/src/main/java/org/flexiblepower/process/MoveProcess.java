@@ -121,7 +121,15 @@ public class MoveProcess {
 
         @Override
         public Result execute() {
-            final byte[] suspendProcess = ProcessConnector.getInstance().suspendProcess(this.process.getId());
+            byte[] suspendProcess;
+
+            try {
+                suspendProcess = ProcessConnector.getInstance().suspendProcess(this.process.getId());
+            } catch (final ProcessNotFoundException e) {
+                SupsendProcess.log.error("No such process {}, failed permanently", this.process.getId());
+                return Result.FAILED_PERMANENTLY;
+            }
+
             if (suspendProcess == null) {
                 // that means it was not successful
 
@@ -306,21 +314,26 @@ public class MoveProcess {
         public Result execute() {
             this.process.setConfiguration(this.configuration);
 
-            if (ProcessConnector.getInstance().resume(this.process.getId(), this.suspendState)) {
-                ResumeProcess.log.info("Resumed process " + this.process.getId() + " after moving the process");
+            try {
+                if (ProcessConnector.getInstance().resume(this.process.getId(), this.suspendState)) {
+                    ResumeProcess.log.info("Resumed process " + this.process.getId() + " after moving the process");
 
-                // resume connections
-                final PendingChangeManager pcm = PendingChangeManager.getInstance();
-                for (final Connection c : ConnectionManager.getInstance().getConnectionsForProcess(this.process)) {
-                    pcm.submit(new MoveProcess.ResumeConnection(this.process.getUserId(), c, c.getEndpoint1()));
-                    pcm.submit(new MoveProcess.ResumeConnection(this.process.getUserId(), c, c.getEndpoint2()));
+                    // resume connections
+                    final PendingChangeManager pcm = PendingChangeManager.getInstance();
+                    for (final Connection c : ConnectionManager.getInstance().getConnectionsForProcess(this.process)) {
+                        pcm.submit(new MoveProcess.ResumeConnection(this.process.getUserId(), c, c.getEndpoint1()));
+                        pcm.submit(new MoveProcess.ResumeConnection(this.process.getUserId(), c, c.getEndpoint2()));
+                    }
+
+                    return Result.SUCCESS;
+                } else {
+                    ResumeProcess.log
+                            .info("Failed to resume process " + this.process.getId() + " after moving the process");
+                    return Result.FAILED_TEMPORARY;
                 }
-
-                return Result.SUCCESS;
-            } else {
-                ResumeProcess.log
-                        .info("Failed to resume process " + this.process.getId() + " after moving the process");
-                return Result.FAILED_TEMPORARY;
+            } catch (final ProcessNotFoundException e) {
+                ResumeProcess.log.error("No such process {}, failed permanently", this.process.getId());
+                return Result.FAILED_PERMANENTLY;
             }
         }
 

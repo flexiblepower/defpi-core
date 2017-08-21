@@ -10,6 +10,7 @@ import java.util.List;
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.connectors.ProcessConnector;
+import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Process.Parameter;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange;
@@ -51,8 +52,13 @@ public class ChangeProcessConfiguration extends PendingChange {
     @Override
     public Result execute() {
         ChangeProcessConfiguration.log.debug("Attempting to update configuration of process " + this.processId);
-        final boolean success = ProcessConnector.getInstance().updateConfiguration(this.processId,
-                this.newConfigurtaion);
+        boolean success;
+        try {
+            success = ProcessConnector.getInstance().updateConfiguration(this.processId, this.newConfigurtaion);
+        } catch (final ProcessNotFoundException e) {
+            ChangeProcessConfiguration.log.error("No such process {}, failed permanently", this.processId);
+            return Result.FAILED_PERMANENTLY;
+        }
 
         if (success) {
             ChangeProcessConfiguration.log.debug(

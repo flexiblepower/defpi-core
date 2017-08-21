@@ -58,14 +58,19 @@ public class TerminateProcess {
 
         @Override
         public Result execute() {
-            if (ProcessConnector.getInstance().terminate(this.process.getId())) {
-                SendTerminateSignal.log
-                        .debug("Sending terminate signal to process " + this.process.getId() + " was successful");
-                return Result.SUCCESS;
-            } else {
-                SendTerminateSignal.log
-                        .debug("Sending terminate signal to process " + this.process.getId() + " failed");
-                return Result.FAILED_TEMPORARY;
+            try {
+                if (ProcessConnector.getInstance().terminate(this.process.getId())) {
+                    SendTerminateSignal.log
+                            .debug("Sending terminate signal to process " + this.process.getId() + " was successful");
+                    return Result.SUCCESS;
+                } else {
+                    SendTerminateSignal.log
+                            .debug("Sending terminate signal to process " + this.process.getId() + " failed");
+                    return Result.FAILED_TEMPORARY;
+                }
+            } catch (final ProcessNotFoundException e) {
+                SendTerminateSignal.log.error("No such process {}, failed permanently", this.process.getId());
+                return Result.FAILED_PERMANENTLY;
             }
         }
 

@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -24,6 +25,7 @@ public class Connection {
 	@Getter
 	@NoArgsConstructor
 	@AllArgsConstructor
+	@EqualsAndHashCode
 	public static class Endpoint {
 		@JsonSerialize(using = ToStringSerializer.class)
 		@JsonDeserialize(using = ObjectIdDeserializer.class)
@@ -51,9 +53,9 @@ public class Connection {
 	private Endpoint endpoint2;
 
 	public Endpoint getOtherEndpoint(Endpoint e) {
-		if (e.getInterfaceId().equals(endpoint1.getInterfaceId())) {
+		if (e.equals(endpoint1)) {
 			return endpoint2;
-		} else if (e.getInterfaceId().equals(endpoint2.getInterfaceId())) {
+		} else if (e.equals(endpoint2)) {
 			return endpoint1;
 		} else {
 			throw new IllegalArgumentException("The provided endpoint is not part of this connection");
