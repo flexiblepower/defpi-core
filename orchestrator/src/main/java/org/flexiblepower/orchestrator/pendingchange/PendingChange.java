@@ -4,7 +4,10 @@ import java.util.Date;
 
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.annotations.Entity;
+import org.mongodb.morphia.annotations.Field;
 import org.mongodb.morphia.annotations.Id;
+import org.mongodb.morphia.annotations.Index;
+import org.mongodb.morphia.annotations.Indexes;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -12,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Entity("PendingChange") // All subclasses must have the exact same annotation!
+@Indexes({@Index(fields = @Field("state")), @Index(fields = @Field("runAt")), @Index(fields = @Field("obtainedAt"))})
 public abstract class PendingChange {
 
     public static enum Result {
@@ -28,8 +32,10 @@ public abstract class PendingChange {
     }
 
     @Id
+    @Getter
     protected ObjectId id;
 
+    @Getter
     private Date created;
 
     @Getter
@@ -38,6 +44,7 @@ public abstract class PendingChange {
 
     Date obtainedAt;
 
+    @Getter
     private ObjectId userId;
 
     @Getter

@@ -7,6 +7,7 @@ package org.flexiblepower.orchestrator.pendingchange;
 
 import java.util.Date;
 
+import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange.Result;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange.State;
@@ -115,6 +116,17 @@ public class PendingChangeManager {
             break;
         }
         this.update(pc);
+    }
+
+    public PendingChange getPendingChange(final ObjectId objectId) {
+        return MongoDbConnector.getInstance().get(PendingChange.class, objectId);
+    }
+
+    /**
+     * @param pendingChangeId
+     */
+    public void deletePendingChange(final ObjectId pendingChangeId) {
+        MongoDbConnector.getInstance().delete(PendingChange.class, pendingChangeId);
     }
 
 }
