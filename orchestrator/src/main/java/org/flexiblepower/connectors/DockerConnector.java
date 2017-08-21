@@ -3,7 +3,7 @@
  *
  * Copyright 2017 TNO
  */
-package org.flexiblepower.orchestrator;
+package org.flexiblepower.connectors;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,6 +21,9 @@ import org.flexiblepower.model.Process;
 import org.flexiblepower.model.PublicNode;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.model.User;
+import org.flexiblepower.orchestrator.NodeManager;
+import org.flexiblepower.orchestrator.ServiceManager;
+import org.flexiblepower.orchestrator.UserManager;
 
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
@@ -50,7 +53,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since 20 mrt. 2017
  */
 @Slf4j
-class DockerConnector {
+public class DockerConnector {
 
     /**
      *
@@ -87,7 +90,7 @@ class DockerConnector {
         }
     }
 
-    synchronized static DockerConnector getInstance() {
+    public synchronized static DockerConnector getInstance() {
         if (DockerConnector.instance == null) {
             DockerConnector.instance = new DockerConnector();
         }
@@ -98,8 +101,9 @@ class DockerConnector {
      * @param json
      * @return
      */
-    public synchronized String newProcess(final Process process, final User user) {
+    public synchronized String newProcess(final Process process) {
         try {
+            final User user = UserManager.getInstance().getUser(process.getUserId());
             this.ensureNetworkExists(user.getUsername() + "-net");
             this.ensureNetworkIsAttached(user.getUsername() + "-net");
 
@@ -110,9 +114,7 @@ class DockerConnector {
             DockerConnector.log.info("Created process with Id {}", id);
             return id;
         } catch (DockerException | InterruptedException e) {
-            DockerConnector.log.error("Error while creating process: {}", e.getMessage());
-            DockerConnector.log.trace("Error while creating process", e);
-            throw new ApiException(e);
+            return null;
         }
     }
 
@@ -120,16 +122,16 @@ class DockerConnector {
      * @param uuid
      * @return
      */
-    public synchronized void removeProcess(final Process process) {
+    public synchronized boolean removeProcess(final Process process) {
         if (process.getDockerId() != null) {
             try {
                 this.client.removeService(process.getDockerId());
+                return true;
             } catch (DockerException | InterruptedException e) {
                 DockerConnector.log.error("Error while removing process: {}", e.getMessage());
-                DockerConnector.log.trace("Error while removing process", e);
-                throw new ApiException(e);
             }
         }
+        return false;
     }
 
     /**
@@ -231,8 +233,10 @@ class DockerConnector {
      * @param process
      * @return
      */
-    private static ServiceSpec
-            createServiceSpec(final Process process, final Service service, final User user, final Node node) {
+    private static ServiceSpec createServiceSpec(final Process process,
+            final Service service,
+            final User user,
+            final Node node) {
 
         final Architecture architecture = node.getArchitecture();
         // Create a name for the service by removing blanks from process name

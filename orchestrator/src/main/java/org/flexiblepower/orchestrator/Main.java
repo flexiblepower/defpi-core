@@ -5,8 +5,10 @@ import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 
 import org.apache.http.client.utils.URIBuilder;
+import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.model.User;
+import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
 import org.flexiblepower.rest.OrchestratorApplication;
 import org.glassfish.jersey.jetty.JettyHttpContainerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -71,9 +73,10 @@ public class Main {
      * @throws URISyntaxException
      * @throws UnknownHostException
      */
-    public static void
-            main(final String[] args) throws AuthorizationException, UnknownHostException, URISyntaxException {
+    public static void main(final String[] args)
+            throws AuthorizationException, UnknownHostException, URISyntaxException {
         Main.ensureAdminUserExists();
         Main.startServer();
+        PendingChangeManager.getInstance(); // make sure it starts
     }
 }

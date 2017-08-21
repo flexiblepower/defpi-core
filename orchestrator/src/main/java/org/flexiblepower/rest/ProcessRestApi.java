@@ -8,13 +8,13 @@ import javax.ws.rs.core.Response.Status;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.api.ProcessApi;
+import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Process;
-import org.flexiblepower.orchestrator.MongoDbConnector;
-import org.flexiblepower.orchestrator.ProcessManager;
+import org.flexiblepower.process.ProcessManager;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -69,7 +69,8 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
         }
 
         ProcessRestApi.log.info("Updating process {}", process);
-        return ProcessManager.getInstance().updateProcess(process);
+        ProcessManager.getInstance().updateProcess(process);
+        return process;
     }
 
     @Override
