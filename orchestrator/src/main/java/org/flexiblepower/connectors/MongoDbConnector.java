@@ -174,8 +174,12 @@ public final class MongoDbConnector {
         this.datastore.delete(entity);
     }
 
+    public void delete(final Class<?> type, final ObjectId id) {
+        this.datastore.delete(type, id);
+    }
+
     public void delete(final Class<?> type, final String id) throws InvalidObjectIdException {
-        this.datastore.delete(type, MongoDbConnector.stringToObjectId(id));
+        this.delete(type, MongoDbConnector.stringToObjectId(id));
     }
 
     /**
