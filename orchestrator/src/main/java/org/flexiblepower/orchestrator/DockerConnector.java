@@ -101,7 +101,8 @@ class DockerConnector {
     public synchronized String newProcess(final Process process, final User user) {
         try {
             this.ensureNetworkExists(user.getUsername() + "-net");
-            // this.ensureOrchestratorNetworkExists();
+            this.ensureNetworkIsAttached(user.getUsername() + "-net");
+
             final Service service = ServiceManager.getInstance().getService(process.getServiceId());
             final Node node = DockerConnector.determineRunningNode(process);
             final ServiceSpec serviceSpec = DockerConnector.createServiceSpec(process, service, user, node);
@@ -152,6 +153,27 @@ class DockerConnector {
     }
 
     /**
+     * And connect to the new network
+     *
+     * @param networkName the name of the network to attach to
+     * @throws InterruptedException
+     * @throws DockerException
+     */
+    private void ensureNetworkIsAttached(final String networkName) throws DockerException, InterruptedException {
+        final List<Container> orchestratorContainers = this.client
+                .listContainers(ListContainersParam.filter("name", DockerConnector.ORCHESTRATOR_CONTAINER_NAME));
+        if (!orchestratorContainers.isEmpty()) {
+            // If the list is empty this next statement is not going to work anyway
+            this.client.connectToNetwork(DockerConnector.ORCHESTRATOR_CONTAINER_NAME, networkName);
+        } else {
+            DockerConnector.log.warn("No container running with expected name {}. Not connecting to network {}.",
+                    DockerConnector.ORCHESTRATOR_CONTAINER_NAME,
+                    networkName);
+        }
+
+    }
+
+    /**
      * @return
      * @throws InterruptedException
      * @throws DockerException
@@ -170,26 +192,13 @@ class DockerConnector {
      * @throws DockerException
      */
     private String newNetwork(final String networkName) throws DockerException, InterruptedException {
+        // TODO: Add encrypted network? .addOption("encrypted", "")
         final NetworkConfig networkConfig = NetworkConfig.builder()
                 .driver("overlay")
                 .attachable(true)
                 .name(networkName)
                 .build();
-        final String ret = this.client.createNetwork(networkConfig).id();
-
-        // And connect to the new network
-        final List<Container> orchestratorContainers = this.client
-                .listContainers(ListContainersParam.filter("name", DockerConnector.ORCHESTRATOR_CONTAINER_NAME));
-        if (!orchestratorContainers.isEmpty()) {
-            // If the list is empty this next statement is not going to work anyway
-            this.client.connectToNetwork(DockerConnector.ORCHESTRATOR_CONTAINER_NAME, networkName);
-        } else {
-            DockerConnector.log.warn("No container running with expected name {}. Not connecting to network {}.",
-                    DockerConnector.ORCHESTRATOR_CONTAINER_NAME,
-                    networkName);
-        }
-
-        return ret;
+        return this.client.createNetwork(networkConfig).id();
     }
 
     /**
