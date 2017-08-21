@@ -41,6 +41,8 @@ myApp
 					var prno = nga.entity('privatenode').label('Private Nodes');
 					var un = nga.entity('unidentifiednode').label(
 							'Unidentified Nodes').readOnly();
+					var pendingchange = nga.entity('pendingchange').label(
+							'Pending Changes');
 
 					// Views
 
@@ -353,6 +355,24 @@ myApp
 									nga.field('status'),
 									nga.field('lastSync', 'datetime') ]);
 
+					pendingchange.listView().fields(
+							[
+									nga.field('type'),
+									nga.field('userId', 'reference')
+											.targetEntity(user).targetField(
+													nga.field('username'))
+											.label('User'),
+									nga.field('created', 'datetime'),
+									nga.field('description'),
+									nga.field('count'),
+									nga.field('state').cssClasses(
+											function(entry) {
+												if (!entry)
+													return "";
+												return entry.values.state
+														+ "-td"
+											}), ]);
+
 					// Add entities
 					admin.addEntity(user);
 					admin.addEntity(service);
@@ -363,6 +383,7 @@ myApp
 					admin.addEntity(un);
 					admin.addEntity(puno);
 					admin.addEntity(prno);
+					admin.addEntity(pendingchange);
 
 					// Menu
 					admin
@@ -412,7 +433,12 @@ myApp
 											nga
 													.menu(un)
 													.icon(
-															'<span class="glyphicon glyphicon-hdd"></span>')));
+															'<span class="glyphicon glyphicon-hdd"></span>'))
+									.addChild(
+											nga
+													.menu(pendingchange)
+													.icon(
+															'<span class="glyphicon glyphicon-retweet"></span>')));
 
 					var customHeaderTemplate = '<div class="navbar-header"><button type="button" class="navbar-toggle"ng-click="isCollapsed = !isCollapsed"><span class="icon-bar"></span> <span class="icon-bar"></span> <spanclass="icon-bar"></span></button><a class="navbar-brand" href="#" ng-click="appController.displayHome()">EF-Pi Orchestrator</a></div><ul class="nav navbar-top-links navbar-right hidden-xs"><li><a href="#" onclick="logout()"><iclass="fa fa-sign-out fa-fw"></i>Logout</a></li></ul>';
 
