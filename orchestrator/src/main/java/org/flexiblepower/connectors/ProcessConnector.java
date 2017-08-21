@@ -451,7 +451,16 @@ public class ProcessConnector {
                 this.socket.send(this.serializer.serialize(msg));
             } catch (final SerializationException e1) {
                 ProcessConnector.log.error("Could not serialize message", e1);
+                return null;
+            } catch (final ZMQException e) {
+                if (e.getErrorCode() == 156384763) {
+                    ProcessConnector.log
+                            .error("Got ZMQ error 156384763. Disconnecting with process, try to reconnect.");
+                    this.close();
+                    return null;
+                }
             }
+
             byte[] recv = null;
             try {
                 recv = this.socket.recv();

@@ -187,18 +187,26 @@ public class MoveProcess {
         public Result execute() {
             ProcessConnector.getInstance().disconnect(this.process.getId());
 
-            if (DockerConnector.getInstance().removeProcess(this.process)) {
-                RemoveDockerService.log.info(
-                        "Removed Docker Service for process " + this.process.getId() + " while moving the process");
-                // Start next step
-                PendingChangeManager.getInstance().submit(
-                        new CreateDockerService(this.process, this.nodePoolId, this.privateNodeId, this.suspendState));
+            try {
+                if (DockerConnector.getInstance().removeProcess(this.process)) {
+                    RemoveDockerService.log.info(
+                            "Removed Docker Service for process " + this.process.getId() + " while moving the process");
+                    // Start next step
+                    PendingChangeManager.getInstance()
+                            .submit(new CreateDockerService(this.process,
+                                    this.nodePoolId,
+                                    this.privateNodeId,
+                                    this.suspendState));
 
-                return Result.SUCCESS;
-            } else {
-                RemoveDockerService.log.info("Failed to remove Docker Service for process " + this.process.getId()
-                        + " while moving the process");
-                return Result.FAILED_TEMPORARY;
+                    return Result.SUCCESS;
+                } else {
+                    RemoveDockerService.log.info("Failed to remove Docker Service for process " + this.process.getId()
+                            + " while moving the process");
+                    return Result.FAILED_TEMPORARY;
+                }
+            } catch (final ProcessNotFoundException e) {
+                RemoveDockerService.log.info("No such process {}", this.process.getId());
+                return Result.FAILED_PERMANENTLY;
             }
         }
     }

@@ -14,6 +14,7 @@ import java.util.Map.Entry;
 import java.util.Random;
 
 import org.flexiblepower.exceptions.ApiException;
+import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Architecture;
 import org.flexiblepower.model.Node;
@@ -125,12 +126,15 @@ public class DockerConnector {
     /**
      * @param uuid
      * @return
+     * @throws ProcessNotFoundException
      */
-    public synchronized boolean removeProcess(final Process process) {
+    public synchronized boolean removeProcess(final Process process) throws ProcessNotFoundException {
         if (process.getDockerId() != null) {
             try {
                 this.client.removeService(process.getDockerId());
                 return true;
+            } catch (final com.spotify.docker.client.exceptions.ServiceNotFoundException e) {
+                throw new ProcessNotFoundException(process.getId().toString());
             } catch (DockerException | InterruptedException e) {
                 DockerConnector.log.error("Error while removing process: {}", e.getMessage());
             }

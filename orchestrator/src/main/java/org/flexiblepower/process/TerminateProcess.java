@@ -8,6 +8,7 @@ package org.flexiblepower.process;
 import org.flexiblepower.connectors.DockerConnector;
 import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.connectors.ProcessConnector;
+import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange;
 import org.mongodb.morphia.annotations.Entity;
@@ -100,16 +101,21 @@ public class TerminateProcess {
         public Result execute() {
             ProcessConnector.getInstance().disconnect(this.process.getId());
 
-            if (DockerConnector.getInstance().removeProcess(this.process)) {
-                RemoveDockerService.log
-                        .debug("Removing Docker service for process " + this.process.getId() + " was successful");
-                // Delete record from MongoDB
-                MongoDbConnector.getInstance().delete(this.process);
-                return Result.SUCCESS;
-            } else {
-                RemoveDockerService.log
-                        .debug("Removing Docker service for process " + this.process.getId() + " failed");
-                return Result.FAILED_TEMPORARY;
+            try {
+                if (DockerConnector.getInstance().removeProcess(this.process)) {
+                    RemoveDockerService.log
+                            .debug("Removing Docker service for process " + this.process.getId() + " was successful");
+                    // Delete record from MongoDB
+                    MongoDbConnector.getInstance().delete(this.process);
+                    return Result.SUCCESS;
+                } else {
+                    RemoveDockerService.log
+                            .debug("Removing Docker service for process " + this.process.getId() + " failed");
+                    return Result.FAILED_TEMPORARY;
+                }
+            } catch (final ProcessNotFoundException e) {
+                RemoveDockerService.log.info("No such process {}", this.process.getId());
+                return Result.FAILED_PERMANENTLY;
             }
         }
 
