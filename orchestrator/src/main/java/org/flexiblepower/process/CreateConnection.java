@@ -8,6 +8,7 @@ package org.flexiblepower.process;
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.ProcessConnector;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
+import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Connection.Endpoint;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange;
@@ -59,9 +60,11 @@ public class CreateConnection extends PendingChange {
                         + " to create connection " + this.connection.getId());
                 return Result.FAILED_TEMPORARY;
             }
-        } catch (final ProcessNotFoundException e) {
-            CreateConnection.log.error("Could not signal process " + this.endpoint.getProcessId()
-                    + " to create connection " + this.connection.getId());
+        } catch (final ProcessNotFoundException | ServiceNotFoundException e) {
+            CreateConnection.log.error("Could not signal process {} to create connection {} ({})",
+                    this.endpoint.getProcessId(),
+                    this.connection.getId(),
+                    e.getMessage());
             return Result.FAILED_PERMANENTLY;
         }
     }

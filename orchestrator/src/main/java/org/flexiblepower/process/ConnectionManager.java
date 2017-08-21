@@ -12,7 +12,6 @@ import java.util.Random;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
-import org.flexiblepower.connectors.ProcessConnector;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
@@ -36,9 +35,6 @@ public class ConnectionManager {
 
     private static ConnectionManager instance;
 
-    private final MongoDbConnector db = MongoDbConnector.getInstance();
-    private final ProcessConnector pc = ProcessConnector.getInstance();
-
     private ConnectionManager() {
         // Private constructor
     }
@@ -54,7 +50,7 @@ public class ConnectionManager {
      * @return a list of all connections that are stored in the database
      */
     public List<Connection> getConnections() {
-        return this.db.list(Connection.class);
+        return MongoDbConnector.getInstance().list(Connection.class);
     }
 
     /**
@@ -65,7 +61,7 @@ public class ConnectionManager {
      * @throws InvalidObjectIdException
      */
     public Connection getConnection(final ObjectId connectionId) throws InvalidObjectIdException {
-        return this.db.get(Connection.class, connectionId);
+        return MongoDbConnector.getInstance().get(Connection.class, connectionId);
     }
 
     /**
@@ -78,14 +74,11 @@ public class ConnectionManager {
      */
     public void createConnection(final Connection connection) throws ProcessNotFoundException {
         ConnectionManager.validateConnection(connection);
-
         ConnectionManager.setPorts(connection);
-
         ConnectionManager.setInterfaceNames(connection);
 
         final Process process1 = ProcessManager.getInstance().getProcess(connection.getEndpoint1().getProcessId());
-
-        this.db.save(connection);
+        MongoDbConnector.getInstance().save(connection);
 
         PendingChangeManager.getInstance()
                 .submit(new CreateConnection(process1.getUserId(), connection, connection.getEndpoint1()));
@@ -116,7 +109,7 @@ public class ConnectionManager {
     }
 
     private static void setPorts(final Connection connection) {
-        // TODO imlement better strategy
+        // TODO implement better strategy
         connection.getEndpoint1().setListenPort(5000 + new Random().nextInt(5000));
         connection.getEndpoint2().setListenPort(5000 + new Random().nextInt(5000));
     }
@@ -125,39 +118,39 @@ public class ConnectionManager {
         if ((c.getEndpoint1().getProcessId() == null) || (c.getEndpoint2().getProcessId() == null)) {
             throw new IllegalArgumentException("ProcessId cannot be null");
         }
+
         if ((c.getEndpoint1().getInterfaceId() == null) || c.getEndpoint1().getInterfaceId().isEmpty()
                 || (c.getEndpoint2().getInterfaceId() == null) || c.getEndpoint2().getInterfaceId().isEmpty()) {
             throw new IllegalArgumentException("Interface identifier cannot be empty");
         }
-        final Process process1 = ProcessManager.getInstance().getProcess(c.getEndpoint1().getProcessId());
-        if (process1 == null) {
-            throw new IllegalArgumentException("No process with id " + c.getEndpoint1().getProcessId() + " known");
-        }
-        final Process process2 = ProcessManager.getInstance().getProcess(c.getEndpoint2().getProcessId());
-        if (process2 == null) {
-            throw new IllegalArgumentException("No process with id " + c.getEndpoint2().getProcessId() + " known");
-        }
-        final Service service1 = ServiceManager.getInstance().getService(process1.getServiceId());
-        if (service1 == null) {
-            throw new IllegalArgumentException("Could not find service " + process1.getServiceId());
-        }
-        final Service service2 = ServiceManager.getInstance().getService(process2.getServiceId());
-        if (service2 == null) {
-            throw new IllegalArgumentException("Could not find service " + process2.getServiceId());
-        }
-        final Interface if1 = service1.getInterface(c.getEndpoint1().getInterfaceId());
-        if (if1 == null) {
-            throw new IllegalArgumentException("The Service of Process 1 with id " + c.getEndpoint1().getProcessId()
-                    + " does not contain the interface " + c.getEndpoint1().getInterfaceId());
-        }
-        final Interface if2 = service1.getInterface(c.getEndpoint2().getInterfaceId());
-        if (if2 == null) {
-            throw new IllegalArgumentException("The Service of Process 2 with id " + c.getEndpoint2().getProcessId()
-                    + " does not contain the interface " + c.getEndpoint2().getInterfaceId());
-        }
-        if (!if1.isCompatibleWith(if2)) {
-            throw new IllegalArgumentException("Interface " + c.getEndpoint1().getInterfaceId() + " and interface "
-                    + c.getEndpoint2().getInterfaceId() + " are not compatible with each other");
+
+        try {
+            final Process process1 = ProcessManager.getInstance().getProcess(c.getEndpoint1().getProcessId());
+            final Process process2 = ProcessManager.getInstance().getProcess(c.getEndpoint2().getProcessId());
+
+            final Service service1 = ServiceManager.getInstance().getService(process1.getServiceId());
+            final Service service2 = ServiceManager.getInstance().getService(process2.getServiceId());
+
+            final Interface if1 = service1.getInterface(c.getEndpoint1().getInterfaceId());
+            final Interface if2 = service2.getInterface(c.getEndpoint2().getInterfaceId());
+
+            if (if1 == null) {
+                throw new IllegalArgumentException("The Service of Process 1 with id " + c.getEndpoint1().getProcessId()
+                        + " does not contain the interface " + c.getEndpoint1().getInterfaceId());
+            }
+
+            if (if2 == null) {
+                throw new IllegalArgumentException("The Service of Process 2 with id " + c.getEndpoint2().getProcessId()
+                        + " does not contain the interface " + c.getEndpoint2().getInterfaceId());
+            }
+
+            if (!if1.isCompatibleWith(if2)) {
+                throw new IllegalArgumentException("Interface " + c.getEndpoint1().getInterfaceId() + " and interface "
+                        + c.getEndpoint2().getInterfaceId() + " are not compatible with each other");
+            }
+
+        } catch (final ServiceNotFoundException | ProcessNotFoundException e) {
+            throw new IllegalArgumentException(e.getMessage());
         }
     }
 
@@ -168,7 +161,7 @@ public class ConnectionManager {
      * @throws ProcessNotFoundException
      * @throws InvalidObjectIdException
      */
-    public void terminateConnection(final Connection connection) {
+    public void terminateConnection(final Connection connection) throws ProcessNotFoundException {
         final Process process1 = ProcessManager.getInstance().getProcess(connection.getEndpoint1().getProcessId());
 
         PendingChangeManager.getInstance()
@@ -176,14 +169,14 @@ public class ConnectionManager {
         PendingChangeManager.getInstance()
                 .submit(new TerminateConnection(process1.getUserId(), connection, connection.getEndpoint2()));
 
-        this.db.delete(connection);
+        MongoDbConnector.getInstance().delete(connection);
     }
 
     /**
      * @return a list of all connections that are connected to the process with the provided id
      */
     public List<Connection> getConnectionsForProcess(final Process process) {
-        return this.db.getConnectionsForProcess(process);
+        return MongoDbConnector.getInstance().getConnectionsForProcess(process);
     }
 
     /**

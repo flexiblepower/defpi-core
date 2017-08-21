@@ -86,7 +86,7 @@ public class PendingChangeManager {
     }
 
     private void runPendingChange(final PendingChange pc) {
-        PendingChangeManager.log.debug("Running PendingChange of type " + this.getClass().getSimpleName());
+        PendingChangeManager.log.debug("Running PendingChange of type " + pc.getClass().getSimpleName());
         Result result;
         try {
             result = pc.execute();

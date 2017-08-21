@@ -14,6 +14,7 @@ import java.util.Map.Entry;
 import java.util.Random;
 
 import org.flexiblepower.exceptions.ApiException;
+import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Architecture;
 import org.flexiblepower.model.Node;
 import org.flexiblepower.model.NodePool;
@@ -86,7 +87,7 @@ public class DockerConnector {
         try {
             this.client = DockerConnector.init();
         } catch (final DockerCertificateException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Unable to run orchestrator without docker");
         }
     }
 
@@ -100,8 +101,9 @@ public class DockerConnector {
     /**
      * @param json
      * @return
+     * @throws ServiceNotFoundException
      */
-    public synchronized String newProcess(final Process process) {
+    public synchronized String newProcess(final Process process) throws ServiceNotFoundException {
         try {
             final User user = UserManager.getInstance().getUser(process.getUserId());
             this.ensureNetworkExists(user.getUsername() + "-net");
@@ -114,6 +116,8 @@ public class DockerConnector {
             DockerConnector.log.info("Created process with Id {}", id);
             return id;
         } catch (DockerException | InterruptedException e) {
+            DockerConnector.log.debug("Exception while starting new process: {}", e.getMessage());
+            DockerConnector.log.trace(e.getMessage(), e);
             return null;
         }
     }
@@ -165,8 +169,19 @@ public class DockerConnector {
         final List<Container> orchestratorContainers = this.client
                 .listContainers(ListContainersParam.filter("name", DockerConnector.ORCHESTRATOR_CONTAINER_NAME));
         if (!orchestratorContainers.isEmpty()) {
-            // If the list is empty this next statement is not going to work anyway
-            this.client.connectToNetwork(DockerConnector.ORCHESTRATOR_CONTAINER_NAME, networkName);
+            // If the list is empty the orchestrator does not exist!
+            if (!this.client.inspectContainer(DockerConnector.ORCHESTRATOR_CONTAINER_NAME)
+                    .networkSettings()
+                    .networks()
+                    .containsKey(networkName)) {
+                DockerConnector.log
+                        .info("Connecting {} to network {}", DockerConnector.ORCHESTRATOR_CONTAINER_NAME, networkName);
+                this.client.connectToNetwork(DockerConnector.ORCHESTRATOR_CONTAINER_NAME, networkName);
+            } else {
+                DockerConnector.log.debug("Container {} is already connected to {}",
+                        DockerConnector.ORCHESTRATOR_CONTAINER_NAME,
+                        networkName);
+            }
         } else {
             DockerConnector.log.warn("No container running with expected name {}. Not connecting to network {}.",
                     DockerConnector.ORCHESTRATOR_CONTAINER_NAME,
@@ -233,10 +248,8 @@ public class DockerConnector {
      * @param process
      * @return
      */
-    private static ServiceSpec createServiceSpec(final Process process,
-            final Service service,
-            final User user,
-            final Node node) {
+    private static ServiceSpec
+            createServiceSpec(final Process process, final Service service, final User user, final Node node) {
 
         final Architecture architecture = node.getArchitecture();
         // Create a name for the service by removing blanks from process name

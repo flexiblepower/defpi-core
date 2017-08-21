@@ -8,6 +8,8 @@ package org.flexiblepower.process;
 import org.flexiblepower.connectors.DockerConnector;
 import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.connectors.ProcessConnector;
+import org.flexiblepower.exceptions.ProcessNotFoundException;
+import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange;
@@ -25,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 public class CreateProcess {
 
+    @Slf4j
     @Entity("PendingChange")
     public static class CreateDockerService extends PendingChange {
 
@@ -46,21 +49,27 @@ public class CreateProcess {
         @Override
         public Result execute() {
             // Create docker service
-            final String dockerId = DockerConnector.getInstance().newProcess(this.process);
-            if (dockerId == null) {
-                return Result.FAILED_TEMPORARY;
+            CreateDockerService.log.info("Starting process " + this.process.getId());
+            try {
+                final String dockerId = DockerConnector.getInstance().newProcess(this.process);
+                if (dockerId == null) {
+                    return Result.FAILED_TEMPORARY;
+                }
+
+                // Update database
+                this.process.setState(ProcessState.INITIALIZING);
+                this.process.setDockerId(dockerId);
+                MongoDbConnector.getInstance().save(this.process);
+
+                // Start next PendingChange
+                PendingChangeManager.getInstance().submit(new SendConfiguration(this.process));
+
+                // Report
+                return Result.SUCCESS;
+            } catch (final ServiceNotFoundException e) {
+                CreateDockerService.log.error("Unable to find service for process, fail permanently");
+                return Result.FAILED_PERMANENTLY;
             }
-
-            // Update database
-            this.process.setState(ProcessState.INITIALIZING);
-            this.process.setDockerId(dockerId);
-            MongoDbConnector.getInstance().save(this.process);
-
-            // Start next PendingChange
-            PendingChangeManager.getInstance().submit(new SendConfiguration(this.process));
-
-            // Report
-            return Result.SUCCESS;
         }
 
     }
@@ -87,10 +96,15 @@ public class CreateProcess {
         @Override
         public Result execute() {
             SendConfiguration.log.info("Going to configure process " + this.process.getId());
-            if (ProcessConnector.getInstance().initNewProcess(this.process.getId())) {
-                return Result.SUCCESS;
-            } else {
-                return Result.FAILED_TEMPORARY;
+            try {
+                if (ProcessConnector.getInstance().initNewProcess(this.process.getId())) {
+                    return Result.SUCCESS;
+                } else {
+                    return Result.FAILED_TEMPORARY;
+                }
+            } catch (final ProcessNotFoundException e) {
+                SendConfiguration.log.error("Process {} not present in DB, fail permanently", this.process.getId());
+                return Result.FAILED_PERMANENTLY;
             }
         }
 

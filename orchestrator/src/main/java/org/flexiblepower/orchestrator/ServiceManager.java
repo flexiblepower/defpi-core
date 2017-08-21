@@ -26,10 +26,8 @@ public class ServiceManager {
     public final static String SERVICE_REPOSITORY = "services";
 
     private static ServiceManager instance = null;
-    private final RegistryConnector registryConnectior;
 
     private ServiceManager() {
-        this.registryConnectior = RegistryConnector.getInstance();
     }
 
     public synchronized static ServiceManager getInstance() {
@@ -40,24 +38,16 @@ public class ServiceManager {
     }
 
     public List<String> listRepositories() {
-        return this.registryConnectior.listRepositories();
+        return RegistryConnector.getInstance().listRepositories();
     }
 
-    public Service getService(final String id) {
-        try {
-            return this.registryConnectior.getService(ServiceManager.SERVICE_REPOSITORY, id);
-        } catch (final RepositoryNotFoundException e) {
-            // Can't happen
-            return null;
-        } catch (final ServiceNotFoundException e) {
-            // Can happen
-            return null;
-        }
+    public Service getService(final String id) throws ServiceNotFoundException {
+        return RegistryConnector.getInstance().getService(ServiceManager.SERVICE_REPOSITORY, id);
     }
 
     public List<Service> listServices() {
         try {
-            return this.registryConnectior.listServices(ServiceManager.SERVICE_REPOSITORY);
+            return RegistryConnector.getInstance().listServices(ServiceManager.SERVICE_REPOSITORY);
         } catch (final RepositoryNotFoundException e) {
             // Can't happen
             return null;

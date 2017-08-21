@@ -51,16 +51,16 @@ public class Connection {
 	private Endpoint endpoint2;
 
 	public Endpoint getOtherEndpoint(Endpoint e) {
-		if (e.equals(endpoint1)) {
+		if (e.getInterfaceId().equals(endpoint1.getInterfaceId())) {
 			return endpoint2;
-		} else if (e.equals(endpoint2)) {
+		} else if (e.getInterfaceId().equals(endpoint2.getInterfaceId())) {
 			return endpoint1;
 		} else {
 			throw new IllegalArgumentException("The provided endpoint is not part of this connection");
 		}
 	}
 
-	public Endpoint getEndpoirtForProcess(ObjectId processId) {
+	public Endpoint getEndpointForProcess(ObjectId processId) {
 		if (processId.equals(endpoint1.getProcessId())) {
 			return endpoint1;
 		} else if (processId.equals(endpoint2.getProcessId())) {

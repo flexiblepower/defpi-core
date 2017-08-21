@@ -11,6 +11,8 @@ import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.DockerConnector;
 import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.connectors.ProcessConnector;
+import org.flexiblepower.exceptions.ProcessNotFoundException;
+import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Connection.Endpoint;
 import org.flexiblepower.model.Process;
@@ -60,14 +62,20 @@ public class MoveProcess {
 
         @Override
         public Result execute() {
-            if (ProcessConnector.getInstance().suspendConnectionEndpoint(this.connection, this.endpoint)) {
-                SupsendConnection.log.info("Successfully signaled process " + this.endpoint.getProcessId()
-                        + " to suspend connection " + this.connection.getId());
-                return Result.SUCCESS;
-            } else {
-                SupsendConnection.log.debug("Failed to signal process " + this.endpoint.getProcessId()
-                        + " to suspend connection " + this.connection.getId());
-                return Result.FAILED_TEMPORARY;
+            try {
+                if (ProcessConnector.getInstance().suspendConnectionEndpoint(this.connection, this.endpoint)) {
+                    SupsendConnection.log.info("Successfully signaled process " + this.endpoint.getProcessId()
+                            + " to suspend connection " + this.connection.getId());
+                    return Result.SUCCESS;
+                } else {
+                    SupsendConnection.log.debug("Failed to signal process " + this.endpoint.getProcessId()
+                            + " to suspend connection " + this.connection.getId());
+                    return Result.FAILED_TEMPORARY;
+                }
+            } catch (final ProcessNotFoundException e) {
+                SupsendConnection.log.error("Process {} not present in DB, fail permanently",
+                        this.endpoint.getProcessId());
+                return Result.FAILED_PERMANENTLY;
             }
         }
     }
@@ -234,26 +242,31 @@ public class MoveProcess {
 
         @Override
         public Result execute() {
-            this.process.setNodePoolId(this.nodePoolId);
-            this.process.setPrivateNodeId(this.privateNodeId);
+            try {
+                this.process.setNodePoolId(this.nodePoolId);
+                this.process.setPrivateNodeId(this.privateNodeId);
 
-            final String newDockerId = DockerConnector.getInstance().newProcess(this.process);
-            if (newDockerId != null) {
-                CreateDockerService.log.info(
-                        "Created Docker Service for process " + this.process.getId() + " while moving the process");
+                final String newDockerId = DockerConnector.getInstance().newProcess(this.process);
+                if (newDockerId != null) {
+                    CreateDockerService.log.info(
+                            "Created Docker Service for process " + this.process.getId() + " while moving the process");
 
-                // save in database
-                this.process.setDockerId(newDockerId);
-                MongoDbConnector.getInstance().save(this.process);
+                    // save in database
+                    this.process.setDockerId(newDockerId);
+                    MongoDbConnector.getInstance().save(this.process);
 
-                // Start next step
-                PendingChangeManager.getInstance().submit(new ResumeProcess(this.process, this.suspendState));
+                    // Start next step
+                    PendingChangeManager.getInstance().submit(new ResumeProcess(this.process, this.suspendState));
 
-                return Result.SUCCESS;
-            } else {
-                CreateDockerService.log.info("Failed to create Docker Service for process " + this.process.getId()
-                        + " while moving the process");
-                return Result.FAILED_TEMPORARY;
+                    return Result.SUCCESS;
+                } else {
+                    CreateDockerService.log.info("Failed to create Docker Service for process " + this.process.getId()
+                            + " while moving the process");
+                    return Result.FAILED_TEMPORARY;
+                }
+            } catch (final ServiceNotFoundException e) {
+                SupsendConnection.log.error("Process {} not present in DB, fail permanently", this.process.getId());
+                return Result.FAILED_PERMANENTLY;
             }
         }
     }
@@ -334,14 +347,24 @@ public class MoveProcess {
 
         @Override
         public Result execute() {
-            if (ProcessConnector.getInstance().resumeConnectionEndpoint(this.connection, this.endpoint)) {
-                ResumeConnection.log.info("Successfully signaled process " + this.endpoint.getProcessId()
-                        + " to resume connection " + this.connection.getId());
-                return Result.SUCCESS;
-            } else {
-                ResumeConnection.log.debug("Failed to signal process " + this.endpoint.getProcessId()
-                        + " to resume connection " + this.connection.getId());
-                return Result.FAILED_TEMPORARY;
+            try {
+                if (ProcessConnector.getInstance().resumeConnectionEndpoint(this.connection, this.endpoint)) {
+                    ResumeConnection.log.info("Successfully signaled process " + this.endpoint.getProcessId()
+                            + " to resume connection " + this.connection.getId());
+                    return Result.SUCCESS;
+                } else {
+                    ResumeConnection.log.debug("Failed to signal process " + this.endpoint.getProcessId()
+                            + " to resume connection " + this.connection.getId());
+                    return Result.FAILED_TEMPORARY;
+                }
+            } catch (final ProcessNotFoundException e) {
+                ResumeConnection.log.info("Failed to resume connection for unkown process {}, failed permanently",
+                        this.endpoint.getProcessId());
+                return Result.FAILED_PERMANENTLY;
+            } catch (final ServiceNotFoundException e) {
+                ResumeConnection.log.info("Could not find service for process {}, failed permanently",
+                        this.endpoint.getProcessId());
+                return Result.FAILED_PERMANENTLY;
             }
         }
     }
