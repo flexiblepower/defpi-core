@@ -17,6 +17,7 @@ import java.util.Map;
 import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription;
 import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -59,9 +60,7 @@ public class PluginTest {
         hashes.put("DropbackInterface_v002", "3");
         final Templates t = new Templates("target.package", "", "", descr, hashes);
         for (final InterfaceDescription itf : descr.getInterfaces()) {
-            for (final InterfaceVersionDescription version : itf.getInterfaceVersions()) {
-                PluginTest.log.info(t.generateFactory(itf, version));
-            }
+            PluginTest.log.info(t.generateManagerInterface(itf));
         }
         PluginTest.log.info(t.generateDockerfile("x86", descr));
     }
@@ -98,6 +97,14 @@ public class PluginTest {
                 PluginTest.log.info(t.getHash(i, v, Collections.emptySet()));
             }
         }
+    }
+
+    @Test
+    public void testPackageName() {
+        Assert.assertEquals("service", PluginUtils.toPackageName("sErvI*ce"));
+        Assert.assertEquals("twee_woorden", PluginUtils.toPackageName("Twee Woorden"));
+        Assert.assertEquals("_00zomaar_iets", PluginUtils.toPackageName("00*zomaar iets"));
+        Assert.assertEquals("_raar", PluginUtils.toPackageName("_ra@(>=<)ar)"));
     }
 
 }

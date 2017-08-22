@@ -98,6 +98,14 @@ public class CreateProcess {
             SendConfiguration.log.info("Going to configure process " + this.process.getId());
             try {
                 if (ProcessConnector.getInstance().initNewProcess(this.process.getId())) {
+                    // Create autoconnect connections. This method will spawn PendingChanges of its own.
+                    try {
+                        ConnectionManager.getInstance().createAutoConnectConnections(this.process);
+                    } catch (final ServiceNotFoundException e) {
+                        SendConfiguration.log.error(
+                                "Could not find service while trying to create autoconnect connection for new process. Failing permanently.");
+                        return Result.FAILED_PERMANENTLY;
+                    }
                     return Result.SUCCESS;
                 } else {
                     return Result.FAILED_TEMPORARY;

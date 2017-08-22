@@ -36,7 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Socket;
-import org.zeromq.ZMQException;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
@@ -82,8 +81,7 @@ public class ProcessConnector {
     }
 
     public boolean createConnectionEndpoint(final Connection connection, final Endpoint endpoint)
-            throws ProcessNotFoundException,
-            ServiceNotFoundException {
+            throws ProcessNotFoundException, ServiceNotFoundException {
         final Endpoint otherEndpoint = connection.getOtherEndpoint(endpoint);
         final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
 
@@ -130,8 +128,7 @@ public class ProcessConnector {
      * @throws ProcessNotFoundException
      */
     public boolean resumeConnectionEndpoint(final Connection connection, final Endpoint endpoint)
-            throws ServiceNotFoundException,
-            ProcessNotFoundException {
+            throws ServiceNotFoundException, ProcessNotFoundException {
         final Endpoint otherEndpoint = connection.getOtherEndpoint(endpoint);
         final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
 
@@ -239,7 +236,7 @@ public class ProcessConnector {
                 this.uri = String.format("tcp://%s:%d", process.getId().toString(), ProcessConnection.MANAGEMENT_PORT);
 
                 this.socket = ZMQ.context(1).socket(ZMQ.REQ);
-                this.socket.setDelayAttachOnConnect(true);
+                this.socket.setImmediate(false);
                 this.socket.connect(this.uri.toString());
                 this.socket.setSendTimeOut(ProcessConnection.MANAGEMENT_SOCKET_SEND_TIMEOUT);
                 this.socket.setReceiveTimeOut(ProcessConnection.MANAGEMENT_SOCKET_RECV_TIMEOUT);
@@ -346,8 +343,9 @@ public class ProcessConnector {
 
         public boolean startProcess() throws ProcessNotFoundException {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final Builder builder = SetConfigMessage.newBuilder().setProcessId(process.getId().toString()).setIsUpdate(
-                    false);
+            final Builder builder = SetConfigMessage.newBuilder()
+                    .setProcessId(process.getId().toString())
+                    .setIsUpdate(false);
             if (process.getConfiguration() != null) {
                 for (final Parameter p : process.getConfiguration()) {
                     builder.putConfig(p.getKey(), p.getValue());
@@ -386,8 +384,9 @@ public class ProcessConnector {
          * @return true if successful, false in failed
          */
         public boolean updateConfiguration(final List<Parameter> newConfiguration) {
-            final Builder builder = SetConfigMessage.newBuilder().setProcessId(this.processId.toString()).setIsUpdate(
-                    true);
+            final Builder builder = SetConfigMessage.newBuilder()
+                    .setProcessId(this.processId.toString())
+                    .setIsUpdate(true);
             for (final Parameter p : newConfiguration) {
                 builder.putConfig(p.getKey(), p.getValue());
             }
@@ -457,46 +456,70 @@ public class ProcessConnector {
 
         @SuppressWarnings("unchecked")
         private <T> T send(final Message msg, final Class<T> expected) {
-            try {
-                this.socket.send(this.serializer.serialize(msg));
-            } catch (final SerializationException e1) {
-                ProcessConnector.log.error("Could not serialize message", e1);
-                return null;
-            } catch (final ZMQException e) {
-                if (e.getErrorCode() == 156384763) {
-                    ProcessConnector.log
-                            .error("Got ZMQ error 156384763. Disconnecting with process, try to reconnect.");
-                    this.close();
+            // Only one threat is allowed to do a send/receive at the time for each connection
+            synchronized (this) {
+                byte[] data;
+                try {
+                    data = this.serializer.serialize(msg);
+                } catch (final SerializationException e) {
+                    ProcessConnector.log.error("Could not serialize message", e);
                     return null;
                 }
-            }
 
-            byte[] recv = null;
-            try {
-                recv = this.socket.recv();
-            } catch (final ZMQException e) {
-                if (e.getErrorCode() == 156384763) {
-                    ProcessConnector.log
-                            .error("Got ZMQ error 156384763. Disconnecting with process, try to reconnect.");
-                    this.close();
-                }
-            }
-            if (recv == null) {
-                return null;
-            }
-            try {
-                final Message m = this.serializer.deserialize(recv);
-                if (expected.isInstance(m)) {
-                    return (T) m;
-                } else {
-                    ProcessConnector.log.error("Received invalid message from Process " + this.processId.toString()
-                            + ". Expected " + expected.getSimpleName() + ", got " + m.getClass().getSimpleName());
+                // try {
+                if (!this.socket.send(data)) {
+                    ProcessConnector.log.warn("Unable to send message to Process, try to resend.");
                     return null;
                 }
-            } catch (final SerializationException e) {
-                ProcessConnector.log.error("Received invalid message from Process " + this.processId.toString()
-                        + ". Expected " + expected.getSimpleName() + ".");
-                return null;
+                // } catch (final ZMQException e) {
+                // if (e.getErrorCode() == 156384763) {
+                // ProcessConnector.log
+                // .error("Got ZMQ error 156384763. Disconnecting with process, try to reconnect.");
+                // this.close();
+                // return null;
+                // }
+                // }
+
+                // try {
+                final byte[] recv = this.socket.recv();
+                // } catch (final ZMQException e) {
+                // if (e.getErrorCode() == 156384763) {
+                // ProcessConnector.log
+                // .error("Got ZMQ error 156384763. Disconnecting with process, try to reconnect.");
+                // this.close();
+                // }
+                // }
+
+                if (recv == null) {
+                    // This is very scary!! We just successfully sent the process a message, but it never replied. We
+                    // may as
+                    // well kill the process now.
+                    ProcessConnector.log.error(
+                            "Failed to receive response from process {}. Try to recover by closing connection, but most likely the process is in a invalid state",
+                            this.processId);
+                    this.close();
+                    return null;
+                }
+
+                try {
+                    final Message m = this.serializer.deserialize(recv);
+                    if (expected.isInstance(m)) {
+                        return (T) m;
+                    } else if (m instanceof ErrorMessage) {
+                        ProcessConnector.log.error("Received Error message from Process " + this.processId.toString()
+                                + ". Expected " + expected.getSimpleName() + ". Message: "
+                                + ((ErrorMessage) m).getDebugInformation());
+                        return null;
+                    } else {
+                        ProcessConnector.log.error("Received invalid message from Process " + this.processId.toString()
+                                + ". Expected " + expected.getSimpleName() + ", got " + m.getClass().getSimpleName());
+                        return null;
+                    }
+                } catch (final SerializationException e) {
+                    ProcessConnector.log.error("Received invalid message from Process " + this.processId.toString()
+                            + ". Expected " + expected.getSimpleName() + ".");
+                    return null;
+                }
             }
         }
 

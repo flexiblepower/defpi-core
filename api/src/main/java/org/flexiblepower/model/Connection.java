@@ -24,18 +24,31 @@ public class Connection {
 	@Embedded
 	@Getter
 	@NoArgsConstructor
-	@AllArgsConstructor
 	@EqualsAndHashCode
 	public static class Endpoint {
+
+		public Endpoint(ObjectId processId, String interfaceId) {
+			this.processId = processId;
+			this.interfaceId = interfaceId;
+		}
+
 		@JsonSerialize(using = ToStringSerializer.class)
 		@JsonDeserialize(using = ObjectIdDeserializer.class)
 		private ObjectId processId;
 
 		private String interfaceId;
 
+		/**
+		 * The version that is actually used. The value is set by the
+		 * ConnectionManager.
+		 */
 		@Setter
 		private String interfaceVersionName;
 
+		/**
+		 * The port that the process will listen for incoming connections on.
+		 * The value is set by the ConnectionManager.
+		 */
 		@Setter
 		private int listenPort;
 

@@ -1,0 +1,1 @@
+	public {{vitf.handler.interface}} build{{vitf.version}}(Connection connection);

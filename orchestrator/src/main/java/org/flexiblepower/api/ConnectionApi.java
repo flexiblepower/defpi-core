@@ -12,6 +12,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import org.flexiblepower.exceptions.AuthorizationException;
+import org.flexiblepower.exceptions.ConnectionException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.NotFoundException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
@@ -60,9 +61,7 @@ public interface ConnectionApi {
             @ApiParam(name = "connectionId",
                       value = "The id of the connection",
                       required = true) @PathParam("connectionId") final String id)
-            throws AuthorizationException,
-            ProcessNotFoundException,
-            InvalidObjectIdException;
+            throws AuthorizationException, ProcessNotFoundException, InvalidObjectIdException;
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)
@@ -79,8 +78,7 @@ public interface ConnectionApi {
             @ApiParam(name = "connection",
                       value = "The new connection to insert",
                       required = true) final Connection connection)
-            throws AuthorizationException,
-            NotFoundException;
+            throws AuthorizationException, NotFoundException, ConnectionException;
 
     @DELETE
     @Path("{id}")
@@ -97,7 +95,5 @@ public interface ConnectionApi {
             @ApiParam(name = "connectionId",
                       value = "The id of the connection to remove",
                       required = true) @PathParam("id") final String id)
-            throws AuthorizationException,
-            InvalidObjectIdException,
-            NotFoundException;
+            throws AuthorizationException, InvalidObjectIdException, NotFoundException;
 }

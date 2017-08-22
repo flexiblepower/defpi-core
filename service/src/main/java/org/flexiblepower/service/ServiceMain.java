@@ -107,14 +107,14 @@ public final class ServiceMain {
                     continue;
                 }
 
-                final Class<? extends ConnectionHandlerFactory> factoryClass = info.factory();
+                final Class<? extends ConnectionHandlerManager> factoryClass = info.manager();
 
-                ConnectionHandlerFactory chf = null;
+                ConnectionHandlerManager chf = null;
                 // It should have a constructor with service as argument
                 for (final Constructor<?> c : factoryClass.getConstructors()) {
                     if ((c.getParameterCount() == 1) && Service.class.isAssignableFrom(c.getParameterTypes()[0])) {
                         try {
-                            chf = (ConnectionHandlerFactory) c.newInstance(ServiceMain.service);
+                            chf = (ConnectionHandlerManager) c.newInstance(ServiceMain.service);
                             break;
                         } catch (final Exception e) {
                             // Do nothing try next...

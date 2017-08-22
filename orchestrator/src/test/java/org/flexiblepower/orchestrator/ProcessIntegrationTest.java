@@ -132,8 +132,8 @@ public class ProcessIntegrationTest {
         // user-net
 
         final Connection connection = new Connection(null,
-                new Endpoint(process1.getId(), "Echo", null, 0),
-                new Endpoint(process1.getId(), "Echo", null, 0));
+                new Endpoint(process1.getId(), "Echo"),
+                new Endpoint(process1.getId(), "Echo"));
         Assert.assertTrue(
                 ProcessConnector.getInstance().createConnectionEndpoint(connection, connection.getEndpoint1()));
     }

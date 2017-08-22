@@ -5,6 +5,7 @@
  */
 package org.flexiblepower.orchestrator;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -72,6 +73,19 @@ public class ServiceManager {
             }
         }
         return null;
+    }
+
+    public List<Service> getServicesThatCanConnectWith(final Interface intface) {
+        final List<Service> result = new ArrayList<>();
+        for (final Service s : this.listServices()) {
+            for (final Interface otherIntf : s.getInterfaces()) {
+                if (intface.isCompatibleWith(otherIntf)) {
+                    result.add(s);
+                    break; // go to the next service
+                }
+            }
+        }
+        return result;
     }
 
 }

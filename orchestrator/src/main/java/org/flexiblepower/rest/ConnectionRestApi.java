@@ -11,8 +11,10 @@ import org.flexiblepower.api.ConnectionApi;
 import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.AuthorizationException;
+import org.flexiblepower.exceptions.ConnectionException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
+import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.process.ConnectionManager;
@@ -40,7 +42,7 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
 
     @Override
     public Connection newConnection(final Connection connection)
-            throws AuthorizationException, ProcessNotFoundException {
+            throws AuthorizationException, ProcessNotFoundException, ServiceNotFoundException, ConnectionException {
         final Process p1 = ProcessManager.getInstance().getProcess(connection.getEndpoint1().getProcessId());
 
         if (p1 == null) {
