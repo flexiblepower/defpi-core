@@ -59,8 +59,7 @@ public class ServiceManager implements Closeable {
      * The receive timeout of the managementsocket also determines how often the thread "checks" if the keepalive
      * boolean is still true
      */
-    private static final int MANAGEMENT_SOCKET_RECEIVE_TIMEOUT = 100;
-    private static final long SERVICE_IMPL_TIMEOUT_SECONDS = 1;
+    private static final long SERVICE_IMPL_TIMEOUT_SECONDS = 5;
     public static final int MANAGEMENT_PORT = 4999;
 
     // private final Class<? extends Service> serviceClass;
@@ -90,7 +89,8 @@ public class ServiceManager implements Closeable {
         final String listenAddr = "tcp://*:" + ServiceManager.MANAGEMENT_PORT;
         ServiceManager.log.info("Start listening thread on {}", listenAddr);
 
-        this.managementSocket.setReceiveTimeOut(ServiceManager.MANAGEMENT_SOCKET_RECEIVE_TIMEOUT);
+        // Receive timeout must be -1, making the recv() blocking until something is received
+        this.managementSocket.setReceiveTimeOut(-1);
         this.managementSocket.bind(listenAddr);
 
         // Initializer the ProtoBufe message serializer
@@ -109,13 +109,8 @@ public class ServiceManager implements Closeable {
                 Message response;
                 try {
                     final byte[] data = this.managementSocket.recv();
-                    if (data != null) {
-                        final Message msg = this.pbSerializer.deserialize(data);
-                        response = this.handleServiceMessage(msg);
-                    } else {
-                        // Not received anything, better luck next iteration
-                        continue;
-                    }
+                    final Message msg = this.pbSerializer.deserialize(data);
+                    response = this.handleServiceMessage(msg);
                 } catch (final Exception e) {
                     ServiceManager.log.error("Exception handing message", e);
                     response = ErrorMessage.newBuilder()
@@ -130,6 +125,8 @@ public class ServiceManager implements Closeable {
                 } catch (final SerializationException e) {
                     ServiceManager.log
                             .error("Error during serialization of message type " + response.getClass().getSimpleName());
+                    // We must send something to continue the REQ/REP pattern
+                    this.managementSocket.send("Panic!".getBytes());
                 } catch (final ClosedSelectorException | ZError.IOException e) {
                     // Socket is closed, we are stopped
                     ServiceManager.log.warn("Socket forcibly closed, stopping thread", e);
