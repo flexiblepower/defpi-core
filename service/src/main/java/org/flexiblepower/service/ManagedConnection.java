@@ -39,6 +39,7 @@ final class ManagedConnection implements Connection {
 
     private static final Logger log = LoggerFactory.getLogger(ManagedConnection.class);
     private static final int RECEIVE_TIMEOUT = 100;
+    private static final int SEND_TIMEOUT = 200;
     private static final int MAX_HEARTBEAT_THREADS = 1;
     private static final long HEARTBEAT_PERIOD_IN_SECONDS = 10;
     private static final long INITIAL_HEARTBEAT_DELAY = 2;
@@ -150,16 +151,20 @@ final class ManagedConnection implements Connection {
         // Initialize socket
         if (this.publishSocket == null) {
             this.publishSocket = this.zmqContext.socket(ZMQ.PUSH);
-            this.publishSocket.setSendTimeOut(0); // ManagedConnection.SEND_TIMEOUT);
+            this.publishSocket.setSendTimeOut(ManagedConnection.SEND_TIMEOUT);
             this.publishSocket.setImmediate(false);
         }
 
         // Try to connect
         try {
             ManagedConnection.log.debug("Creating publishSocket sending to {}", this.targetAddress);
-            this.publishSocket.connect(this.targetAddress);
+            if (!this.publishSocket.connect(this.targetAddress)) {
+                ManagedConnection.log.debug("Failed to connect to {}, remote side not ready?");
+                return false;
+            }
         } catch (final IllegalArgumentException e) {
             // Could not resolve hostname, other container is not yet ready
+            ManagedConnection.log.debug("Exception while connecting to remote: {}", e.getMessage());
             return false;
         }
 
@@ -171,6 +176,7 @@ final class ManagedConnection implements Connection {
         try {
             if (!this.publishSocket.send(this.connectionHandshakeSerializer.serialize(initHandshakeMessage))) {
                 // Failed sending handshake
+                ManagedConnection.log.warn("Failed to send handshake");
                 return false;
             }
         } catch (final SerializationException e) {
@@ -183,24 +189,29 @@ final class ManagedConnection implements Connection {
         for (int i = 0; (this.state != ConnectionState.TERMINATED) && (i < 100); i++) {
             byte[] data = null;
             try {
+                ManagedConnection.log.debug("Listening for handshake..");
                 data = this.subscribeSocket.recv();
             } catch (final Exception e) {
                 // The subscribeSocket is closed, probably the session was suspended before it was running
+                ManagedConnection.log.warn("Exception while receiving from socket: {}", e.getMessage());
                 return false;
             }
             if (data == null) {
                 // That can happen, try again
+                ManagedConnection.log.debug("No handshake received, retrying...");
                 continue;
             }
             if (data.length == ManagedConnection.HEARTBEAT_MSG_LENGTH) {
                 // Whoops, that's a heart beat, try again
+                ManagedConnection.log.debug("Received heartbeat {} instead of handshake, retrying...",
+                        new String(data));
                 continue;
             }
             Message receivedMsg;
             try {
                 receivedMsg = this.connectionHandshakeSerializer.deserialize(data);
             } catch (final SerializationException e) {
-                ManagedConnection.log.error("Could not deserialize conenctionhandshake message", e);
+                ManagedConnection.log.error("Could not deserialize connectionhandshake message", e);
                 continue;
             }
             final ConnectionHandshake handShakeMessage = (ConnectionHandshake) receivedMsg;
@@ -412,8 +423,10 @@ final class ManagedConnection implements Connection {
     }
 
     private void stopHeartBeat() {
-        this.heartBeatFuture.cancel(true);
-        this.heartBeatFuture = null;
+        if (this.heartBeatFuture != null) {
+            this.heartBeatFuture.cancel(true);
+            this.heartBeatFuture = null;
+        }
     }
 
     /*
@@ -578,9 +591,11 @@ final class ManagedConnection implements Connection {
                 }
             }
             // State is TERMINATED, cleanup
+            ManagedConnection.log.debug("End of thread, cleaning up");
             ManagedConnection.this.disconnectListening();
             ManagedConnection.this.disconnectSending();
             ManagedConnection.this.zmqContext.close();
+            ManagedConnection.this.stopHeartBeat();
             ManagedConnection.this.heartBeatExecutor.shutdownNow();
         }
 

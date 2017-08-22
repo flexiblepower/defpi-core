@@ -62,14 +62,18 @@ public class ServiceTest {
         this.pbSerializer.addMessageClass(ResumeProcessMessage.class);
     }
 
-    @Test()
-    public void runTests() throws SerializationException, InterruptedException {
+    @Test
+    public void runTests() throws SerializationException {
         // One test since they have to be executed in the correct order
         this.runConfigure();
         this.runReconfigure();
         this.runSuspend();
-        // this.runResume();
-        // this.runTerminate();
+    }
+
+    @Test
+    public void runResumeTerminate() throws SerializationException {
+        this.runResume();
+        this.runTerminate();
     }
 
     public void runResume() throws SerializationException {
@@ -78,12 +82,15 @@ public class ServiceTest {
                 .setStateData(ByteString.copyFrom(this.serializer.serialize(TestService.class)))
                 .build());
         Assert.assertTrue(this.managementSocket.send(data));
+
         final byte[] received = this.managementSocket.recv();
-        Assert.assertArrayEquals(this.pbSerializer.serialize(ProcessStateUpdateMessage.newBuilder()
-                .setProcessId(ServiceTest.PROCESS_ID)
-                .setState(ProcessState.RUNNING)
-                .setStateData(ByteString.EMPTY)
-                .build()), received);
+        Assert.assertEquals(
+                ProcessStateUpdateMessage.newBuilder()
+                        .setProcessId(ServiceTest.PROCESS_ID)
+                        .setState(ProcessState.RUNNING)
+                        .setStateData(ByteString.copyFrom("".getBytes()))
+                        .build(),
+                this.pbSerializer.deserialize(received));
     }
 
     public void runConfigure() throws SerializationException {
@@ -148,6 +155,7 @@ public class ServiceTest {
         Assert.assertArrayEquals(this.pbSerializer.serialize(ProcessStateUpdateMessage.newBuilder()
                 .setProcessId(ServiceTest.PROCESS_ID)
                 .setState(ProcessState.TERMINATED)
+                .setStateData(ByteString.EMPTY)
                 .build()), this.managementSocket.recv());
         Assert.assertEquals("terminate", this.testService.getState());
     }

@@ -133,11 +133,11 @@ public class ServiceManager implements Closeable {
                     break;
                 }
             }
+
             ServiceManager.log.trace("End of thread");
             this.connectionManager.close();
             this.managementSocket.close();
         }, "ServiceManager thread");
-
         this.managerThread.start();
     }
 
@@ -167,7 +167,6 @@ public class ServiceManager implements Closeable {
     @Override
     public void close() {
         this.keepThreadAlive = false;
-        this.join();
         this.managementSocket.close();
         this.connectionManager.close();
     }
@@ -265,7 +264,7 @@ public class ServiceManager implements Closeable {
     private Message handleResumeProcessMessage(final ResumeProcessMessage msg) throws ServiceInvocationException {
         Future<ProcessStateUpdateMessage> future;
         ServiceManager.log.info("Received ResumeProcessMessage for process {}", msg.getProcessId());
-
+        this.processId = msg.getProcessId();
         try {
             final Serializable state = msg.getStateData().isEmpty() ? null
                     : this.javaIoSerializer.deserialize(msg.getStateData().toByteArray());
@@ -339,10 +338,10 @@ public class ServiceManager implements Closeable {
         return ErrorMessage.newBuilder().setDebugInformation(e.getMessage()).setProcessId(processId).build();
     }
 
-    @SuppressWarnings({"resource", "unused"})
+    @SuppressWarnings({"resource"})
     public static void main(final String[] args) throws ServiceInvocationException {
         // Launch new service manager
-        new ServiceManager();
+        (new ServiceManager()).join();
     }
 
 }
