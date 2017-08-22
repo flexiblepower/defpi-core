@@ -81,8 +81,7 @@ public class ProcessConnector {
     }
 
     public boolean createConnectionEndpoint(final Connection connection, final Endpoint endpoint)
-            throws ProcessNotFoundException,
-            ServiceNotFoundException {
+            throws ProcessNotFoundException, ServiceNotFoundException {
         final Endpoint otherEndpoint = connection.getOtherEndpoint(endpoint);
         final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
 
@@ -129,8 +128,7 @@ public class ProcessConnector {
      * @throws ProcessNotFoundException
      */
     public boolean resumeConnectionEndpoint(final Connection connection, final Endpoint endpoint)
-            throws ServiceNotFoundException,
-            ProcessNotFoundException {
+            throws ServiceNotFoundException, ProcessNotFoundException {
         final Endpoint otherEndpoint = connection.getOtherEndpoint(endpoint);
         final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
 
@@ -345,8 +343,9 @@ public class ProcessConnector {
 
         public boolean startProcess() throws ProcessNotFoundException {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final Builder builder = SetConfigMessage.newBuilder().setProcessId(process.getId().toString()).setIsUpdate(
-                    false);
+            final Builder builder = SetConfigMessage.newBuilder()
+                    .setProcessId(process.getId().toString())
+                    .setIsUpdate(false);
             if (process.getConfiguration() != null) {
                 for (final Parameter p : process.getConfiguration()) {
                     builder.putConfig(p.getKey(), p.getValue());
@@ -385,8 +384,9 @@ public class ProcessConnector {
          * @return true if successful, false in failed
          */
         public boolean updateConfiguration(final List<Parameter> newConfiguration) {
-            final Builder builder = SetConfigMessage.newBuilder().setProcessId(this.processId.toString()).setIsUpdate(
-                    true);
+            final Builder builder = SetConfigMessage.newBuilder()
+                    .setProcessId(this.processId.toString())
+                    .setIsUpdate(true);
             for (final Parameter p : newConfiguration) {
                 builder.putConfig(p.getKey(), p.getValue());
             }
@@ -502,6 +502,11 @@ public class ProcessConnector {
                 final Message m = this.serializer.deserialize(recv);
                 if (expected.isInstance(m)) {
                     return (T) m;
+                } else if (m instanceof ErrorMessage) {
+                    ProcessConnector.log.error("Received Error message from Process " + this.processId.toString()
+                            + ". Expected " + expected.getSimpleName() + ". Message: "
+                            + ((ErrorMessage) m).getDebugInformation());
+                    return null;
                 } else {
                     ProcessConnector.log.error("Received invalid message from Process " + this.processId.toString()
                             + ". Expected " + expected.getSimpleName() + ", got " + m.getClass().getSimpleName());

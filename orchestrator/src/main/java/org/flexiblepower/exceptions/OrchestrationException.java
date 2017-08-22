@@ -17,7 +17,7 @@ public class OrchestrationException extends Exception {
     /**
      *
      */
-    private static final long serialVersionUID = -1122019649039074329L;
+    private static final long serialVersionUID = 2046270623239734474L;
 
     /**
      *
