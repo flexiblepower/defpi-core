@@ -12,6 +12,7 @@ import java.util.Random;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
+import org.flexiblepower.exceptions.ConnectionException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
@@ -75,9 +76,13 @@ public class ConnectionManager {
      * @return the id of the newly inserted connection
      * @throws ServiceNotFoundException
      * @throws ProcessNotFoundException
+     * @throws ConnectionException
      */
-    public void createConnection(final Connection connection) throws ProcessNotFoundException {
+    public void createConnection(final Connection connection)
+            throws ProcessNotFoundException, ServiceNotFoundException, ConnectionException {
         ConnectionManager.validateConnection(connection);
+        ConnectionManager.validateMultipleConnect(connection);
+
         ConnectionManager.setPorts(connection);
         ConnectionManager.setInterfaceNames(connection);
 
@@ -88,6 +93,29 @@ public class ConnectionManager {
                 .submit(new CreateConnectionEndpoint(process1.getUserId(), connection, connection.getEndpoint1()));
         PendingChangeManager.getInstance()
                 .submit(new CreateConnectionEndpoint(process1.getUserId(), connection, connection.getEndpoint2()));
+    }
+
+    private static void validateMultipleConnect(final Connection newConnection)
+            throws ProcessNotFoundException, ServiceNotFoundException, ConnectionException {
+        ConnectionManager.validateMultipleConnect(newConnection.getEndpoint1());
+        ConnectionManager.validateMultipleConnect(newConnection.getEndpoint2());
+    }
+
+    private static void validateMultipleConnect(final Connection.Endpoint endpoint)
+            throws ServiceNotFoundException, ProcessNotFoundException, ConnectionException {
+        final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
+        final Service service = ServiceManager.getInstance().getService(process.getServiceId());
+        final Interface intface = service.getInterface(endpoint.getInterfaceId());
+        if (!intface.isAllowMultiple()) {
+            // Is there already a connection for this interface?
+            for (final Connection c : ConnectionManager.getInstance().getConnectionsForProcess(process)) {
+                if (c.getEndpointForProcess(process.getId()).getInterfaceId().equals(intface.getId())) {
+                    throw new ConnectionException("Connot create new connection for process " + process.getId()
+                            + " for interface " + intface.getId()
+                            + ". The process does not allow multiple connections of the same type.");
+                }
+            }
+        }
     }
 
     private static void setInterfaceNames(final Connection connection) {
@@ -233,6 +261,9 @@ public class ConnectionManager {
                                     ConnectionManager.log
                                             .warn("Could not find process while creating an autoconnect connection for interface "
                                                     + intface.getId() + ", ignoring.");
+                                } catch (final ConnectionException e) {
+                                    // This new connection violates one of the constraints. So its not suited for
+                                    // autoconnect, no problem...
                                 }
                             }
                         }
