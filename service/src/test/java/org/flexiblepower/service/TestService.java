@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
                manager = TestService.class,
                sendsHash = "eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252",
                sendTypes = {Object.class})
-public class TestService implements Service, ConnectionHandlerFactory, ConnectionHandler {
+public class TestService implements Service, ConnectionHandlerManager, ConnectionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(TestService.class);
     private int counter = 0;
@@ -88,13 +88,7 @@ public class TestService implements Service, ConnectionHandlerFactory, Connectio
         this.state = "terminate";
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see org.flexiblepower.service.ConnectionHandlerFactory#build()
-     */
-    @Override
-    public ConnectionHandler build() {
+    public ConnectionHandler build1() {
         return this;
     }
 
