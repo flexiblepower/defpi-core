@@ -50,7 +50,7 @@ public class XjcCompiler implements Compiler {
                 final OutputStream outOs = new ByteArrayOutputStream();
                 final PrintStream outPs = new PrintStream(outOs)) {
             final String[] args = {"-npa", "-d", targetPath.toString(), "-p", XjcCompiler.this.basePackageName,
-                    filePath.toString()};
+                    filePath.toString(), "-Xfluent-api"};
             final int result = Driver.run(args, statePs, outPs);
 
             if (result != 0) {
