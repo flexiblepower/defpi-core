@@ -51,6 +51,13 @@
 		    <version>2.2.11</version>
 		</dependency>
 		
+		<dependency>
+		    <groupId>net.java.dev.jaxb2-commons</groupId>
+		    <artifactId>jaxb-fluent-api</artifactId>
+		    <version>2.1.8</version>
+		</dependency>
+				
+		
 	</dependencies>
 
 	<build>
