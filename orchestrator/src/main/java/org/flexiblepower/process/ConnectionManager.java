@@ -151,6 +151,10 @@ public class ConnectionManager {
             throw new IllegalArgumentException("ProcessId cannot be null");
         }
 
+        if (c.getEndpoint1().getProcessId().equals(c.getEndpoint2().getProcessId())) {
+            throw new IllegalArgumentException("A process cannot connect with itself");
+        }
+
         if ((c.getEndpoint1().getInterfaceId() == null) || c.getEndpoint1().getInterfaceId().isEmpty()
                 || (c.getEndpoint2().getInterfaceId() == null) || c.getEndpoint2().getInterfaceId().isEmpty()) {
             throw new IllegalArgumentException("Interface identifier cannot be empty");
@@ -244,6 +248,10 @@ public class ConnectionManager {
             if (intface.isAutoConnect()) {
                 // search for other processes with that interface
                 for (final Process otherProcess : ProcessManager.getInstance().listProcesses(user)) {
+                    if (process.getId().equals(otherProcess.getId())) {
+                        // It should not connect with itself
+                        continue;
+                    }
                     try {
                         final Service otherService = ServiceManager.getInstance()
                                 .getService(otherProcess.getServiceId());
