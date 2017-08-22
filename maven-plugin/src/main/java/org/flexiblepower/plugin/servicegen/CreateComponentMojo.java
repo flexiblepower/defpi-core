@@ -147,17 +147,15 @@ public class CreateComponentMojo extends AbstractMojo {
     /**
      * Folder where the protobuf definitions should be copied to
      */
-    // @Parameter(property = "docker.folder", defaultValue = "docker")
     private final String dockerLocation = "docker";
 
     /**
      * Folder where the protobuf definitions should be copied to
      */
-    // @Parameter(property = "docker.arm.folder", defaultValue = "docker-arm")
     private final String dockerArmLocation = "docker-arm";
 
-    private Path resourcePath;
     private final Map<String, String> hashes = new HashMap<>();
+    private Path resourcePath;
     private Templates templates;
 
     /**
@@ -167,9 +165,9 @@ public class CreateComponentMojo extends AbstractMojo {
     @Override
     public void execute() throws MojoExecutionException {
         try {
-            if (!this.servicePackage.matches("[a-z][a-z.]+")) {
+            if (!this.servicePackage.matches("[a-z][a-z0-9_.]+")) {
                 this.getLog().warn("Invalid java package name " + this.servicePackage);
-                this.servicePackage = this.servicePackage.replaceAll("[^a-zA-Z.]", "").toLowerCase();
+                this.servicePackage = this.servicePackage.replaceAll("[^a-zA-Z0-9_.]", "").toLowerCase();
                 this.getLog().warn("New target package name " + this.servicePackage);
             }
 
@@ -181,6 +179,9 @@ public class CreateComponentMojo extends AbstractMojo {
 
             final ServiceDescription service = this.readServiceDefinition(serviceDescriptionFile);
 
+            final Path javaSourceFolder = Paths.get(this.sourceLocation).resolve(this.servicePackage.replace('.', '/'));
+            Files.createDirectories(javaSourceFolder);
+
             // Add descriptors and related hashes
             this.createDescriptors(service.getInterfaces());
             this.templates = new Templates(this.servicePackage,
@@ -188,9 +189,6 @@ public class CreateComponentMojo extends AbstractMojo {
                     this.xsdOutputPackage,
                     service,
                     this.hashes);
-
-            final Path javaSourceFolder = Paths.get(this.sourceLocation).resolve(this.servicePackage.replace('.', '/'));
-            Files.createDirectories(javaSourceFolder);
 
             this.createJavaFiles(service, javaSourceFolder);
             this.createDockerfiles(service);
@@ -276,7 +274,7 @@ public class CreateComponentMojo extends AbstractMojo {
                             .resolve(fullName + ".proto");
 
                     // Append the descriptor and store hash of source
-                    this.appendProtoDescriptor(fullName, protoSourceFilePath, outputPath);
+                    this.appendProtoDescriptor(iface, versionDescription, protoSourceFilePath, outputPath);
                     this.hashes.put(fullName, PluginUtils.SHA256(protoSourceFilePath));
                 } else if (versionDescription.getType().equals(Type.XSD)) {
                     final Path xsdSourceFilePath = this.resourcePath.resolve(this.xsdInputLocation)
@@ -312,11 +310,14 @@ public class CreateComponentMojo extends AbstractMojo {
      *            Folder the altered descriptor file should be stored.
      * @throws IOException
      */
-    private void appendProtoDescriptor(final String name, final Path inputPath, final Path outputPath)
-            throws IOException {
+    private void appendProtoDescriptor(final InterfaceDescription itf,
+            final InterfaceVersionDescription vitf,
+            final Path inputPath,
+            final Path outputPath) throws IOException {
         Files.copy(inputPath, outputPath, StandardCopyOption.REPLACE_EXISTING);
 
-        String packageName = this.servicePackage + "." + name.toLowerCase();
+        String packageName = this.servicePackage + "." + PluginUtils.getPackageName(itf, vitf);
+        final String versionedName = PluginUtils.getVersionedName(itf, vitf);
         if ((this.protobufOutputPackage != null) && !this.protobufOutputPackage.isEmpty()) {
             packageName = packageName + "." + this.protobufOutputPackage;
         }
@@ -324,8 +325,8 @@ public class CreateComponentMojo extends AbstractMojo {
         try (final Scanner scanner = new Scanner(new FileInputStream(inputPath.toFile()), "UTF-8")) {
             Files.write(outputPath,
                     ("syntax = \"proto2\";" + "\n\n" + "option java_package = \"" + packageName + "\";\n"
-                            + "option java_outer_classname = \"" + name + "Proto\";\n\n" + "package " + name + ";\n"
-                            + scanner.useDelimiter("\\A").next()).getBytes(),
+                            + "option java_outer_classname = \"" + versionedName + "Proto\";\n\n" + "package "
+                            + packageName + ";\n" + scanner.useDelimiter("\\A").next()).getBytes(),
                     StandardOpenOption.CREATE);
         }
 
@@ -353,26 +354,37 @@ public class CreateComponentMojo extends AbstractMojo {
         }
 
         for (final InterfaceDescription itf : serviceDescription.getInterfaces()) {
+            final Path interfacePath = Files.createDirectories(dest.resolve(PluginUtils.getPackageName(itf)));
+            final Path manager = interfacePath.resolve(PluginUtils.managerInterface(itf) + ext);
+            final Path managerImpl = interfacePath.resolve(PluginUtils.managerClass(itf) + ext);
+
+            // Write interface files
+            Files.write(manager, this.templates.generateManagerInterface(itf).getBytes());
+
+            if (managerImpl.toFile().exists()) {
+                this.getLog().debug("Skipping existing file " + managerImpl.toString());
+            } else {
+                Files.write(managerImpl, this.templates.generateManagerImplementation(itf).getBytes());
+            }
+
             for (final InterfaceVersionDescription version : itf.getInterfaceVersions()) {
-                final String packageName = PluginUtils.getVersionedName(itf, version).toLowerCase();
-                final Path packagePath = Files.createDirectories(dest.resolve(packageName));
+                final Path interfaceVersionPath = Files
+                        .createDirectories(interfacePath.resolve(PluginUtils.getPackageName(version)));
 
                 // Create intermediate directories
-                final Path factory = packagePath.resolve(PluginUtils.factoryClass(itf, version) + ext);
-                final Path connectionHandler = packagePath
+                final Path connectionHandler = interfaceVersionPath
+                        .resolve(PluginUtils.connectionHandlerInterface(itf, version) + ext);
+                final Path connectionHandlerImpl = interfaceVersionPath
                         .resolve(PluginUtils.connectionHandlerClass(itf, version) + ext);
-                final Path connectionHandlerImpl = packagePath
-                        .resolve(PluginUtils.connectionHandlerImplClass(itf, version) + ext);
 
                 // Write files
-                Files.write(factory, this.templates.generateFactory(itf, version).getBytes());
-                Files.write(connectionHandler, this.templates.generateConnectionHandler(itf, version).getBytes());
+                Files.write(connectionHandler, this.templates.generateHandlerInterface(itf, version).getBytes());
 
                 if (connectionHandlerImpl.toFile().exists()) {
                     this.getLog().debug("Skipping existing file " + connectionHandlerImpl.toString());
                 } else {
                     Files.write(connectionHandlerImpl,
-                            this.templates.generateConnectionHandlerImplementation(itf, version).getBytes());
+                            this.templates.generateHandlerImplementation(itf, version).getBytes());
                 }
 
             }

@@ -36,7 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Socket;
-import org.zeromq.ZMQException;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
@@ -239,7 +238,7 @@ public class ProcessConnector {
                 this.uri = String.format("tcp://%s:%d", process.getId().toString(), ProcessConnection.MANAGEMENT_PORT);
 
                 this.socket = ZMQ.context(1).socket(ZMQ.REQ);
-                this.socket.setDelayAttachOnConnect(true);
+                this.socket.setImmediate(false);
                 this.socket.connect(this.uri.toString());
                 this.socket.setSendTimeOut(ProcessConnection.MANAGEMENT_SOCKET_SEND_TIMEOUT);
                 this.socket.setReceiveTimeOut(ProcessConnection.MANAGEMENT_SOCKET_RECV_TIMEOUT);
@@ -457,33 +456,48 @@ public class ProcessConnector {
 
         @SuppressWarnings("unchecked")
         private <T> T send(final Message msg, final Class<T> expected) {
+            byte[] data;
             try {
-                this.socket.send(this.serializer.serialize(msg));
-            } catch (final SerializationException e1) {
-                ProcessConnector.log.error("Could not serialize message", e1);
+                data = this.serializer.serialize(msg);
+            } catch (final SerializationException e) {
+                ProcessConnector.log.error("Could not serialize message", e);
                 return null;
-            } catch (final ZMQException e) {
-                if (e.getErrorCode() == 156384763) {
-                    ProcessConnector.log
-                            .error("Got ZMQ error 156384763. Disconnecting with process, try to reconnect.");
-                    this.close();
-                    return null;
-                }
             }
 
-            byte[] recv = null;
-            try {
-                recv = this.socket.recv();
-            } catch (final ZMQException e) {
-                if (e.getErrorCode() == 156384763) {
-                    ProcessConnector.log
-                            .error("Got ZMQ error 156384763. Disconnecting with process, try to reconnect.");
-                    this.close();
-                }
-            }
-            if (recv == null) {
+            // try {
+            if (!this.socket.send(data)) {
+                ProcessConnector.log.warn("Unable to send message to Process, try to reconnect.");
                 return null;
             }
+            // } catch (final ZMQException e) {
+            // if (e.getErrorCode() == 156384763) {
+            // ProcessConnector.log
+            // .error("Got ZMQ error 156384763. Disconnecting with process, try to reconnect.");
+            // this.close();
+            // return null;
+            // }
+            // }
+
+            // try {
+            final byte[] recv = this.socket.recv();
+            // } catch (final ZMQException e) {
+            // if (e.getErrorCode() == 156384763) {
+            // ProcessConnector.log
+            // .error("Got ZMQ error 156384763. Disconnecting with process, try to reconnect.");
+            // this.close();
+            // }
+            // }
+
+            if (recv == null) {
+                // This is very scary!! We just successfully sent the process a message, but it never replied. We may as
+                // well kill the process now.
+                ProcessConnector.log.error(
+                        "Failed to receive response from process {}. Try to recover by closing connection, but most likely the process is in a invalid state",
+                        this.processId);
+                this.close();
+                return null;
+            }
+
             try {
                 final Message m = this.serializer.deserialize(recv);
                 if (expected.isInstance(m)) {

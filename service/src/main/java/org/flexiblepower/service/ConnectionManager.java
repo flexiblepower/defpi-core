@@ -6,6 +6,8 @@
 package org.flexiblepower.service;
 
 import java.io.Closeable;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -36,7 +38,8 @@ import com.google.protobuf.Message;
 public class ConnectionManager implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(ConnectionManager.class);
-    private static final Map<String, ConnectionHandlerFactory> connectionHandlers = new HashMap<>();
+    private static final Map<String, ConnectionHandlerManager> connectionHandlers = new HashMap<>();
+    private static final Map<String, String> builderNames = new HashMap<>();
 
     private final Map<String, ManagedConnection> connections = new HashMap<>();
     private final ExecutorService executor;
@@ -98,34 +101,55 @@ public class ConnectionManager implements Closeable {
             throws ConnectionModificationException {
         // First find the correct handler to attach to the connection
         final String key = ConnectionManager.handlerKey(message.getReceiveHash(), message.getSendHash());
-        final ConnectionHandlerFactory chf = ConnectionManager.connectionHandlers.get(key);
+        final ConnectionHandlerManager chf = ConnectionManager.connectionHandlers.get(key);
+        final String methodName = ConnectionManager.builderNames.get(key);
 
-        if (chf == null) {
+        if ((chf == null) || (methodName == null)) {
             ConnectionManager.log.error(
                     "Request for connection with unknown hashes {}, did you register service with {}.registerHandlers?",
                     key,
                     ConnectionManager.class.getSimpleName());
             throw new ConnectionModificationException("Unknown connection handling hash: " + key);
         } else {
-            this.connections.put(message.getConnectionId(),
-                    new ManagedConnection(message.getConnectionId(),
-                            message.getListenPort(),
-                            message.getTargetAddress(),
-                            chf.build(),
-                            this.executor));
-            ConnectionManager.log.trace("Added connection {} to list", message.getConnectionId());
+
+            Object obj = null;
+
+            try {
+                final Method buildMethod = chf.getClass().getMethod(methodName);
+                obj = buildMethod.invoke(chf);
+            } catch (final NoSuchMethodException
+                    | SecurityException
+                    | IllegalArgumentException
+                    | InvocationTargetException
+                    | IllegalAccessException e) {
+                throw new ConnectionModificationException("Error building connection handler: " + e.getMessage());
+            }
+
+            if (obj instanceof ConnectionHandler) {
+                this.connections.put(message.getConnectionId(),
+                        new ManagedConnection(message.getConnectionId(),
+                                message.getListenPort(),
+                                message.getTargetAddress(),
+                                (ConnectionHandler) obj,
+                                this.executor));
+                ConnectionManager.log.trace("Added connection {} to list", message.getConnectionId());
+            } else {
+                throw new ConnectionModificationException("Invalid return type of manager: " + obj.getClass());
+            }
+
         }
         return ConnectionHandshake.newBuilder()
                 .setConnectionId(connectionId)
                 .setConnectionState(ConnectionState.STARTING)
                 .build();
+
     }
 
     /**
      * @param connectionHandlerFactory
      */
     public static void registerConnectionHandlerFactory(final Class<? extends ConnectionHandler> clazz,
-            final ConnectionHandlerFactory connectionHandlerFactory) {
+            final ConnectionHandlerManager connectionHandlerFactory) {
         if (!clazz.isAnnotationPresent(InterfaceInfo.class)) {
             throw new RuntimeException(
                     "ConnectionHandler must have the InterfaceInfo annotation to be able to register");
@@ -133,11 +157,26 @@ public class ConnectionManager implements Closeable {
         final InterfaceInfo info = clazz.getAnnotation(InterfaceInfo.class);
         final String key = ConnectionManager.handlerKey(info.receivesHash(), info.sendsHash());
         ConnectionManager.connectionHandlers.put(key, connectionHandlerFactory);
+        ConnectionManager.builderNames.put(key, "build" + ConnectionManager.camelCaps(info.version()));
         ConnectionManager.log.debug("Registered {} for type {}", connectionHandlerFactory, key);
     }
 
     private static String handlerKey(final String receivesHash, final String sendsHash) {
         return receivesHash + "/" + sendsHash;
+    }
+
+    private static String camelCaps(final String str) {
+        final StringBuilder ret = new StringBuilder();
+
+        for (final String word : str.split(" ")) {
+            if (!word.isEmpty()) {
+                ret.append(Character.toUpperCase(word.charAt(0)));
+                ret.append(word.substring(1).toLowerCase());
+            }
+        }
+
+        // Return a cleaned-up string
+        return ret.toString().replaceAll("[^a-zA-Z0-9_]", "");
     }
 
     /**

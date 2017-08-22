@@ -130,13 +130,13 @@ final class ManagedConnection implements Connection {
                         backOffMs = 100;
 
                         // Notify Service implementation
-                        this.serviceExecutor.submit(() -> {
-                            try {
-                                this.handler.onConnected(this);
-                            } catch (final Throwable e) {
-                                ManagedConnection.log.error("Error while calling onConnected(Connection)", e);
-                            }
-                        });
+                        // this.serviceExecutor.submit(() -> {
+                        // try {
+                        // this.handler.onConnected(this);
+                        // } catch (final Throwable e) {
+                        // ManagedConnection.log.error("Error while calling onConnected(Connection)", e);
+                        // }
+                        // });
                     } else {
                         backOffMs = Math.min(ManagedConnection.MAX_BACKOFF_MS, backOffMs * 2);
                         try {

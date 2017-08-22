@@ -28,30 +28,67 @@ public class PluginUtils {
     private static final String SERVICE_SUFFIX = "";
     private static final String HANDLER_SUFFIX = "ConnectionHandler";
     private static final String HANDLER_IMPL_SUFFIX = "ConnectionHandlerImpl";
-    private static final String HANDLER_FACTORY_SUFFIX = "ConnectionHandlerFactory";
+    private static final String MANAGER_SUFFIX = "ConnectionManager";
+    private static final String MANAGER_IMPL_SUFFIX = "ConnectionManagerImpl";
 
-    public static String getVersionedName(final InterfaceDescription itf,
-            final InterfaceVersionDescription versionDescription) {
-        return PluginUtils.camelCaps(itf.getName() + "_" + versionDescription.getVersionName());
+    public static String getPackageName(final InterfaceDescription itf) {
+        return PluginUtils.toPackageName(itf.getName());
+    }
+
+    public static String getPackageName(final InterfaceVersionDescription vitf) {
+        return PluginUtils.toPackageName(vitf.getVersionName());
+    }
+
+    public static String getPackageName(final InterfaceDescription itf, final InterfaceVersionDescription vitf) {
+        return PluginUtils.getPackageName(itf) + "." + PluginUtils.getPackageName(vitf);
+    }
+
+    public static String getVersion(final InterfaceVersionDescription vitf) {
+        return PluginUtils.camelCaps(vitf.getVersionName());
+    }
+
+    public static String getVersionedName(final InterfaceDescription itf, final InterfaceVersionDescription vitf) {
+        return PluginUtils.camelCaps(itf.getName() + "_" + vitf.getVersionName());
     }
 
     public static String serviceImplClass(final ServiceDescription d) {
         return PluginUtils.camelCaps(d.getName()) + PluginUtils.SERVICE_SUFFIX;
     }
 
-    public static String connectionHandlerClass(final InterfaceDescription itf,
+    public static String connectionHandlerInterface(final InterfaceDescription itf,
             final InterfaceVersionDescription version) {
         return PluginUtils.camelCaps(itf.getName() + "_" + version.getVersionName()) + PluginUtils.HANDLER_SUFFIX;
     }
 
-    public static String connectionHandlerImplClass(final InterfaceDescription itf,
+    public static String connectionHandlerClass(final InterfaceDescription itf,
             final InterfaceVersionDescription version) {
         return PluginUtils.camelCaps(itf.getName() + "_" + version.getVersionName()) + PluginUtils.HANDLER_IMPL_SUFFIX;
     }
 
-    public static String factoryClass(final InterfaceDescription itf, final InterfaceVersionDescription version) {
-        return PluginUtils.camelCaps(itf.getName() + "_" + version.getVersionName())
-                + PluginUtils.HANDLER_FACTORY_SUFFIX;
+    public static String managerInterface(final InterfaceDescription itf) {
+        return PluginUtils.camelCaps(itf.getName()) + PluginUtils.MANAGER_SUFFIX;
+    }
+
+    public static String managerClass(final InterfaceDescription itf) {
+        return PluginUtils.camelCaps(itf.getName()) + PluginUtils.MANAGER_IMPL_SUFFIX;
+    }
+
+    /**
+     * Create a valid SINGLE package name out of any string. It will also remove all points
+     *
+     * @param str
+     * @return
+     * @see {@link http://docs.oracle.com/javase/tutorial/java/package/namingpkgs.html}
+     */
+    public static String toPackageName(final String str) {
+        String ret = str.toLowerCase(); // Make lowercase
+        ret = ret.replaceAll("[- ]", "_"); // Replace spaces and hyphens by underscores
+        ret = ret.replaceAll("[^a-z0-9_]", ""); // Remove any unexpected characters
+        if ((ret.charAt(0) < 60) && (ret.charAt(0) > 45)) {
+            // Add a leading underscore if package starts with digit or .
+            ret = "_" + ret;
+        }
+        return ret;
     }
 
     /**
