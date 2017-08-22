@@ -112,7 +112,7 @@ public class ServiceManager implements Closeable {
                     final Message msg = this.pbSerializer.deserialize(data);
                     response = this.handleServiceMessage(msg);
                 } catch (final Exception e) {
-                    ServiceManager.log.error("Exception handing message", e);
+                    ServiceManager.log.error("Exception handling message", e);
                     response = ErrorMessage.newBuilder()
                             .setProcessId(this.processId)
                             .setDebugInformation("Error during handling of message: " + e.getMessage())
@@ -171,10 +171,8 @@ public class ServiceManager implements Closeable {
      * @throws ServiceInvocationException
      * @throws ConnectionModificationException
      */
-    private Message handleServiceMessage(final Message msg) throws IOException,
-            ServiceInvocationException,
-            ConnectionModificationException,
-            SerializationException {
+    private Message handleServiceMessage(final Message msg)
+            throws IOException, ServiceInvocationException, ConnectionModificationException, SerializationException {
 
         if (msg instanceof GoToProcessStateMessage) {
             return this.handleGoToProcessStateMessage((GoToProcessStateMessage) msg);
@@ -194,8 +192,7 @@ public class ServiceManager implements Closeable {
      * @throws ServiceInvocationException
      */
     private Message handleGoToProcessStateMessage(final GoToProcessStateMessage message)
-            throws ServiceInvocationException,
-            SerializationException {
+            throws ServiceInvocationException, SerializationException {
         ServiceManager.log.info("Received GoToProcessStateMessage for process {} -> {}",
                 message.getProcessId(),
                 message.getTargetState());

@@ -405,12 +405,10 @@ public class CreateComponentMojo extends AbstractMojo {
         final Path dockerFolder = Files.createDirectories(this.resourcePath.resolve(this.dockerLocation));
         final Path dockerArmFolder = Files.createDirectories(this.resourcePath.resolve(this.dockerArmLocation));
 
-        Files.write(dockerFolder.resolve("Dockerfile"),
-                this.templates.generateDockerfile("x86", service).getBytes(),
-                StandardOpenOption.CREATE);
+        Files.write(dockerFolder.resolve("Dockerfile"), this.templates.generateDockerfile("x86", service).getBytes());
+
         Files.write(dockerArmFolder.resolve("Dockerfile"),
-                this.templates.generateDockerfile("arm", service).getBytes(),
-                StandardOpenOption.CREATE);
+                this.templates.generateDockerfile("arm", service).getBytes());
     }
 
     /**
@@ -431,8 +429,8 @@ public class CreateComponentMojo extends AbstractMojo {
                             this.resourcePath.resolve(this.protobufResourceLocation).resolve(fullName + ".proto"),
                             Paths.get(this.sourceLocation));
                 } else if (versionDescription.getType().equals(Type.XSD)) {
-                    xjcCompiler.setBasePackageName(
-                            this.servicePackage + "." + fullName.toLowerCase() + "." + this.xsdOutputPackage);
+                    xjcCompiler.setBasePackageName(this.servicePackage + "."
+                            + PluginUtils.getPackageName(iface, versionDescription) + "." + this.xsdOutputPackage);
                     xjcCompiler.compile(this.resourcePath.resolve(this.xsdResourceLocation).resolve(fullName + ".xsd"),
                             Paths.get(this.sourceLocation));
                 }
