@@ -88,19 +88,10 @@ public class TestService implements Service, ConnectionHandlerManager, Connectio
         this.state = "terminate";
     }
 
-    public ConnectionHandler build1() {
-        return this;
-    }
-
-    /*
-     * (non-Javadoc)
-     *
-     * @see org.flexiblepower.service.ConnectionHandler#onConnected(org.flexiblepower.service.Connection)
-     */
-    @Override
-    public void onConnected(final Connection connection) {
-        TestService.log.info("onConnect is called!");
+    public ConnectionHandler build1(final Connection connection) {
+        TestService.log.info("build is called!");
         this.state = "connected";
+        return this;
     }
 
     /*

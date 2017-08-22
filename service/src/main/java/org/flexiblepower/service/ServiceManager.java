@@ -81,7 +81,7 @@ public class ServiceManager implements Closeable {
 
     public ServiceManager(final Service service) throws ServiceInvocationException {
         this.service = service;
-        this.connectionManager = new ConnectionManager(ServiceManager.serviceExecutor);
+        this.connectionManager = new ConnectionManager();
 
         this.managementSocket = ZMQ.context(1).socket(ZMQ.REP);
 
@@ -157,6 +157,13 @@ public class ServiceManager implements Closeable {
         }
     }
 
+    /**
+     * @return the serviceExecutor
+     */
+    static ExecutorService getServiceExecutor() {
+        return ServiceManager.serviceExecutor;
+    }
+
     @Override
     public void close() {
         this.keepThreadAlive = false;
@@ -171,8 +178,10 @@ public class ServiceManager implements Closeable {
      * @throws ServiceInvocationException
      * @throws ConnectionModificationException
      */
-    private Message handleServiceMessage(final Message msg)
-            throws IOException, ServiceInvocationException, ConnectionModificationException, SerializationException {
+    private Message handleServiceMessage(final Message msg) throws IOException,
+            ServiceInvocationException,
+            ConnectionModificationException,
+            SerializationException {
 
         if (msg instanceof GoToProcessStateMessage) {
             return this.handleGoToProcessStateMessage((GoToProcessStateMessage) msg);
@@ -192,7 +201,8 @@ public class ServiceManager implements Closeable {
      * @throws ServiceInvocationException
      */
     private Message handleGoToProcessStateMessage(final GoToProcessStateMessage message)
-            throws ServiceInvocationException, SerializationException {
+            throws ServiceInvocationException,
+            SerializationException {
         ServiceManager.log.info("Received GoToProcessStateMessage for process {} -> {}",
                 message.getProcessId(),
                 message.getTargetState());

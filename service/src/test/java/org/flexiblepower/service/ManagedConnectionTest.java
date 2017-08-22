@@ -5,8 +5,6 @@
  */
 package org.flexiblepower.service;
 
-import java.util.concurrent.Executors;
-
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.junit.Assert;
@@ -29,8 +27,7 @@ public class ManagedConnectionTest {
         final ManagedConnection conn = new ManagedConnection("ConnID1234",
                 1234,
                 "tcp://localhost:5678",
-                new TestService(),
-                Executors.newSingleThreadExecutor());
+                TestService.class.getAnnotation(InterfaceInfo.class));
         Assert.assertEquals(ConnectionState.STARTING, conn.getState());
         conn.goToTerminatedState();
         Assert.assertEquals(ConnectionState.TERMINATED, conn.getState());
@@ -40,7 +37,7 @@ public class ManagedConnectionTest {
     public void testZMQ() throws ConnectionModificationException {
         final Context zmqContext = ZMQ.context(1);
         final Socket publishSocket = zmqContext.socket(ZMQ.PUSH);
-        publishSocket.setDelayAttachOnConnect(true);
+        publishSocket.setImmediate(false);
         publishSocket.connect("tcp://localhost:23456");
         publishSocket.setSendTimeOut(100);
 

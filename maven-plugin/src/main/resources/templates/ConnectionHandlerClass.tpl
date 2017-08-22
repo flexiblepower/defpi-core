@@ -33,12 +33,6 @@ public class {{vitf.handler.class}} implements {{vitf.handler.interface}} {
 {{vitf.handler.implementations}}
 
 	@Override
-	public void onConnected(Connection connection) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
 	public void onSuspend() {
 		// TODO Auto-generated method stub
 		

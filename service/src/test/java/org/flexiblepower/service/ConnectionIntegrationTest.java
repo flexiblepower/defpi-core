@@ -12,10 +12,9 @@ import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
-@Ignore // These tests are usefull, but take very long
+// @Ignore // These tests are usefull, but take very long
 public class ConnectionIntegrationTest {
 
     @InterfaceInfo(name = "Test",
@@ -29,16 +28,13 @@ public class ConnectionIntegrationTest {
     public static class TestHandler implements ConnectionHandler {
 
         private final String name;
-        private Connection connection;
+        private final Connection connection;
         public ConnectionHandshake lastMessage;
         public String state;
 
-        public TestHandler(final String name) {
+        public TestHandler(final String name, final Connection connection) {
             this.name = name;
-        }
 
-        @Override
-        public void onConnected(final Connection connection) {
             System.out.println(this.name + ": connected");
             this.state = "connected";
             this.connection = connection;
@@ -92,19 +88,13 @@ public class ConnectionIntegrationTest {
     @Test
     public void testNormalConnection() throws ConnectionModificationException, InterruptedException {
 
-        final TestHandler h1 = new TestHandler("h1");
-        final TestHandler h2 = new TestHandler("h2");
+        final InterfaceInfo info = TestHandler.class.getAnnotation(InterfaceInfo.class);
 
-        final ManagedConnection mc1 = new ManagedConnection("connectionId",
-                5000,
-                "tcp://localhost:5001",
-                h1,
-                this.executor);
-        final ManagedConnection mc2 = new ManagedConnection("connectionId",
-                5001,
-                "tcp://localhost:5000",
-                h2,
-                this.executor);
+        final ManagedConnection mc1 = new ManagedConnection("connectionId", 5000, "tcp://localhost:5001", info);
+        final ManagedConnection mc2 = new ManagedConnection("connectionId", 5001, "tcp://localhost:5000", info);
+
+        final TestHandler h1 = new TestHandler("h1", mc1);
+        final TestHandler h2 = new TestHandler("h2", mc2);
 
         Thread.sleep(1000);
 
@@ -127,15 +117,13 @@ public class ConnectionIntegrationTest {
 
     @Test
     public void testInterruptDetectionAndResume() throws ConnectionModificationException, InterruptedException {
-        final TestHandler h1 = new TestHandler("h1");
-        final TestHandler h2 = new TestHandler("h2");
+        final InterfaceInfo info = TestHandler.class.getAnnotation(InterfaceInfo.class);
 
-        ManagedConnection mc1 = new ManagedConnection("connectionId", 5000, "tcp://localhost:5001", h1, this.executor);
-        final ManagedConnection mc2 = new ManagedConnection("connectionId",
-                5001,
-                "tcp://localhost:5000",
-                h2,
-                this.executor);
+        ManagedConnection mc1 = new ManagedConnection("connectionId", 5000, "tcp://localhost:5001", info);
+        final ManagedConnection mc2 = new ManagedConnection("connectionId", 5001, "tcp://localhost:5000", info);
+
+        final TestHandler h1 = new TestHandler("h1", mc1);
+        final TestHandler h2 = new TestHandler("h2", mc2);
 
         Thread.sleep(1000);
 
@@ -150,7 +138,7 @@ public class ConnectionIntegrationTest {
 
         Assert.assertEquals("interrupted", h2.state);
 
-        mc1 = new ManagedConnection("connectionId", 5000, "tcp://localhost:5001", h1, this.executor);
+        mc1 = new ManagedConnection("connectionId", 5000, "tcp://localhost:5001", info);
 
         Thread.sleep(10000); // Timing is important here since there is an exponential backoff
 
@@ -164,19 +152,13 @@ public class ConnectionIntegrationTest {
 
     @Test
     public void testSuspendAndResume() throws ConnectionModificationException, InterruptedException {
-        final TestHandler h1 = new TestHandler("h1");
-        final TestHandler h2 = new TestHandler("h2");
+        final InterfaceInfo info = TestHandler.class.getAnnotation(InterfaceInfo.class);
 
-        final ManagedConnection mc1 = new ManagedConnection("connectionId",
-                5000,
-                "tcp://localhost:5001",
-                h1,
-                this.executor);
-        final ManagedConnection mc2 = new ManagedConnection("connectionId",
-                5001,
-                "tcp://localhost:5000",
-                h2,
-                this.executor);
+        final ManagedConnection mc1 = new ManagedConnection("connectionId", 5000, "tcp://localhost:5001", info);
+        final ManagedConnection mc2 = new ManagedConnection("connectionId", 5001, "tcp://localhost:5000", info);
+
+        final TestHandler h1 = new TestHandler("h1", mc1);
+        final TestHandler h2 = new TestHandler("h2", mc2);
 
         Thread.sleep(1000);
 

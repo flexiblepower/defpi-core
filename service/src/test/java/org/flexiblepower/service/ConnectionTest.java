@@ -16,8 +16,9 @@ import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.serializers.JavaIOSerializer;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.flexiblepower.service.exceptions.ServiceInvocationException;
+import org.junit.After;
 import org.junit.Assert;
-import org.junit.Ignore;
+import org.junit.Before;
 import org.junit.Test;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Context;
@@ -32,7 +33,7 @@ import com.google.protobuf.Message;
  * @version 0.1
  * @since May 12, 2017
  */
-@Ignore // TODO These tests run fine from Eclipse, but not from maven.
+// @Ignore // TODO These tests run fine from Eclipse, but not from maven.
 public class ConnectionTest {
 
     /**
@@ -42,10 +43,11 @@ public class ConnectionTest {
     private static final String WRONG_CONNECTION_ID = "8";
     // private static final String TEST_HOST = "172.17.0.2";
     private static final String TEST_HOST = "localhost";
+
     private static final int TEST_SERVICE_LISTEN_PORT = 5020;
     private static final int TEST_SERVICE_TARGET_PORT = 5025;
 
-    private final TestService testService = new TestService();
+    private TestService testService;
     private ServiceManager manager;
     private Socket managementSocket;
 
@@ -54,9 +56,11 @@ public class ConnectionTest {
     private ProtobufMessageSerializer serializer;
     private Context ctx;
 
-    public void initConnection()
-            throws UnknownHostException, InterruptedException, SerializationException, ServiceInvocationException {
+    @Before
+    public void initConnection() throws Exception {
+        this.testService = new TestService();
         this.manager = new ServiceManager(this.testService);
+
         ConnectionManager.registerConnectionHandlerFactory(TestService.class, this.testService);
 
         this.serializer = new ProtobufMessageSerializer();
@@ -64,11 +68,12 @@ public class ConnectionTest {
         this.serializer.addMessageClass(ConnectionMessage.class);
         this.serializer.addMessageClass(ErrorMessage.class);
 
-        final String managementURI = String.format("tcp://%s:%d",
-                ConnectionTest.TEST_HOST,
-                ServiceManager.MANAGEMENT_PORT);
+        final String managementURI = String
+                .format("tcp://%s:%d", ConnectionTest.TEST_HOST, ServiceManager.MANAGEMENT_PORT);
         this.ctx = ZMQ.context(1);
+
         this.managementSocket = this.ctx.socket(ZMQ.REQ);
+        this.managementSocket.setImmediate(false);
         this.managementSocket.setReceiveTimeOut(5000);
 
         this.managementSocket.connect(managementURI.toString());
@@ -84,29 +89,26 @@ public class ConnectionTest {
                 .setSendHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
                 .build();
 
-        try {
-            Assert.assertTrue(this.managementSocket.send(this.serializer.serialize(createMsg)));
-        } catch (final SerializationException e1) {
-            e1.printStackTrace();
-        }
+        Assert.assertTrue(this.managementSocket.send(this.serializer.serialize(createMsg)));
 
         final byte[] response = this.managementSocket.recv();
         final Message msg = this.serializer.deserialize(response);
         if (msg instanceof ErrorMessage) {
             Assert.fail("Error message received: " + ((ErrorMessage) msg).getDebugInformation());
         }
+
         final ConnectionHandshake message = (ConnectionHandshake) msg;
         Assert.assertNotNull(message);
         Assert.assertEquals(ConnectionState.STARTING, message.getConnectionState());
 
-        final String serviceURI = String.format("tcp://%s:%d",
-                ConnectionTest.TEST_HOST,
-                ConnectionTest.TEST_SERVICE_LISTEN_PORT);
+        final String serviceURI = String
+                .format("tcp://%s:%d", ConnectionTest.TEST_HOST, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
         this.out = this.ctx.socket(ZMQ.PUSH);
         this.out.setSendTimeOut(1000);
 
-        this.out.setDelayAttachOnConnect(true);
+        this.out.setImmediate(false);
         this.out.connect(serviceURI.toString());
+        // TODO: SEND BACK THE HANDSHAKE
 
         final String listenURI = String.format("tcp://*:%d", ConnectionTest.TEST_SERVICE_TARGET_PORT);
         this.in = this.ctx.socket(ZMQ.PULL);
@@ -115,16 +117,14 @@ public class ConnectionTest {
 
         // Wait for the first handshake try...
         this.readSocketFilterHeartbeat();
-        // Thread.sleep(50); // Allow remote thread to process the connection message
+        Thread.sleep(500); // Allow remote thread to process the connection message
     }
 
     @Test()
-    public void testAck()
-            throws InterruptedException, SerializationException, UnknownHostException, ServiceInvocationException {
-        this.initConnection();
-
-        Thread.sleep(3000);
-
+    public void testAck() throws InterruptedException,
+            SerializationException,
+            UnknownHostException,
+            ServiceInvocationException {
         // Read away the ConnectionHandshake from that side
         Assert.assertTrue(this.serializer.deserialize(this.readSocketFilterHeartbeat()) instanceof ConnectionHandshake);
 
@@ -163,8 +163,6 @@ public class ConnectionTest {
         Assert.assertTrue("Failed to send second ACK", this.out.send(handShakeString));
         recv = this.readSocketFilterHeartbeat();
         Assert.assertNull(recv);
-
-        this.closeConnection();
     }
 
     private byte[] readSocketFilterHeartbeat() {
@@ -181,10 +179,10 @@ public class ConnectionTest {
     }
 
     @Test
-    public void testSend()
-            throws InterruptedException, SerializationException, UnknownHostException, ServiceInvocationException {
-        this.initConnection();
-
+    public void testSend() throws InterruptedException,
+            SerializationException,
+            UnknownHostException,
+            ServiceInvocationException {
         // Send the real ack
         final ConnectionHandshake correctHandshake = ConnectionHandshake.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
@@ -202,15 +200,13 @@ public class ConnectionTest {
 
         Thread.sleep(1000);
         Assert.assertEquals(numTests, this.testService.getCounter());
-
-        this.closeConnection();
     }
 
     @Test()
-    public void testSuspend()
-            throws SerializationException, UnknownHostException, InterruptedException, ServiceInvocationException {
-        this.initConnection();
-
+    public void testSuspend() throws SerializationException,
+            UnknownHostException,
+            InterruptedException,
+            ServiceInvocationException {
         Assert.assertNotEquals("connection-suspended", this.testService.getState());
         Assert.assertTrue(this.managementSocket.send(this.serializer.serialize(ConnectionMessage.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
@@ -239,10 +235,9 @@ public class ConnectionTest {
         this.out = this.ctx.socket(ZMQ.PUSH);
         this.out.setSendTimeOut(1000);
 
-        this.out.setDelayAttachOnConnect(true);
-        final String serviceURI = String.format("tcp://%s:%d",
-                ConnectionTest.TEST_HOST,
-                ConnectionTest.TEST_SERVICE_LISTEN_PORT);
+        this.out.setImmediate(false);
+        final String serviceURI = String
+                .format("tcp://%s:%d", ConnectionTest.TEST_HOST, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
 
         this.out.connect(serviceURI.toString());
 
@@ -272,15 +267,13 @@ public class ConnectionTest {
         Thread.sleep(5000);
 
         Assert.assertEquals("connection-resumed", this.testService.getState());
-
-        this.closeConnection();
     }
 
     @Test()
-    public void testTerminate()
-            throws SerializationException, InterruptedException, UnknownHostException, ServiceInvocationException {
-        this.initConnection();
-
+    public void testTerminate() throws SerializationException,
+            InterruptedException,
+            UnknownHostException,
+            ServiceInvocationException {
         Assert.assertNotEquals("connection-terminated", this.testService.getState());
         Assert.assertTrue(this.managementSocket.send(this.serializer.serialize(ConnectionMessage.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
@@ -291,10 +284,9 @@ public class ConnectionTest {
         Assert.assertEquals(ConnectionState.TERMINATED, acknowledgement.getConnectionState());
         Thread.sleep(100); // Terminate method is call asynchronous
         Assert.assertEquals("connection-terminated", this.testService.getState());
-
-        this.closeConnection();
     }
 
+    @After
     public void closeConnection() throws InterruptedException {
         if (this.manager != null) {
             this.manager.close();
