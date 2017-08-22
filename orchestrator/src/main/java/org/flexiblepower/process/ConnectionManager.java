@@ -22,7 +22,10 @@ import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.ServiceManager;
+import org.flexiblepower.orchestrator.UserManager;
 import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * ConnectionManager
@@ -31,6 +34,7 @@ import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
  * @version 0.1
  * @since Jul 24, 2017
  */
+@Slf4j
 public class ConnectionManager {
 
     private static ConnectionManager instance;
@@ -202,6 +206,42 @@ public class ConnectionManager {
     public void deleteConnectionsForProcess(final Process process) throws ProcessNotFoundException {
         for (final Connection connection : this.getConnectionsForProcess(process)) {
             this.terminateConnection(connection);
+        }
+    }
+
+    public void createAutoConnectConnections(final Process process) throws ServiceNotFoundException {
+        final Service service = ServiceManager.getInstance().getService(process.getServiceId());
+        final User user = UserManager.getInstance().getUser(process.getUserId());
+        for (final Interface intface : service.getInterfaces()) {
+            if (intface.isAutoConnect()) {
+                // search for other processes with that interface
+                for (final Process otherProcess : ProcessManager.getInstance().listProcesses(user)) {
+                    try {
+                        final Service otherService = ServiceManager.getInstance()
+                                .getService(otherProcess.getServiceId());
+                        for (final Interface otherIntface : otherService.getInterfaces()) {
+                            if (otherIntface.isAutoConnect() && intface.isCompatibleWith(otherIntface)) {
+                                // They can autoconnect!
+                                final Connection.Endpoint ep1 = new Connection.Endpoint(process.getId(),
+                                        intface.getId());
+                                final Connection.Endpoint ep2 = new Connection.Endpoint(otherProcess.getId(),
+                                        otherIntface.getId());
+                                final Connection connection = new Connection(null, ep1, ep2);
+                                try {
+                                    ConnectionManager.getInstance().createConnection(connection);
+                                } catch (final ProcessNotFoundException e) {
+                                    ConnectionManager.log
+                                            .warn("Could not find process while creating an autoconnect connection for interface "
+                                                    + intface.getId() + ", ignoring.");
+                                }
+                            }
+                        }
+                    } catch (final ServiceNotFoundException e) {
+                        ConnectionManager.log.warn(
+                                "Could not find the service of the process of a user, skipping it while searching for autoconnect interfaces.");
+                    }
+                }
+            }
         }
     }
 
