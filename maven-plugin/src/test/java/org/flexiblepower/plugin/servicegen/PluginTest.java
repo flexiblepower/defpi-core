@@ -17,6 +17,7 @@ import java.util.Map;
 import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription;
 import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -30,6 +31,8 @@ import com.github.fge.jsonschema.main.JsonSchema;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
 import com.github.fge.jsonschema.processors.syntax.SyntaxValidator;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * PluginTest
  *
@@ -37,6 +40,7 @@ import com.github.fge.jsonschema.processors.syntax.SyntaxValidator;
  * @version 0.1
  * @since Jun 8, 2017
  */
+@Slf4j
 public class PluginTest {
 
     private static final ObjectMapper mapper = new ObjectMapper();
@@ -56,11 +60,9 @@ public class PluginTest {
         hashes.put("DropbackInterface_v002", "3");
         final Templates t = new Templates("target.package", "", "", descr, hashes);
         for (final InterfaceDescription itf : descr.getInterfaces()) {
-            for (final InterfaceVersionDescription version : itf.getInterfaceVersions()) {
-                System.out.println(t.generateFactory(itf, version));
-            }
+            PluginTest.log.info(t.generateManagerInterface(itf));
         }
-        System.out.println(t.generateDockerfile("x86", descr));
+        PluginTest.log.info(t.generateDockerfile("x86", descr));
     }
 
     @Test
@@ -73,10 +75,10 @@ public class PluginTest {
         final JsonSchemaFactory factory = JsonSchemaFactory.byDefault();
         final JsonSchema schema = factory.getJsonSchema(schemaNode);
         final ProcessingReport report = schema.validate(data);
-        System.out.println(report);
+        PluginTest.log.info("report: {}", report);
 
         final SyntaxValidator syntaxValidator = factory.getSyntaxValidator();
-        System.out.println(syntaxValidator.schemaIsValid(schemaNode));
+        PluginTest.log.info("syntax: {}", syntaxValidator.schemaIsValid(schemaNode));
     }
 
     @Test
@@ -91,10 +93,18 @@ public class PluginTest {
         final Templates t = new Templates("test.package", "", "", descr, protoHash);
         for (final InterfaceDescription i : descr.getInterfaces()) {
             for (final InterfaceVersionDescription v : i.getInterfaceVersions()) {
-                System.out.println(t.getHash(i, v, new HashSet<>(Arrays.asList("Stuff"))));
-                System.out.println(t.getHash(i, v, Collections.emptySet()));
+                PluginTest.log.info(t.getHash(i, v, new HashSet<>(Arrays.asList("Stuff"))));
+                PluginTest.log.info(t.getHash(i, v, Collections.emptySet()));
             }
         }
+    }
+
+    @Test
+    public void testPackageName() {
+        Assert.assertEquals("service", PluginUtils.toPackageName("sErvI*ce"));
+        Assert.assertEquals("twee_woorden", PluginUtils.toPackageName("Twee Woorden"));
+        Assert.assertEquals("_00zomaar_iets", PluginUtils.toPackageName("00*zomaar iets"));
+        Assert.assertEquals("_raar", PluginUtils.toPackageName("_ra@(>=<)ar)"));
     }
 
 }

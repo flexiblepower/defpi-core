@@ -31,4 +31,8 @@ public class ServiceNotFoundException extends NotFoundException {
         super(ServiceNotFoundException.SERVICE_NOT_FOUND_MESSAGE + ": " + uri.toString());
     }
 
+    public ServiceNotFoundException(final Throwable cause) {
+        super(ServiceNotFoundException.SERVICE_NOT_FOUND_MESSAGE + ": " + cause.getMessage());
+    }
+
 }

@@ -24,10 +24,10 @@ import org.slf4j.LoggerFactory;
                serializer = JavaIOSerializer.class,
                receivesHash = "eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252",
                receiveTypes = {Object.class},
-               factory = TestService.class,
+               manager = TestService.class,
                sendsHash = "eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252",
                sendTypes = {Object.class})
-public class TestService implements Service, ConnectionHandlerFactory, ConnectionHandler {
+public class TestService implements Service, ConnectionHandlerManager, ConnectionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(TestService.class);
     private int counter = 0;
@@ -39,7 +39,7 @@ public class TestService implements Service, ConnectionHandlerFactory, Connectio
      * @see org.flexiblepower.service.Service#resumeFrom(java.lang.Object)
      */
     @Override
-    public void resumeFrom(final Serializable state) {
+    public void resumeFrom(final Serializable resumeState) {
         TestService.log.info("ResumeFrom is called!");
     }
 
@@ -88,25 +88,16 @@ public class TestService implements Service, ConnectionHandlerFactory, Connectio
         this.state = "terminate";
     }
 
-    /*
-     * (non-Javadoc)
+    /**
+     * This is the function the ConnectionManager will look for to build the handler
      *
-     * @see org.flexiblepower.service.ConnectionHandlerFactory#build()
+     * @param connection
+     * @return the TestService itself
      */
-    @Override
-    public ConnectionHandler build() {
-        return this;
-    }
-
-    /*
-     * (non-Javadoc)
-     *
-     * @see org.flexiblepower.service.ConnectionHandler#onConnected(org.flexiblepower.service.Connection)
-     */
-    @Override
-    public void onConnected(final Connection connection) {
-        TestService.log.info("onConnect is called!");
+    public ConnectionHandler build1(final Connection connection) {
+        TestService.log.info("build is called!");
         this.state = "connected";
+        return this;
     }
 
     /*

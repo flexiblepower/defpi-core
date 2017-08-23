@@ -18,6 +18,8 @@ public interface Connection {
 
     public void send(Object message);
 
+    public boolean isConnected();
+
     public ConnectionState getState();
 
 }

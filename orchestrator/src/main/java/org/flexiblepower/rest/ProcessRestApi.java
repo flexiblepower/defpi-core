@@ -1,6 +1,5 @@
 package org.flexiblepower.rest;
 
-import java.util.Collections;
 import java.util.List;
 
 import javax.ws.rs.core.Context;
@@ -9,13 +8,13 @@ import javax.ws.rs.core.Response.Status;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.api.ProcessApi;
+import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Process;
-import org.flexiblepower.orchestrator.MongoDbConnector;
-import org.flexiblepower.orchestrator.ProcessManager;
+import org.flexiblepower.process.ProcessManager;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,9 +26,9 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
     }
 
     @Override
-    public List<Process> listProcesses() {
+    public List<Process> listProcesses() throws AuthorizationException {
         if (this.sessionUser == null) {
-            return Collections.emptyList();
+            throw new AuthorizationException();
         } else if (this.sessionUser.isAdmin()) {
             return ProcessManager.getInstance().listProcesses();
         } else {
@@ -38,9 +37,8 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
     }
 
     @Override
-    public Process getProcess(final String id) throws ProcessNotFoundException,
-            InvalidObjectIdException,
-            AuthorizationException {
+    public Process getProcess(final String id)
+            throws ProcessNotFoundException, InvalidObjectIdException, AuthorizationException {
         final ObjectId oid = MongoDbConnector.stringToObjectId(id);
         final Process ret = ProcessManager.getInstance().getProcess(oid);
         if (ret == null) {
@@ -61,9 +59,8 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
     }
 
     @Override
-    public Process updateProcess(final String id, final Process process) throws AuthorizationException,
-            InvalidObjectIdException,
-            ProcessNotFoundException {
+    public Process updateProcess(final String id, final Process process)
+            throws AuthorizationException, InvalidObjectIdException, ProcessNotFoundException {
         // Immediately do all relevant checks...
         final Process currentProcess = this.getProcess(id);
 
@@ -72,13 +69,13 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
         }
 
         ProcessRestApi.log.info("Updating process {}", process);
-        return ProcessManager.getInstance().updateProcess(process);
+        ProcessManager.getInstance().updateProcess(process);
+        return process;
     }
 
     @Override
-    public void removeProcess(final String id) throws ProcessNotFoundException,
-            InvalidObjectIdException,
-            AuthorizationException {
+    public void removeProcess(final String id)
+            throws ProcessNotFoundException, InvalidObjectIdException, AuthorizationException {
         // Immediately do all relevant checks...
         final Process process = this.getProcess(id);
 

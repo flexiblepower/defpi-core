@@ -86,8 +86,6 @@ public class Service {
 	public static Architecture getArchitectureFromTag(String tag) {
 		if (tag.endsWith("-arm")) {
 			return Architecture.ARM;
-		} else if (tag.endsWith("-x86")) {
-			return Architecture.X86;
 		} else if (!tag.contains("-")) {
 			// 64bit is default
 			return Architecture.X86_64;
@@ -98,11 +96,11 @@ public class Service {
 	}
 
 	/**
-	 * @param interfaceName
+	 * @param interfaceId
 	 */
-	public final Interface getInterface(final String interfaceName) {
+	public final Interface getInterface(final String interfaceId) {
 		for (final Interface itf : this.interfaces) {
-			if (itf.getName().equals(interfaceName)) {
+			if (itf.getId().equals(interfaceId)) {
 				return itf;
 			}
 		}

@@ -28,15 +28,27 @@ public class Interface {
 	private boolean autoConnect = false;
 
 	public boolean isCompatibleWith(Interface other) {
-		for (InterfaceVersion iv : interfaceVersions) {
-			for (InterfaceVersion oiv : other.getInterfaceVersions()) {
-				if (iv.getReceivesHash().equals(oiv.getSendsHash())
-						&& iv.getSendsHash().equals(oiv.getReceivesHash())) {
-					return true;
+		if (interfaceVersions != null) {
+			for (InterfaceVersion iv : interfaceVersions) {
+				for (InterfaceVersion oiv : other.getInterfaceVersions()) {
+					if (iv.isCompatibleWith(oiv)) {
+						return true;
+					}
 				}
 			}
 		}
 		return false;
+	}
+
+	public InterfaceVersion getInterfaceVersionByName(String name) {
+		if (interfaceVersions != null) {
+			for (InterfaceVersion iv : interfaceVersions) {
+				if (name.equals(iv.getVersionName())) {
+					return iv;
+				}
+			}
+		}
+		return null;
 	}
 
 }

@@ -5,9 +5,11 @@
  */
 package org.flexiblepower.orchestrator;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.flexiblepower.connectors.RegistryConnector;
 import org.flexiblepower.exceptions.RepositoryNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Interface;
@@ -25,10 +27,8 @@ public class ServiceManager {
     public final static String SERVICE_REPOSITORY = "services";
 
     private static ServiceManager instance = null;
-    private final RegistryConnector registryConnectior;
 
     private ServiceManager() {
-        this.registryConnectior = RegistryConnector.getInstance();
     }
 
     public synchronized static ServiceManager getInstance() {
@@ -39,24 +39,16 @@ public class ServiceManager {
     }
 
     public List<String> listRepositories() {
-        return this.registryConnectior.listRepositories();
+        return RegistryConnector.getInstance().listRepositories();
     }
 
-    public Service getService(final String id) {
-        try {
-            return this.registryConnectior.getService(ServiceManager.SERVICE_REPOSITORY, id);
-        } catch (final RepositoryNotFoundException e) {
-            // Can't happen
-            return null;
-        } catch (final ServiceNotFoundException e) {
-            // Can happen
-            return null;
-        }
+    public Service getService(final String id) throws ServiceNotFoundException {
+        return RegistryConnector.getInstance().getService(ServiceManager.SERVICE_REPOSITORY, id);
     }
 
     public List<Service> listServices() {
         try {
-            return this.registryConnectior.listServices(ServiceManager.SERVICE_REPOSITORY);
+            return RegistryConnector.getInstance().listServices(ServiceManager.SERVICE_REPOSITORY);
         } catch (final RepositoryNotFoundException e) {
             // Can't happen
             return null;
@@ -81,6 +73,19 @@ public class ServiceManager {
             }
         }
         return null;
+    }
+
+    public List<Service> getServicesThatCanConnectWith(final Interface intface) {
+        final List<Service> result = new ArrayList<>();
+        for (final Service s : this.listServices()) {
+            for (final Interface otherIntf : s.getInterfaces()) {
+                if (intface.isCompatibleWith(otherIntf)) {
+                    result.add(s);
+                    break; // go to the next service
+                }
+            }
+        }
+        return result;
     }
 
 }

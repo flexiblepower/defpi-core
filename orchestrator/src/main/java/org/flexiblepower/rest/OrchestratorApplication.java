@@ -73,6 +73,7 @@ public class OrchestratorApplication extends Application {
         resources.add(ServiceRestApi.class);
         resources.add(UserRestApi.class);
         resources.add(InterfaceRestApi.class);
+        resources.add(PendingChangeRestApi.class);
 
         resources.add(ExceptionMapper.class);
 

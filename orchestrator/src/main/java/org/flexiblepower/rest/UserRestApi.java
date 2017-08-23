@@ -1,7 +1,6 @@
 package org.flexiblepower.rest;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
 
 import javax.ws.rs.core.Context;
@@ -11,11 +10,11 @@ import javax.ws.rs.core.Response.Status;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.api.UserApi;
+import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.model.User;
-import org.flexiblepower.orchestrator.MongoDbConnector;
 import org.flexiblepower.orchestrator.UserManager;
 
 import lombok.extern.slf4j.Slf4j;
@@ -96,10 +95,7 @@ public class UserRestApi extends BaseApi implements UserApi {
             final String sortField,
             final String filters) throws AuthorizationException {
         if (this.sessionUser == null) {
-            return Response.status(Status.NO_CONTENT)
-                    .header("X-Total-Count", Integer.toString(0))
-                    .entity(Collections.EMPTY_LIST)
-                    .build();
+            throw new AuthorizationException();
         } else if (this.sessionUser.isAdmin()) {
             final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
             return Response.status(Status.OK.getStatusCode())

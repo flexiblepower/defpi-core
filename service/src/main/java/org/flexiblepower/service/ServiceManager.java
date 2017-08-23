@@ -10,6 +10,12 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.channels.ClosedSelectorException;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
@@ -43,14 +49,17 @@ import zmq.ZError;
  */
 public class ServiceManager implements Closeable {
 
+    /**
+     *
+     */
+    private static final TimeUnit SECONDS = TimeUnit.SECONDS;
     private static final Logger log = LoggerFactory.getLogger(ServiceManager.class);
 
     /**
      * The receive timeout of the managementsocket also determines how often the thread "checks" if the keepalive
      * boolean is still true
      */
-    private static final int MANAGEMENT_SOCKET_RECEIVE_TIMEOUT = 100;
-
+    private static final long SERVICE_IMPL_TIMEOUT_SECONDS = 5;
     public static final int MANAGEMENT_PORT = 4999;
 
     // private final Class<? extends Service> serviceClass;
@@ -64,17 +73,24 @@ public class ServiceManager implements Closeable {
     private final JavaIOSerializer javaIoSerializer = new JavaIOSerializer();
     private final ProtobufMessageSerializer pbSerializer = new ProtobufMessageSerializer();
     private final Socket managementSocket;
+    private static ExecutorService serviceExecutor = Executors.newSingleThreadExecutor();
 
-    public ServiceManager(final Service service) {
-        this.connectionManager = new ConnectionManager();
+    public ServiceManager() throws ServiceInvocationException {
+        this(ServiceMain.createInstance(ServiceManager.serviceExecutor));
+    }
+
+    public ServiceManager(final Service service) throws ServiceInvocationException {
         this.service = service;
+        this.connectionManager = new ConnectionManager();
+
         this.managementSocket = ZMQ.context(1).socket(ZMQ.REP);
 
         // this.managerThread = new Thread(() -> {
         final String listenAddr = "tcp://*:" + ServiceManager.MANAGEMENT_PORT;
         ServiceManager.log.info("Start listening thread on {}", listenAddr);
 
-        this.managementSocket.setReceiveTimeOut(ServiceManager.MANAGEMENT_SOCKET_RECEIVE_TIMEOUT);
+        // Receive timeout must be -1, making the recv() blocking until something is received
+        this.managementSocket.setReceiveTimeOut(-1);
         this.managementSocket.bind(listenAddr);
 
         // Initializer the ProtoBufe message serializer
@@ -93,15 +109,10 @@ public class ServiceManager implements Closeable {
                 Message response;
                 try {
                     final byte[] data = this.managementSocket.recv();
-                    if (data != null) {
-                        final Message msg = this.pbSerializer.deserialize(data);
-                        response = this.handleServiceMessage(msg);
-                    } else {
-                        // Not received anything, better luck next iteration
-                        continue;
-                    }
+                    final Message msg = this.pbSerializer.deserialize(data);
+                    response = this.handleServiceMessage(msg);
                 } catch (final Exception e) {
-                    ServiceManager.log.error("Exception handing message", e);
+                    ServiceManager.log.error("Exception handling message", e);
                     response = ErrorMessage.newBuilder()
                             .setProcessId(this.processId)
                             .setDebugInformation("Error during handling of message: " + e.getMessage())
@@ -114,17 +125,19 @@ public class ServiceManager implements Closeable {
                 } catch (final SerializationException e) {
                     ServiceManager.log
                             .error("Error during serialization of message type " + response.getClass().getSimpleName());
+                    // We must send something to continue the REQ/REP pattern
+                    this.managementSocket.send("Panic!".getBytes());
                 } catch (final ClosedSelectorException | ZError.IOException e) {
                     // Socket is closed, we are stopped
                     ServiceManager.log.warn("Socket forcibly closed, stopping thread", e);
                     break;
                 }
             }
+
             ServiceManager.log.trace("End of thread");
             this.connectionManager.close();
             this.managementSocket.close();
         }, "ServiceManager thread");
-
         this.managerThread.start();
     }
 
@@ -144,10 +157,16 @@ public class ServiceManager implements Closeable {
         }
     }
 
+    /**
+     * @return the serviceExecutor
+     */
+    static ExecutorService getServiceExecutor() {
+        return ServiceManager.serviceExecutor;
+    }
+
     @Override
     public void close() {
         this.keepThreadAlive = false;
-        this.join();
         this.managementSocket.close();
         this.connectionManager.close();
     }
@@ -158,8 +177,10 @@ public class ServiceManager implements Closeable {
      * @throws ServiceInvocationException
      * @throws ConnectionModificationException
      */
-    private Message handleServiceMessage(final Message msg)
-            throws IOException, ServiceInvocationException, ConnectionModificationException, SerializationException {
+    private Message handleServiceMessage(final Message msg) throws IOException,
+            ServiceInvocationException,
+            ConnectionModificationException,
+            SerializationException {
 
         if (msg instanceof GoToProcessStateMessage) {
             return this.handleGoToProcessStateMessage((GoToProcessStateMessage) msg);
@@ -179,7 +200,8 @@ public class ServiceManager implements Closeable {
      * @throws ServiceInvocationException
      */
     private Message handleGoToProcessStateMessage(final GoToProcessStateMessage message)
-            throws ServiceInvocationException, SerializationException {
+            throws ServiceInvocationException,
+            SerializationException {
         ServiceManager.log.info("Received GoToProcessStateMessage for process {} -> {}",
                 message.getProcessId(),
                 message.getTargetState());
@@ -188,22 +210,45 @@ public class ServiceManager implements Closeable {
         switch (message.getTargetState()) {
         case RUNNING:
             // This is basically a "force start" with no configuration
-            this.service.init(new Properties());
-            this.configured = true;
-            return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
-
+            ServiceManager.serviceExecutor.submit(() -> {
+                try {
+                    this.service.init(new Properties());
+                } catch (final Throwable t) {
+                    ServiceManager.log.error("Error while calling init(Properties)", t);
+                }
+            });
+            ServiceManager.this.configured = true;
+            return ServiceManager.this.createProcessStateUpdateMessage(ProcessState.RUNNING);
         case SUSPENDED:
-            final Serializable state = this.service.suspend();
+            final Future<Serializable> future = ServiceManager.serviceExecutor.submit(() -> {
+                try {
+                    return this.service.suspend();
+                } catch (final Throwable t) {
+                    ServiceManager.log.error("Error while calling suspend()", t);
+                    return null;
+                }
+            });
             this.connectionManager.close();
             this.keepThreadAlive = false;
-            return this.createProcessStateUpdateMessage(ProcessState.SUSPENDED, this.javaIoSerializer.serialize(state));
-
+            byte[] stateData = null;
+            try {
+                stateData = this.javaIoSerializer
+                        .serialize(future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+            } catch (final TimeoutException | InterruptedException | ExecutionException e) {
+                ServiceManager.log.error("Calling suspend() method took too much time");
+            }
+            return this.createProcessStateUpdateMessage(ProcessState.SUSPENDED, stateData);
         case TERMINATED:
-            this.service.terminate();
+            ServiceManager.serviceExecutor.submit(() -> {
+                try {
+                    this.service.terminate();
+                } catch (final Throwable t) {
+                    ServiceManager.log.error("Error while calling terminate()", t);
+                }
+            });
             this.connectionManager.close();
             this.keepThreadAlive = false;
             return this.createProcessStateUpdateMessage(ProcessState.TERMINATED);
-
         case STARTING:
         case INITIALIZING:
         default:
@@ -217,17 +262,21 @@ public class ServiceManager implements Closeable {
      * @throws ServiceInvocationException
      */
     private Message handleResumeProcessMessage(final ResumeProcessMessage msg) throws ServiceInvocationException {
+        Future<ProcessStateUpdateMessage> future;
         ServiceManager.log.info("Received ResumeProcessMessage for process {}", msg.getProcessId());
-        ServiceManager.log.trace("Received message: {}", msg);
-
         this.processId = msg.getProcessId();
-
         try {
-            final Serializable state = this.javaIoSerializer.deserialize(msg.getStateData().toByteArray());
-            this.service.resumeFrom(state);
-            return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
+            final Serializable state = msg.getStateData().isEmpty() ? null
+                    : this.javaIoSerializer.deserialize(msg.getStateData().toByteArray());
+            future = ServiceManager.serviceExecutor.submit(() -> {
+                this.service.resumeFrom(state);
+                return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
+            });
+            return future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, ServiceManager.SECONDS);
         } catch (final Exception e) {
-            throw new ServiceInvocationException("Error while resuming process", e);
+            ServiceManager.log.error("Exception while resuming from suspended: {}", e.getMessage());
+            ServiceManager.log.trace(e.getMessage(), e);
+            return ServiceManager.createErrorMessage(this.processId, e);
         }
     }
 
@@ -237,6 +286,7 @@ public class ServiceManager implements Closeable {
      * @throws ServiceInvocationException
      */
     private Message handleSetConfigMessage(final SetConfigMessage message) throws ServiceInvocationException {
+        Future<ProcessStateUpdateMessage> future;
         ServiceManager.log.info("Received SetConfigMessage for process {}", message.getProcessId());
         ServiceManager.log.debug("Properties to set: {}", message.getConfigMap().toString());
         ServiceManager.log.trace("Received message: {}", message);
@@ -248,14 +298,21 @@ public class ServiceManager implements Closeable {
             props.setProperty(key, value);
         });
 
-        if (!this.configured) {
-            this.service.init(props);
-            this.configured = true;
-        } else {
-            this.service.modify(props);
-        }
+        future = ServiceManager.serviceExecutor.submit(() -> {
+            if (!this.configured) {
+                this.service.init(props);
+                this.configured = true;
+            } else {
+                this.service.modify(props);
+            }
+            return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
+        });
 
-        return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
+        try {
+            return future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, ServiceManager.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            return ServiceManager.createErrorMessage(this.processId, e);
+        }
     }
 
     private ProcessStateUpdateMessage createProcessStateUpdateMessage(final ProcessState processState) {
@@ -275,6 +332,16 @@ public class ServiceManager implements Closeable {
                 .setState(processState)
                 .setStateData(byteString)
                 .build();
+    }
+
+    private static ErrorMessage createErrorMessage(final String processId, final Exception e) {
+        return ErrorMessage.newBuilder().setDebugInformation(e.getMessage()).setProcessId(processId).build();
+    }
+
+    @SuppressWarnings({"resource"})
+    public static void main(final String[] args) throws ServiceInvocationException {
+        // Launch new service manager
+        (new ServiceManager()).join();
     }
 
 }

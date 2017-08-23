@@ -37,13 +37,17 @@ public interface ProcessApi {
                   value = "List processes",
                   notes = "List all processes that are currently running",
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
-    @ApiResponses(value = {@ApiResponse(code = 200,
-                                        message = "An array of Processes",
-                                        response = Process.class,
-                                        responseContainer = "List")})
-    public List<org.flexiblepower.model.Process> listProcesses();
+    @ApiResponses(value = {
+            @ApiResponse(code = 200,
+                         message = "An array of Processes",
+                         response = Process.class,
+                         responseContainer = "List"),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
+    public List<org.flexiblepower.model.Process> listProcesses() throws AuthorizationException;
 
     @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Path("{processId}")
     @ApiOperation(nickname = "getProcess",
                   value = "Get process data",
@@ -63,8 +67,10 @@ public interface ProcessApi {
             InvalidObjectIdException;
 
     @PUT
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Path("{processId}")
-    @ApiOperation(nickname = "getProcess",
+    @ApiOperation(nickname = "updateProcess",
                   value = "Get process data",
                   notes = "Get the data of the process with the specified Id",
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})

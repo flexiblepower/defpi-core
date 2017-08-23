@@ -6,16 +6,18 @@
 package org.flexiblepower.service;
 
 import java.io.Closeable;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
-import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake.Builder;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.protobuf.Message;
 
 /**
  * ConnectionManager
@@ -34,7 +36,8 @@ import org.slf4j.LoggerFactory;
 public class ConnectionManager implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(ConnectionManager.class);
-    private static final Map<String, ConnectionHandlerFactory> connectionHandlers = new HashMap<>();
+    private static final Map<String, ConnectionHandlerManager> connectionHandlers = new HashMap<>();
+    private static final Map<String, InterfaceInfo> interfaceInfo = new HashMap<>();
 
     private final Map<String, ManagedConnection> connections = new HashMap<>();
 
@@ -44,80 +47,121 @@ public class ConnectionManager implements Closeable {
      * @return
      * @throws ConnectionModificationException
      */
-    public ConnectionHandshake handleConnectionMessage(final ConnectionMessage message)
-            throws ConnectionModificationException {
+    public Message handleConnectionMessage(final ConnectionMessage message) throws ConnectionModificationException {
         final String connectionId = message.getConnectionId();
         ConnectionManager.log
                 .info("Received ConnectionMessage for connection {} ({})", connectionId, message.getMode());
         ConnectionManager.log.trace("Received message:\n{}", message);
-        final Builder responseBuilder = ConnectionHandshake.newBuilder().setConnectionId(connectionId);
 
         switch (message.getMode()) {
         case CREATE:
-            this.createConnection(message);
-            responseBuilder.setConnectionState(ConnectionState.STARTING);
-            break;
+            return this.createConnection(connectionId, message);
         case RESUME:
-            this.connections.get(connectionId).resume();
-            responseBuilder.setConnectionState(ConnectionState.CONNECTED);
-            break;
+            if (!this.connections.containsKey(connectionId)) {
+                this.createConnection(connectionId, message);
+            }
+            this.connections.get(connectionId).resumeAfterSuspendedState(message.getListenPort(),
+                    message.getTargetAddress());
+            return ConnectionHandshake.newBuilder()
+                    .setConnectionId(connectionId)
+                    .setConnectionState(ConnectionState.CONNECTED)
+                    .build();
         case SUSPEND:
-            this.connections.get(connectionId).suspend();
-            responseBuilder.setConnectionState(ConnectionState.SUSPENDED);
-            break;
+            this.connections.get(connectionId).goToSuspendedState();
+            return ConnectionHandshake.newBuilder()
+                    .setConnectionId(connectionId)
+                    .setConnectionState(ConnectionState.SUSPENDED)
+                    .build();
         case TERMINATE:
-            this.connections.remove(connectionId).close();
-            responseBuilder.setConnectionState(ConnectionState.TERMINATED);
-            break;
+            this.connections.remove(connectionId).goToTerminatedState();
+            return ConnectionHandshake.newBuilder()
+                    .setConnectionId(connectionId)
+                    .setConnectionState(ConnectionState.TERMINATED)
+                    .build();
         default:
             throw new ConnectionModificationException("Invalid connection modification type");
         }
-        return responseBuilder.build();
     }
 
     /**
      * @param message
      * @throws ConnectionModificationException
      */
-    @SuppressWarnings("resource")
-    private void createConnection(final ConnectionMessage message) throws ConnectionModificationException {
+    private Message createConnection(final String connectionId, final ConnectionMessage message)
+            throws ConnectionModificationException {
         // First find the correct handler to attach to the connection
         final String key = ConnectionManager.handlerKey(message.getReceiveHash(), message.getSendHash());
-        final ConnectionHandlerFactory chf = ConnectionManager.connectionHandlers.get(key);
+        final ConnectionHandlerManager chf = ConnectionManager.connectionHandlers.get(key);
+        final InterfaceInfo info = ConnectionManager.interfaceInfo.get(key);
 
-        if (chf == null) {
+        if ((chf == null) || (info == null)) {
             ConnectionManager.log.error(
                     "Request for connection with unknown hashes {}, did you register service with {}.registerHandlers?",
                     key,
                     ConnectionManager.class.getSimpleName());
             throw new ConnectionModificationException("Unknown connection handling hash: " + key);
         } else {
-            this.connections.put(message.getConnectionId(),
-                    new ManagedConnection(message.getConnectionId(),
-                            message.getListenPort(),
-                            message.getTargetAddress(),
-                            chf.build()));
-            ConnectionManager.log.trace("Added connection {} to list", message.getConnectionId());
+            @SuppressWarnings("resource")
+            final ManagedConnection conn = new ManagedConnection(message.getConnectionId(),
+                    message.getListenPort(),
+                    message.getTargetAddress(),
+                    info);
+            this.connections.put(message.getConnectionId(), conn);
+        }
+        return ConnectionHandshake.newBuilder()
+                .setConnectionId(connectionId)
+                .setConnectionState(ConnectionState.STARTING)
+                .build();
+
+    }
+
+    static ConnectionHandler buildHandlerForConnection(final Connection c, final InterfaceInfo info) {
+        final String key = ConnectionManager.handlerKey(info.receivesHash(), info.sendsHash());
+        final ConnectionHandlerManager chf = ConnectionManager.connectionHandlers.get(key);
+
+        final String methodName = "build" + ConnectionManager.camelCaps(info.version());
+
+        try {
+            final Method buildMethod = chf.getClass().getMethod(methodName, Connection.class);
+            return (ConnectionHandler) buildMethod.invoke(chf, c);
+        } catch (final Exception e) {
+            throw new RuntimeException("Error building connection handler: " + e.getMessage());
         }
     }
 
     /**
-     * @param connectionHandlerFactory
+     * @param connectionHandlerManager
      */
     public static void registerConnectionHandlerFactory(final Class<? extends ConnectionHandler> clazz,
-            final ConnectionHandlerFactory connectionHandlerFactory) {
+            final ConnectionHandlerManager connectionHandlerManager) {
         if (!clazz.isAnnotationPresent(InterfaceInfo.class)) {
             throw new RuntimeException(
                     "ConnectionHandler must have the InterfaceInfo annotation to be able to register");
         }
         final InterfaceInfo info = clazz.getAnnotation(InterfaceInfo.class);
         final String key = ConnectionManager.handlerKey(info.receivesHash(), info.sendsHash());
-        ConnectionManager.connectionHandlers.put(key, connectionHandlerFactory);
-        ConnectionManager.log.debug("Registered {} for type {}", connectionHandlerFactory, key);
+
+        ConnectionManager.connectionHandlers.put(key, connectionHandlerManager);
+        ConnectionManager.interfaceInfo.put(key, info);
+        ConnectionManager.log.debug("Registered {} for type {}", connectionHandlerManager, key);
     }
 
     private static String handlerKey(final String receivesHash, final String sendsHash) {
         return receivesHash + "/" + sendsHash;
+    }
+
+    private static String camelCaps(final String str) {
+        final StringBuilder ret = new StringBuilder();
+
+        for (final String word : str.split(" ")) {
+            if (!word.isEmpty()) {
+                ret.append(Character.toUpperCase(word.charAt(0)));
+                ret.append(word.substring(1).toLowerCase());
+            }
+        }
+
+        // Return a cleaned-up string
+        return ret.toString().replaceAll("[^a-zA-Z0-9_]", "");
     }
 
     /**
@@ -126,7 +170,14 @@ public class ConnectionManager implements Closeable {
     @Override
     public void close() {
         for (final ManagedConnection conn : this.connections.values()) {
-            conn.close();
+            conn.goToTerminatedState();
+        }
+        for (final ManagedConnection conn : this.connections.values()) {
+            try {
+                conn.waitTillFinished();
+            } catch (final InterruptedException e) {
+                ConnectionManager.log.warn("Interrupted while waiting for cloning connection", e);
+            }
         }
     }
 

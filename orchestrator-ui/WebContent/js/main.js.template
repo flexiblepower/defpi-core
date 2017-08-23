@@ -12,6 +12,15 @@ myApp.config(function(RestangularProvider) {
 		'Accept' : 'application/json',
 		'Authorization' : 'Basic ' + token
 	});
+
+	RestangularProvider.setErrorInterceptor(function(response) {
+		if (response.status == 401
+				&& !response.config.url.endsWith("unidentifiednode")) {
+			logout();
+		} else {
+			return true;
+		}
+	});
 });
 
 myApp
@@ -32,6 +41,8 @@ myApp
 					var prno = nga.entity('privatenode').label('Private Nodes');
 					var un = nga.entity('unidentifiednode').label(
 							'Unidentified Nodes').readOnly();
+					var pendingchange = nga.entity('pendingchange').label(
+							'Pending Changes');
 
 					// Views
 
@@ -232,40 +243,40 @@ myApp
 					connection.listView().fields(
 							[
 									nga.field('id'),
-									nga.field('process1Id', 'reference')
-											.targetEntity(process).targetField(
-													nga.field('id')).label(
-													'Process 1'),
-									nga.field('interface1Id', 'reference')
-											.targetEntity(intface).targetField(
-													nga.field('id')).label(
-													'Interface 1'),
-									nga.field('process2Id', 'reference')
-											.targetEntity(process).targetField(
-													nga.field('id')).label(
-													'Process 2'),
-									nga.field('interface2Id', 'reference')
-											.targetEntity(intface).targetField(
-													nga.field('id')).label(
-													'Interface 2') ]);
+									nga.field('endpoint1.processId',
+											'reference').targetEntity(process)
+											.targetField(nga.field('id'))
+											.label('Process 1'),
+									nga.field('endpoint1.interfaceId',
+											'reference').targetEntity(intface)
+											.targetField(nga.field('id'))
+											.label('Interface 1'),
+									nga.field('endpoint1.processId',
+											'reference').targetEntity(process)
+											.targetField(nga.field('id'))
+											.label('Process 2'),
+									nga.field('endpoint2.interfaceId',
+											'reference').targetEntity(intface)
+											.targetField(nga.field('id'))
+											.label('Interface 2') ]);
 					connection.creationView().fields(
 							[
-									nga.field('process1Id', 'reference')
-											.targetEntity(process).targetField(
-													nga.field('id')).label(
-													'Process 1'),
-									nga.field('interface1Id', 'reference')
-											.targetEntity(intface).targetField(
-													nga.field('id')).label(
-													'Interface 1'),
-									nga.field('process2Id', 'reference')
-											.targetEntity(process).targetField(
-													nga.field('id')).label(
-													'Process 2'),
-									nga.field('interface2Id', 'reference')
-											.targetEntity(intface).targetField(
-													nga.field('id')).label(
-													'Interface 2') ]);
+									nga.field('endpoint1.processId',
+											'reference').targetEntity(process)
+											.targetField(nga.field('id'))
+											.label('Process 1'),
+									nga.field('endpoint1.interfaceId',
+											'reference').targetEntity(intface)
+											.targetField(nga.field('id'))
+											.label('Interface 1'),
+									nga.field('endpoint2.processId',
+											'reference').targetEntity(process)
+											.targetField(nga.field('id'))
+											.label('Process 2'),
+									nga.field('endpoint2.interfaceId',
+											'reference').targetEntity(intface)
+											.targetField(nga.field('id'))
+											.label('Interface 2') ]);
 
 					nodepool.listView().fields(
 							[ nga.field('name').isDetailLink(true) ]);
@@ -344,6 +355,24 @@ myApp
 									nga.field('status'),
 									nga.field('lastSync', 'datetime') ]);
 
+					pendingchange.listView().fields(
+							[
+									nga.field('type'),
+									nga.field('userId', 'reference')
+											.targetEntity(user).targetField(
+													nga.field('username'))
+											.label('User'),
+									nga.field('created', 'datetime'),
+									nga.field('description'),
+									nga.field('count'),
+									nga.field('state').cssClasses(
+											function(entry) {
+												if (!entry)
+													return "";
+												return entry.values.state
+														+ "-td"
+											}), ]);
+
 					// Add entities
 					admin.addEntity(user);
 					admin.addEntity(service);
@@ -354,6 +383,7 @@ myApp
 					admin.addEntity(un);
 					admin.addEntity(puno);
 					admin.addEntity(prno);
+					admin.addEntity(pendingchange);
 
 					// Menu
 					admin
@@ -403,7 +433,12 @@ myApp
 											nga
 													.menu(un)
 													.icon(
-															'<span class="glyphicon glyphicon-hdd"></span>')));
+															'<span class="glyphicon glyphicon-hdd"></span>'))
+									.addChild(
+											nga
+													.menu(pendingchange)
+													.icon(
+															'<span class="glyphicon glyphicon-retweet"></span>')));
 
 					var customHeaderTemplate = '<div class="navbar-header"><button type="button" class="navbar-toggle"ng-click="isCollapsed = !isCollapsed"><span class="icon-bar"></span> <span class="icon-bar"></span> <spanclass="icon-bar"></span></button><a class="navbar-brand" href="#" ng-click="appController.displayHome()">EF-Pi Orchestrator</a></div><ul class="nav navbar-top-links navbar-right hidden-xs"><li><a href="#" onclick="logout()"><iclass="fa fa-sign-out fa-fw"></i>Logout</a></li></ul>';
 

@@ -56,7 +56,7 @@ public class Templates {
     /**
      * @return
      */
-    public String generateServiceImplementation() {
+    public String generateServiceImplementation() throws IOException {
         return this.generate("ServiceImplementation", null, null);
     }
 
@@ -65,8 +65,9 @@ public class Templates {
      * @param version
      * @return
      */
-    public String generateConnectionHandler(final InterfaceDescription itf, final InterfaceVersionDescription version) {
-        return this.generate("ConnectionHandler", itf, version);
+    public String generateHandlerInterface(final InterfaceDescription itf, final InterfaceVersionDescription version)
+            throws IOException {
+        return this.generate("ConnectionHandlerInterface", itf, version);
     }
 
     /**
@@ -74,9 +75,9 @@ public class Templates {
      * @param version
      * @return
      */
-    public String generateConnectionHandlerImplementation(final InterfaceDescription itf,
-            final InterfaceVersionDescription version) {
-        return this.generate("ConnectionHandlerImpl", itf, version);
+    public String generateHandlerImplementation(final InterfaceDescription itf,
+            final InterfaceVersionDescription version) throws IOException {
+        return this.generate("ConnectionHandlerClass", itf, version);
     }
 
     /**
@@ -84,8 +85,17 @@ public class Templates {
      * @param version
      * @return
      */
-    public String generateFactory(final InterfaceDescription itf, final InterfaceVersionDescription version) {
-        return this.generate("Factory", itf, version);
+    public String generateManagerInterface(final InterfaceDescription itf) throws IOException {
+        return this.generate("ManagerInterface", itf, null);
+    }
+
+    /**
+     * @param itf
+     * @param version
+     * @return
+     */
+    public String generateManagerImplementation(final InterfaceDescription itf) throws IOException {
+        return this.generate("ManagerClass", itf, null);
     }
 
     /**
@@ -97,7 +107,8 @@ public class Templates {
      * @throws JsonProcessingException
      */
     public String generateDockerfile(final String platform, final ServiceDescription service)
-            throws JsonProcessingException {
+            throws JsonProcessingException,
+            IOException {
         final Set<InterfaceDescription> input = service.getInterfaces();
 
         final Set<Interface> serviceInterfaces = new HashSet<>();
@@ -143,64 +154,111 @@ public class Templates {
      */
     private String generate(final String templateName,
             final InterfaceDescription itf,
-            final InterfaceVersionDescription version) {
+            final InterfaceVersionDescription version) throws IOException {
         final String template = this.getTemplate(templateName);
 
         final Map<String, String> replaceMap = new HashMap<>();
 
         // Generic stuff that is the same everywhere
-        replaceMap.put("package", this.servicePackage);
         replaceMap.put("username", System.getProperty("user.name"));
         replaceMap.put("date", DateFormat.getDateTimeInstance().format(new Date()));
         replaceMap.put("generator", Templates.class.getPackage().getName().toString());
 
+        replaceMap.put("service.package", this.servicePackage);
         replaceMap.put("service.class", PluginUtils.serviceImplClass(this.serviceDescription));
         replaceMap.put("service.version", this.serviceDescription.getVersion());
         replaceMap.put("service.name", this.serviceDescription.getName());
 
+        // Build replaceMaps for the manager
+        if (itf != null) {
+            final String interfacePackage = PluginUtils.getPackageName(itf);
+            replaceMap.put("itf.package", interfacePackage);
+            replaceMap.put("itf.manager.class", PluginUtils.managerClass(itf));
+            replaceMap.put("itf.manager.interface", PluginUtils.managerInterface(itf));
+
+            final Set<String> definitions = new HashSet<>();
+            final Set<String> implementations = new HashSet<>();
+            final Set<String> itfimports = new HashSet<>();
+            final Set<String> clsimports = new HashSet<>();
+            for (final InterfaceVersionDescription vitf : itf.getInterfaceVersions()) {
+                final String interfaceVersionPackage = PluginUtils.getPackageName(vitf);
+                final String interfaceClass = PluginUtils.connectionHandlerInterface(itf, vitf);
+                final String implementationClass = PluginUtils.connectionHandlerClass(itf, vitf);
+
+                final Map<String, String> handlerReplace = new HashMap<>();
+                handlerReplace.put("vitf.handler.interface", interfaceClass);
+                handlerReplace.put("vitf.handler.class", implementationClass);
+                handlerReplace.put("vitf.version", PluginUtils.getVersion(vitf));
+
+                definitions.add(Templates.replaceMap(this.getTemplate("BuilderDefinition"), handlerReplace));
+                implementations.add(Templates.replaceMap(this.getTemplate("BuilderImplementation"), handlerReplace));
+                itfimports.add(String.format("import %s.%s.%s.%s;",
+                        this.servicePackage,
+                        interfacePackage,
+                        interfaceVersionPackage,
+                        interfaceClass));
+                clsimports.add(String.format("import %s.%s.%s.%s;",
+                        this.servicePackage,
+                        interfacePackage,
+                        interfaceVersionPackage,
+                        interfaceClass));
+                clsimports.add(String.format("import %s.%s.%s.%s;",
+                        this.servicePackage,
+                        interfacePackage,
+                        interfaceVersionPackage,
+                        implementationClass));
+            }
+
+            replaceMap.put("itf.manager.definitions", String.join("\n\n", definitions));
+            replaceMap.put("itf.manager.implementations", String.join("\n\n", implementations));
+
+            replaceMap.put("itf.manager.imports.interface", String.join("\n", itfimports));
+            replaceMap.put("itf.manager.imports.implementation", String.join("\n", clsimports));
+        }
+
+        // Build replaceMaps for the interface versions
         if ((itf != null) && (version != null)) {
             final String versionedName = PluginUtils.getVersionedName(itf, version);
-            final String packageName = versionedName.toLowerCase();
+            final String packageName = PluginUtils.getPackageName(itf, version);
 
-            replaceMap.put("handler.class", PluginUtils.connectionHandlerClass(itf, version));
-            replaceMap.put("handlerImpl.class", PluginUtils.connectionHandlerImplClass(itf, version));
-            replaceMap.put("factory.class", PluginUtils.factoryClass(itf, version));
+            replaceMap.put("vitf.handler.interface", PluginUtils.connectionHandlerInterface(itf, version));
+            replaceMap.put("vitf.handler.class", PluginUtils.connectionHandlerClass(itf, version));
 
             replaceMap.put("itf.name", itf.getName());
-            replaceMap.put("itf.version", version.getVersionName());
-            replaceMap.put("itf.packagename", packageName);
-            replaceMap.put("itf.receivesHash", this.getHash(itf, version, version.getReceives()));
-            replaceMap.put("itf.sendsHash", this.getHash(itf, version, version.getSends()));
+            replaceMap.put("vitf.version", version.getVersionName());
+            replaceMap.put("vitf.package", packageName);
+            replaceMap.put("vitf.receivesHash", this.getHash(itf, version, version.getReceives()));
+            replaceMap.put("vitf.sendsHash", this.getHash(itf, version, version.getSends()));
 
             final Set<String> recvClasses = new HashSet<>();
             for (final String type : version.getReceives()) {
                 recvClasses.add(type + ".class");
             }
-            replaceMap.put("itf.receiveClasses", String.join(", ", recvClasses));
+            replaceMap.put("vitf.receiveClasses", String.join(", ", recvClasses));
 
             final Set<String> sendClasses = new HashSet<>();
             for (final String type : version.getSends()) {
                 sendClasses.add(type + ".class");
             }
-            replaceMap.put("itf.sendClasses", String.join("., ", sendClasses));
+            replaceMap.put("vitf.sendClasses", String.join(", ", sendClasses));
 
             // Add handler definitions and implementations for the connection handlers (and implementations
             // respectively)
-            String handlers = "";
-            String handlerImpls = "";
+            final Set<String> definitions = new HashSet<>();
+            final Set<String> implementations = new HashSet<>();
             for (final String type : version.getReceives()) {
                 final Map<String, String> handlerReplace = new HashMap<>();
                 handlerReplace.put("handle.type", type);
-                handlers += Templates.replaceMap(this.getTemplate("Handler"), handlerReplace);
-                handlerImpls += Templates.replaceMap(this.getTemplate("HandlerImpl"), handlerReplace);
+                definitions.add(Templates.replaceMap(this.getTemplate("HandlerDefinition"), handlerReplace));
+                implementations.add(Templates.replaceMap(this.getTemplate("HandlerImplementation"), handlerReplace));
             }
-            replaceMap.put("handlers", handlers);
-            replaceMap.put("handlerImpls", handlerImpls);
+            replaceMap.put("vitf.handler.definitions", String.join("\n\n", definitions));
+            replaceMap.put("vitf.handler.implementations", String.join("\n\n", implementations));
 
             // Add imports for the handlers
             final Set<String> imports = new HashSet<>();
             if (version.getType().equals(Type.PROTO)) {
-                replaceMap.put("itf.serializer", "ProtobufMessageSerializer");
+                replaceMap.put("vitf.serializer", "ProtobufMessageSerializer");
 
                 for (final String type : version.getReceives()) {
                     imports.add(String.format("import %s.%s.%s.%sProto.%s;",
@@ -211,7 +269,7 @@ public class Templates {
                             type));
                 }
             } else if (version.getType().equals(Type.XSD)) {
-                replaceMap.put("itf.serializer", "XSDMessageSerializer");
+                replaceMap.put("vitf.serializer", "XSDMessageSerializer");
 
                 for (final String type : version.getReceives()) {
                     imports.add(String.format("import %s.%s.%s.*;",
@@ -222,7 +280,7 @@ public class Templates {
                 }
             }
 
-            replaceMap.put("handler.imports", String.join("\n", imports));
+            replaceMap.put("vitf.handler.imports", String.join("\n", imports));
         }
 
         return Templates.replaceMap(template, replaceMap);
@@ -233,16 +291,13 @@ public class Templates {
      *
      * @param name
      * @return
+     * @throws IOException
      */
-    private String getTemplate(final String name) {
+    private String getTemplate(final String name) throws IOException {
         String result = "";
-        try {
-            final URL url = this.getClass().getClassLoader().getResource("templates/" + name + ".tpl");
-            try (final Scanner scanner = new Scanner(url.openStream())) {
-                result = scanner.useDelimiter("\\A").next();
-            }
-        } catch (final IOException e) {
-            e.printStackTrace();
+        final URL url = this.getClass().getClassLoader().getResource("templates/" + name + ".tpl");
+        try (final Scanner scanner = new Scanner(url.openStream())) {
+            result = scanner.useDelimiter("\\A").next();
         }
         return result;
     }

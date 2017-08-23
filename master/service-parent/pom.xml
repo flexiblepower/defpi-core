@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>org.flexiblepower</groupId>
+	<artifactId>service-parent</artifactId>
+	<version>0.2.2-SNAPSHOT</version>
+	<packaging>pom</packaging>
+
+	<properties>
+		<project.resourcedir>${project.basedir}/src/main/resources</project.resourcedir>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<java.source>1.8</java.source>
+		<java.target>1.8</java.target>
+
+		<defpi.version>0.2.2-SNAPSHOT</defpi.version>
+		<protobuf.version>3.3.0</protobuf.version>
+
+		<!-- Main class for any service should be the main from the library -->
+		<mainClass>org.flexiblepower.service.ServiceManager</mainClass>
+
+		<!-- docker.registry>def-pi1.sensorlab.tno.nl:5000</docker.registry -->
+		<docker.registry>defpi.hesilab.nl:5000</docker.registry>
+		<docker.imageName>${docker.registry}/services/${project.artifactId}</docker.imageName>
+	</properties>
+
+	<!-- Where to push the service parent itself, should not be used by children-->
+	<distributionManagement>
+		<repository>
+			<id>def-pi-artifactory</id>
+			<name>def-pi release repository</name>
+			<url>http://defpi.hesilab.nl:8081/artifactory/libs-release-local</url>
+		</repository>
+		<snapshotRepository>
+			<id>def-pi-artifactory</id>
+			<name>def-pi snapshot repository</name>
+			<url>http://defpi.hesilab.nl:8081/artifactory/libs-snapshot-local</url>
+		</snapshotRepository>
+	</distributionManagement>
+
+	<!-- Where to find dependencies -->
+	<repositories>
+		<repository>
+			<id>def-pi-release</id>
+			<name>def-pi release repository</name>
+			<url>http://defpi.hesilab.nl:8081/artifactory/libs-release</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+
+		<repository>
+			<id>def-pi-snapshot</id>
+			<name>def-pi snapshot repository</name>
+			<url>http://defpi.hesilab.nl:8081/artifactory/libs-snapshot</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
+
+	<!-- Where to find plugins -->
+	<pluginRepositories>
+		<pluginRepository>
+			<id>def-pi-release</id>
+			<name>def-pi release repository</name>
+			<url>http://defpi.hesilab.nl:8081/artifactory/libs-release</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</pluginRepository>
+
+		<pluginRepository>
+			<id>def-pi-snapshot</id>
+			<name>def-pi snapshot repository</name>
+			<url>http://defpi.hesilab.nl:8081/artifactory/libs-snapshot</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</pluginRepository>
+	</pluginRepositories>
+
+	<dependencies>
+		<!-- Use the defpi-service library to communicate with orchestrator -->
+		<dependency>
+			<groupId>org.flexiblepower</groupId>
+			<artifactId>service</artifactId>
+			<version>${defpi.version}</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<!-- Use the plugin, note it is not activated by default. Use mvn defpi:generate 
+				to generate code based on the service.json -->
+			<plugin>
+				<groupId>org.flexiblepower</groupId>
+				<artifactId>defpi-maven-plugin</artifactId>
+				<version>${defpi.version}</version>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.6.1</version>
+				<configuration>
+					<source>${java.source}</source>
+					<target>${java.target}</target>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+
+	<profiles>
+		<profile>
+			<!-- This profile is only activated when there exists a Dockerfile. This 
+				is one of the reasons we hardcode the dockerfile location -->
+			<id>docker-image</id>
+			<activation>
+				<file>
+					<exists>src/main/resources/docker/Dockerfile</exists>
+				</file>
+			</activation>
+			<build>
+				<plugins>
+					<!-- Surefire executes JUnits tests during testing -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>2.20</version>
+						<configuration>
+							<systemProperties>
+								<property>
+									<name>log4j.configurationFile</name>
+									<value>src/test/resources/log4j2.xml</value>
+								</property>
+							</systemProperties>
+						</configuration>
+					</plugin>
+
+					<!-- The resource plugin resolves maven variables in the docker files -->
+					<plugin>
+						<artifactId>maven-resources-plugin</artifactId>
+						<version>3.0.2</version>
+						<configuration>
+							<resources>
+								<resource>
+									<directory>${project.resourcedir}/docker</directory>
+									<targetPath>${project.build.directory}/docker</targetPath>
+									<include>Dockerfile</include>
+									<filtering>true</filtering>
+								</resource>
+								<resource>
+									<directory>${project.resourcedir}/docker-arm</directory>
+									<targetPath>${project.build.directory}/docker-arm</targetPath>
+									<include>Dockerfile</include>
+									<filtering>true</filtering>
+								</resource>
+								<resource>
+									<directory>${project.resourcedir}</directory>
+									<include>log4j2.xml</include>
+								</resource>
+							</resources>
+						</configuration>
+					</plugin>
+
+					<!-- The assembly plugin puts all java code in one jar -->
+					<plugin>
+						<artifactId>maven-assembly-plugin</artifactId>
+						<version>2.6</version>
+						<configuration>
+							<archive>
+								<manifest>
+									<mainClass>${mainClass}</mainClass>
+								</manifest>
+							</archive>
+							<descriptorRefs>
+								<descriptorRef>jar-with-dependencies</descriptorRef>
+							</descriptorRefs>
+							<includeProjectBuildFilters>true</includeProjectBuildFilters>
+						</configuration>
+						<executions>
+							<execution>
+								<id>make-assembly</id>
+								<phase>package</phase>
+								<goals>
+									<goal>single</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+
+					<!-- Spotify's docker plugin builds, tags and pushed docker images -->
+					<plugin>
+						<groupId>com.spotify</groupId>
+						<artifactId>docker-maven-plugin</artifactId>
+						<version>1.0.0</version>
+						<executions>
+							<execution>
+								<!-- Build x86_64 image -->
+								<id>build-image</id>
+								<phase>package</phase>
+								<goals>
+									<goal>build</goal>
+								</goals>
+								<configuration>
+									<dockerDirectory>${project.build.directory}/docker</dockerDirectory>
+									<resources>
+										<resource>
+											<directory>${project.build.directory}</directory>
+											<include>${project.artifactId}-${project.version}-jar-with-dependencies.jar</include>
+										</resource>
+									</resources>
+									<imageName>${docker.imageName}:latest</imageName>
+									<imageTags>
+										<imageTag>${project.version}</imageTag>
+									</imageTags>
+								</configuration>
+							</execution>
+							<execution>
+								<!-- Push latest image -->
+								<id>push-latest-image</id>
+								<phase>deploy</phase>
+								<goals>
+									<goal>push</goal>
+								</goals>
+								<configuration>
+									<imageName>${docker.imageName}:latest</imageName>
+								</configuration>
+							</execution>
+							<execution>
+								<!-- Push versioned image -->
+								<id>push-versioned-image</id>
+								<phase>deploy</phase>
+								<goals>
+									<goal>push</goal>
+								</goals>
+								<configuration>
+									<imageName>${docker.imageName}:${project.version}</imageName>
+								</configuration>
+							</execution>
+
+							<execution>
+								<!-- Build ARM image -->
+								<id>build-image-arm</id>
+								<phase>package</phase>
+								<goals>
+									<goal>build</goal>
+								</goals>
+								<configuration>
+									<dockerDirectory>${project.build.directory}/docker-arm</dockerDirectory>
+									<resources>
+										<resource>
+											<directory>${project.build.directory}</directory>
+											<include>${project.artifactId}-${project.version}-jar-with-dependencies.jar</include>
+										</resource>
+									</resources>
+									<imageName>${docker.imageName}:latest-arm</imageName>
+									<imageTags>
+										<imageTag>${project.version}-arm</imageTag>
+									</imageTags>
+								</configuration>
+							</execution>
+							<execution>
+								<!-- Push latest ARM image -->
+								<id>push-latest-image-arm</id>
+								<phase>deploy</phase>
+								<goals>
+									<goal>push</goal>
+								</goals>
+								<configuration>
+									<imageName>${docker.imageName}:latest-arm</imageName>
+								</configuration>
+							</execution>
+							<execution>
+								<!-- Push versioned ARM image -->
+								<id>push-versioned-image-arm</id>
+								<phase>deploy</phase>
+								<goals>
+									<goal>push</goal>
+								</goals>
+								<configuration>
+									<imageName>${docker.imageName}:${project.version}-arm</imageName>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+
+					<!-- Make sure we don't deploy to artifactory -->
+					<plugin>
+						<artifactId>maven-deploy-plugin</artifactId>
+						<version>2.8.2</version>
+						<configuration>
+							<skip>true</skip>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+</project>
