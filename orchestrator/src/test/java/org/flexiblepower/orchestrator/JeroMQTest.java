@@ -7,6 +7,7 @@ package org.flexiblepower.orchestrator;
 
 import java.time.Duration;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Context;
@@ -19,6 +20,7 @@ import org.zeromq.ZMQ.Socket;
  * @version 0.1
  * @since Aug 22, 2017
  */
+@Ignore // This is not (yet) a real test
 public class JeroMQTest {
 
     @Test
