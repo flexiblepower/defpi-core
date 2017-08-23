@@ -141,7 +141,7 @@ public class ConnectionIntegrationTest {
             Assert.assertEquals("terminated", ConnectionIntegrationTest.handlerMap.get("h1").state);
             Assert.assertEquals("terminated", ConnectionIntegrationTest.handlerMap.get("h2").state);
 
-            Thread.sleep(3000);
+            Thread.sleep(1000);
         }
     }
 
@@ -209,7 +209,7 @@ public class ConnectionIntegrationTest {
                         "tcp://localhost:5000",
                         info)) {
 
-            Thread.sleep(1000);
+            Thread.sleep(1500);
 
             Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h1").state);
             Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h2").state);
@@ -217,7 +217,7 @@ public class ConnectionIntegrationTest {
             mc1.goToSuspendedState();
             mc2.goToSuspendedState();
 
-            Thread.sleep(1000);
+            Thread.sleep(1500);
 
             Assert.assertEquals("suspended", ConnectionIntegrationTest.handlerMap.get("h1").state);
             Assert.assertEquals("suspended", ConnectionIntegrationTest.handlerMap.get("h2").state);

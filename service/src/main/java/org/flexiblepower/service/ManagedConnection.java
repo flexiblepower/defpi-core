@@ -34,30 +34,30 @@ import com.google.protobuf.Message;
  */
 final class ManagedConnection implements Connection, Closeable {
 
-    private static final Logger log = LoggerFactory.getLogger(ManagedConnection.class);
     private static final int RECEIVE_TIMEOUT = 100;
     private static final int SEND_TIMEOUT = 200;
 
-    private static final long MAX_BACKOFF_MS = 60000;
+    protected static final Logger log = LoggerFactory.getLogger(ManagedConnection.class);
 
-    private volatile ConnectionState state;
+    private final String connectionId;
+    private final InterfaceInfo info;
     private final Context zmqContext;
+    private final HeartBeatMonitor heartBeat;
+    private final ProtobufMessageSerializer connectionHandshakeSerializer;
+    private final MessageSerializer<Object> userMessageSerializer;
+    private final Thread connectionThread;
+
     private Socket subscribeSocket;
     private Socket publishSocket;
-    private Thread connectionThread;
-    private ConnectionHandler handler;
-    private MessageSerializer<Object> userMessageSerializer;
-    private final ProtobufMessageSerializer connectionHandshakeSerializer;
-    private final InterfaceInfo info;
-    private final String connectionId;
-
-    private final ExecutorService serviceExecutor;
-    private final Object suspendLock = new Object();
-
-    private int listenPort;
     private String targetAddress;
 
-    private final HeartBeatMonitor heartBeat;
+    protected volatile ConnectionState state;
+
+    protected final ExecutorService serviceExecutor;
+    protected final Object suspendLock = new Object();
+
+    protected int listenPort;
+    protected ConnectionHandler serviceHandler;
 
     /**
      * @param targetAddress
@@ -88,8 +88,8 @@ final class ManagedConnection implements Connection, Closeable {
         try {
             this.userMessageSerializer = this.info.serializer().newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
-            ManagedConnection.log.error("Unable to serializer instantiate connection");
-            throw new RuntimeException("Unable to serializer instantiate connection");
+            ManagedConnection.log.error("Unable to instantiate connection serializer");
+            throw new RuntimeException("Unable to instantiate connection serializer");
         }
 
         for (final Class<?> messageType : this.info.receiveTypes()) {
@@ -99,11 +99,6 @@ final class ManagedConnection implements Connection, Closeable {
         // Init ZMQ
         this.zmqContext = ZMQ.context(1);
 
-        // Start main loop
-        this.startMainLoop();
-    }
-
-    private void startMainLoop() {
         this.state = ConnectionState.STARTING;
 
         this.initListening();
@@ -117,6 +112,7 @@ final class ManagedConnection implements Connection, Closeable {
             ManagedConnection.log.debug("Re-creating subscribesocket");
             this.closeSubscribeSocket();
             try {
+                // Let the socket close...
                 Thread.sleep(100);
             } catch (final InterruptedException e) {
                 // Do nothing
@@ -134,10 +130,10 @@ final class ManagedConnection implements Connection, Closeable {
     *
     */
     protected void initConnectionHandler() {
-        this.handler = ConnectionManager.buildHandlerForConnection(this, this.info);
+        this.serviceHandler = ConnectionManager.buildHandlerForConnection(this, this.info);
     }
 
-    private boolean tryConnectSending() {
+    protected boolean tryConnectSending() {
         // Initialize socket
         if (this.publishSocket == null) {
             this.publishSocket = this.zmqContext.socket(ZMQ.PUSH);
@@ -179,7 +175,7 @@ final class ManagedConnection implements Connection, Closeable {
         for (int i = 0; (this.state != ConnectionState.TERMINATED) && (i < 100); i++) {
             byte[] data = null;
             try {
-                ManagedConnection.log.debug("Listening for handshake..");
+                ManagedConnection.log.trace("Listening for handshake..");
                 data = this.subscribeSocket.recv();
             } catch (final Exception e) {
                 // The subscribeSocket is closed, probably the session was suspended before it was running
@@ -188,7 +184,7 @@ final class ManagedConnection implements Connection, Closeable {
             }
             if (data == null) {
                 // That can happen, try again
-                ManagedConnection.log.debug("No handshake received, retrying...");
+                ManagedConnection.log.trace("No handshake received, retrying...");
                 continue;
             }
 
@@ -223,7 +219,7 @@ final class ManagedConnection implements Connection, Closeable {
         return false;
     }
 
-    private void closePublishSocket() {
+    private synchronized void closePublishSocket() {
         if (this.publishSocket != null) {
             this.publishSocket.close();
             this.publishSocket = null;
@@ -233,7 +229,7 @@ final class ManagedConnection implements Connection, Closeable {
     /**
      *
      */
-    private void closeSubscribeSocket() {
+    private synchronized void closeSubscribeSocket() {
         if (this.subscribeSocket != null) {
             this.subscribeSocket.close();
             this.subscribeSocket = null;
@@ -242,17 +238,17 @@ final class ManagedConnection implements Connection, Closeable {
 
     @Override
     public synchronized void close() {
-        ManagedConnection.log.debug("Closing connection...");
         this.state = ConnectionState.TERMINATED;
+
         this.closePublishSocket();
         this.closeSubscribeSocket();
 
         this.heartBeat.close();
 
-        if (this.zmqContext != null) {
-            this.zmqContext.close();
+        if (!this.zmqContext.isTerminated()) {
+            // Close this in another thread, because it sometimes locks the VM
+            (new Thread(() -> this.zmqContext.close())).start();
         }
-        ManagedConnection.log.debug("Connection closed");
     }
 
     /**
@@ -269,28 +265,28 @@ final class ManagedConnection implements Connection, Closeable {
         // Notify Service implementation
         this.serviceExecutor.submit(() -> {
             try {
-                this.handler.onInterrupt();
+                this.serviceHandler.onInterrupt();
             } catch (final Throwable e) {
                 ManagedConnection.log.error("Error while calling onInterrupt()", e);
             }
         });
     }
 
-    private void resumeAfterInterruptedState() {
+    protected void resumeAfterInterruptedState() {
         // Update state
         this.state = ConnectionState.CONNECTED;
 
         // Notify Service implementation
         this.serviceExecutor.submit(() -> {
             try {
-                this.handler.resumeAfterInterrupt();
+                this.serviceHandler.resumeAfterInterrupt();
             } catch (final Throwable e) {
                 ManagedConnection.log.error("Error while calling resumeAfterInterrupt()", e);
             }
         });
     }
 
-    private void tryReceiveMessage() {
+    protected void tryReceiveMessage() {
         byte[] buff = null;
         try {
             buff = this.subscribeSocket.recv();
@@ -310,6 +306,7 @@ final class ManagedConnection implements Connection, Closeable {
             return;
         }
 
+        // Check if it is a heart beat message.
         if (this.heartBeat.handleMessage(buff)) {
             return;
         }
@@ -318,13 +315,13 @@ final class ManagedConnection implements Connection, Closeable {
         try {
             final Object message = this.userMessageSerializer.deserialize(buff);
             final Class<?> messageType = message.getClass();
-            final Method[] allMethods = this.handler.getClass().getMethods();
+            final Method[] allMethods = this.serviceHandler.getClass().getMethods();
             for (final Method method : allMethods) {
                 if ((method.getName().startsWith("handle")) && (method.getName().endsWith("Message"))
                         && (method.getParameterCount() == 1) && method.getParameterTypes()[0].equals(messageType)) {
                     this.serviceExecutor.submit(() -> {
                         try {
-                            method.invoke(this.handler, message);
+                            method.invoke(this.serviceHandler, message);
                         } catch (IllegalAccessException | IllegalArgumentException e) {
                             ManagedConnection.log.error("Message handling method is not properly formatted", e);
                         } catch (final InvocationTargetException e) {
@@ -346,7 +343,7 @@ final class ManagedConnection implements Connection, Closeable {
      * @param listenPort
      * @param targetAddress
      */
-    public void resumeAfterSuspendedState(final int newListenPort, final String newTargetAddress) {
+    void resumeAfterSuspendedState(final int newListenPort, final String newTargetAddress) {
         // Make sure we know that we want to go from SUSPENDED to RUNNING
         this.listenPort = newListenPort;
         this.targetAddress = newTargetAddress;
@@ -360,47 +357,42 @@ final class ManagedConnection implements Connection, Closeable {
         }
     }
 
-    public void goToTerminatedState() {
+    void goToTerminatedState() {
         // Update the state
         this.state = ConnectionState.TERMINATED;
 
-        if (this.handler == null) {
-            // Handshake was not even finished...
-            return;
+        if (this.serviceHandler != null) {
+            // There is no handler if the handshake didn't finish, otherwise notify service implementation
+            this.serviceExecutor.submit(() -> {
+                try {
+                    this.serviceHandler.terminated();
+                } catch (final Throwable e) {
+                    ManagedConnection.log.error("Error while calling terminated()", e);
+                }
+            });
         }
 
-        // Notify Service implementation
-        this.serviceExecutor.submit(() -> {
-            try {
-                this.handler.terminated();
-            } catch (final Throwable e) {
-                ManagedConnection.log.error("Error while calling terminated()", e);
-            }
-        });
-
+        // No need to close here, the main loop should take care of it...
     }
 
     /**
      * Go to the SUSPENDED State. In the SUSPENDED state all communication is stopped (both listening and receiving).
      * The connection is waiting until it receives instruction to reconnect.
      */
-    public void goToSuspendedState() {
+    void goToSuspendedState() {
         // Update the state
         this.state = ConnectionState.SUSPENDED;
 
-        if (this.handler == null) {
-            // Handshake didn't even finish
-            return;
+        if (this.serviceHandler != null) {
+            // There is no handler if the handshake didn't finish, otherwise notify service implementation
+            this.serviceExecutor.submit(() -> {
+                try {
+                    this.serviceHandler.onSuspend();
+                } catch (final Throwable e) {
+                    ManagedConnection.log.error("Error while calling onSuspend()", e);
+                }
+            });
         }
-
-        // Notify Service implementation
-        this.serviceExecutor.submit(() -> {
-            try {
-                this.handler.onSuspend();
-            } catch (final Throwable e) {
-                ManagedConnection.log.error("Error while calling onSuspend()", e);
-            }
-        });
 
         // Stop communication
         this.closePublishSocket();
@@ -495,7 +487,7 @@ final class ManagedConnection implements Connection, Closeable {
         return this.state;
     }
 
-    public void waitTillFinished() throws InterruptedException {
+    void waitTillFinished() throws InterruptedException {
         if (this.connectionThread.isAlive()) {
             this.connectionThread.join();
         }
@@ -510,6 +502,10 @@ final class ManagedConnection implements Connection, Closeable {
      */
     public class ConnectionRunner implements Runnable {
 
+        private static final long INITIAL_BACKOFF_MS = 100;
+        private static final long MAX_BACKOFF_MS = 60000;
+        private long backOffMs = ConnectionRunner.INITIAL_BACKOFF_MS;
+
         /*
          * (non-Javadoc)
          *
@@ -517,29 +513,20 @@ final class ManagedConnection implements Connection, Closeable {
          */
         @Override
         public void run() {
-            long backOffMs = 100;
             while (ManagedConnection.this.state != ConnectionState.TERMINATED) {
 
                 if (ManagedConnection.this.state == ConnectionState.STARTING) {
                     // State is STARTING, goal is to connect
-                    final boolean success = ManagedConnection.this.tryConnectSending();
-                    if (success) {
+                    if (ManagedConnection.this.tryConnectSending()) {
                         // Update state
                         ManagedConnection.this.state = ConnectionState.CONNECTED;
-
-                        // reset backOff
-                        backOffMs = 100;
+                        this.resetBackOff();
 
                         // Initializing the connectionHandler involves invoking the constructor written by the user
                         ManagedConnection.this.initConnectionHandler();
 
                     } else {
-                        backOffMs = Math.min(ManagedConnection.MAX_BACKOFF_MS, backOffMs * 2);
-                        try {
-                            Thread.sleep(backOffMs);
-                        } catch (final InterruptedException e) {
-                            // Don't care, we'll see you next iteration
-                        }
+                        this.increaseBackOffAndWait();
                     }
                 } else if (ManagedConnection.this.state == ConnectionState.CONNECTED) {
                     // State is CONNECTED, goal is to handle messages
@@ -562,49 +549,53 @@ final class ManagedConnection implements Connection, Closeable {
                         if (success) {
                             // Update state
                             ManagedConnection.this.state = ConnectionState.CONNECTED;
-
-                            // reset backOff
-                            backOffMs = 100;
+                            this.resetBackOff();
 
                             // Notify Service implementation
                             ManagedConnection.this.serviceExecutor.submit(() -> {
                                 try {
-                                    ManagedConnection.this.handler.resumeAfterSuspend();
+                                    ManagedConnection.this.serviceHandler.resumeAfterSuspend();
                                 } catch (final Throwable e) {
                                     ManagedConnection.log.error("Error while calling resumeAfterSuspend()", e);
                                 }
                             });
                         } else {
-                            backOffMs = Math.min(ManagedConnection.MAX_BACKOFF_MS, backOffMs * 2);
-                            try {
-                                Thread.sleep(backOffMs);
-                            } catch (final InterruptedException e) {
-                                // Don't care, we'll see you next iteration
-                            }
+                            this.increaseBackOffAndWait();
                         }
                     }
 
                 } else if (ManagedConnection.this.state == ConnectionState.INTERRUPTED) {
                     // State is INTERRUPTED, we have to try to reconnect
-                    final boolean success = ManagedConnection.this.tryConnectSending();
-                    if (success) {
-                        // reset backOff
-                        backOffMs = 100;
-
+                    if (ManagedConnection.this.tryConnectSending()) {
+                        this.resetBackOff();
                         ManagedConnection.this.resumeAfterInterruptedState();
                     } else {
-                        backOffMs = Math.min(ManagedConnection.MAX_BACKOFF_MS, backOffMs * 2);
-                        try {
-                            Thread.sleep(backOffMs);
-                        } catch (final InterruptedException e) {
-                            // Don't care, we'll see you next iteration
-                        }
+                        this.increaseBackOffAndWait();
                     }
                 }
             }
             // State is TERMINATED, cleanup
             ManagedConnection.log.debug("End of thread, cleaning up");
             ManagedConnection.this.close();
+        }
+
+        /**
+         *
+         */
+        private void resetBackOff() {
+            this.backOffMs = ConnectionRunner.INITIAL_BACKOFF_MS;
+        }
+
+        /**
+         *
+         */
+        private void increaseBackOffAndWait() {
+            this.backOffMs = Math.min(ConnectionRunner.MAX_BACKOFF_MS, this.backOffMs * 2);
+            try {
+                Thread.sleep(this.backOffMs);
+            } catch (final InterruptedException e) {
+                // Don't care, we'll see you next iteration
+            }
         }
 
     }
