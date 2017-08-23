@@ -39,7 +39,7 @@ public class TestService implements Service, ConnectionHandlerManager, Connectio
      * @see org.flexiblepower.service.Service#resumeFrom(java.lang.Object)
      */
     @Override
-    public void resumeFrom(final Serializable state) {
+    public void resumeFrom(final Serializable resumeState) {
         TestService.log.info("ResumeFrom is called!");
     }
 
@@ -88,6 +88,12 @@ public class TestService implements Service, ConnectionHandlerManager, Connectio
         this.state = "terminate";
     }
 
+    /**
+     * This is the function the ConnectionManager will look for to build the handler
+     *
+     * @param connection
+     * @return the TestService itself
+     */
     public ConnectionHandler build1(final Connection connection) {
         TestService.log.info("build is called!");
         this.state = "connected";

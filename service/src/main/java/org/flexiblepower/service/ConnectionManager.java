@@ -101,6 +101,7 @@ public class ConnectionManager implements Closeable {
                     ConnectionManager.class.getSimpleName());
             throw new ConnectionModificationException("Unknown connection handling hash: " + key);
         } else {
+            @SuppressWarnings("resource")
             final ManagedConnection conn = new ManagedConnection(message.getConnectionId(),
                     message.getListenPort(),
                     message.getTargetAddress(),

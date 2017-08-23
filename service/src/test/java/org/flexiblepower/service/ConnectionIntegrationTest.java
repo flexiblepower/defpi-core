@@ -51,7 +51,6 @@ public class ConnectionIntegrationTest {
     public static class TestHandler implements ConnectionHandler {
 
         private final String name;
-        private final Connection connection;
         public ConnectionHandshake lastMessage;
         public String state;
 
@@ -60,7 +59,6 @@ public class ConnectionIntegrationTest {
 
             System.out.println(this.name + ": connected");
             this.state = "connected";
-            this.connection = connection;
             if (this.name.equals("h1")) {
                 connection.send(ConnectionHandshake.newBuilder()
                         .setConnectionId("test")
@@ -107,6 +105,7 @@ public class ConnectionIntegrationTest {
     }
 
     @Before
+    @SuppressWarnings("static-method")
     public void reset() {
         ConnectionIntegrationTest.handlerMap.clear();
         ConnectionIntegrationTest.counter = 1;

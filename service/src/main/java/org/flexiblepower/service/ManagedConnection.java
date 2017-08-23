@@ -60,13 +60,13 @@ final class ManagedConnection implements Connection, Closeable {
     protected ConnectionHandler serviceHandler;
 
     /**
-     * @param targetAddress
+     * @param connectionId
      * @param listenPort
-     * @param info2
+     * @param targetAddress
+     * @param info
      * @throws ConnectionModificationException
-     * @throws SerializationException
-     *
      */
+    @SuppressWarnings("unchecked")
     ManagedConnection(final String connectionId,
             final int listenPort,
             final String targetAddress,
@@ -98,7 +98,6 @@ final class ManagedConnection implements Connection, Closeable {
 
         // Init ZMQ
         this.zmqContext = ZMQ.context(1);
-
         this.state = ConnectionState.STARTING;
 
         this.initListening();
