@@ -7,7 +7,6 @@ package org.flexiblepower.service;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
@@ -15,10 +14,9 @@ import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
-@Ignore // These tests are usefull, but take very long
+// @Ignore // These tests are usefull, but take very long
 public class ConnectionIntegrationTest {
 
     protected static Map<String, TestHandler> handlerMap = new HashMap<>();
@@ -33,7 +31,7 @@ public class ConnectionIntegrationTest {
      */
     public class TestHandlerBuilder implements ConnectionHandlerManager {
 
-        public TestHandler build1(final Connection c) {
+        public synchronized TestHandler build1(final Connection c) {
             final String name = "h" + ConnectionIntegrationTest.counter++;
             final TestHandler ret = new TestHandler(name, c);
             ConnectionIntegrationTest.handlerMap.put(name, ret);
@@ -53,7 +51,6 @@ public class ConnectionIntegrationTest {
     public static class TestHandler implements ConnectionHandler {
 
         private final String name;
-        private final Connection connection;
         public ConnectionHandshake lastMessage;
         public String state;
 
@@ -62,7 +59,6 @@ public class ConnectionIntegrationTest {
 
             System.out.println(this.name + ": connected");
             this.state = "connected";
-            this.connection = connection;
             if (this.name.equals("h1")) {
                 connection.send(ConnectionHandshake.newBuilder()
                         .setConnectionId("test")
@@ -108,105 +104,131 @@ public class ConnectionIntegrationTest {
 
     }
 
-    final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(2);
-
     @Before
-    public void resest() {
+    @SuppressWarnings("static-method")
+    public void reset() {
         ConnectionIntegrationTest.handlerMap.clear();
-        ConnectionIntegrationTest.counter = 0;
+        ConnectionIntegrationTest.counter = 1;
     }
 
-    @Test
+    @Test(timeout = 10000)
     public void testNormalConnection() throws ConnectionModificationException, InterruptedException {
 
         final InterfaceInfo info = TestHandler.class.getAnnotation(InterfaceInfo.class);
         ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandlerBuilder());
 
-        final ManagedConnection mc1 = new ManagedConnection("connectionId", 5000, "tcp://localhost:5001", info);
-        final ManagedConnection mc2 = new ManagedConnection("connectionId", 5001, "tcp://localhost:5000", info);
+        try (
+                final ManagedConnection mc1 = new ManagedConnection("connectionId", 5000, "tcp://localhost:5001", info);
+                final ManagedConnection mc2 = new ManagedConnection("connectionId",
+                        5001,
+                        "tcp://localhost:5000",
+                        info)) {
 
-        Thread.sleep(1000);
+            Thread.sleep(1000);
 
-        Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h1").state);
-        Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h2").state);
+            Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h1").state);
+            Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h2").state);
 
-        Assert.assertNull(ConnectionIntegrationTest.handlerMap.get("h1").lastMessage);
-        Assert.assertNotNull(ConnectionIntegrationTest.handlerMap.get("h2").lastMessage);
+            Assert.assertNull(ConnectionIntegrationTest.handlerMap.get("h1").lastMessage);
+            Assert.assertNotNull(ConnectionIntegrationTest.handlerMap.get("h2").lastMessage);
 
-        mc1.goToTerminatedState();
-        mc2.goToTerminatedState();
+            mc1.goToTerminatedState();
+            mc2.goToTerminatedState();
 
-        Thread.sleep(1000);
+            Thread.sleep(1000);
 
-        Assert.assertEquals("terminated", ConnectionIntegrationTest.handlerMap.get("h1").state);
-        Assert.assertEquals("terminated", ConnectionIntegrationTest.handlerMap.get("h2").state);
+            Assert.assertEquals("terminated", ConnectionIntegrationTest.handlerMap.get("h1").state);
+            Assert.assertEquals("terminated", ConnectionIntegrationTest.handlerMap.get("h2").state);
 
-        Thread.sleep(3000);
+            Thread.sleep(1000);
+        }
     }
 
-    @Test
+    @Test(timeout = 30000)
     public void testInterruptDetectionAndResume() throws ConnectionModificationException, InterruptedException {
         final InterfaceInfo info = TestHandler.class.getAnnotation(InterfaceInfo.class);
+        ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandlerBuilder());
 
         ManagedConnection mc1 = new ManagedConnection("connectionId", 5000, "tcp://localhost:5001", info);
         final ManagedConnection mc2 = new ManagedConnection("connectionId", 5001, "tcp://localhost:5000", info);
 
-        Thread.sleep(1000);
+        try {
+            Thread.sleep(1500);
 
-        Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h1").state);
-        Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h2").state);
+            Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h1").state);
+            Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h2").state);
 
-        Thread.sleep(1000);
+            Thread.sleep(1500);
+            // By now we must have slept longer than HeartBeatMonitor.HEARTBEAT_INITIAL_DELAY
 
-        mc1.goToTerminatedState();
+            // Close ONE. However, we cannot predict which handler is attached to it
+            mc1.goToTerminatedState();
+            mc1.close();
 
-        Thread.sleep(12000);
+            Thread.sleep(12000);
 
-        Assert.assertEquals("interrupted", ConnectionIntegrationTest.handlerMap.get("h2").state);
+            String state1 = ConnectionIntegrationTest.handlerMap.get("h1").state;
+            String state2 = ConnectionIntegrationTest.handlerMap.get("h2").state;
+            System.out.println("State 1 : " + state1);
+            System.out.println("State 2 : " + state2);
 
-        mc1 = new ManagedConnection("connectionId", 5000, "tcp://localhost:5001", info);
+            Assert.assertTrue(("terminated".equals(state1) && "interrupted".equals(state2))
+                    || ("terminated".equals(state2) && "interrupted".equals(state1)));
 
-        Thread.sleep(10000); // Timing is important here since there is an exponential backoff
+            mc1 = new ManagedConnection("connectionId", 5000, "tcp://localhost:5001", info);
+            Thread.sleep(1000); // Timing is important here since there is an exponential backoff
 
-        Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h1").state);
-        Assert.assertEquals("resume-interrupted", ConnectionIntegrationTest.handlerMap.get("h2").state);
+            state1 = ConnectionIntegrationTest.handlerMap.get("h1").state;
+            state2 = ConnectionIntegrationTest.handlerMap.get("h2").state;
+            final String state3 = ConnectionIntegrationTest.handlerMap.get("h3").state;
+            System.out.println("State 1 : " + state1);
+            System.out.println("State 2 : " + state2);
+            System.out.println("State 3 : " + state3);
 
-        mc1.goToTerminatedState();
-        mc2.goToTerminatedState();
-        Thread.sleep(3000);
+            Assert.assertTrue(("connected".equals(state3) && "resume-interrupted".equals(state2))
+                    || ("connected".equals(state3) && "resume-interrupted".equals(state1)));
+
+            // Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h1").state);
+            // Assert.assertEquals("resume-interrupted", ConnectionIntegrationTest.handlerMap.get("h2").state);
+        } finally {
+            mc1.close();
+            mc2.close();
+        }
     }
 
-    @Test
+    @Test(timeout = 10000)
     public void testSuspendAndResume() throws ConnectionModificationException, InterruptedException {
         final InterfaceInfo info = TestHandler.class.getAnnotation(InterfaceInfo.class);
+        ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandlerBuilder());
 
-        final ManagedConnection mc1 = new ManagedConnection("connectionId", 5000, "tcp://localhost:5001", info);
-        final ManagedConnection mc2 = new ManagedConnection("connectionId", 5001, "tcp://localhost:5000", info);
+        try (
+                final ManagedConnection mc1 = new ManagedConnection("connectionId", 5000, "tcp://localhost:5001", info);
+                final ManagedConnection mc2 = new ManagedConnection("connectionId",
+                        5001,
+                        "tcp://localhost:5000",
+                        info)) {
 
-        Thread.sleep(1000);
+            Thread.sleep(1500);
 
-        Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h1").state);
-        Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h2").state);
+            Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h1").state);
+            Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h2").state);
 
-        mc1.goToSuspendedState();
-        mc2.goToSuspendedState();
+            mc1.goToSuspendedState();
+            mc2.goToSuspendedState();
 
-        Thread.sleep(1000);
+            Thread.sleep(1500);
 
-        Assert.assertEquals("suspended", ConnectionIntegrationTest.handlerMap.get("h1").state);
-        Assert.assertEquals("suspended", ConnectionIntegrationTest.handlerMap.get("h2").state);
+            Assert.assertEquals("suspended", ConnectionIntegrationTest.handlerMap.get("h1").state);
+            Assert.assertEquals("suspended", ConnectionIntegrationTest.handlerMap.get("h2").state);
 
-        // Now we move mc2 to port 5002
-        mc1.resumeAfterSuspendedState(5000, "tcp://localhost:5002");
-        mc2.resumeAfterSuspendedState(5002, "tcp://localhost:5000");
+            // Now we move mc2 to port 5002
+            mc1.resumeAfterSuspendedState(5000, "tcp://localhost:5002");
+            mc2.resumeAfterSuspendedState(5002, "tcp://localhost:5000");
 
-        Thread.sleep(5000);
+            Thread.sleep(1000);
 
-        Assert.assertEquals("resume-suspended", ConnectionIntegrationTest.handlerMap.get("h1").state);
-        Assert.assertEquals("resume-suspended", ConnectionIntegrationTest.handlerMap.get("h2").state);
-
-        mc1.goToTerminatedState();
-        mc2.goToTerminatedState();
-        Thread.sleep(3000);
+            Assert.assertEquals("resume-suspended", ConnectionIntegrationTest.handlerMap.get("h1").state);
+            Assert.assertEquals("resume-suspended", ConnectionIntegrationTest.handlerMap.get("h2").state);
+        }
     }
 }
