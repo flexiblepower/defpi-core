@@ -21,6 +21,7 @@ import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.NotFoundException;
 import org.flexiblepower.exceptions.PendingChangeNotFoundException;
+import org.flexiblepower.model.PendingChangeDescription;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange;
 import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
 
@@ -37,9 +38,20 @@ public class PendingChangeRestApi extends BaseApi implements PendingChangeApi {
         super(httpHeaders);
     }
 
+    public PendingChangeDescription buildDescription(final PendingChange pendingChange) {
+        return new PendingChangeDescription(pendingChange.getId(),
+                pendingChange.getClass().getSimpleName(),
+                pendingChange.getUserId(),
+                pendingChange.getCreated(),
+                pendingChange.description(),
+                pendingChange.getCount(),
+                pendingChange.getState().toString());
+    }
+
     @Override
-    public void deletePendingChange(final String pendingChange)
-            throws AuthorizationException, InvalidObjectIdException, NotFoundException {
+    public void deletePendingChange(final String pendingChange) throws AuthorizationException,
+            InvalidObjectIdException,
+            NotFoundException {
         if (this.sessionUser == null) {
             throw new AuthorizationException();
         } else {
@@ -58,8 +70,9 @@ public class PendingChangeRestApi extends BaseApi implements PendingChangeApi {
     }
 
     @Override
-    public PendingChangeModel getPendingChange(final String pendingChange)
-            throws AuthorizationException, InvalidObjectIdException, NotFoundException {
+    public PendingChangeDescription getPendingChange(final String pendingChange) throws AuthorizationException,
+            InvalidObjectIdException,
+            NotFoundException {
         if (this.sessionUser == null) {
             throw new AuthorizationException();
         } else {
@@ -73,7 +86,7 @@ public class PendingChangeRestApi extends BaseApi implements PendingChangeApi {
                     throw new AuthorizationException();
                 }
             }
-            return new PendingChangeModel(pc);
+            return this.buildDescription(pc);
         }
     }
 
@@ -91,15 +104,11 @@ public class PendingChangeRestApi extends BaseApi implements PendingChangeApi {
                 // When not admin, filter for this specific user
                 filter.put("userId", this.sessionUser.getId());
             }
-            final List<PendingChange> list = MongoDbConnector.getInstance().list(PendingChange.class,
-                    page,
-                    perPage,
-                    sortDir,
-                    sortField,
-                    filter);
-            final List<PendingChangeModel> realList = new ArrayList<>(list.size());
+            final List<PendingChange> list = MongoDbConnector.getInstance()
+                    .list(PendingChange.class, page, perPage, sortDir, sortField, filter);
+            final List<PendingChangeDescription> realList = new ArrayList<>(list.size());
             for (final PendingChange pc : list) {
-                realList.add(new PendingChangeModel(pc));
+                realList.add(this.buildDescription(pc));
             }
             return Response.status(Status.OK.getStatusCode())
                     .header("X-Total-Count",

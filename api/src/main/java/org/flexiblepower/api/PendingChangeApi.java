@@ -1,7 +1,5 @@
 package org.flexiblepower.api;
 
-import java.util.Date;
-
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -12,17 +10,10 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.NotFoundException;
-import org.flexiblepower.orchestrator.pendingchange.PendingChange;
-
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
-
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import org.flexiblepower.model.PendingChangeDescription;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -35,31 +26,6 @@ import io.swagger.annotations.Authorization;
 @Path("pendingchange")
 @Produces(MediaType.APPLICATION_JSON)
 public interface PendingChangeApi {
-
-    @Getter
-    @NoArgsConstructor
-    public static class PendingChangeModel {
-
-        public PendingChangeModel(final PendingChange pendingChange) {
-            this.id = pendingChange.getId();
-            this.type = pendingChange.getClass().getSimpleName();
-            this.userId = pendingChange.getUserId();
-            this.created = pendingChange.getCreated();
-            this.description = pendingChange.description();
-            this.count = pendingChange.getCount();
-            this.state = pendingChange.getState();
-        }
-
-        @JsonSerialize(using = ToStringSerializer.class)
-        private ObjectId id;
-        private String type;
-        @JsonSerialize(using = ToStringSerializer.class)
-        private ObjectId userId;
-        private Date created;
-        private String description;
-        private int count;
-        private PendingChange.State state;
-    }
 
     @DELETE
     @Path("/{pendingchange_id}")
@@ -85,11 +51,11 @@ public interface PendingChangeApi {
                   notes = "Get data of the PendingChange with the provided Id",
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "PendingChange data", response = PendingChangeModel.class),
+            @ApiResponse(code = 200, message = "PendingChange data", response = PendingChangeDescription.class),
             @ApiResponse(code = 400, message = InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE),
             @ApiResponse(code = 404, message = "PendingChange not found"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public PendingChangeModel getPendingChange(
+    public PendingChangeDescription getPendingChange(
             @ApiParam(value = "The id of the PendingChange that needs to be fetched",
                       required = true) @PathParam("pendingchange_id") final String pendingChange)
             throws AuthorizationException, InvalidObjectIdException, NotFoundException;
@@ -102,7 +68,7 @@ public interface PendingChangeApi {
     @ApiResponses(value = {
             @ApiResponse(code = 200,
                          message = "An array of PendingChanges",
-                         response = PendingChangeModel.class,
+                         response = PendingChangeDescription.class,
                          responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public Response listPendingChanges(@QueryParam("_page") @DefaultValue("1") int page,
