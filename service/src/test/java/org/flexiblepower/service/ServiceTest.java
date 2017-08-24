@@ -8,7 +8,6 @@ package org.flexiblepower.service;
 import java.io.Serializable;
 import java.net.UnknownHostException;
 
-import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage;
 import org.flexiblepower.proto.ServiceProto.ProcessState;
 import org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage;
@@ -63,7 +62,7 @@ public class ServiceTest {
     }
 
     @Test
-    public void runTests() throws SerializationException {
+    public void runTests() throws Exception {
         // One test since they have to be executed in the correct order
         this.runConfigure();
         this.runReconfigure();
@@ -71,12 +70,12 @@ public class ServiceTest {
     }
 
     @Test
-    public void runResumeTerminate() throws SerializationException {
+    public void runResumeTerminate() throws Exception {
         this.runResume();
         this.runTerminate();
     }
 
-    public void runResume() throws SerializationException {
+    public void runResume() throws Exception {
         final byte[] data = this.pbSerializer.serialize(ResumeProcessMessage.newBuilder()
                 .setProcessId(ServiceTest.PROCESS_ID)
                 .setStateData(ByteString.copyFrom(this.serializer.serialize(TestService.class)))
@@ -91,9 +90,11 @@ public class ServiceTest {
                         .setStateData(ByteString.copyFrom("".getBytes()))
                         .build(),
                 this.pbSerializer.deserialize(received));
+        Thread.sleep(100);
+        Assert.assertEquals("resumed", this.testService.getState());
     }
 
-    public void runConfigure() throws SerializationException {
+    public void runConfigure() throws Exception {
         final byte[] msg = this.pbSerializer.serialize(SetConfigMessage.newBuilder()
                 .setProcessId(ServiceTest.PROCESS_ID)
                 .setIsUpdate(false)
@@ -106,9 +107,11 @@ public class ServiceTest {
                 .setState(ProcessState.RUNNING)
                 .setStateData(ByteString.EMPTY)
                 .build()), received);
+        Thread.sleep(100);
+        Assert.assertEquals("init", this.testService.getState());
     }
 
-    public void runReconfigure() throws SerializationException {
+    public void runReconfigure() throws Exception {
         Assert.assertTrue(this.managementSocket.send(this.pbSerializer.serialize(SetConfigMessage.newBuilder()
                 .setProcessId(ServiceTest.PROCESS_ID)
                 .setIsUpdate(true)
@@ -119,6 +122,8 @@ public class ServiceTest {
                 .setState(ProcessState.RUNNING)
                 .setStateData(ByteString.EMPTY)
                 .build()), this.managementSocket.recv());
+        Thread.sleep(100);
+        Assert.assertEquals("modify", this.testService.getState());
     }
 
     // public void runRun() throws SerializationException {
@@ -133,7 +138,7 @@ public class ServiceTest {
     // Assert.assertEquals("init", this.testService.getState());
     // }
 
-    public void runSuspend() throws SerializationException {
+    public void runSuspend() throws Exception {
         Assert.assertTrue(this.managementSocket.send(this.pbSerializer.serialize(GoToProcessStateMessage.newBuilder()
                 .setProcessId(ServiceTest.PROCESS_ID)
                 .setTargetState(ProcessState.SUSPENDED)
@@ -144,10 +149,11 @@ public class ServiceTest {
                 .setState(ProcessState.SUSPENDED)
                 .setStateData(ByteString.copyFrom(this.serializer.serialize(TestService.class)))
                 .build()), barr);
+        Thread.sleep(100);
         Assert.assertEquals("suspend", this.testService.getState());
     }
 
-    public void runTerminate() throws SerializationException {
+    public void runTerminate() throws Exception {
         Assert.assertTrue(this.managementSocket.send(this.pbSerializer.serialize(GoToProcessStateMessage.newBuilder()
                 .setProcessId(ServiceTest.PROCESS_ID)
                 .setTargetState(ProcessState.TERMINATED)
@@ -157,6 +163,7 @@ public class ServiceTest {
                 .setState(ProcessState.TERMINATED)
                 .setStateData(ByteString.EMPTY)
                 .build()), this.managementSocket.recv());
+        Thread.sleep(100);
         Assert.assertEquals("terminate", this.testService.getState());
     }
 

@@ -41,6 +41,7 @@ public class TestService implements Service, ConnectionHandlerManager, Connectio
     @Override
     public void resumeFrom(final Serializable resumeState) {
         TestService.log.info("ResumeFrom is called!");
+        this.state = "resumed";
     }
 
     /*
