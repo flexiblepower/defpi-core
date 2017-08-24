@@ -61,7 +61,7 @@ public interface ProcessApi {
     public Process getProcess(
             @ApiParam(name = "processId",
                       value = "The id of the process",
-                      required = true) @PathParam("processId") final String uuid)
+                      required = true) @PathParam("processId") final String processId)
             throws AuthorizationException,
             NotFoundException,
             InvalidObjectIdException;
@@ -82,7 +82,7 @@ public interface ProcessApi {
     public Process updateProcess(
             @ApiParam(name = "processId",
                       value = "The id of the process",
-                      required = true) @PathParam("processId") final String uuid,
+                      required = true) @PathParam("processId") final String processId,
             @ApiParam(name = "process",
                       value = "The process definition of the new process to add",
                       required = true) final Process process)
@@ -117,9 +117,9 @@ public interface ProcessApi {
             @ApiResponse(code = 404, message = ProcessApi.PROCESS_NOT_FOUND_MESSAGE),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public void removeProcess(
-            @ApiParam(name = "process",
+            @ApiParam(name = "processId",
                       value = "The id of process to remove",
-                      required = true) @PathParam("processId") final String uuid)
+                      required = true) @PathParam("processId") final String processId)
             throws AuthorizationException,
             NotFoundException,
             InvalidObjectIdException;

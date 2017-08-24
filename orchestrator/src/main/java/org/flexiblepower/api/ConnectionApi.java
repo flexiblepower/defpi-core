@@ -61,7 +61,9 @@ public interface ConnectionApi {
             @ApiParam(name = "connectionId",
                       value = "The id of the connection",
                       required = true) @PathParam("connectionId") final String id)
-            throws AuthorizationException, ProcessNotFoundException, InvalidObjectIdException;
+            throws AuthorizationException,
+            ProcessNotFoundException,
+            InvalidObjectIdException;
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)
@@ -78,10 +80,12 @@ public interface ConnectionApi {
             @ApiParam(name = "connection",
                       value = "The new connection to insert",
                       required = true) final Connection connection)
-            throws AuthorizationException, NotFoundException, ConnectionException;
+            throws AuthorizationException,
+            NotFoundException,
+            ConnectionException;
 
     @DELETE
-    @Path("{id}")
+    @Path("{connectionId}")
     @ApiOperation(nickname = "deleteConnection",
                   value = "Remove a connection",
                   notes = "Removes an existing connection between two processes",
@@ -94,6 +98,8 @@ public interface ConnectionApi {
     public void deleteConnection(
             @ApiParam(name = "connectionId",
                       value = "The id of the connection to remove",
-                      required = true) @PathParam("id") final String id)
-            throws AuthorizationException, InvalidObjectIdException, NotFoundException;
+                      required = true) @PathParam("connectionId") final String id)
+            throws AuthorizationException,
+            InvalidObjectIdException,
+            NotFoundException;
 }
