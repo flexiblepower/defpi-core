@@ -6,10 +6,9 @@ import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 /**
  * Service
@@ -19,17 +18,16 @@ import lombok.NoArgsConstructor;
  * @since Mar 30, 2017
  */
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
+@EqualsAndHashCode
 public class Service {
 
-    private String name;
+    private final String name;
 
     /**
      * Def-pi interfaces
      */
-    private Set<Interface> interfaces;
+    private final Set<Interface> interfaces;
 
     // /**
     // * Volume mappings
@@ -41,41 +39,41 @@ public class Service {
     // */
     // private Set<String> ports;
 
-    private String registry;
+    private final String registry;
 
-    private String repository;
+    private final String repository;
 
-    private String id;
+    private final String id;
 
     // private String tag;
 
-    private String version;
+    private final String version;
 
-    private Date created;
+    private final Date created;
 
-    private Map<Architecture, String> tags;
+    private final Map<Architecture, String> tags;
 
-    public Service(final String name,
-            final Set<Interface> interfaces,
-            final String fullname,
-            final String version,
-            final Date created) {
-        this.name = name;
-        this.interfaces = interfaces;
-
-        final int pReg = fullname.indexOf('/');
-        final int pTag = fullname.indexOf(':', pReg);
-        final int pHash = fullname.indexOf('@', pTag);
-
-        this.registry = fullname.substring(0, pReg);
-        this.id = fullname.substring(pReg + 1, pTag);
-        final String tag = fullname.substring(pTag + 1, pHash);
-        this.tags.put(Service.getArchitectureFromTag(tag), tag);
-
-        this.version = version;
-
-        this.created = created;
-    }
+    // public Service(final String name,
+    // final Set<Interface> interfaces,
+    // final String fullname,
+    // final String version,
+    // final Date created) {
+    // this.name = name;
+    // this.interfaces = interfaces;
+    //
+    // final int pReg = fullname.indexOf('/');
+    // final int pTag = fullname.indexOf(':', pReg);
+    // final int pHash = fullname.indexOf('@', pTag);
+    //
+    // this.registry = fullname.substring(0, pReg);
+    // this.id = fullname.substring(pReg + 1, pTag);
+    // final String tag = fullname.substring(pTag + 1, pHash);
+    // this.tags.put(Service.getArchitectureFromTag(tag), tag);
+    //
+    // this.version = version;
+    //
+    // this.created = created;
+    // }
 
     @JsonIgnore
     public String getFullImageName(final Architecture architecture) {

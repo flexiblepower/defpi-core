@@ -12,7 +12,7 @@ import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.connectors.ProcessConnector;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Process;
-import org.flexiblepower.model.Process.Parameter;
+import org.flexiblepower.model.Process.ProcessParameter;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange;
 import org.mongodb.morphia.annotations.Entity;
 
@@ -30,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ChangeProcessConfiguration extends PendingChange {
 
     private ObjectId processId;
-    private List<Parameter> newConfigurtaion;
+    private List<ProcessParameter> newConfigurtaion;
 
     public ChangeProcessConfiguration() {
         super();
@@ -38,7 +38,7 @@ public class ChangeProcessConfiguration extends PendingChange {
 
     public ChangeProcessConfiguration(final ObjectId userId,
             final ObjectId processId,
-            final List<Parameter> newConfiguration) {
+            final List<ProcessParameter> newConfiguration) {
         super(userId);
         this.processId = processId;
         this.newConfigurtaion = newConfiguration;

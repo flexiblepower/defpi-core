@@ -16,7 +16,7 @@ import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Connection.Endpoint;
 import org.flexiblepower.model.Process;
-import org.flexiblepower.model.Process.Parameter;
+import org.flexiblepower.model.Process.ProcessParameter;
 import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange;
 import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
@@ -292,7 +292,7 @@ public class MoveProcess {
     public static class ResumeProcess extends PendingChange {
 
         private Process process;
-        private List<Parameter> configuration;
+        private List<ProcessParameter> configuration;
         private byte[] suspendState;
 
         public ResumeProcess() {

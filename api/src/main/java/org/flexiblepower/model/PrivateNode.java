@@ -29,11 +29,7 @@ public class PrivateNode extends Node {
 
     @JsonSerialize(using = ToStringSerializer.class)
     @JsonDeserialize(using = ObjectIdDeserializer.class)
-    private ObjectId userId;
-
-    public PrivateNode() {
-        // for Morphia
-    }
+    private final ObjectId userId;
 
     public PrivateNode(final UnidentifiedNode unidentifiedNode, final User owner) {
         super(unidentifiedNode.getDockerId(), unidentifiedNode.getHostname(), unidentifiedNode.getArchitecture());

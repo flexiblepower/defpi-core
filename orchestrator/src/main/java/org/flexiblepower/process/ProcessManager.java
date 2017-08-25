@@ -14,7 +14,7 @@ import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.Process;
-import org.flexiblepower.model.Process.Parameter;
+import org.flexiblepower.model.Process.ProcessParameter;
 import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.NodeManager;
@@ -204,7 +204,7 @@ public class ProcessManager {
      * @param newConfiguration
      * @return
      */
-    private void updateConfiguration(final Process process, final List<Parameter> newConfiguration) {
+    private void updateConfiguration(final Process process, final List<ProcessParameter> newConfiguration) {
         final ChangeProcessConfiguration pendingChange = new ChangeProcessConfiguration(process.getUserId(),
                 process.getId(),
                 newConfiguration);

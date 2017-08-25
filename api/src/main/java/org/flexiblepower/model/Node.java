@@ -68,10 +68,6 @@ public abstract class Node {
     @Setter
     protected Architecture architecture;
 
-    public Node() {
-        // for Morphia
-    }
-
     public Node(final String dockerId, final String hostname, final Architecture architecture) {
         this.dockerId = dockerId;
         this.hostname = hostname;

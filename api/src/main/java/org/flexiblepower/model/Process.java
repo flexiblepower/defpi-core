@@ -36,11 +36,10 @@ import lombok.Setter;
  *
  */
 @Entity
-@Getter
-@Setter
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Process {
 
     public static enum ProcessState {
@@ -52,7 +51,7 @@ public class Process {
     }
 
     @Data
-    public static class Parameter {
+    public static class ProcessParameter {
 
         private String key;
         private String value;
@@ -97,7 +96,7 @@ public class Process {
      */
     private String runningDockerNodeId;
 
-    private List<Parameter> configuration;
+    private List<ProcessParameter> configuration;
 
     /**
      * To enable debugging of a process, this number should be set to something else

@@ -10,6 +10,32 @@
       "type": "string",
       "pattern": "^([0-9]+\\.)*[0-9]+(-[0-9a-zA-Z]*)?$"
     },
+    "parameters": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+      	"type": "object",
+        "properties": {
+          "name": {
+           	"$ref":"#/definitions/name"
+          },
+          "type": {
+            "enum": [
+              "int",
+              "long",
+              "float",
+              "double",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ],
+        "additionalProperties": false
+      }
+    },
     "interfaces": {
       "type": "array",
       "uniqueItems": true,
