@@ -7,6 +7,7 @@ package org.flexiblepower.model;
 
 import org.mongodb.morphia.annotations.Entity;
 
+import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
@@ -18,6 +19,7 @@ import lombok.ToString;
  */
 @Entity
 @ToString
+@NoArgsConstructor
 public class UnidentifiedNode extends Node {
 
     public UnidentifiedNode(final String dockerId, final String hostname, final Architecture architecture) {

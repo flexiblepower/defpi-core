@@ -22,8 +22,6 @@ import org.flexiblepower.orchestrator.ServiceManager;
 import org.flexiblepower.orchestrator.UserManager;
 import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * ProcessManager
  *
@@ -31,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
  * @version 0.1
  * @since May 29, 2017
  */
-@Slf4j
+@SuppressWarnings("static-method")
 public class ProcessManager {
 
     private static ProcessManager instance = null;

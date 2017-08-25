@@ -5,26 +5,24 @@ import java.util.List;
 import org.mongodb.morphia.annotations.Embedded;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.Value;
 
-@Getter
+@Value
 @Embedded
 @AllArgsConstructor
-@NoArgsConstructor
-@ToString
+@NoArgsConstructor(force = true)
 public class Interface {
 
-    private String id;
-    private String name = null;
-    private String serviceId = null;
+    private final String id;
+    private final String name;
+    private final String serviceId;
 
     @Embedded
-    private List<InterfaceVersion> interfaceVersions = null;
+    private final List<InterfaceVersion> interfaceVersions;
 
-    private boolean allowMultiple = false;
-    private boolean autoConnect = false;
+    private final boolean allowMultiple;
+    private final boolean autoConnect;
 
     public boolean isCompatibleWith(final Interface other) {
         if (this.interfaceVersions != null) {

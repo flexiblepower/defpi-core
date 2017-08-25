@@ -8,9 +8,8 @@ package org.flexiblepower.model;
 import org.mongodb.morphia.annotations.Embedded;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.Value;
 
 /**
  * InterfaceVersion
@@ -20,16 +19,15 @@ import lombok.ToString;
  * @since 20 mrt. 2017
  * @see #Interface
  */
-@Getter
+@Value
 @Embedded
 @AllArgsConstructor
-@NoArgsConstructor
-@ToString
+@NoArgsConstructor(force = true)
 public class InterfaceVersion implements Comparable<InterfaceVersion> {
 
-    private String versionName = null;
-    private String receivesHash = null;
-    private String sendsHash = null;
+    private String versionName;
+    private String receivesHash;
+    private String sendsHash;
 
     public boolean isCompatibleWith(final InterfaceVersion other) {
         return this.receivesHash.equals(other.getSendsHash()) && this.sendsHash.equals(other.getReceivesHash());

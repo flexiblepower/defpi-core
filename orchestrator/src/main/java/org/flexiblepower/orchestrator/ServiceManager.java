@@ -22,6 +22,7 @@ import org.flexiblepower.model.Service;
  * @version 0.1
  * @since May 22, 2017
  */
+@SuppressWarnings("static-method")
 public class ServiceManager {
 
     public final static String SERVICE_REPOSITORY = "services";

@@ -7,15 +7,9 @@ import org.bson.types.ObjectId;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.Value;
 
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@ToString
+@Value
 public class PendingChangeDescription {
 
     @JsonSerialize(using = ToStringSerializer.class)

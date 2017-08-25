@@ -18,9 +18,9 @@ import lombok.ToString;
  * @since Apr 24, 2017
  */
 @Getter
+@ToString
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
 public class Parameter {
 
     enum Type {

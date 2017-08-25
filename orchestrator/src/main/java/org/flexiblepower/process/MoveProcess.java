@@ -33,8 +33,8 @@ import lombok.extern.slf4j.Slf4j;
  */
 public class MoveProcess {
 
-    @Entity("PendingChange")
     @Slf4j
+    @Entity("PendingChange")
     public static class SuspendConnection extends PendingChange {
 
         private Connection connection;
@@ -219,8 +219,8 @@ public class MoveProcess {
         }
     }
 
-    @Entity("PendingChange")
     @Slf4j
+    @Entity("PendingChange")
     public static class CreateDockerService extends PendingChange {
 
         private Process process;
@@ -281,7 +281,7 @@ public class MoveProcess {
                     return Result.FAILED_TEMPORARY;
                 }
             } catch (final ServiceNotFoundException e) {
-                SuspendConnection.log.error("Process {} not present in DB, fail permanently", this.process.getId());
+                CreateDockerService.log.error("Process {} not present in DB, fail permanently", this.process.getId());
                 return Result.FAILED_PERMANENTLY;
             }
         }

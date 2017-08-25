@@ -14,7 +14,10 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
@@ -27,6 +30,8 @@ import lombok.ToString;
  */
 @Getter
 @ToString
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EqualsAndHashCode(exclude = {"lastSync", "status"})
 public abstract class Node {
 
     public static enum DockerNodeStatus {

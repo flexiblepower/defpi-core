@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
@@ -24,12 +25,13 @@ import lombok.ToString;
  */
 @Entity
 @Getter
-@ToString
+@NoArgsConstructor
+@ToString(callSuper = true)
 public class PrivateNode extends Node {
 
     @JsonSerialize(using = ToStringSerializer.class)
     @JsonDeserialize(using = ObjectIdDeserializer.class)
-    private final ObjectId userId;
+    private ObjectId userId;
 
     public PrivateNode(final UnidentifiedNode unidentifiedNode, final User owner) {
         super(unidentifiedNode.getDockerId(), unidentifiedNode.getHostname(), unidentifiedNode.getArchitecture());

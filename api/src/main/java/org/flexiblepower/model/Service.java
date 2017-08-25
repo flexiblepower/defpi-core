@@ -7,8 +7,7 @@ import java.util.Set;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
+import lombok.Value;
 
 /**
  * Service
@@ -17,9 +16,8 @@ import lombok.Getter;
  * @version 0.1
  * @since Mar 30, 2017
  */
-@Getter
+@Value
 @Builder
-@EqualsAndHashCode
 public class Service {
 
     private final String name;
