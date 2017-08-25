@@ -5,6 +5,11 @@
  */
 package org.flexiblepower.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
 /**
  * Parameter
  *
@@ -12,29 +17,33 @@ package org.flexiblepower.model;
  * @version 0.1
  * @since Apr 24, 2017
  */
-public interface Parameter {
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString
+public class Parameter {
 
     enum Type {
         BOOLEAN,
+        BYTE,
+        CHAR,
+        SHORT,
         INTEGER,
+        LONG,
         FLOAT,
+        DOUBLE,
         STRING
     }
 
-    String getId();
+    private String id;
+    private String name;
+    private Type getType;
+    private boolean isArray;
+    private boolean isOptional;
 
-    String getName();
+    private String[] optionValues;
+    private String[] optionLabel;
 
-    Type getType();
-
-    boolean isArray();
-
-    boolean isOptional();
-
-    String[] optionValues();
-
-    String[] optionLabels();
-
-    String getDefaultValue();
+    private String getDefaultValue;
 
 }

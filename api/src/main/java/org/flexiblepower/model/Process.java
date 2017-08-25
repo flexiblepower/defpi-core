@@ -43,71 +43,73 @@ import lombok.Setter;
 @Builder
 public class Process {
 
-	public static enum ProcessState {
-		STARTING, INITIALIZING, RUNNING, SUSPENDED, TERMINATED
-	}
+    public static enum ProcessState {
+        STARTING,
+        INITIALIZING,
+        RUNNING,
+        SUSPENDED,
+        TERMINATED
+    }
 
-	@Data
-	@Getter
-	@Setter
-	@EqualsAndHashCode
-	public static class Parameter {
-		private String key;
-		private String value;
-	}
+    @Data
+    public static class Parameter {
 
-	@Id
-	@JsonSerialize(using = ToStringSerializer.class)
-	@JsonDeserialize(using = ObjectIdDeserializer.class)
-	private ObjectId id;
+        private String key;
+        private String value;
+    }
 
-	@JsonSerialize(using = ToStringSerializer.class)
-	@JsonDeserialize(using = ObjectIdDeserializer.class)
-	private ObjectId userId;
+    @Id
+    @JsonSerialize(using = ToStringSerializer.class)
+    @JsonDeserialize(using = ObjectIdDeserializer.class)
+    private ObjectId id;
 
-	private String serviceId;
+    @JsonSerialize(using = ToStringSerializer.class)
+    @JsonDeserialize(using = ObjectIdDeserializer.class)
+    private ObjectId userId;
 
-	/**
-	 * The NodePool where this process should be running. Mutually exclusive with
-	 * privateNodeId.
-	 */
-	@JsonSerialize(using = ToStringSerializer.class)
-	@JsonDeserialize(using = ObjectIdDeserializer.class)
-	private ObjectId nodePoolId;
+    private String serviceId;
 
-	/**
-	 * The Private Node where this process should be running. Mutually exclusive
-	 * with nodePoolId.
-	 */
-	@JsonSerialize(using = ToStringSerializer.class)
-	@JsonDeserialize(using = ObjectIdDeserializer.class)
-	private ObjectId privateNodeId;
+    /**
+     * The NodePool where this process should be running. Mutually exclusive with
+     * privateNodeId.
+     */
+    @JsonSerialize(using = ToStringSerializer.class)
+    @JsonDeserialize(using = ObjectIdDeserializer.class)
+    private ObjectId nodePoolId;
 
-	private List<Connection> connections;
+    /**
+     * The Private Node where this process should be running. Mutually exclusive
+     * with nodePoolId.
+     */
+    @JsonSerialize(using = ToStringSerializer.class)
+    @JsonDeserialize(using = ObjectIdDeserializer.class)
+    private ObjectId privateNodeId;
 
-	private ProcessState state;
+    private List<Connection> connections;
 
-	private String dockerId;
+    private ProcessState state;
 
-	/**
-	 * The node on which the process is actually running. May be null when the state
-	 * is not RUNNING.
-	 */
-	private String runningDockerNodeId;
+    private String dockerId;
 
-	private List<Parameter> configuration;
+    /**
+     * The node on which the process is actually running. May be null when the state
+     * is not RUNNING.
+     */
+    private String runningDockerNodeId;
 
-	/**
-	 * To enable debugging of a process, this number should be set to something else
-	 * than 0. Note that this can only be done when serializing a process from JSON.
-	 */
-	private int debuggingPort;
+    private List<Parameter> configuration;
 
-	private boolean suspendOnDebug = true;
+    /**
+     * To enable debugging of a process, this number should be set to something else
+     * than 0. Note that this can only be done when serializing a process from JSON.
+     */
+    private int debuggingPort;
 
-	/**
-	 * Mount points can be added in order to allow physical devices be used from the
-	 * java process. e.g. to use a usb device from /dev/usb0
-	 */
-	private Map<String, String> mountPoints;
+    private boolean suspendOnDebug = true;
+
+    /**
+     * Mount points can be added in order to allow physical devices be used from the
+     * java process. e.g. to use a usb device from /dev/usb0
+     */
+    private Map<String, String> mountPoints;
 }

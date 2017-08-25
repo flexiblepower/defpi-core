@@ -7,48 +7,47 @@ import org.mongodb.morphia.annotations.Embedded;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Getter
 @Embedded
 @AllArgsConstructor
 @NoArgsConstructor
+@ToString
 public class Interface {
 
-	private String id;
+    private String id;
+    private String name = null;
+    private String serviceId = null;
 
-	private String name = null;
+    @Embedded
+    private List<InterfaceVersion> interfaceVersions = null;
 
-	private String serviceId = null;
+    private boolean allowMultiple = false;
+    private boolean autoConnect = false;
 
-	@Embedded
-	private List<InterfaceVersion> interfaceVersions = null;
+    public boolean isCompatibleWith(final Interface other) {
+        if (this.interfaceVersions != null) {
+            for (final InterfaceVersion iv : this.interfaceVersions) {
+                for (final InterfaceVersion oiv : other.getInterfaceVersions()) {
+                    if (iv.isCompatibleWith(oiv)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
 
-	private boolean allowMultiple = false;
-
-	private boolean autoConnect = false;
-
-	public boolean isCompatibleWith(Interface other) {
-		if (interfaceVersions != null) {
-			for (InterfaceVersion iv : interfaceVersions) {
-				for (InterfaceVersion oiv : other.getInterfaceVersions()) {
-					if (iv.isCompatibleWith(oiv)) {
-						return true;
-					}
-				}
-			}
-		}
-		return false;
-	}
-
-	public InterfaceVersion getInterfaceVersionByName(String name) {
-		if (interfaceVersions != null) {
-			for (InterfaceVersion iv : interfaceVersions) {
-				if (name.equals(iv.getVersionName())) {
-					return iv;
-				}
-			}
-		}
-		return null;
-	}
+    public InterfaceVersion getInterfaceVersionByName(final String interfaceName) {
+        if (this.interfaceVersions != null) {
+            for (final InterfaceVersion iv : this.interfaceVersions) {
+                if (interfaceName.equals(iv.getVersionName())) {
+                    return iv;
+                }
+            }
+        }
+        return null;
+    }
 
 }

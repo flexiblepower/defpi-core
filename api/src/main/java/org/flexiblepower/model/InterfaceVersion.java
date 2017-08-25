@@ -10,6 +10,7 @@ import org.mongodb.morphia.annotations.Embedded;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
  * InterfaceVersion
@@ -23,21 +24,20 @@ import lombok.NoArgsConstructor;
 @Embedded
 @AllArgsConstructor
 @NoArgsConstructor
+@ToString
 public class InterfaceVersion implements Comparable<InterfaceVersion> {
 
-	private String versionName = null;
+    private String versionName = null;
+    private String receivesHash = null;
+    private String sendsHash = null;
 
-	private String receivesHash = null;
+    public boolean isCompatibleWith(final InterfaceVersion other) {
+        return this.receivesHash.equals(other.getSendsHash()) && this.sendsHash.equals(other.getReceivesHash());
+    }
 
-	private String sendsHash = null;
-
-	public boolean isCompatibleWith(InterfaceVersion other) {
-		return receivesHash.equals(other.getSendsHash()) && sendsHash.equals(other.getReceivesHash());
-	}
-
-	@Override
-	public int compareTo(InterfaceVersion o) {
-		return versionName.compareTo(o.getVersionName());
-	}
+    @Override
+    public int compareTo(final InterfaceVersion o) {
+        return this.versionName.compareTo(o.getVersionName());
+    }
 
 }

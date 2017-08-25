@@ -74,11 +74,6 @@ public class User {
         }
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see java.lang.Object#toString()
-     */
     @Override
     public String toString() {
         return "User [id=" + this.id + ", name=" + this.username + (this.email != null ? ", email=" + this.email : "")
@@ -103,12 +98,17 @@ public class User {
     }
 
     @Override
-    public boolean equals(Object other) {
-    	if (other instanceof User) {
-    		return ((User) other).id == id;
-    	} else {
-    		return super.equals(other);
-    	}
+    public boolean equals(final Object other) {
+        if (other instanceof User) {
+            return ((User) other).id == this.id;
+        } else {
+            return super.equals(other);
+        }
     }
-    
+
+    @Override
+    public int hashCode() {
+        return this.id.hashCode();
+    }
+
 }

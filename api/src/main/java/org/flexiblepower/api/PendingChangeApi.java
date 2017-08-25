@@ -42,7 +42,9 @@ public interface PendingChangeApi {
     public void deletePendingChange(
             @ApiParam(value = "The id of the PendingChange that needs to be deleted",
                       required = true) @PathParam("pendingchange_id") final String PendingChangeId)
-            throws AuthorizationException, InvalidObjectIdException, NotFoundException;
+            throws AuthorizationException,
+            InvalidObjectIdException,
+            NotFoundException;
 
     @GET
     @Path("/{pendingchange_id}")
@@ -58,7 +60,9 @@ public interface PendingChangeApi {
     public PendingChangeDescription getPendingChange(
             @ApiParam(value = "The id of the PendingChange that needs to be fetched",
                       required = true) @PathParam("pendingchange_id") final String pendingChange)
-            throws AuthorizationException, InvalidObjectIdException, NotFoundException;
+            throws AuthorizationException,
+            InvalidObjectIdException,
+            NotFoundException;
 
     @GET
     @ApiOperation(nickname = "listPendingChanges",

@@ -64,7 +64,7 @@ public class JavaIOSerializer implements MessageSerializer<Serializable> {
      * @see org.flexiblepower.service.serializers.MessageSerializer#addMessageClass(java.lang.Class)
      */
     @Override
-    public void addMessageClass(Class<? extends Serializable> clazz) {
+    public void addMessageClass(final Class<? extends Serializable> clazz) {
         // It's okay do nothing
     }
 
