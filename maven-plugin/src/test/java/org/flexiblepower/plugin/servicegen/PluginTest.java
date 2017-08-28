@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -52,12 +51,11 @@ public class PluginTest {
         final File inputFile = new File("src/test/resources/service.json");
         final ServiceDescription descr = this.mapper.readValue(inputFile, ServiceDescription.class);
 
-        final Map<String, String> hashes = new HashMap<>();
-        hashes.put("EchoInterface_v001", "1");
-        hashes.put("DropbackInterface_v001", "2");
-        hashes.put("DropbackInterface_v002", "3");
-        final Templates t = new Templates("target.package", "", "", descr, hashes);
+        final Templates t = new Templates("target.package", "", "", descr);
         for (final InterfaceDescription itf : descr.getInterfaces()) {
+            for (final InterfaceVersionDescription vitf : itf.getInterfaceVersions()) {
+                vitf.setHash("1234");
+            }
             PluginTest.log.info(t.generateManagerInterface(itf));
         }
         PluginTest.log.info(t.generateDockerfile("x86", descr));
@@ -85,15 +83,11 @@ public class PluginTest {
         final File hashTestFile = new File("src/test/resources/hashes.json");
         final ServiceDescription descr = this.mapper.readValue(hashTestFile, ServiceDescription.class);
 
-        final Map<String, String> protoHash = new HashMap<>();
-        protoHash.put("EchoInterface_v001", "123");
-        protoHash.put("EchoInterface_v002", "123");
-
-        final Templates t = new Templates("test.package", "", "", descr, protoHash);
         for (final InterfaceDescription i : descr.getInterfaces()) {
             for (final InterfaceVersionDescription v : i.getInterfaceVersions()) {
-                PluginTest.log.info(t.getHash(i, v, new HashSet<>(Arrays.asList("Stuff"))));
-                PluginTest.log.info(t.getHash(i, v, Collections.emptySet()));
+                v.setHash("");
+                PluginTest.log.info(PluginUtils.getHash(v, new HashSet<>(Arrays.asList("Stuff"))));
+                PluginTest.log.info(PluginUtils.getHash(v, Collections.emptySet()));
             }
         }
     }
@@ -114,7 +108,7 @@ public class PluginTest {
         PluginTest.log.info(config.toString());
 
         final Map<String, String> hashes = Collections.singletonMap("ConfigurableService_004", "987");
-        final Templates t = new Templates("test.config", "", "", descr, hashes);
+        final Templates t = new Templates("test.config", "", "", descr);
         PluginTest.log.info(t.generateConfigInterface());
     }
 

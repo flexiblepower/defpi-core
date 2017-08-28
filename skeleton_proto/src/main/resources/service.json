@@ -10,7 +10,7 @@
         {
           "versionName": "v0.0.1",
           "type": "proto",
-          "location": "echoProtocol.proto",
+          "location": "https://pastebin.com/raw/FyBHi5KA",
           "sends": ["Msg"],
           "receives": ["Msg"]
         }
@@ -24,7 +24,7 @@
         {
           "versionName": "v0.0.1",
           "type": "proto",
-          "location": "echoProtocol.proto",
+          "location": "https://pastebin.com/raw/FyBHi5KA",
           "sends": [],
           "receives": ["Msg"]
         },

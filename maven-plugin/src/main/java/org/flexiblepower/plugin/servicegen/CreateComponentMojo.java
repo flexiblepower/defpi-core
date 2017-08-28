@@ -1,19 +1,21 @@
 package org.flexiblepower.plugin.servicegen;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
-import java.util.Set;
 
 /*
  * Copyright 2001-2005 The Apache Software Foundation.
@@ -153,7 +155,11 @@ public class CreateComponentMojo extends AbstractMojo {
      */
     private final String dockerArmLocation = "docker-arm";
 
-    private final Map<String, String> hashes = new HashMap<>();
+    private final Map<String, InterfaceVersionDescription> hashes = new HashMap<>();
+
+    private ProtoCompiler protoCompiler;
+    private XjcCompiler xjcCompiler;
+
     private Path resourcePath;
     private Templates templates;
 
@@ -182,16 +188,16 @@ public class CreateComponentMojo extends AbstractMojo {
             Files.createDirectories(javaSourceFolder);
 
             // Add descriptors and related hashes
-            this.createDescriptors(service.getInterfaces());
+            this.compileDescriptors(service);
+
+            // Add templates to generate java code and the dockerfile
             this.templates = new Templates(this.servicePackage,
                     this.protobufOutputPackage,
                     this.xsdOutputPackage,
-                    service,
-                    this.hashes);
+                    service);
 
             this.createJavaFiles(service, javaSourceFolder);
             this.createDockerfiles(service);
-            this.compileDescriptors(service);
 
         } catch (final Exception e) {
             this.getLog().debug(e);
@@ -250,85 +256,6 @@ public class CreateComponentMojo extends AbstractMojo {
         }
 
         return false;
-
-    }
-
-    /**
-     * Creates altered descriptor files that can be compiled into java source code.
-     *
-     * @param descriptors
-     *            Map of descriptors
-     * @throws IOException
-     */
-    private void createDescriptors(final Set<InterfaceDescription> interfaces) throws IOException {
-        for (final InterfaceDescription iface : interfaces) {
-            for (final InterfaceVersionDescription versionDescription : iface.getInterfaceVersions()) {
-                final String fullName = PluginUtils.getVersionedName(iface, versionDescription);
-
-                if (versionDescription.getType().equals(Type.PROTO)) {
-                    final Path protoSourceFilePath = this.resourcePath.resolve(this.protobufInputLocation)
-                            .resolve(versionDescription.getLocation());
-                    final Path outputPath = Files
-                            .createDirectories(this.resourcePath.resolve(this.protobufResourceLocation))
-                            .resolve(fullName + ".proto");
-
-                    // Append the descriptor and store hash of source
-                    this.appendProtoDescriptor(iface, versionDescription, protoSourceFilePath, outputPath);
-
-                    this.hashes.put(fullName, PluginUtils.SHA256(protoSourceFilePath));
-                } else if (versionDescription.getType().equals(Type.XSD)) {
-                    final Path xsdSourceFilePath = this.resourcePath.resolve(this.xsdInputLocation)
-                            .resolve(versionDescription.getLocation());
-                    final Path xsdResourceFolder = Files
-                            .createDirectories(this.resourcePath.resolve(this.xsdResourceLocation));
-                    final Path outputPath = xsdResourceFolder.resolve(fullName + ".xsd");
-
-                    // Copy the descriptor and store hash of source
-                    Files.copy(xsdSourceFilePath, outputPath, StandardCopyOption.REPLACE_EXISTING);
-
-                    this.hashes.put(fullName, PluginUtils.SHA256(xsdSourceFilePath));
-                } else {
-                    throw new IOException("Unknown descriptor file type: " + versionDescription.getType());
-                }
-
-            }
-        }
-
-        this.getLog().info("Generated descriptors: " + Arrays.toString(this.hashes.entrySet().toArray()));
-    }
-
-    /**
-     * Appends the original descriptor with information used by the descriptorc compiler. The java package and outer
-     * classname have to be set, and also the specific syntax (descriptor2 or descriptor3) is set by this method.
-     *
-     * @param name
-     *            Name of the descriptor
-     * @param descriptor
-     *            Descriptor object indicating which file has to be used
-     * @param inputPath
-     *            Path of the original descriptor file
-     * @param outputPath
-     *            Folder the altered descriptor file should be stored.
-     * @throws IOException
-     */
-    private void appendProtoDescriptor(final InterfaceDescription itf,
-            final InterfaceVersionDescription vitf,
-            final Path inputPath,
-            final Path outputPath) throws IOException {
-        Files.copy(inputPath, outputPath, StandardCopyOption.REPLACE_EXISTING);
-
-        String packageName = this.servicePackage + "." + PluginUtils.getPackageName(itf, vitf);
-        final String versionedName = PluginUtils.getVersionedName(itf, vitf);
-        if ((this.protobufOutputPackage != null) && !this.protobufOutputPackage.isEmpty()) {
-            packageName = packageName + "." + this.protobufOutputPackage;
-        }
-
-        try (final Scanner scanner = new Scanner(new FileInputStream(inputPath.toFile()), "UTF-8")) {
-            Files.write(outputPath,
-                    ("syntax = \"proto2\";" + "\n\n" + "option java_package = \"" + packageName + "\";\n"
-                            + "option java_outer_classname = \"" + versionedName + "Proto\";\n\n" + "package "
-                            + packageName + ";\n" + scanner.useDelimiter("\\A").next()).getBytes());
-        }
 
     }
 
@@ -422,25 +349,134 @@ public class CreateComponentMojo extends AbstractMojo {
      * @throws IOException
      */
     private void compileDescriptors(final ServiceDescription service) throws IOException {
-        this.getLog().debug("Compiling protobuf definitions to java code");
-        final ProtoCompiler protoCompiler = new ProtoCompiler(this.protobufVersion);
-        final XjcCompiler xjcCompiler = new XjcCompiler();
+        this.getLog().debug("Compiling descriptors definitions to java code");
+
+        this.protoCompiler = new ProtoCompiler(this.protobufVersion);
+        this.xjcCompiler = new XjcCompiler();
 
         for (final InterfaceDescription iface : service.getInterfaces()) {
             for (final InterfaceVersionDescription versionDescription : iface.getInterfaceVersions()) {
-                final String fullName = PluginUtils.getVersionedName(iface, versionDescription);
 
                 if (versionDescription.getType().equals(Type.PROTO)) {
-                    protoCompiler.compile(
-                            this.resourcePath.resolve(this.protobufResourceLocation).resolve(fullName + ".proto"),
-                            Paths.get(this.sourceLocation));
+                    this.compileProtoDescriptor(iface, versionDescription);
+
                 } else if (versionDescription.getType().equals(Type.XSD)) {
-                    xjcCompiler.setBasePackageName(this.servicePackage + "."
-                            + PluginUtils.getPackageName(iface, versionDescription) + "." + this.xsdOutputPackage);
-                    xjcCompiler.compile(this.resourcePath.resolve(this.xsdResourceLocation).resolve(fullName + ".xsd"),
-                            Paths.get(this.sourceLocation));
+                    this.compileXSDDescriptor(iface, versionDescription);
                 }
             }
+        }
+    }
+
+    /**
+     * @param itf
+     * @param versionDescription
+     * @throws IOException
+     */
+    private void compileXSDDescriptor(final InterfaceDescription itf, final InterfaceVersionDescription vitf)
+            throws IOException {
+        // First get the hash of the input file
+        final Path xsdSourceFilePath = this.downloadFileOrResolve(vitf.getLocation(),
+                this.resourcePath.resolve(this.xsdInputLocation));
+
+        // Compute hash and store in interface
+        final String interfaceHash = PluginUtils.SHA256(xsdSourceFilePath);
+        vitf.setHash(interfaceHash);
+
+        if (this.hashes.containsKey(interfaceHash)) {
+            vitf.setModelPackageName(this.hashes.get(interfaceHash).getModelPackageName());
+            return;
+        }
+
+        // Get the package name and add the hash
+        vitf.setModelPackageName(
+                this.servicePackage + "." + PluginUtils.getPackageName(itf, vitf) + "." + this.xsdOutputPackage);
+        this.hashes.put(interfaceHash, vitf);
+
+        // Append additional compilation info to the proto file and compile the java code
+        final Path xsdResourceFolder = Files.createDirectories(this.resourcePath.resolve(this.xsdResourceLocation));
+        final String versionedName = PluginUtils.getVersionedName(itf, vitf);
+        final Path xsdDestFilePath = xsdResourceFolder.resolve(versionedName + ".xsd");
+
+        // Copy the descriptor and start compilation
+        Files.copy(xsdSourceFilePath, xsdDestFilePath, StandardCopyOption.REPLACE_EXISTING);
+
+        this.xjcCompiler.setBasePackageName(vitf.getModelPackageName());
+        this.xjcCompiler.compile(xsdDestFilePath, Paths.get(this.sourceLocation));
+    }
+
+    /**
+     * @param itf
+     * @param vitf
+     * @throws IOException
+     */
+    private void compileProtoDescriptor(final InterfaceDescription itf, final InterfaceVersionDescription vitf)
+            throws IOException {
+        final Path protoSourceFilePath = this.downloadFileOrResolve(vitf.getLocation(),
+                this.resourcePath.resolve(this.protobufInputLocation));
+
+        // Compute hash and store in interface
+        final String interfaceHash = PluginUtils.SHA256(protoSourceFilePath);
+        vitf.setHash(interfaceHash);
+
+        if (this.hashes.containsKey(interfaceHash)) {
+            // If we already have it, just copy the package name
+            vitf.setModelPackageName(this.hashes.get(interfaceHash).getModelPackageName());
+            return;
+        }
+
+        // Get the package name and add the hash
+        final String versionedName = PluginUtils.getVersionedName(itf, vitf);
+        String protoPackageName = this.servicePackage + "." + PluginUtils.getPackageName(itf, vitf);
+        if ((this.protobufOutputPackage != null) && !this.protobufOutputPackage.isEmpty()) {
+            protoPackageName = protoPackageName + "." + this.protobufOutputPackage;
+        }
+
+        final String protoClassName = protoPackageName + "." + versionedName + "Proto";
+
+        // Store for later reference
+        vitf.setModelPackageName(protoClassName);
+        this.hashes.put(interfaceHash, vitf);
+
+        // Append additional compilation info to the proto file and compile the java code
+
+        final Path protoDestFilePath = Files.createDirectories(this.resourcePath.resolve(this.protobufResourceLocation))
+                .resolve(versionedName + ".proto");
+        Files.copy(protoSourceFilePath, protoDestFilePath, StandardCopyOption.REPLACE_EXISTING);
+
+        try (final Scanner scanner = new Scanner(new FileInputStream(protoSourceFilePath.toFile()), "UTF-8")) {
+            Files.write(protoDestFilePath,
+                    ("syntax = \"proto2\";" + "\n\n" + "option java_package = \"" + protoPackageName + "\";\n"
+                            + "option java_outer_classname = \"" + versionedName + "Proto\";\n\n" + "package "
+                            + protoPackageName + ";\n" + scanner.useDelimiter("\\A").next()).getBytes());
+        }
+
+        this.protoCompiler.compile(protoDestFilePath, Paths.get(this.sourceLocation));
+
+    }
+
+    /**
+     * @param location
+     * @param resolve
+     * @return
+     */
+    private Path downloadFileOrResolve(final String location, final Path resolve) {
+        // First get the hash of the input file
+        try {
+            final URL url = new URL(location);
+            this.getLog().info("Downloading descriptor from " + url);
+            final Path tempFile = Files.createTempFile(null, null);
+            try (
+                    BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(url.openConnection().getInputStream()));
+                    BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile.toFile()))) {
+                while (reader.ready()) {
+                    writer.write(reader.readLine() + "\n");
+                }
+            }
+            // If we wrote it, continue with the downloaded file
+            return tempFile;
+        } catch (final IOException e) {
+            return this.resourcePath.resolve(this.protobufInputLocation).resolve(location);
         }
     }
 

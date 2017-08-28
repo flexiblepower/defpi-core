@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.util.Set;
 
 import org.flexiblepower.model.Parameter;
 import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
@@ -117,6 +118,14 @@ public class PluginUtils {
 
         // Return a cleaned-up string
         return ret.toString().replaceAll("[^a-zA-Z0-9_]", "");
+    }
+
+    public static String getHash(final InterfaceVersionDescription vitf, final Set<String> messageSet) {
+        String baseHash = vitf.getHash();
+        for (final String key : messageSet) {
+            baseHash += ";" + key;
+        }
+        return PluginUtils.SHA256(baseHash);
     }
 
     public static String SHA256(final String body) {

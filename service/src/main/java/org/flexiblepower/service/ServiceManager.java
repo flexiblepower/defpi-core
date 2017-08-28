@@ -84,7 +84,8 @@ public class ServiceManager<T> implements Closeable {
 
         Class<T> clazz = null;
         for (final Method m : this.service.getClass().getMethods()) {
-            if (m.getName().startsWith("init") && (m.getParameterTypes().length == 1)) {
+            if (m.getName().startsWith("init") && (m.getParameterTypes().length == 1)
+                    && (m.getParameterTypes()[0].isInterface())) {
                 clazz = (Class<T>) m.getParameterTypes()[0];
                 break;
             }
@@ -302,9 +303,9 @@ public class ServiceManager<T> implements Closeable {
         ServiceManager.log
                 .debug("Properties to set: {} (update: {})", message.getConfigMap().toString(), message.getIsUpdate());
 
-        if (this.configured == message.getIsUpdate()) {
+        if (this.configured != message.getIsUpdate()) {
             ServiceManager.log.warn(
-                    "Incongruence detected in message.isUpdate (%s) and service configuration state (%s)",
+                    "Incongruence detected in message.isUpdate ({}) and service configuration state ({})",
                     message.getIsUpdate(),
                     this.configured);
         }

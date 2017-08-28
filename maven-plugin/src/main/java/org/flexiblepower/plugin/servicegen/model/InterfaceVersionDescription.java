@@ -70,7 +70,7 @@ public class InterfaceVersionDescription {
 
     @Setter
     @JsonIgnore
-    private String packageName = null;
+    private String modelPackageName = null;
 
     public enum Type {
 

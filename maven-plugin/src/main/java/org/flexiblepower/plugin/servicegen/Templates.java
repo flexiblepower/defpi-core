@@ -39,19 +39,16 @@ public class Templates {
     private final String protobufOutputPackage;
     private final String xsdOutputPackage;
     private final ServiceDescription serviceDescription;
-    private final Map<String, String> hashes;
     private final ObjectMapper mapper = new ObjectMapper();
 
     public Templates(final String targetPackage,
             final String protobufOutputPackage,
             final String xsdOutputPackage,
-            final ServiceDescription descr,
-            final Map<String, String> hashes) {
+            final ServiceDescription descr) {
         this.servicePackage = targetPackage;
         this.protobufOutputPackage = protobufOutputPackage;
         this.xsdOutputPackage = xsdOutputPackage;
         this.serviceDescription = descr;
-        this.hashes = hashes;
     }
 
     /**
@@ -143,8 +140,8 @@ public class Templates {
         for (final InterfaceDescription descr : input) {
             final List<InterfaceVersion> versionList = new ArrayList<>();
             for (final InterfaceVersionDescription ivd : descr.getInterfaceVersions()) {
-                final String sendHash = this.getHash(descr, ivd, ivd.getSends());
-                final String recvHash = this.getHash(descr, ivd, ivd.getReceives());
+                final String sendHash = PluginUtils.getHash(ivd, ivd.getSends());
+                final String recvHash = PluginUtils.getHash(ivd, ivd.getReceives());
                 versionList.add(new InterfaceVersion(ivd.getVersionName(), recvHash, sendHash));
             }
             serviceInterfaces.add(new Interface(null,
@@ -258,8 +255,8 @@ public class Templates {
             replaceMap.put("itf.name", itf.getName());
             replaceMap.put("vitf.version", version.getVersionName());
             replaceMap.put("vitf.package", packageName);
-            replaceMap.put("vitf.receivesHash", this.getHash(itf, version, version.getReceives()));
-            replaceMap.put("vitf.sendsHash", this.getHash(itf, version, version.getSends()));
+            replaceMap.put("vitf.receivesHash", PluginUtils.getHash(version, version.getReceives()));
+            replaceMap.put("vitf.sendsHash", PluginUtils.getHash(version, version.getSends()));
 
             final Set<String> recvClasses = new HashSet<>();
             for (final String type : version.getReceives()) {
@@ -296,23 +293,11 @@ public class Templates {
                 replaceMap.put("vitf.serializer", "ProtobufMessageSerializer");
 
                 for (final String type : messageSet) {
-                    imports.add(String.format("import %s.%s.%s.%sProto.%s;",
-                            this.servicePackage,
-                            packageName,
-                            this.protobufOutputPackage,
-                            versionedName,
-                            type));
+                    imports.add(String.format("import %s.%s;", version.getModelPackageName(), type));
                 }
             } else if (version.getType().equals(Type.XSD)) {
                 replaceMap.put("vitf.serializer", "XSDMessageSerializer");
-
-                for (final String type : messageSet) {
-                    imports.add(String.format("import %s.%s.%s.*;",
-                            this.servicePackage,
-                            packageName,
-                            this.xsdOutputPackage,
-                            type));
-                }
+                imports.add(String.format("import %s.*;", version.getModelPackageName()));
             }
 
             replaceMap.put("vitf.handler.imports", String.join("\n", imports));
@@ -352,18 +337,6 @@ public class Templates {
             }
         }
         return ret;
-    }
-
-    String getHash(final InterfaceDescription itf, final InterfaceVersionDescription vitf, final Set<String> set) {
-        final String versionedName = PluginUtils.getVersionedName(itf, vitf);
-        if (this.hashes.containsKey(versionedName)) {
-            String baseHash = this.hashes.get(versionedName);
-            for (final String key : set) {
-                baseHash += ";" + key;
-            }
-            return PluginUtils.SHA256(baseHash);
-        }
-        throw new RuntimeException("Could not get hash for " + versionedName);
     }
 
 }
