@@ -13,7 +13,6 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.namespace.QName;
-import javax.xml.transform.stream.StreamSource;
 
 import org.flexiblepower.exceptions.SerializationException;
 
@@ -54,16 +53,11 @@ public class XSDMessageSerializer implements MessageSerializer<Object> {
 			}
 		}
 
-		for (final Class<?> cls : this.classes.values()) {
-			try {
-				final JAXBElement<?> elem = this.unmarshaller
-						.unmarshal(new StreamSource(new ByteArrayInputStream(data)), cls);
-				return elem.getValue();
-			} catch (final JAXBException e) {
-				// Not this class... try again
-			}
+		try {
+			return this.unmarshaller.unmarshal(new ByteArrayInputStream(data));
+		} catch (final JAXBException e) {
+			throw new SerializationException("Was not able to deserialize: " + e.getMessage());
 		}
-		throw new SerializationException("Unable to find parser for message");
 	}
 
 	@Override
