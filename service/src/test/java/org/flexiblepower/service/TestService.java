@@ -6,9 +6,9 @@
 package org.flexiblepower.service;
 
 import java.io.Serializable;
-import java.util.Properties;
 
 import org.flexiblepower.serializers.JavaIOSerializer;
+import org.flexiblepower.service.TestService.TestServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +27,20 @@ import org.slf4j.LoggerFactory;
                manager = TestService.class,
                sendsHash = "eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252",
                sendTypes = {Object.class})
-public class TestService implements Service, ConnectionHandlerManager, ConnectionHandler {
+public class TestService implements Service<TestServiceConfiguration>, ConnectionHandlerManager, ConnectionHandler {
+
+    /**
+     * TestServiceConfiguration
+     *
+     * @author coenvl
+     * @version 0.1
+     * @since Aug 28, 2017
+     */
+    public interface TestServiceConfiguration {
+
+        public String getKey();
+
+    }
 
     private static final Logger log = LoggerFactory.getLogger(TestService.class);
     private int counter = 0;
@@ -50,8 +63,8 @@ public class TestService implements Service, ConnectionHandlerManager, Connectio
      * @see org.flexiblepower.service.Service#init(java.util.Properties)
      */
     @Override
-    public void init(final Properties props) {
-        TestService.log.info("Init is called!");
+    public void init(final TestServiceConfiguration props) {
+        TestService.log.info("Init is called with key {}!", props.getKey());
         this.state = "init";
     }
 
@@ -61,8 +74,8 @@ public class TestService implements Service, ConnectionHandlerManager, Connectio
      * @see org.flexiblepower.service.Service#modify(java.util.Properties)
      */
     @Override
-    public void modify(final Properties props) {
-        TestService.log.info("Modify is called!");
+    public void modify(final TestServiceConfiguration props) {
+        TestService.log.info("Modify is called with key {}!", props.getKey());
         this.state = "modify";
     }
 

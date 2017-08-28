@@ -9,7 +9,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -275,6 +274,7 @@ public class CreateComponentMojo extends AbstractMojo {
 
                     // Append the descriptor and store hash of source
                     this.appendProtoDescriptor(iface, versionDescription, protoSourceFilePath, outputPath);
+
                     this.hashes.put(fullName, PluginUtils.SHA256(protoSourceFilePath));
                 } else if (versionDescription.getType().equals(Type.XSD)) {
                     final Path xsdSourceFilePath = this.resourcePath.resolve(this.xsdInputLocation)
@@ -285,6 +285,7 @@ public class CreateComponentMojo extends AbstractMojo {
 
                     // Copy the descriptor and store hash of source
                     Files.copy(xsdSourceFilePath, outputPath, StandardCopyOption.REPLACE_EXISTING);
+
                     this.hashes.put(fullName, PluginUtils.SHA256(xsdSourceFilePath));
                 } else {
                     throw new IOException("Unknown descriptor file type: " + versionDescription.getType());
@@ -326,8 +327,7 @@ public class CreateComponentMojo extends AbstractMojo {
             Files.write(outputPath,
                     ("syntax = \"proto2\";" + "\n\n" + "option java_package = \"" + packageName + "\";\n"
                             + "option java_outer_classname = \"" + versionedName + "Proto\";\n\n" + "package "
-                            + packageName + ";\n" + scanner.useDelimiter("\\A").next()).getBytes(),
-                    StandardOpenOption.CREATE);
+                            + packageName + ";\n" + scanner.useDelimiter("\\A").next()).getBytes());
         }
 
     }
@@ -346,6 +346,12 @@ public class CreateComponentMojo extends AbstractMojo {
 
         final String ext = ".java";
         Files.createDirectories(dest);
+
+        if (serviceDescription.getParameters() != null) {
+            final Path configInterface = dest.resolve(PluginUtils.configInterfaceClass(serviceDescription) + ext);
+            Files.write(configInterface, this.templates.generateConfigInterface().getBytes());
+        }
+
         final Path serviceImpl = dest.resolve(PluginUtils.serviceImplClass(serviceDescription) + ext);
         if (serviceImpl.toFile().exists()) {
             this.getLog().debug("Skipping existing file " + serviceImpl.toString());

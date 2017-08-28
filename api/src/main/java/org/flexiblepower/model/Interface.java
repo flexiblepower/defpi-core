@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.mongodb.morphia.annotations.Embedded;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.Value;
@@ -12,6 +14,7 @@ import lombok.Value;
 @Embedded
 @AllArgsConstructor
 @NoArgsConstructor(force = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Interface {
 
     private final String id;

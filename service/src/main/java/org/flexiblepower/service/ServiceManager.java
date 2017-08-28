@@ -8,8 +8,8 @@ package org.flexiblepower.service;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
+import java.lang.reflect.Method;
 import java.nio.channels.ClosedSelectorException;
-import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -47,11 +47,8 @@ import zmq.ZError;
  * @version 0.1
  * @since May 10, 2017
  */
-public class ServiceManager implements Closeable {
+public class ServiceManager<T> implements Closeable {
 
-    /**
-     *
-     */
     private static final TimeUnit SECONDS = TimeUnit.SECONDS;
     private static final Logger log = LoggerFactory.getLogger(ServiceManager.class);
 
@@ -62,6 +59,8 @@ public class ServiceManager implements Closeable {
     private static final long SERVICE_IMPL_TIMEOUT_SECONDS = 5;
     public static final int MANAGEMENT_PORT = 4999;
 
+    private static ExecutorService serviceExecutor = Executors.newSingleThreadExecutor();
+
     // private final Class<? extends Service> serviceClass;
     private boolean configured;
     private volatile boolean keepThreadAlive;
@@ -69,20 +68,33 @@ public class ServiceManager implements Closeable {
     private final Thread managerThread;
 
     private final ConnectionManager connectionManager;
-    private final Service service;
+    private final Service<T> service;
+    private final Class<T> configClass;
     private final JavaIOSerializer javaIoSerializer = new JavaIOSerializer();
     private final ProtobufMessageSerializer pbSerializer = new ProtobufMessageSerializer();
     private final Socket managementSocket;
-    private static ExecutorService serviceExecutor = Executors.newSingleThreadExecutor();
 
+    @SuppressWarnings("unchecked")
     public ServiceManager() throws ServiceInvocationException {
         this(ServiceMain.createInstance(ServiceManager.serviceExecutor));
     }
 
-    public ServiceManager(final Service service) throws ServiceInvocationException {
+    public ServiceManager(final Service<T> service) throws ServiceInvocationException {
         this.service = service;
-        this.connectionManager = new ConnectionManager();
 
+        Class<T> clazz = null;
+        for (final Method m : this.service.getClass().getMethods()) {
+            if (m.getName().startsWith("init") && (m.getParameterTypes().length == 1)) {
+                clazz = (Class<T>) m.getParameterTypes()[0];
+                break;
+            }
+        }
+        if (clazz == null) {
+            throw new ServiceInvocationException("Unable to find init() method for configuration");
+        }
+        this.configClass = clazz;
+
+        this.connectionManager = new ConnectionManager();
         this.managementSocket = ZMQ.context(1).socket(ZMQ.REP);
 
         // this.managerThread = new Thread(() -> {
@@ -202,19 +214,18 @@ public class ServiceManager implements Closeable {
     private Message handleGoToProcessStateMessage(final GoToProcessStateMessage message)
             throws ServiceInvocationException,
             SerializationException {
-        ServiceManager.log.info("Received GoToProcessStateMessage for process {} -> {}",
+        ServiceManager.log.debug("Received GoToProcessStateMessage for process {} -> {}",
                 message.getProcessId(),
                 message.getTargetState());
-        ServiceManager.log.trace("Received message: {}", message);
 
         switch (message.getTargetState()) {
         case RUNNING:
             // This is basically a "force start" with no configuration
             ServiceManager.serviceExecutor.submit(() -> {
                 try {
-                    this.service.init(new Properties());
+                    this.service.init(null);
                 } catch (final Throwable t) {
-                    ServiceManager.log.error("Error while calling init(Properties)", t);
+                    ServiceManager.log.error("Error while calling init() without config", t);
                 }
             });
             ServiceManager.this.configured = true;
@@ -286,24 +297,27 @@ public class ServiceManager implements Closeable {
      * @throws ServiceInvocationException
      */
     private Message handleSetConfigMessage(final SetConfigMessage message) throws ServiceInvocationException {
-        Future<ProcessStateUpdateMessage> future;
+        final Future<ProcessStateUpdateMessage> future;
         ServiceManager.log.info("Received SetConfigMessage for process {}", message.getProcessId());
-        ServiceManager.log.debug("Properties to set: {}", message.getConfigMap().toString());
-        ServiceManager.log.trace("Received message: {}", message);
+        ServiceManager.log
+                .debug("Properties to set: {} (update: {})", message.getConfigMap().toString(), message.getIsUpdate());
+
+        if (this.configured == message.getIsUpdate()) {
+            ServiceManager.log.warn(
+                    "Incongruence detected in message.isUpdate (%s) and service configuration state (%s)",
+                    message.getIsUpdate(),
+                    this.configured);
+        }
 
         this.processId = message.getProcessId();
-
-        final Properties props = new Properties();
-        message.getConfigMap().forEach((key, value) -> {
-            props.setProperty(key, value);
-        });
+        final T config = ServiceConfig.generateConfig(this.configClass, message.getConfigMap());
 
         future = ServiceManager.serviceExecutor.submit(() -> {
             if (!this.configured) {
-                this.service.init(props);
+                this.service.init(config);
                 this.configured = true;
             } else {
-                this.service.modify(props);
+                this.service.modify(config);
             }
             return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
         });
@@ -311,6 +325,8 @@ public class ServiceManager implements Closeable {
         try {
             return future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, ServiceManager.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            ServiceManager.log.error("Exception while handling config message: {}", e.getMessage());
+            ServiceManager.log.trace(e.getMessage(), e);
             return ServiceManager.createErrorMessage(this.processId, e);
         }
     }
@@ -338,7 +354,7 @@ public class ServiceManager implements Closeable {
         return ErrorMessage.newBuilder().setDebugInformation(e.getMessage()).setProcessId(processId).build();
     }
 
-    @SuppressWarnings({"resource"})
+    @SuppressWarnings({"resource", "rawtypes"})
     public static void main(final String[] args) throws ServiceInvocationException {
         // Launch new service manager
         (new ServiceManager()).join();

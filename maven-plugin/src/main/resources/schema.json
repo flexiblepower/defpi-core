@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json-schema.org/draft-04/schema#",
+  "$schema": "http://json-schema.org/draft-06/schema#",
   "definitions": {},
   "type": "object",
   "properties": {
@@ -16,20 +16,55 @@
       "items": {
       	"type": "object",
         "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^([a-z])([a-zA-Z0-9\\.])*$"
+          },
           "name": {
            	"$ref":"#/definitions/name"
           },
           "type": {
             "enum": [
+              "boolean",
+              "byte",
+              "char",
+              "short",
               "int",
               "long",
               "float",
               "double",
               "string"
             ]
+          },
+          "isArray": {
+            "type": "boolean" 
+          },
+          "isOptional": {
+            "type": "boolean"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "uniqueItems": true,
+              "items": {
+         	    "type": "string"
+              }
+            }
+          },
+          "labels": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "default": {
+            "type": ["string", "number"]
           }
         },
         "required": [
+          "id",
           "name",
           "type"
         ],

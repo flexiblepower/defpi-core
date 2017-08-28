@@ -15,6 +15,7 @@ import java.util.Set;
 
 import org.flexiblepower.model.Interface;
 import org.flexiblepower.model.InterfaceVersion;
+import org.flexiblepower.model.Parameter;
 import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription.Type;
@@ -58,6 +59,14 @@ public class Templates {
      */
     public String generateServiceImplementation() throws IOException {
         return this.generate("ServiceImplementation", null, null);
+    }
+
+    /**
+     * @return
+     * @throws IOException
+     */
+    public String generateConfigInterface() throws IOException {
+        return this.generate("ConfigInterface", null, null);
     }
 
     /**
@@ -109,6 +118,25 @@ public class Templates {
     public String generateDockerfile(final String platform, final ServiceDescription service)
             throws JsonProcessingException,
             IOException {
+        final Map<String, String> replace = new HashMap<>();
+        if (platform.equals("x86")) {
+            replace.put("from", "java:alpine");
+        } else {
+            replace.put("from", "larmog/armhf-alpine-java:jdk-8u73");
+        }
+
+        replace.put("service.name", service.getName());
+
+        final ObjectWriter writer = Templates.PRETTY_PRINT_JSON ? this.mapper.writerWithDefaultPrettyPrinter()
+                : this.mapper.writer();
+
+        final Set<Parameter> parameters = service.getParameters();
+        if (parameters == null) {
+            replace.put("parameters", "null");
+        } else {
+            replace.put("parameters", writer.writeValueAsString(parameters).replaceAll("\n", " \\\\ \n"));
+        }
+
         final Set<InterfaceDescription> input = service.getInterfaces();
 
         final Set<Interface> serviceInterfaces = new HashSet<>();
@@ -127,16 +155,6 @@ public class Templates {
                     descr.isAutoConnect()));
         }
 
-        final Map<String, String> replace = new HashMap<>();
-        if (platform.equals("x86")) {
-            replace.put("from", "java:alpine");
-        } else {
-            replace.put("from", "larmog/armhf-alpine-java:jdk-8u73");
-        }
-
-        replace.put("service.name", service.getName());
-        final ObjectWriter writer = Templates.PRETTY_PRINT_JSON ? this.mapper.writerWithDefaultPrettyPrinter()
-                : this.mapper.writer();
         final String interfaces = writer.writeValueAsString(serviceInterfaces);
         // final String encoded = Base64.getEncoder().encodeToString(interfaces.getBytes());
         replace.put("interfaces", interfaces.replaceAll("\n", " \\\\ \n"));
@@ -168,6 +186,19 @@ public class Templates {
         replaceMap.put("service.class", PluginUtils.serviceImplClass(this.serviceDescription));
         replaceMap.put("service.version", this.serviceDescription.getVersion());
         replaceMap.put("service.name", this.serviceDescription.getName());
+
+        if (this.serviceDescription.getParameters() == null) {
+            replaceMap.put("config.interface", "Void");
+        } else {
+            replaceMap.put("config.interface", PluginUtils.configInterfaceClass(this.serviceDescription));
+            final Set<String> parameterDefinitions = new HashSet<>();
+            for (final Parameter param : this.serviceDescription.getParameters()) {
+                parameterDefinitions.add(String.format("    public %s get%s();",
+                        param.getType().getJavaTypeName(),
+                        PluginUtils.getParameterName(param)));
+            }
+            replaceMap.put("config.definitions", String.join("\n\n", parameterDefinitions));
+        }
 
         // Build replaceMaps for the manager
         if (itf != null) {
@@ -257,10 +288,14 @@ public class Templates {
 
             // Add imports for the handlers
             final Set<String> imports = new HashSet<>();
+            final Set<String> messageSet = new HashSet<>();
+            messageSet.addAll(version.getReceives());
+            messageSet.addAll(version.getSends());
+
             if (version.getType().equals(Type.PROTO)) {
                 replaceMap.put("vitf.serializer", "ProtobufMessageSerializer");
 
-                for (final String type : version.getReceives()) {
+                for (final String type : messageSet) {
                     imports.add(String.format("import %s.%s.%s.%sProto.%s;",
                             this.servicePackage,
                             packageName,
@@ -271,7 +306,7 @@ public class Templates {
             } else if (version.getType().equals(Type.XSD)) {
                 replaceMap.put("vitf.serializer", "XSDMessageSerializer");
 
-                for (final String type : version.getReceives()) {
+                for (final String type : messageSet) {
                     imports.add(String.format("import %s.%s.%s.*;",
                             this.servicePackage,
                             packageName,

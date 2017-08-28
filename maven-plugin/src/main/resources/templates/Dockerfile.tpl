@@ -7,6 +7,7 @@ FROM {{from}}
 COPY ${project.artifactId}-${project.version}-jar-with-dependencies.jar /
 
 LABEL org.flexiblepower.serviceName="{{service.name}}" 
-LABEL org.flexiblepower.interfaces='{{interfaces}}' 
+LABEL org.flexiblepower.parameters='{{parameters}}'
+LABEL org.flexiblepower.interfaces='{{interfaces}}'
 
 ENTRYPOINT java -jar $JVM_ARGUMENTS /${project.artifactId}-${project.version}-jar-with-dependencies.jar

@@ -13,7 +13,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
+import org.flexiblepower.model.Parameter;
 import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription;
 import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
@@ -43,16 +45,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class PluginTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
-    private final File inputFile;
-
-    public PluginTest() {
-        this.inputFile = new File("src/test/resources/service.json");
-    }
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @Test
     public void testGenerate() throws JsonParseException, JsonMappingException, IOException {
-        final ServiceDescription descr = PluginTest.mapper.readValue(this.inputFile, ServiceDescription.class);
+        final File inputFile = new File("src/test/resources/service.json");
+        final ServiceDescription descr = this.mapper.readValue(inputFile, ServiceDescription.class);
 
         final Map<String, String> hashes = new HashMap<>();
         hashes.put("EchoInterface_v001", "1");
@@ -67,10 +65,11 @@ public class PluginTest {
 
     @Test
     public void testSchemaValidation() throws ProcessingException, IOException {
+        final File inputFile = new File("src/test/resources/service.json");
         final URL schemaURL = this.getClass().getClassLoader().getResource("schema.json");
 
         final JsonNode schemaNode = JsonLoader.fromURL(schemaURL);
-        final JsonNode data = JsonLoader.fromFile(this.inputFile);
+        final JsonNode data = JsonLoader.fromFile(inputFile);
 
         final JsonSchemaFactory factory = JsonSchemaFactory.byDefault();
         final JsonSchema schema = factory.getJsonSchema(schemaNode);
@@ -84,7 +83,7 @@ public class PluginTest {
     @Test
     public void testComputeHashes() throws JsonParseException, JsonMappingException, IOException {
         final File hashTestFile = new File("src/test/resources/hashes.json");
-        final ServiceDescription descr = PluginTest.mapper.readValue(hashTestFile, ServiceDescription.class);
+        final ServiceDescription descr = this.mapper.readValue(hashTestFile, ServiceDescription.class);
 
         final Map<String, String> protoHash = new HashMap<>();
         protoHash.put("EchoInterface_v001", "123");
@@ -105,6 +104,18 @@ public class PluginTest {
         Assert.assertEquals("twee_woorden", PluginUtils.toPackageName("Twee Woorden"));
         Assert.assertEquals("_00zomaar_iets", PluginUtils.toPackageName("00*zomaar iets"));
         Assert.assertEquals("_raar", PluginUtils.toPackageName("_ra@(>=<)ar)"));
+    }
+
+    @Test
+    public void testConfiguration() throws Exception {
+        final File inputFile = new File("src/test/resources/config.json");
+        final ServiceDescription descr = this.mapper.readValue(inputFile, ServiceDescription.class);
+        final Set<Parameter> config = descr.getParameters();
+        PluginTest.log.info(config.toString());
+
+        final Map<String, String> hashes = Collections.singletonMap("ConfigurableService_004", "987");
+        final Templates t = new Templates("test.config", "", "", descr, hashes);
+        PluginTest.log.info(t.generateConfigInterface());
     }
 
 }

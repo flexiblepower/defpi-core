@@ -5,6 +5,10 @@
  */
 package org.flexiblepower.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,9 +25,10 @@ import lombok.ToString;
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Parameter {
 
-    enum Type {
+    public enum Type {
         BOOLEAN,
         BYTE,
         CHAR,
@@ -32,18 +37,33 @@ public class Parameter {
         LONG,
         FLOAT,
         DOUBLE,
-        STRING
+        STRING;
+
+        @JsonValue
+        public String getKey() {
+            return this.name().toLowerCase();
+        }
+
+        public String getJavaTypeName() {
+            if (this.equals(STRING)) {
+                return "String";
+            } else {
+                return this.name().toLowerCase();
+            }
+        }
     }
 
     private String id;
     private String name;
-    private Type getType;
+    private Type type;
+
     private boolean isArray;
     private boolean isOptional;
 
-    private String[] optionValues;
-    private String[] optionLabel;
+    private String[] values;
+    private String[] labels;
 
-    private String getDefaultValue;
+    @JsonProperty("default")
+    private String defaultValue;
 
 }
