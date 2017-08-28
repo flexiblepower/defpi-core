@@ -100,10 +100,14 @@ public final class ServiceMain {
         }
 
         for (final Class<? extends ConnectionHandler> handlerClass : set) {
+            if (!handlerClass.isInterface()) {
+                continue;
+            }
+
             try {
                 final InterfaceInfo info = handlerClass.getAnnotation(InterfaceInfo.class);
                 if (info == null) {
-                    ServiceMain.log.debug("Missing @InterfaceInfo annotation on {}, skipping", handlerClass);
+                    ServiceMain.log.warn("Missing @InterfaceInfo annotation on {}, skipping", handlerClass);
                     continue;
                 }
 

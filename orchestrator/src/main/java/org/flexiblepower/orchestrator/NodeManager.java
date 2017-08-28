@@ -31,6 +31,7 @@ import com.spotify.docker.client.messages.swarm.Node;
  * @version 0.1
  * @since May 1, 2017
  */
+@SuppressWarnings("static-method")
 public class NodeManager {
 
     private static final long ALLOWED_CACHE_TIME_MS = 60000;

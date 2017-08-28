@@ -11,7 +11,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.util.Set;
 
+import org.flexiblepower.model.Parameter;
 import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription;
 import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
@@ -26,6 +28,7 @@ import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
 public class PluginUtils {
 
     private static final String SERVICE_SUFFIX = "";
+    private static final String CONFIG_SUFFIX = "Configuration";
     private static final String HANDLER_SUFFIX = "ConnectionHandler";
     private static final String HANDLER_IMPL_SUFFIX = "ConnectionHandlerImpl";
     private static final String MANAGER_SUFFIX = "ConnectionManager";
@@ -53,6 +56,14 @@ public class PluginUtils {
 
     public static String serviceImplClass(final ServiceDescription d) {
         return PluginUtils.camelCaps(d.getName()) + PluginUtils.SERVICE_SUFFIX;
+    }
+
+    public static String configInterfaceClass(final ServiceDescription d) {
+        return PluginUtils.camelCaps(d.getName()) + PluginUtils.CONFIG_SUFFIX;
+    }
+
+    public static String getParameterName(final Parameter param) {
+        return PluginUtils.camelCaps(param.getName());
     }
 
     public static String connectionHandlerInterface(final InterfaceDescription itf,
@@ -107,6 +118,14 @@ public class PluginUtils {
 
         // Return a cleaned-up string
         return ret.toString().replaceAll("[^a-zA-Z0-9_]", "");
+    }
+
+    public static String getHash(final InterfaceVersionDescription vitf, final Set<String> messageSet) {
+        String baseHash = vitf.getHash();
+        for (final String key : messageSet) {
+            baseHash += ";" + key;
+        }
+        return PluginUtils.SHA256(baseHash);
     }
 
     public static String SHA256(final String body) {

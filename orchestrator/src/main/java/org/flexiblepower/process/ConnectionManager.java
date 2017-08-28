@@ -36,6 +36,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since Jul 24, 2017
  */
 @Slf4j
+@SuppressWarnings("static-method")
 public class ConnectionManager {
 
     private static ConnectionManager instance;
@@ -78,8 +79,9 @@ public class ConnectionManager {
      * @throws ProcessNotFoundException
      * @throws ConnectionException
      */
-    public void createConnection(final Connection connection)
-            throws ProcessNotFoundException, ServiceNotFoundException, ConnectionException {
+    public void createConnection(final Connection connection) throws ProcessNotFoundException,
+            ServiceNotFoundException,
+            ConnectionException {
         ConnectionManager.validateConnection(connection);
         ConnectionManager.validateMultipleConnect(connection);
 
@@ -95,14 +97,16 @@ public class ConnectionManager {
                 .submit(new CreateConnectionEndpoint(process1.getUserId(), connection, connection.getEndpoint2()));
     }
 
-    private static void validateMultipleConnect(final Connection newConnection)
-            throws ProcessNotFoundException, ServiceNotFoundException, ConnectionException {
+    private static void validateMultipleConnect(final Connection newConnection) throws ProcessNotFoundException,
+            ServiceNotFoundException,
+            ConnectionException {
         ConnectionManager.validateMultipleConnect(newConnection.getEndpoint1());
         ConnectionManager.validateMultipleConnect(newConnection.getEndpoint2());
     }
 
-    private static void validateMultipleConnect(final Connection.Endpoint endpoint)
-            throws ServiceNotFoundException, ProcessNotFoundException, ConnectionException {
+    private static void validateMultipleConnect(final Connection.Endpoint endpoint) throws ServiceNotFoundException,
+            ProcessNotFoundException,
+            ConnectionException {
         final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
         final Service service = ServiceManager.getInstance().getService(process.getServiceId());
         final Interface intface = service.getInterface(endpoint.getInterfaceId());
@@ -266,8 +270,8 @@ public class ConnectionManager {
                                 try {
                                     ConnectionManager.getInstance().createConnection(connection);
                                 } catch (final ProcessNotFoundException e) {
-                                    ConnectionManager.log
-                                            .warn("Could not find process while creating an autoconnect connection for interface "
+                                    ConnectionManager.log.warn(
+                                            "Could not find process while creating an autoconnect connection for interface "
                                                     + intface.getId() + ", ignoring.");
                                 } catch (final ConnectionException e) {
                                     // This new connection violates one of the constraints. So its not suited for

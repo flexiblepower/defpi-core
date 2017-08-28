@@ -15,6 +15,7 @@ import java.util.Set;
 
 import org.flexiblepower.model.Interface;
 import org.flexiblepower.model.InterfaceVersion;
+import org.flexiblepower.model.Parameter;
 import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription.Type;
@@ -38,19 +39,16 @@ public class Templates {
     private final String protobufOutputPackage;
     private final String xsdOutputPackage;
     private final ServiceDescription serviceDescription;
-    private final Map<String, String> hashes;
     private final ObjectMapper mapper = new ObjectMapper();
 
     public Templates(final String targetPackage,
             final String protobufOutputPackage,
             final String xsdOutputPackage,
-            final ServiceDescription descr,
-            final Map<String, String> hashes) {
+            final ServiceDescription descr) {
         this.servicePackage = targetPackage;
         this.protobufOutputPackage = protobufOutputPackage;
         this.xsdOutputPackage = xsdOutputPackage;
         this.serviceDescription = descr;
-        this.hashes = hashes;
     }
 
     /**
@@ -58,6 +56,14 @@ public class Templates {
      */
     public String generateServiceImplementation() throws IOException {
         return this.generate("ServiceImplementation", null, null);
+    }
+
+    /**
+     * @return
+     * @throws IOException
+     */
+    public String generateConfigInterface() throws IOException {
+        return this.generate("ConfigInterface", null, null);
     }
 
     /**
@@ -109,14 +115,33 @@ public class Templates {
     public String generateDockerfile(final String platform, final ServiceDescription service)
             throws JsonProcessingException,
             IOException {
+        final Map<String, String> replace = new HashMap<>();
+        if (platform.equals("x86")) {
+            replace.put("from", "java:alpine");
+        } else {
+            replace.put("from", "larmog/armhf-alpine-java:jdk-8u73");
+        }
+
+        replace.put("service.name", service.getName());
+
+        final ObjectWriter writer = Templates.PRETTY_PRINT_JSON ? this.mapper.writerWithDefaultPrettyPrinter()
+                : this.mapper.writer();
+
+        final Set<Parameter> parameters = service.getParameters();
+        if (parameters == null) {
+            replace.put("parameters", "null");
+        } else {
+            replace.put("parameters", writer.writeValueAsString(parameters).replaceAll("\n", " \\\\ \n"));
+        }
+
         final Set<InterfaceDescription> input = service.getInterfaces();
 
         final Set<Interface> serviceInterfaces = new HashSet<>();
         for (final InterfaceDescription descr : input) {
             final List<InterfaceVersion> versionList = new ArrayList<>();
             for (final InterfaceVersionDescription ivd : descr.getInterfaceVersions()) {
-                final String sendHash = this.getHash(descr, ivd, ivd.getSends());
-                final String recvHash = this.getHash(descr, ivd, ivd.getReceives());
+                final String sendHash = PluginUtils.getHash(ivd, ivd.getSends());
+                final String recvHash = PluginUtils.getHash(ivd, ivd.getReceives());
                 versionList.add(new InterfaceVersion(ivd.getVersionName(), recvHash, sendHash));
             }
             serviceInterfaces.add(new Interface(null,
@@ -127,16 +152,6 @@ public class Templates {
                     descr.isAutoConnect()));
         }
 
-        final Map<String, String> replace = new HashMap<>();
-        if (platform.equals("x86")) {
-            replace.put("from", "java:alpine");
-        } else {
-            replace.put("from", "larmog/armhf-alpine-java:jdk-8u73");
-        }
-
-        replace.put("service.name", service.getName());
-        final ObjectWriter writer = Templates.PRETTY_PRINT_JSON ? this.mapper.writerWithDefaultPrettyPrinter()
-                : this.mapper.writer();
         final String interfaces = writer.writeValueAsString(serviceInterfaces);
         // final String encoded = Base64.getEncoder().encodeToString(interfaces.getBytes());
         replace.put("interfaces", interfaces.replaceAll("\n", " \\\\ \n"));
@@ -168,6 +183,19 @@ public class Templates {
         replaceMap.put("service.class", PluginUtils.serviceImplClass(this.serviceDescription));
         replaceMap.put("service.version", this.serviceDescription.getVersion());
         replaceMap.put("service.name", this.serviceDescription.getName());
+
+        if (this.serviceDescription.getParameters() == null) {
+            replaceMap.put("config.interface", "Void");
+        } else {
+            replaceMap.put("config.interface", PluginUtils.configInterfaceClass(this.serviceDescription));
+            final Set<String> parameterDefinitions = new HashSet<>();
+            for (final Parameter param : this.serviceDescription.getParameters()) {
+                parameterDefinitions.add(String.format("    public %s get%s();",
+                        param.getType().getJavaTypeName(),
+                        PluginUtils.getParameterName(param)));
+            }
+            replaceMap.put("config.definitions", String.join("\n\n", parameterDefinitions));
+        }
 
         // Build replaceMaps for the manager
         if (itf != null) {
@@ -227,8 +255,8 @@ public class Templates {
             replaceMap.put("itf.name", itf.getName());
             replaceMap.put("vitf.version", version.getVersionName());
             replaceMap.put("vitf.package", packageName);
-            replaceMap.put("vitf.receivesHash", this.getHash(itf, version, version.getReceives()));
-            replaceMap.put("vitf.sendsHash", this.getHash(itf, version, version.getSends()));
+            replaceMap.put("vitf.receivesHash", PluginUtils.getHash(version, version.getReceives()));
+            replaceMap.put("vitf.sendsHash", PluginUtils.getHash(version, version.getSends()));
 
             final Set<String> recvClasses = new HashSet<>();
             for (final String type : version.getReceives()) {
@@ -257,27 +285,19 @@ public class Templates {
 
             // Add imports for the handlers
             final Set<String> imports = new HashSet<>();
+            final Set<String> messageSet = new HashSet<>();
+            messageSet.addAll(version.getReceives());
+            messageSet.addAll(version.getSends());
+
             if (version.getType().equals(Type.PROTO)) {
                 replaceMap.put("vitf.serializer", "ProtobufMessageSerializer");
 
-                for (final String type : version.getReceives()) {
-                    imports.add(String.format("import %s.%s.%s.%sProto.%s;",
-                            this.servicePackage,
-                            packageName,
-                            this.protobufOutputPackage,
-                            versionedName,
-                            type));
+                for (final String type : messageSet) {
+                    imports.add(String.format("import %s.%s;", version.getModelPackageName(), type));
                 }
             } else if (version.getType().equals(Type.XSD)) {
                 replaceMap.put("vitf.serializer", "XSDMessageSerializer");
-
-                for (final String type : version.getReceives()) {
-                    imports.add(String.format("import %s.%s.%s.*;",
-                            this.servicePackage,
-                            packageName,
-                            this.xsdOutputPackage,
-                            type));
-                }
+                imports.add(String.format("import %s.*;", version.getModelPackageName()));
             }
 
             replaceMap.put("vitf.handler.imports", String.join("\n", imports));
@@ -317,18 +337,6 @@ public class Templates {
             }
         }
         return ret;
-    }
-
-    String getHash(final InterfaceDescription itf, final InterfaceVersionDescription vitf, final Set<String> set) {
-        final String versionedName = PluginUtils.getVersionedName(itf, vitf);
-        if (this.hashes.containsKey(versionedName)) {
-            String baseHash = this.hashes.get(versionedName);
-            for (final String key : set) {
-                baseHash += ";" + key;
-            }
-            return PluginUtils.SHA256(baseHash);
-        }
-        throw new RuntimeException("Could not get hash for " + versionedName);
     }
 
 }

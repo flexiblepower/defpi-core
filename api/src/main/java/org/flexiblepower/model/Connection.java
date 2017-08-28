@@ -10,79 +10,79 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.Value;
 
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter
+@Value
 @Entity
+@AllArgsConstructor
+@NoArgsConstructor(force = true)
 public class Connection {
 
-	@Embedded
-	@Getter
-	@NoArgsConstructor
-	@EqualsAndHashCode
-	public static class Endpoint {
+    @Data
+    @Embedded
+    public static class Endpoint {
 
-		public Endpoint(ObjectId processId, String interfaceId) {
-			this.processId = processId;
-			this.interfaceId = interfaceId;
-		}
+        public Endpoint(final ObjectId processId, final String interfaceId) {
+            this.processId = processId;
+            this.interfaceId = interfaceId;
+        }
 
-		@JsonSerialize(using = ToStringSerializer.class)
-		@JsonDeserialize(using = ObjectIdDeserializer.class)
-		private ObjectId processId;
+        @JsonSerialize(using = ToStringSerializer.class)
+        @JsonDeserialize(using = ObjectIdDeserializer.class)
+        private final ObjectId processId;
 
-		private String interfaceId;
+        private final String interfaceId;
 
-		/**
-		 * The version that is actually used. The value is set by the
-		 * ConnectionManager.
-		 */
-		@Setter
-		private String interfaceVersionName;
+        /**
+         * The version that is actually used. The value is set by the
+         * ConnectionManager.
+         */
+        private String interfaceVersionName;
 
-		/**
-		 * The port that the process will listen for incoming connections on.
-		 * The value is set by the ConnectionManager.
-		 */
-		@Setter
-		private int listenPort;
+        /**
+         * The port that the process will listen for incoming connections on.
+         * The value is set by the ConnectionManager.
+         */
+        private int listenPort;
 
-	}
+        @Override
+        public String toString() {
+            return String.format("Endpoint [processId=%s, listenPort=%s]", this.processId, this.listenPort);
+        }
 
-	@Id
-	@JsonSerialize(using = ToStringSerializer.class)
-	@JsonDeserialize(using = ObjectIdDeserializer.class)
-	private ObjectId id = null;
+    }
 
-	@Embedded
-	private Endpoint endpoint1;
+    @Id
+    @JsonSerialize(using = ToStringSerializer.class)
+    @JsonDeserialize(using = ObjectIdDeserializer.class)
+    private ObjectId id;
 
-	@Embedded
-	private Endpoint endpoint2;
+    @Embedded
+    private Endpoint endpoint1;
 
-	public Endpoint getOtherEndpoint(Endpoint e) {
-		if (e.equals(endpoint1)) {
-			return endpoint2;
-		} else if (e.equals(endpoint2)) {
-			return endpoint1;
-		} else {
-			throw new IllegalArgumentException("The provided endpoint is not part of this connection");
-		}
-	}
+    @Embedded
+    private Endpoint endpoint2;
 
-	public Endpoint getEndpointForProcess(ObjectId processId) {
-		if (processId.equals(endpoint1.getProcessId())) {
-			return endpoint1;
-		} else if (processId.equals(endpoint2.getProcessId())) {
-			return endpoint2;
-		} else {
-			throw new IllegalArgumentException("The provided processId is not part of this connection");
-		}
-	}
+    public Endpoint getOtherEndpoint(final Endpoint e) {
+        if (e.equals(this.endpoint1)) {
+            return this.endpoint2;
+        } else if (e.equals(this.endpoint2)) {
+            return this.endpoint1;
+        } else {
+            throw new IllegalArgumentException("The provided endpoint is not part of this connection");
+        }
+    }
+
+    public Endpoint getEndpointForProcess(final ObjectId processId) {
+        if (processId.equals(this.endpoint1.getProcessId())) {
+            return this.endpoint1;
+        } else if (processId.equals(this.endpoint2.getProcessId())) {
+            return this.endpoint2;
+        } else {
+            throw new IllegalArgumentException("The provided processId is not part of this connection");
+        }
+    }
 
 }

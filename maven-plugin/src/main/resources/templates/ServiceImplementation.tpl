@@ -18,7 +18,7 @@ import org.flexiblepower.service.Service;
  * @author {{username}}
  */
 @Generated(value = "{{generator}}", date = "{{date}}")
-public class {{service.class}} implements Service {
+public class {{service.class}} implements Service<{{config.interface}}> {
 		
 	@Override
 	public void resumeFrom(Serializable state) {
@@ -27,13 +27,13 @@ public class {{service.class}} implements Service {
 	}
 
 	@Override
-	public void init(Properties props) {
+	public void init({{config.interface}} config) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public void modify(Properties props) {
+	public void modify({{config.interface}} config) {
 		// TODO Auto-generated method stub
 	}
 

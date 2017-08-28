@@ -11,9 +11,6 @@ import java.util.List;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
-import org.flexiblepower.connectors.ProcessConnector;
-import org.flexiblepower.model.Connection;
-import org.flexiblepower.model.Connection.Endpoint;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Service;
@@ -126,16 +123,15 @@ public class ProcessIntegrationTest {
         client.close();
 
         Assert.assertFalse(servicesForP1.isEmpty());
-        Assert.assertFalse(servicesForP1.isEmpty());
+        Assert.assertFalse(servicesForP2.isEmpty());
 
         // Creating a connection can only be done when started as a container. From JUnit test, we cannot access the
         // user-net
-
-        final Connection connection = new Connection(null,
-                new Endpoint(process1.getId(), "Echo"),
-                new Endpoint(process1.getId(), "Echo"));
-        Assert.assertTrue(
-                ProcessConnector.getInstance().createConnectionEndpoint(connection, connection.getEndpoint1()));
+        // final Connection connection = new Connection(null,
+        // new Endpoint(process1.getId(), "Echo"),
+        // new Endpoint(process1.getId(), "Echo"));
+        // Assert.assertTrue(
+        // ProcessConnector.getInstance().createConnectionEndpoint(connection, connection.getEndpoint1()));
     }
 
     @After

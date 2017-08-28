@@ -4,51 +4,51 @@ import java.util.List;
 
 import org.mongodb.morphia.annotations.Embedded;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
-@Getter
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.Value;
+
+@Value
 @Embedded
 @AllArgsConstructor
-@NoArgsConstructor
+@NoArgsConstructor(force = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Interface {
 
-	private String id;
+    private final String id;
+    private final String name;
+    private final String serviceId;
 
-	private String name = null;
+    @Embedded
+    private final List<InterfaceVersion> interfaceVersions;
 
-	private String serviceId = null;
+    private final boolean allowMultiple;
+    private final boolean autoConnect;
 
-	@Embedded
-	private List<InterfaceVersion> interfaceVersions = null;
+    public boolean isCompatibleWith(final Interface other) {
+        if (this.interfaceVersions != null) {
+            for (final InterfaceVersion iv : this.interfaceVersions) {
+                for (final InterfaceVersion oiv : other.getInterfaceVersions()) {
+                    if (iv.isCompatibleWith(oiv)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
 
-	private boolean allowMultiple = false;
-
-	private boolean autoConnect = false;
-
-	public boolean isCompatibleWith(Interface other) {
-		if (interfaceVersions != null) {
-			for (InterfaceVersion iv : interfaceVersions) {
-				for (InterfaceVersion oiv : other.getInterfaceVersions()) {
-					if (iv.isCompatibleWith(oiv)) {
-						return true;
-					}
-				}
-			}
-		}
-		return false;
-	}
-
-	public InterfaceVersion getInterfaceVersionByName(String name) {
-		if (interfaceVersions != null) {
-			for (InterfaceVersion iv : interfaceVersions) {
-				if (name.equals(iv.getVersionName())) {
-					return iv;
-				}
-			}
-		}
-		return null;
-	}
+    public InterfaceVersion getInterfaceVersionByName(final String interfaceName) {
+        if (this.interfaceVersions != null) {
+            for (final InterfaceVersion iv : this.interfaceVersions) {
+                if (interfaceName.equals(iv.getVersionName())) {
+                    return iv;
+                }
+            }
+        }
+        return null;
+    }
 
 }

@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -26,8 +27,9 @@ import lombok.Setter;
  * @since 20 mrt. 2017
  */
 @Getter
-@AllArgsConstructor
 @Entity
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
 
     private static final String SALT = "$salt@\"[3.c*%t<RBYA?,N\"2%[})X";
@@ -52,10 +54,6 @@ public class User {
     @Setter
     private boolean admin = false;
 
-    public User() {
-        // Empty user for morphia
-    }
-
     public User(final String userName, final String userPass) {
         this.username = userName;
         this.password = userPass;
@@ -74,11 +72,6 @@ public class User {
         }
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see java.lang.Object#toString()
-     */
     @Override
     public String toString() {
         return "User [id=" + this.id + ", name=" + this.username + (this.email != null ? ", email=" + this.email : "")
@@ -103,12 +96,26 @@ public class User {
     }
 
     @Override
-    public boolean equals(Object other) {
-    	if (other instanceof User) {
-    		return ((User) other).id == id;
-    	} else {
-    		return super.equals(other);
-    	}
+    public boolean equals(final Object other) {
+        if (other instanceof User) {
+            final User otherUser = (User) other;
+            if ((this.id == null) && (otherUser.id == null)) {
+                return this.username.equals(otherUser.username);
+            } else {
+                return ((User) other).id == this.id;
+            }
+        } else {
+            return super.equals(other);
+        }
     }
-    
+
+    @Override
+    public int hashCode() {
+        if (this.id != null) {
+            return this.id.hashCode();
+        } else {
+            return this.username.hashCode();
+        }
+    }
+
 }

@@ -14,15 +14,13 @@ import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.Process;
-import org.flexiblepower.model.Process.Parameter;
+import org.flexiblepower.model.Process.ProcessParameter;
 import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.NodeManager;
 import org.flexiblepower.orchestrator.ServiceManager;
 import org.flexiblepower.orchestrator.UserManager;
 import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * ProcessManager
@@ -31,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
  * @version 0.1
  * @since May 29, 2017
  */
-@Slf4j
+@SuppressWarnings("static-method")
 public class ProcessManager {
 
     private static ProcessManager instance = null;
@@ -204,7 +202,7 @@ public class ProcessManager {
      * @param newConfiguration
      * @return
      */
-    private void updateConfiguration(final Process process, final List<Parameter> newConfiguration) {
+    private void updateConfiguration(final Process process, final List<ProcessParameter> newConfiguration) {
         final ChangeProcessConfiguration pendingChange = new ChangeProcessConfiguration(process.getUserId(),
                 process.getId(),
                 newConfiguration);

@@ -36,8 +36,8 @@ public class ObjectIdDeserializer extends StdDeserializer<ObjectId> {
      * com.fasterxml.jackson.databind.DeserializationContext)
      */
     @Override
-    public ObjectId deserialize(final JsonParser p, final DeserializationContext ctxt)
-            throws IOException, JsonProcessingException {
+    public ObjectId deserialize(final JsonParser p, final DeserializationContext ctxt) throws IOException,
+            JsonProcessingException {
         return new ObjectId(p.getValueAsString());
     }
 

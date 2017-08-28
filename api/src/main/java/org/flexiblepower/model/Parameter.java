@@ -5,6 +5,15 @@
  */
 package org.flexiblepower.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
 /**
  * Parameter
  *
@@ -12,29 +21,49 @@ package org.flexiblepower.model;
  * @version 0.1
  * @since Apr 24, 2017
  */
-public interface Parameter {
+@Getter
+@ToString
+@NoArgsConstructor
+@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class Parameter {
 
-    enum Type {
+    public enum Type {
         BOOLEAN,
+        BYTE,
+        CHAR,
+        SHORT,
         INTEGER,
+        LONG,
         FLOAT,
-        STRING
+        DOUBLE,
+        STRING;
+
+        @JsonValue
+        public String getKey() {
+            return this.name().toLowerCase();
+        }
+
+        public String getJavaTypeName() {
+            if (this.equals(STRING)) {
+                return "String";
+            } else {
+                return this.name().toLowerCase();
+            }
+        }
     }
 
-    String getId();
+    private String id;
+    private String name;
+    private Type type;
 
-    String getName();
+    private boolean isArray;
+    private boolean isOptional;
 
-    Type getType();
+    private String[] values;
+    private String[] labels;
 
-    boolean isArray();
-
-    boolean isOptional();
-
-    String[] optionValues();
-
-    String[] optionLabels();
-
-    String getDefaultValue();
+    @JsonProperty("default")
+    private String defaultValue;
 
 }

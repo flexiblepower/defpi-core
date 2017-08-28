@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 import lombok.Getter;
+import lombok.ToString;
 
 /**
  * NodePool
@@ -23,6 +24,7 @@ import lombok.Getter;
  */
 @Entity
 @Getter
+@ToString
 public class NodePool {
 
     @Id

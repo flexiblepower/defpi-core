@@ -18,7 +18,7 @@ import org.flexiblepower.model.Connection.Endpoint;
 import org.flexiblepower.model.Interface;
 import org.flexiblepower.model.InterfaceVersion;
 import org.flexiblepower.model.Process;
-import org.flexiblepower.model.Process.Parameter;
+import org.flexiblepower.model.Process.ProcessParameter;
 import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.orchestrator.ServiceManager;
@@ -194,7 +194,7 @@ public class ProcessConnector {
      * @return
      * @throws ProcessNotFoundException
      */
-    public boolean updateConfiguration(final ObjectId processId, final List<Parameter> configuration)
+    public boolean updateConfiguration(final ObjectId processId, final List<ProcessParameter> configuration)
             throws ProcessNotFoundException {
         final ProcessConnection processConnection = this.getProcessConnection(processId);
         return processConnection == null ? false : processConnection.updateConfiguration(configuration);
@@ -347,7 +347,7 @@ public class ProcessConnector {
                     .setProcessId(process.getId().toString())
                     .setIsUpdate(false);
             if (process.getConfiguration() != null) {
-                for (final Parameter p : process.getConfiguration()) {
+                for (final ProcessParameter p : process.getConfiguration()) {
                     builder.putConfig(p.getKey(), p.getValue());
                 }
             }
@@ -383,11 +383,11 @@ public class ProcessConnector {
          * @param newConfiguration
          * @return true if successful, false in failed
          */
-        public boolean updateConfiguration(final List<Parameter> newConfiguration) {
+        public boolean updateConfiguration(final List<ProcessParameter> newConfiguration) {
             final Builder builder = SetConfigMessage.newBuilder()
                     .setProcessId(this.processId.toString())
                     .setIsUpdate(true);
-            for (final Parameter p : newConfiguration) {
+            for (final ProcessParameter p : newConfiguration) {
                 builder.putConfig(p.getKey(), p.getValue());
             }
             final SetConfigMessage msg = builder.build();

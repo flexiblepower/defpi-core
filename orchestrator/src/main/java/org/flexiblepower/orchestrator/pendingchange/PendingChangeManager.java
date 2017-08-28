@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since Aug 7, 2017
  */
 @Slf4j
+@SuppressWarnings("static-method")
 public class PendingChangeManager {
 
     private static final int NUM_THREADS = 16;

@@ -13,6 +13,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
  * Node
@@ -23,19 +25,17 @@ import lombok.Getter;
  */
 @Entity
 @Getter
+@NoArgsConstructor
+@ToString(callSuper = true)
 public class PrivateNode extends Node {
 
-	@JsonSerialize(using = ToStringSerializer.class)
-	@JsonDeserialize(using = ObjectIdDeserializer.class)
-	private ObjectId userId;
+    @JsonSerialize(using = ToStringSerializer.class)
+    @JsonDeserialize(using = ObjectIdDeserializer.class)
+    private ObjectId userId;
 
-	public PrivateNode() {
-		// for Morphia
-	}
-
-	public PrivateNode(final UnidentifiedNode unidentifiedNode, final User owner) {
-		super(unidentifiedNode.getDockerId(), unidentifiedNode.getHostname(), unidentifiedNode.getArchitecture());
-		this.userId = owner.getId();
-	}
+    public PrivateNode(final UnidentifiedNode unidentifiedNode, final User owner) {
+        super(unidentifiedNode.getDockerId(), unidentifiedNode.getHostname(), unidentifiedNode.getArchitecture());
+        this.userId = owner.getId();
+    }
 
 }

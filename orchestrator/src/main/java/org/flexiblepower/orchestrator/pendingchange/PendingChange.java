@@ -11,12 +11,15 @@ import org.mongodb.morphia.annotations.Indexes;
 
 import lombok.Getter;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @Entity("PendingChange") // All subclasses must have the exact same annotation!
 @Indexes({@Index(fields = @Field("state")), @Index(fields = @Field("runAt")), @Index(fields = @Field("obtainedAt"))})
 public abstract class PendingChange {
+
+    private static final int DEFAULT_MINIMUM_RETRY_INTERVAL_MILLISECONDS = 5000;
+    private static final int DEFAULT_MAXIMUM_RETRY_INTERVAL_MILLISECONDS = 21600;
+    private static final int DEFAULT_MAX_RETRY_COUNT = 1000;
+    private static final int DEFAULT_DELAY_MILLISECONDS = 0;
 
     public static enum Result {
         SUCCESS,
@@ -76,8 +79,9 @@ public abstract class PendingChange {
      *
      * @return number of milliseconds to wait before starting the task
      */
+    @SuppressWarnings("static-method")
     public long delayMs() {
-        return 0;
+        return PendingChange.DEFAULT_DELAY_MILLISECONDS;
     }
 
     /**
@@ -87,7 +91,8 @@ public abstract class PendingChange {
      * @return Time to wait before retrying in milliseconds.
      */
     public long retryIntervalMs() {
-        return Math.min(5000 + (2 ^ this.getCount()), 21600);
+        return Math.min(PendingChange.DEFAULT_MINIMUM_RETRY_INTERVAL_MILLISECONDS + (2 ^ this.getCount()),
+                PendingChange.DEFAULT_MAXIMUM_RETRY_INTERVAL_MILLISECONDS);
     }
 
     /**
@@ -96,8 +101,9 @@ public abstract class PendingChange {
      *
      * @return Number of times to try before failing permanently.
      */
+    @SuppressWarnings("static-method")
     public int maxRetryCount() {
-        return 1000;
+        return PendingChange.DEFAULT_MAX_RETRY_COUNT;
     }
 
     public abstract Result execute();

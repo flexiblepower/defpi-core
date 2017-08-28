@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -24,6 +25,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -61,6 +63,14 @@ public class InterfaceVersionDescription {
     @JsonProperty("receives")
     @JsonDeserialize(as = java.util.LinkedHashSet.class)
     private final Set<String> receives = null;
+
+    @Setter
+    @JsonIgnore
+    private String hash = null;
+
+    @Setter
+    @JsonIgnore
+    private String modelPackageName = null;
 
     public enum Type {
 

@@ -17,7 +17,7 @@ import java.util.Properties;
  * @version 0.1
  * @since Apr 24, 2017
  */
-public interface Service {
+public interface Service<T> {
 
     /**
      * This function is only called if this instance is the resumed version of an old process. It is called with the
@@ -34,17 +34,17 @@ public interface Service {
      * service is considered to be "running".
      *
      * @see #modify(Properties props)
-     * @param props
+     * @param config
      */
-    public void init(Properties props);
+    public void init(T config);
 
     /**
      * This function is called when the configuration changes during runtime. It may be called multiple times.
      *
      * @see #init(Properties props)
-     * @param props
+     * @param config
      */
-    public void modify(Properties props);
+    public void modify(T config);
 
     /**
      * Marks that this process is about to be suspended. This means the object *will* be destroyed, and may be

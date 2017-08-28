@@ -16,7 +16,7 @@ import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Connection.Endpoint;
 import org.flexiblepower.model.Process;
-import org.flexiblepower.model.Process.Parameter;
+import org.flexiblepower.model.Process.ProcessParameter;
 import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange;
 import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
@@ -33,8 +33,8 @@ import lombok.extern.slf4j.Slf4j;
  */
 public class MoveProcess {
 
-    @Entity("PendingChange")
     @Slf4j
+    @Entity("PendingChange")
     public static class SuspendConnection extends PendingChange {
 
         private Connection connection;
@@ -219,8 +219,8 @@ public class MoveProcess {
         }
     }
 
-    @Entity("PendingChange")
     @Slf4j
+    @Entity("PendingChange")
     public static class CreateDockerService extends PendingChange {
 
         private Process process;
@@ -281,7 +281,7 @@ public class MoveProcess {
                     return Result.FAILED_TEMPORARY;
                 }
             } catch (final ServiceNotFoundException e) {
-                SuspendConnection.log.error("Process {} not present in DB, fail permanently", this.process.getId());
+                CreateDockerService.log.error("Process {} not present in DB, fail permanently", this.process.getId());
                 return Result.FAILED_PERMANENTLY;
             }
         }
@@ -292,7 +292,7 @@ public class MoveProcess {
     public static class ResumeProcess extends PendingChange {
 
         private Process process;
-        private List<Parameter> configuration;
+        private List<ProcessParameter> configuration;
         private byte[] suspendState;
 
         public ResumeProcess() {

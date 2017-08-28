@@ -14,8 +14,12 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 /**
  * Node
@@ -25,53 +29,56 @@ import lombok.Setter;
  * @since 20 mrt. 2017
  */
 @Getter
+@ToString
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EqualsAndHashCode(exclude = {"lastSync", "status"})
 public abstract class Node {
 
-	public static enum DockerNodeStatus {
-		MISSING, UNKNOWN, DOWN, READY, DISCONNECTED;
+    public static enum DockerNodeStatus {
+        MISSING,
+        UNKNOWN,
+        DOWN,
+        READY,
+        DISCONNECTED;
 
-		public static DockerNodeStatus fromString(final String text) {
-			for (final DockerNodeStatus s : DockerNodeStatus.values()) {
-				if (s.toString().equalsIgnoreCase(text)) {
-					return s;
-				}
-			}
-			return UNKNOWN;
-		}
-	}
+        public static DockerNodeStatus fromString(final String text) {
+            for (final DockerNodeStatus s : DockerNodeStatus.values()) {
+                if (s.toString().equalsIgnoreCase(text)) {
+                    return s;
+                }
+            }
+            return UNKNOWN;
+        }
+    }
 
-	@Id
-	@JsonSerialize(using = ToStringSerializer.class)
-	@JsonDeserialize(using = ObjectIdDeserializer.class)
-	protected ObjectId id;
+    @Id
+    @JsonSerialize(using = ToStringSerializer.class)
+    @JsonDeserialize(using = ObjectIdDeserializer.class)
+    protected ObjectId id;
 
-	protected String dockerId;
+    protected String dockerId;
 
-	@Setter
-	protected String hostname;
+    @Setter
+    protected String hostname;
 
-	/**
-	 * The last time the status was retrieved from docker
-	 */
-	@Setter
-	protected Date lastSync;
+    /**
+     * The last time the status was retrieved from docker
+     */
+    @Setter
+    protected Date lastSync;
 
-	@Setter
-	protected DockerNodeStatus status;
+    @Setter
+    protected DockerNodeStatus status;
 
-	@Setter
-	protected Architecture architecture;
+    @Setter
+    protected Architecture architecture;
 
-	public Node() {
-		// for Morphia
-	}
-
-	public Node(final String dockerId, final String hostname, Architecture architecture) {
-		this.dockerId = dockerId;
-		this.hostname = hostname;
-		this.status = DockerNodeStatus.UNKNOWN;
-		this.architecture = architecture;
-		this.lastSync = new Date(); // now
-	}
+    public Node(final String dockerId, final String hostname, final Architecture architecture) {
+        this.dockerId = dockerId;
+        this.hostname = hostname;
+        this.status = DockerNodeStatus.UNKNOWN;
+        this.architecture = architecture;
+        this.lastSync = new Date(); // now
+    }
 
 }
