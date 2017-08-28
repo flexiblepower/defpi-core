@@ -122,7 +122,7 @@ public class ConnectionManager {
         final Interface interface1 = ServiceManager.getInstance()
                 .getInterfaceById(connection.getEndpoint1().getInterfaceId());
         final Interface interface2 = ServiceManager.getInstance()
-                .getInterfaceById(connection.getEndpoint1().getInterfaceId());
+                .getInterfaceById(connection.getEndpoint2().getInterfaceId());
         final ArrayList<InterfaceVersion> iface1 = new ArrayList<>(interface1.getInterfaceVersions());
         final ArrayList<InterfaceVersion> iface2 = new ArrayList<>(interface2.getInterfaceVersions());
         Collections.sort(iface1);

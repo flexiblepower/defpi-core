@@ -92,7 +92,7 @@ public class ProcessConnector {
 
         final Service service = ServiceManager.getInstance().getService(process.getServiceId());
 
-        final Interface intface = service.getInterface(connection.getEndpoint1().getInterfaceId());
+        final Interface intface = service.getInterface(endpoint.getInterfaceId());
         final InterfaceVersion interfaceVersion = intface.getInterfaceVersionByName(endpoint.getInterfaceVersionName());
 
         return pc.setUpConnection(connection.getId(),
