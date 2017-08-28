@@ -9,6 +9,8 @@ import java.io.Closeable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.channels.ClosedSelectorException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.concurrent.ExecutorService;
 
 import org.flexiblepower.exceptions.SerializationException;
@@ -83,7 +85,11 @@ final class ManagedConnection implements Connection, Closeable {
             throw new RuntimeException("Unable to instantiate connection serializer");
         }
 
-        for (final Class<?> messageType : this.info.receiveTypes()) {
+        // Add sending and receiving types to serializer, don't add them twice
+        final HashSet<Class<?>> classes = new HashSet<>();
+        classes.addAll(Arrays.asList(this.info.sendTypes()));
+        classes.addAll(Arrays.asList(this.info.receiveTypes()));
+        for (final Class<?> messageType : classes) {
             this.userMessageSerializer.addMessageClass(messageType);
         }
 
@@ -165,20 +171,29 @@ final class ManagedConnection implements Connection, Closeable {
             return;
         }
 
+        if (!Arrays.asList(this.info.sendTypes()).contains(message.getClass())) {
+            throw new IllegalArgumentException("The message type " + message.getClass().getName()
+                    + " was not registered to be sent with this interface.");
+        }
+
+        final byte[] data;
         try {
-            final byte[] data = this.serialize(message);
+            data = this.serialize(message);
+        } catch (final Exception e) {
+            ManagedConnection.log.error("Error while serializing message, not sending message.", e);
+            return;
+        }
+        try {
             if (!this.publishSocket.send(data)) {
                 ManagedConnection.log.warn("Failed to send message through socket, goto {}",
                         ConnectionState.INTERRUPTED);
                 this.goToInterruptedState();
             }
-        } catch (final SerializationException e) {
-            throw new IllegalArgumentException(e);
         } catch (final Exception e) {
-            ManagedConnection.log
-                    .error("Exception while sending message: {}, goto {}", e.getMessage(), ConnectionState.INTERRUPTED);
+            ManagedConnection.log.error("Exception while sending message: {}, goto {}",
+                    e.getMessage(),
+                    ConnectionState.INTERRUPTED);
             ManagedConnection.log.trace(e.getMessage(), e);
-            this.goToInterruptedState();
         }
 
     }
@@ -245,24 +260,7 @@ final class ManagedConnection implements Connection, Closeable {
             return (byte[]) message;
         }
 
-        if (!this.validateMessage(message)) {
-            throw new SerializationException("Unable to serialize message of type '"
-                    + message.getClass().getSimpleName() + "'. It is not defined in the interface");
-        }
-
         return this.userMessageSerializer.serialize(message);
-    }
-
-    /**
-     * @param message
-     */
-    private boolean validateMessage(final Object message) {
-        for (final Class<?> c : this.info.sendTypes()) {
-            if (c.isInstance(message)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
