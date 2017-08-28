@@ -168,6 +168,7 @@ final class ManagedConnection implements Connection, Closeable {
         }
 
         if (message == null) {
+            ManagedConnection.log.warn("send(Object message) method was called with null message, ignoring...");
             return;
         }
 
@@ -178,11 +179,15 @@ final class ManagedConnection implements Connection, Closeable {
 
         final byte[] data;
         try {
-            data = this.serialize(message);
+            data = this.userMessageSerializer.serialize(message);
         } catch (final Exception e) {
             ManagedConnection.log.error("Error while serializing message, not sending message.", e);
             return;
         }
+        this.sendRaw(data);
+    }
+
+    void sendRaw(final byte[] data) {
         try {
             if (!this.publishSocket.send(data)) {
                 ManagedConnection.log.warn("Failed to send message through socket, goto {}",
@@ -248,19 +253,6 @@ final class ManagedConnection implements Connection, Closeable {
             // Close this in another thread, because it sometimes locks the VM
             (new Thread(() -> this.zmqContext.close())).start();
         }
-    }
-
-    /**
-     * @param message
-     * @return
-     * @throws SerializationException
-     */
-    private byte[] serialize(final Object message) throws SerializationException {
-        if (message instanceof byte[]) {
-            return (byte[]) message;
-        }
-
-        return this.userMessageSerializer.serialize(message);
     }
 
     /**
