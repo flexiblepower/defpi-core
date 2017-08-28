@@ -65,7 +65,7 @@ public class HeartBeatMonitor implements Closeable {
         } else if (Arrays.equals(data, HeartBeatMonitor.PING) && this.connection.isConnected()) {
             // If pinged, respond with a pong
             HeartBeatMonitor.log.trace("PONG");
-            this.connection.send(HeartBeatMonitor.PONG);
+            this.connection.sendRaw(HeartBeatMonitor.PONG);
             return true;
         } else {
             return false;
@@ -84,18 +84,24 @@ public class HeartBeatMonitor implements Closeable {
 
         this.receivedPong = true;
         this.heartBeatFuture = this.executor.scheduleAtFixedRate(() -> {
-            if (!this.connection.isConnected()) {
-                return;
-            }
+            try {
+                if (!this.connection.isConnected()) {
+                    return;
+                }
 
-            if (this.receivedPong) {
-                this.receivedPong = false;
-                HeartBeatMonitor.log.trace("PING");
-                this.connection.send(HeartBeatMonitor.PING);
-            } else {
-                // If no PONG was received since the last PING, assume connection was interrupted!
-                HeartBeatMonitor.log.warn("No heartbeat received on connection, goto {}", ConnectionState.INTERRUPTED);
-                this.connection.goToInterruptedState();
+                if (this.receivedPong) {
+                    this.receivedPong = false;
+                    HeartBeatMonitor.log.trace("PING");
+                    this.connection.sendRaw(HeartBeatMonitor.PING);
+                } else {
+                    // If no PONG was received since the last PING, assume connection was interrupted!
+                    HeartBeatMonitor.log.warn("No heartbeat received on connection, goto {}",
+                            ConnectionState.INTERRUPTED);
+                    this.connection.goToInterruptedState();
+                }
+
+            } catch (final Exception e) {
+                HeartBeatMonitor.log.error("Error while sending heardbeat", e);
             }
         },
                 HeartBeatMonitor.HEARTBEAT_INITIAL_DELAY,

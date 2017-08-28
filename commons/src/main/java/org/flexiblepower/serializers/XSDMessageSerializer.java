@@ -32,6 +32,10 @@ public class XSDMessageSerializer implements MessageSerializer<Object> {
 
 	@Override
 	public byte[] serialize(final Object object) throws SerializationException {
+		if (!this.classes.values().contains(object.getClass())) {
+			throw new IllegalArgumentException(
+					"Message type " + object.getClass().getName() + " is not registered with this MessageSerializer");
+		}
 		try {
 			final Class<?> cls = this.classes.get(object.getClass().getName());
 			return this.serialize(object, cls);
