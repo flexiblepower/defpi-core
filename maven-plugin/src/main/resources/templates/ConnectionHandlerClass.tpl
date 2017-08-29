@@ -19,6 +19,8 @@ import org.flexiblepower.service.Connection;
 @Generated(value = "{{generator}}", date = "{{date}}")
 public class {{vitf.handler.class}} implements {{vitf.handler.interface}} {
 
+	private final Connection connection;
+
 	private final {{service.class}} service;
 
 	/**
@@ -27,6 +29,7 @@ public class {{vitf.handler.class}} implements {{vitf.handler.interface}} {
 	 * @param service The service for which to handle the connections
 	 */
 	public {{vitf.handler.class}}(Connection connection, {{service.class}} service) {
+		this.connection = connection;
 		this.service = service;
 	}
 
