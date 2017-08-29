@@ -12,7 +12,6 @@ import java.lang.reflect.Method;
 import java.nio.channels.ClosedSelectorException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -58,42 +57,29 @@ public class ServiceManager<T> implements Closeable {
      */
     private static final long SERVICE_IMPL_TIMEOUT_SECONDS = 5;
     public static final int MANAGEMENT_PORT = 4999;
+    private static int threadCount = 0;
 
-    private static ExecutorService serviceExecutor = Executors.newSingleThreadExecutor();
-
-    // private final Class<? extends Service> serviceClass;
-    private boolean configured;
-    private volatile boolean keepThreadAlive;
-    private String processId = "unknown";
+    private final ExecutorService serviceExecutor;
     private final Thread managerThread;
-
     private final ConnectionManager connectionManager;
-    private final Service<T> service;
-    private final Class<T> configClass;
     private final JavaIOSerializer javaIoSerializer = new JavaIOSerializer();
     private final ProtobufMessageSerializer pbSerializer = new ProtobufMessageSerializer();
     private final Socket managementSocket;
 
-    @SuppressWarnings("unchecked")
-    public ServiceManager() throws ServiceInvocationException {
-        this(ServiceMain.createInstance(ServiceManager.serviceExecutor));
-    }
+    private Service<T> managedService;
+    private Class<T> configClass;
+    private String processId = "unknown";
+    private boolean configured;
+
+    private volatile boolean keepThreadAlive;
 
     public ServiceManager(final Service<T> service) throws ServiceInvocationException {
-        this.service = service;
+        this();
+        this.start(service);
+    }
 
-        Class<T> clazz = null;
-        for (final Method m : this.service.getClass().getMethods()) {
-            if (m.getName().startsWith("init") && (m.getParameterTypes().length == 1)
-                    && (m.getParameterTypes()[0].isInterface())) {
-                clazz = (Class<T>) m.getParameterTypes()[0];
-                break;
-            }
-        }
-        if (clazz == null) {
-            throw new ServiceInvocationException("Unable to find init() method for configuration");
-        }
-        this.configClass = clazz;
+    public ServiceManager() {
+        this.serviceExecutor = ServiceMain.getServiceExecutor();
 
         this.connectionManager = new ConnectionManager();
         this.managementSocket = ZMQ.context(1).socket(ZMQ.REP);
@@ -150,8 +136,26 @@ public class ServiceManager<T> implements Closeable {
             ServiceManager.log.trace("End of thread");
             this.connectionManager.close();
             this.managementSocket.close();
-        }, "ServiceManager thread");
+        }, "dEF-Pi srvManThread-" + ServiceManager.threadCount++);
         this.managerThread.start();
+    }
+
+    @SuppressWarnings("unchecked")
+    public void start(final Service<T> service) throws ServiceInvocationException {
+        this.managedService = service;
+
+        Class<T> clazz = null;
+        for (final Method m : service.getClass().getMethods()) {
+            if (m.getName().startsWith("init") && (m.getParameterTypes().length == 1)
+                    && (m.getParameterTypes()[0].isInterface() || m.getParameterTypes()[0].equals(Void.class))) {
+                clazz = (Class<T>) m.getParameterTypes()[0];
+                break;
+            }
+        }
+        if (clazz == null) {
+            throw new ServiceInvocationException("Unable to find init() method for configuration");
+        }
+        this.configClass = clazz;
     }
 
     /**
@@ -168,13 +172,6 @@ public class ServiceManager<T> implements Closeable {
         } catch (final InterruptedException e) {
             ServiceManager.log.info("Interuption exception received, stopping...");
         }
-    }
-
-    /**
-     * @return the serviceExecutor
-     */
-    static ExecutorService getServiceExecutor() {
-        return ServiceManager.serviceExecutor;
     }
 
     @Override
@@ -195,7 +192,13 @@ public class ServiceManager<T> implements Closeable {
             ConnectionModificationException,
             SerializationException {
 
-        if (msg instanceof GoToProcessStateMessage) {
+        if (this.managedService == null) {
+            return ErrorMessage.newBuilder()
+                    .setDebugInformation(
+                            "User service has not instantiated yet, perhaps there is a problem in the constructor")
+                    .setProcessId(this.processId)
+                    .build();
+        } else if (msg instanceof GoToProcessStateMessage) {
             return this.handleGoToProcessStateMessage((GoToProcessStateMessage) msg);
         } else if (msg instanceof ResumeProcessMessage) {
             return this.handleResumeProcessMessage((ResumeProcessMessage) msg);
@@ -222,9 +225,9 @@ public class ServiceManager<T> implements Closeable {
         switch (message.getTargetState()) {
         case RUNNING:
             // This is basically a "force start" with no configuration
-            ServiceManager.serviceExecutor.submit(() -> {
+            this.serviceExecutor.submit(() -> {
                 try {
-                    this.service.init(null);
+                    this.managedService.init(null);
                 } catch (final Throwable t) {
                     ServiceManager.log.error("Error while calling init() without config", t);
                 }
@@ -232,9 +235,9 @@ public class ServiceManager<T> implements Closeable {
             ServiceManager.this.configured = true;
             return ServiceManager.this.createProcessStateUpdateMessage(ProcessState.RUNNING);
         case SUSPENDED:
-            final Future<Serializable> future = ServiceManager.serviceExecutor.submit(() -> {
+            final Future<Serializable> future = this.serviceExecutor.submit(() -> {
                 try {
-                    return this.service.suspend();
+                    return this.managedService.suspend();
                 } catch (final Throwable t) {
                     ServiceManager.log.error("Error while calling suspend()", t);
                     return null;
@@ -242,6 +245,7 @@ public class ServiceManager<T> implements Closeable {
             });
             this.connectionManager.close();
             this.keepThreadAlive = false;
+
             byte[] stateData = null;
             try {
                 stateData = this.javaIoSerializer
@@ -251,9 +255,9 @@ public class ServiceManager<T> implements Closeable {
             }
             return this.createProcessStateUpdateMessage(ProcessState.SUSPENDED, stateData);
         case TERMINATED:
-            ServiceManager.serviceExecutor.submit(() -> {
+            this.serviceExecutor.submit(() -> {
                 try {
-                    this.service.terminate();
+                    this.managedService.terminate();
                 } catch (final Throwable t) {
                     ServiceManager.log.error("Error while calling terminate()", t);
                 }
@@ -280,8 +284,8 @@ public class ServiceManager<T> implements Closeable {
         try {
             final Serializable state = msg.getStateData().isEmpty() ? null
                     : this.javaIoSerializer.deserialize(msg.getStateData().toByteArray());
-            future = ServiceManager.serviceExecutor.submit(() -> {
-                this.service.resumeFrom(state);
+            future = this.serviceExecutor.submit(() -> {
+                this.managedService.resumeFrom(state);
                 return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
             });
             return future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, ServiceManager.SECONDS);
@@ -313,12 +317,12 @@ public class ServiceManager<T> implements Closeable {
         this.processId = message.getProcessId();
         final T config = ServiceConfig.generateConfig(this.configClass, message.getConfigMap());
 
-        future = ServiceManager.serviceExecutor.submit(() -> {
+        future = this.serviceExecutor.submit(() -> {
             if (!this.configured) {
-                this.service.init(config);
+                this.managedService.init(config);
                 this.configured = true;
             } else {
-                this.service.modify(config);
+                this.managedService.modify(config);
             }
             return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
         });
@@ -353,12 +357,6 @@ public class ServiceManager<T> implements Closeable {
 
     private static ErrorMessage createErrorMessage(final String processId, final Exception e) {
         return ErrorMessage.newBuilder().setDebugInformation(e.getMessage()).setProcessId(processId).build();
-    }
-
-    @SuppressWarnings({"resource", "rawtypes"})
-    public static void main(final String[] args) throws ServiceInvocationException {
-        // Launch new service manager
-        (new ServiceManager()).join();
     }
 
 }

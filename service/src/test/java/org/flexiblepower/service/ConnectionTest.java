@@ -15,6 +15,7 @@ import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.serializers.JavaIOSerializer;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
+import org.flexiblepower.service.TestService.TestServiceConfiguration;
 import org.flexiblepower.service.exceptions.ServiceInvocationException;
 import org.junit.After;
 import org.junit.Assert;
@@ -53,7 +54,7 @@ public class ConnectionTest {
     private static final int TEST_SERVICE_TARGET_PORT = 5025;
 
     private TestService testService;
-    private ServiceManager manager;
+    private ServiceManager<TestServiceConfiguration> manager;
     private Socket managementSocket;
 
     private Socket out;
@@ -64,7 +65,7 @@ public class ConnectionTest {
     @Before
     public void initConnection() throws Exception {
         this.testService = new TestService();
-        this.manager = new ServiceManager(this.testService);
+        this.manager = new ServiceManager<>(this.testService);
 
         ConnectionManager.registerConnectionHandlerFactory(TestService.class, this.testService);
 

@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
@@ -34,6 +35,8 @@ public class HeartBeatMonitor implements Closeable {
     private static final byte[] PING = new byte[] {(byte) 0xA};
     private static final byte[] PONG = new byte[] {(byte) 0xB};
 
+    private static int threadCount = 0;
+
     private final ScheduledExecutorService executor;
     private final ManagedConnection connection;
 
@@ -42,7 +45,8 @@ public class HeartBeatMonitor implements Closeable {
 
     HeartBeatMonitor(final ManagedConnection c) {
         this.connection = c;
-        this.executor = Executors.newSingleThreadScheduledExecutor();
+        final ThreadFactory threadFactory = r -> new Thread(r, "dEF-Pi hbMonThread-" + HeartBeatMonitor.threadCount++);
+        this.executor = Executors.newSingleThreadScheduledExecutor(threadFactory);
     }
 
     /**

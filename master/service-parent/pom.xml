@@ -18,7 +18,7 @@
 		<protobuf.version>3.3.0</protobuf.version>
 
 		<!-- Main class for any service should be the main from the library -->
-		<mainClass>org.flexiblepower.service.ServiceManager</mainClass>
+		<mainClass>org.flexiblepower.service.ServiceMain</mainClass>
 
 		<docker.registry>defpi.hesilab.nl:5000</docker.registry>
 		<docker.imageName>${docker.registry}/services/${project.artifactId}</docker.imageName>
