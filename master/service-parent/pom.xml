@@ -5,7 +5,7 @@
 
 	<groupId>org.flexiblepower</groupId>
 	<artifactId>service-parent</artifactId>
-	<version>0.2.2-SNAPSHOT</version>
+	<version>0.2.3-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<properties>
@@ -14,13 +14,12 @@
 		<java.source>1.8</java.source>
 		<java.target>1.8</java.target>
 
-		<defpi.version>0.2.2-SNAPSHOT</defpi.version>
+		<defpi.version>${project.version}</defpi.version>
 		<protobuf.version>3.3.0</protobuf.version>
 
 		<!-- Main class for any service should be the main from the library -->
 		<mainClass>org.flexiblepower.service.ServiceManager</mainClass>
 
-		<!-- docker.registry>def-pi1.sensorlab.tno.nl:5000</docker.registry -->
 		<docker.registry>defpi.hesilab.nl:5000</docker.registry>
 		<docker.imageName>${docker.registry}/services/${project.artifactId}</docker.imageName>
 	</properties>

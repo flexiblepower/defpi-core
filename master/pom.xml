@@ -4,7 +4,7 @@
 
 	<groupId>org.flexiblepower</groupId>
 	<artifactId>master</artifactId>
-	<version>0.2.2-SNAPSHOT</version>
+	<version>0.2.3-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<properties>
