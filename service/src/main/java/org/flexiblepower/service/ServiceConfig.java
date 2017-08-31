@@ -67,14 +67,22 @@ public class ServiceConfig {
             final String rawValue = this.values.get(key);
             if (method.getReturnType().equals(String.class)) {
                 return rawValue;
+            } else if (method.getReturnType().equals(boolean.class)) {
+                return Boolean.parseBoolean(rawValue);
+            } else if (method.getReturnType().equals(byte.class)) {
+                return Byte.decode(rawValue);
+            } else if (method.getReturnType().equals(char.class)) {
+                return rawValue.isEmpty() ? (char) 0 : rawValue.charAt(0);
+            } else if (method.getReturnType().equals(short.class)) {
+                return Short.decode(rawValue);
             } else if (method.getReturnType().equals(int.class)) {
-                return Integer.parseInt(rawValue);
+                return Integer.decode(rawValue);
             } else if (method.getReturnType().equals(long.class)) {
-                return Integer.parseInt(rawValue);
+                return Long.decode(rawValue);
             } else if (method.getReturnType().equals(float.class)) {
-                return Integer.parseInt(rawValue);
+                return Float.parseFloat(rawValue);
             } else if (method.getReturnType().equals(double.class)) {
-                return Integer.parseInt(rawValue);
+                return Double.parseDouble(rawValue);
             } else {
                 throw new IllegalArgumentException(
                         "Unable to return parameter of type '" + method.getReturnType() + "'");

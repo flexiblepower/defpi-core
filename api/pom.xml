@@ -5,7 +5,7 @@
 	<artifactId>api</artifactId>
 
 	<parent>
-		<groupId>org.flexiblepower</groupId>
+		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
 		<version>0.2.3-SNAPSHOT</version>
 		<relativePath>../master/pom.xml</relativePath>

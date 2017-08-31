@@ -7,12 +7,9 @@ package org.flexiblepower.service;
 
 import java.lang.reflect.Constructor;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
 import org.flexiblepower.service.exceptions.ServiceInvocationException;
 import org.reflections.Reflections;
@@ -36,28 +33,18 @@ import org.slf4j.LoggerFactory;
 public final class ServiceMain {
 
     private static final Logger log = LoggerFactory.getLogger(ServiceMain.class);
-    private static final long SERVICE_CONSTRUCTOR_TIMEOUT_SECONDS = 30;
-    private static Service service;
-    private static Exception serviceConstructorException;
+    private static final ThreadFactory threadFactory = r -> new Thread(r,
+            "dEF-Pi userThread " + ServiceMain.threadCount++);
+    private static final ExecutorService serviceExecutor = Executors.newSingleThreadExecutor(ServiceMain.threadFactory);
     private static Reflections reflections;
-
-    public static Service createInstance(final ExecutorService executor) throws ServiceInvocationException {
-        ServiceMain.reflections = new Reflections(); // TODO: this could be nicer
-        // Get service from package
-        ServiceMain.service = ServiceMain.getService(executor);
-        if (ServiceMain.service == null) {
-            throw new ServiceInvocationException(ServiceMain.serviceConstructorException.getMessage());
-        }
-        ServiceMain.registerMessageHandlers();
-        ServiceMain.log.info("Started service {}", ServiceMain.service);
-        return ServiceMain.service;
-    }
+    protected static int threadCount = 0;
 
     /**
      * @return
      * @throws ServiceInvocationException
      */
-    private static Service getService(final ExecutorService executor) throws ServiceInvocationException {
+    @SuppressWarnings("rawtypes")
+    private static Class<? extends Service> getServiceClass() throws ServiceInvocationException {
         final Set<Class<? extends Service>> set = ServiceMain.reflections.getSubTypesOf(Service.class);
 
         // Must have exactly 1 result
@@ -68,19 +55,11 @@ public final class ServiceMain {
             throw new ServiceInvocationException("Unable to start service, no service implementations found");
         }
 
-        final Class<? extends Service> serviceClass = set.iterator().next();
-        ServiceMain.log.debug("Found class {} as service type", serviceClass);
+        return set.iterator().next();
+    }
 
-        // Try to create a service with the default constructor
-        final CallableService cs = new CallableService(serviceClass);
-        final Future<Service> future = executor.submit(cs);
-        Service serviceInstance = null;
-        try {
-            serviceInstance = future.get(ServiceMain.SERVICE_CONSTRUCTOR_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            ServiceMain.serviceConstructorException = e;
-        }
-        return serviceInstance;
+    static ExecutorService getServiceExecutor() {
+        return ServiceMain.serviceExecutor;
     }
 
     /**
@@ -88,19 +67,19 @@ public final class ServiceMain {
      *
      * @param service
      */
-    private static void registerMessageHandlers() {
+    private static void registerMessageHandlers(final Service<?> service) {
         final Set<Class<? extends ConnectionHandler>> set = ServiceMain.reflections
                 .getSubTypesOf(ConnectionHandler.class);
 
         if (set.isEmpty()) {
             ServiceMain.log
                     .warn("No connection handlers have been found, service will not be able to respond to messages");
-        } else {
-            ServiceMain.log.info("Found {} message handlers: {}", set.size(), set);
         }
 
+        ServiceMain.log.info("Found {} message handlers: {}", set.size(), set);
         for (final Class<? extends ConnectionHandler> handlerClass : set) {
             if (!handlerClass.isInterface()) {
+                // Only look for implementations
                 continue;
             }
 
@@ -111,54 +90,74 @@ public final class ServiceMain {
                     continue;
                 }
 
-                final Class<? extends ConnectionHandlerManager> factoryClass = info.manager();
+                final Class<? extends ConnectionHandlerManager> managerClass = info.manager();
 
-                ConnectionHandlerManager chf = null;
+                ConnectionHandlerManager manager = null;
                 // It should have a constructor with service as argument
-                for (final Constructor<?> c : factoryClass.getConstructors()) {
+                for (final Constructor<?> c : managerClass.getConstructors()) {
                     if ((c.getParameterCount() == 1) && Service.class.isAssignableFrom(c.getParameterTypes()[0])) {
                         try {
-                            chf = (ConnectionHandlerManager) c.newInstance(ServiceMain.service);
+                            manager = (ConnectionHandlerManager) c.newInstance(service);
                             break;
                         } catch (final Exception e) {
-                            // Do nothing try next...
+                            // Try next constructor maybe?
+                            ServiceMain.log
+                                    .warn("Exception while creating instance of {}: {}", managerClass, e.getMessage());
+                            ServiceMain.log.trace(e.getMessage(), e);
                         }
                     }
                 }
-                if (chf == null) {
+
+                if (manager == null) {
                     // Try the empty constructor if it fails
-                    chf = factoryClass.newInstance();
+                    ServiceMain.log.debug("Attempting fallback empty constructor for {}", managerClass);
+                    manager = managerClass.newInstance();
                 }
-                ConnectionManager.registerConnectionHandlerFactory(handlerClass, chf);
+
+                ConnectionManager.registerConnectionHandlerFactory(handlerClass, manager);
 
             } catch (InstantiationException | IllegalAccessException e) {
-                ServiceMain.log.warn("Unable to instantiate factory for type {} for service ",
+                // Try and continue with the next interface
+                ServiceMain.log.warn("Unable to instantiate manager for type {} of service {}: {}",
                         handlerClass,
-                        ServiceMain.service);
-                ServiceMain.log.trace("Unable to instantiate factory", e);
-
+                        service,
+                        e.getMessage());
+                ServiceMain.log.trace(e.getMessage(), e);
                 continue;
             }
         }
     }
-}
 
-class CallableService implements Callable<Service> {
+    public static <T> void main(final String[] args) {
 
-    private final Class<? extends Service> serviceClass;
+        ServiceMain.reflections = new Reflections();
+        // Get service from package
 
-    @Override
-    public Service call() throws Exception {
-        Service serviceInstance = null;
-        try {
-            serviceInstance = this.serviceClass.newInstance();
-        } catch (InstantiationException | IllegalAccessException e) {
-            throw new ServiceInvocationException("Unable to start service of type " + this.serviceClass, e);
-        }
-        return serviceInstance;
-    }
+        @SuppressWarnings("resource")
+        final ServiceManager<T> manager = new ServiceManager<>();
 
-    public CallableService(final Class<? extends Service> serviceClass) {
-        this.serviceClass = serviceClass;
+        // The following can run in the user thread, it will call the constructor, which is required anyway, and only
+        // when that succeeds, starts the manager.
+        ServiceMain.serviceExecutor.submit(() -> {
+            try {
+                @SuppressWarnings("unchecked")
+                final Class<? extends Service<T>> serviceClass = (Class<? extends Service<T>>) ServiceMain
+                        .getServiceClass();
+
+                ServiceMain.log.debug("Found class {} as service type", serviceClass);
+                final Service<T> service = serviceClass.newInstance();
+
+                ServiceMain.log.info("Starting service {}", service);
+                ServiceMain.registerMessageHandlers(service);
+                manager.start(service);
+            } catch (final Exception e) {
+                // Catch any exception, would be nice to let the manager forward it to the orchestrator when available
+                ServiceMain.log.error("Error while starting service: {}", e.getMessage());
+                ServiceMain.log.trace(e.getMessage(), e);
+                manager.close();
+            }
+        });
+
+        manager.join();
     }
 }

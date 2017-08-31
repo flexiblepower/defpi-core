@@ -8,6 +8,7 @@ package org.flexiblepower.service;
 import java.io.Serializable;
 import java.net.UnknownHostException;
 
+import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage;
 import org.flexiblepower.proto.ServiceProto.ProcessState;
 import org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage;
@@ -16,6 +17,7 @@ import org.flexiblepower.proto.ServiceProto.SetConfigMessage;
 import org.flexiblepower.serializers.JavaIOSerializer;
 import org.flexiblepower.serializers.MessageSerializer;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
+import org.flexiblepower.service.TestService.TestServiceConfiguration;
 import org.flexiblepower.service.exceptions.ServiceInvocationException;
 import org.junit.After;
 import org.junit.Assert;
@@ -43,12 +45,12 @@ public class ServiceTest {
     private final MessageSerializer<Serializable> serializer = new JavaIOSerializer();
     private final ProtobufMessageSerializer pbSerializer = new ProtobufMessageSerializer();
 
-    private ServiceManager manager;
+    private ServiceManager<TestServiceConfiguration> manager;
     private Socket managementSocket;
 
     @Before
     public void init() throws InterruptedException, UnknownHostException, ServiceInvocationException {
-        this.manager = new ServiceManager(this.testService);
+        this.manager = new ServiceManager<>(this.testService);
 
         final String uri = String.format("tcp://%s:%d", ServiceTest.TEST_HOST, ServiceManager.MANAGEMENT_PORT);
         this.managementSocket = ZMQ.context(1).socket(ZMQ.REQ);
@@ -59,6 +61,7 @@ public class ServiceTest {
         this.pbSerializer.addMessageClass(SetConfigMessage.class);
         this.pbSerializer.addMessageClass(ProcessStateUpdateMessage.class);
         this.pbSerializer.addMessageClass(ResumeProcessMessage.class);
+        this.pbSerializer.addMessageClass(ErrorMessage.class);
     }
 
     @Test

@@ -36,6 +36,7 @@ final class ManagedConnection implements Connection, Closeable {
     private static final int SEND_TIMEOUT = 200;
 
     protected static final Logger log = LoggerFactory.getLogger(ManagedConnection.class);
+    private static int threadCount = 0;
 
     private final String connectionId;
     private final Context zmqContext;
@@ -73,7 +74,7 @@ final class ManagedConnection implements Connection, Closeable {
         this.targetAddress = targetAddress;
         this.info = info;
 
-        this.serviceExecutor = ServiceManager.getServiceExecutor();
+        this.serviceExecutor = ServiceMain.getServiceExecutor();
         this.heartBeat = new HeartBeatMonitor(this);
         this.state = ConnectionState.STARTING;
 
@@ -99,7 +100,8 @@ final class ManagedConnection implements Connection, Closeable {
 
         this.initSubscribeSocket();
 
-        this.connectionThread = new Thread(new ConnectionRunner());
+        this.connectionThread = new Thread(new ConnectionRunner(),
+                "dEF-Pi connThread-" + ManagedConnection.threadCount++);
         this.connectionThread.start();
     }
 
@@ -195,9 +197,8 @@ final class ManagedConnection implements Connection, Closeable {
                 this.goToInterruptedState();
             }
         } catch (final Exception e) {
-            ManagedConnection.log.error("Exception while sending message: {}, goto {}",
-                    e.getMessage(),
-                    ConnectionState.INTERRUPTED);
+            ManagedConnection.log
+                    .error("Exception while sending message: {}, goto {}", e.getMessage(), ConnectionState.INTERRUPTED);
             ManagedConnection.log.trace(e.getMessage(), e);
         }
 

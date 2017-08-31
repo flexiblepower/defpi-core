@@ -16,7 +16,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-// @Ignore // These tests are usefull, but take very long
+// These tests are useful, but take very long
 public class ConnectionIntegrationTest {
 
     protected static Map<String, TestHandler> handlerMap = new HashMap<>();
@@ -149,21 +149,23 @@ public class ConnectionIntegrationTest {
         final InterfaceInfo info = TestHandler.class.getAnnotation(InterfaceInfo.class);
         ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandlerBuilder());
 
-        ManagedConnection mc1 = new ManagedConnection("connectionId", 5000, "tcp://localhost:5001", info);
-        final ManagedConnection mc2 = new ManagedConnection("connectionId", 5001, "tcp://localhost:5000", info);
+        try (final ManagedConnection mc2 = new ManagedConnection("connectionId", 5001, "tcp://localhost:5000", info)) {
+            try (
+                    final ManagedConnection mc1 = new ManagedConnection("connectionId",
+                            5000,
+                            "tcp://localhost:5001",
+                            info)) {
+                Thread.sleep(1500);
 
-        try {
-            Thread.sleep(1500);
+                Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h1").state);
+                Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h2").state);
 
-            Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h1").state);
-            Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h2").state);
+                Thread.sleep(1500);
+                // By now we must have slept longer than HeartBeatMonitor.HEARTBEAT_INITIAL_DELAY
 
-            Thread.sleep(1500);
-            // By now we must have slept longer than HeartBeatMonitor.HEARTBEAT_INITIAL_DELAY
-
-            // Close ONE. However, we cannot predict which handler is attached to it
-            mc1.goToTerminatedState();
-            mc1.close();
+                // Close ONE. However, we cannot predict which handler is attached to it
+                mc1.goToTerminatedState();
+            }
 
             Thread.sleep(12000);
 
@@ -175,24 +177,26 @@ public class ConnectionIntegrationTest {
             Assert.assertTrue(("terminated".equals(state1) && "interrupted".equals(state2))
                     || ("terminated".equals(state2) && "interrupted".equals(state1)));
 
-            mc1 = new ManagedConnection("connectionId", 5000, "tcp://localhost:5001", info);
-            Thread.sleep(1000); // Timing is important here since there is an exponential backoff
+            try (
+                    final ManagedConnection mc3 = new ManagedConnection("connectionId",
+                            5000,
+                            "tcp://localhost:5001",
+                            info)) {
+                Thread.sleep(1000); // Timing is important here since there is an exponential backoff
 
-            state1 = ConnectionIntegrationTest.handlerMap.get("h1").state;
-            state2 = ConnectionIntegrationTest.handlerMap.get("h2").state;
-            final String state3 = ConnectionIntegrationTest.handlerMap.get("h3").state;
-            System.out.println("State 1 : " + state1);
-            System.out.println("State 2 : " + state2);
-            System.out.println("State 3 : " + state3);
+                state1 = ConnectionIntegrationTest.handlerMap.get("h1").state;
+                state2 = ConnectionIntegrationTest.handlerMap.get("h2").state;
+                final String state3 = ConnectionIntegrationTest.handlerMap.get("h3").state;
+                System.out.println("State 1 : " + state1);
+                System.out.println("State 2 : " + state2);
+                System.out.println("State 3 : " + state3);
 
-            Assert.assertTrue(("connected".equals(state3) && "resume-interrupted".equals(state2))
-                    || ("connected".equals(state3) && "resume-interrupted".equals(state1)));
+                Assert.assertTrue(("connected".equals(state3) && "resume-interrupted".equals(state2))
+                        || ("connected".equals(state3) && "resume-interrupted".equals(state1)));
+            }
 
             // Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h1").state);
             // Assert.assertEquals("resume-interrupted", ConnectionIntegrationTest.handlerMap.get("h2").state);
-        } finally {
-            mc1.close();
-            mc2.close();
         }
     }
 
