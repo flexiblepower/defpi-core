@@ -106,21 +106,23 @@ public class TerminateProcess {
         public Result execute() {
             ProcessConnector.getInstance().disconnect(this.process.getId());
 
+            boolean removeDbRecord;
             try {
-                if (DockerConnector.getInstance().removeProcess(this.process)) {
-                    RemoveDockerService.log
-                            .debug("Removing Docker service for process " + this.process.getId() + " was successful");
-                    // Delete record from MongoDB
-                    MongoDbConnector.getInstance().delete(this.process);
-                    return Result.SUCCESS;
-                } else {
-                    RemoveDockerService.log
-                            .debug("Removing Docker service for process " + this.process.getId() + " failed");
-                    return Result.FAILED_TEMPORARY;
-                }
+                removeDbRecord = DockerConnector.getInstance().removeProcess(this.process);
+                RemoveDockerService.log
+                        .debug("Removing Docker service for process " + this.process.getId() + " was successful");
+                // Delete record from MongoDB
             } catch (final ProcessNotFoundException e) {
-                RemoveDockerService.log.info("No such process {}", this.process.getId());
-                return Result.FAILED_PERMANENTLY;
+                RemoveDockerService.log.warn("Trying to remove Docker Service, but is already gone...");
+                removeDbRecord = true;
+            }
+            if (removeDbRecord) {
+                MongoDbConnector.getInstance().delete(this.process);
+                return Result.SUCCESS;
+            } else {
+                RemoveDockerService.log
+                        .debug("Removing Docker service for process " + this.process.getId() + " failed");
+                return Result.FAILED_TEMPORARY;
             }
         }
 
