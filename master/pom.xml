@@ -113,7 +113,7 @@
 				<artifactId>protobuf-java</artifactId>
 				<version>${protobuf.version}</version>
 			</dependency>
-	
+
 			<dependency>
 				<groupId>org.zeromq</groupId>
 				<artifactId>jeromq</artifactId>
@@ -191,6 +191,22 @@
 				</plugin>
 			</plugins>
 		</pluginManagement>
+		
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+
 	</build>
 
 </project>

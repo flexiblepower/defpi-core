@@ -94,7 +94,7 @@
 			<!-- Use the plugin, note it is not activated by default. Use mvn defpi:generate 
 				to generate code based on the service.json -->
 			<plugin>
-				<groupId>org.flexiblepower</groupId>
+				<groupId>org.flexiblepower.defpi</groupId>
 				<artifactId>defpi-maven-plugin</artifactId>
 				<version>${defpi.version}</version>
 			</plugin>
