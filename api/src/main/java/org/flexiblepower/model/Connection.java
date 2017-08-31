@@ -22,6 +22,7 @@ public class Connection {
 
     @Data
     @Embedded
+    @NoArgsConstructor(force = true)
     public static class Endpoint {
 
         public Endpoint(final ObjectId processId, final String interfaceId) {
