@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.flexiblepower</groupId>
+    <groupId>org.flexiblepower.defpi</groupId>
     <artifactId>service-parent</artifactId>
     <version>0.2.3-SNAPSHOT</version>
     <relativePath>../master/service-parent/pom.xml</relativePath>

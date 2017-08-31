@@ -8,7 +8,7 @@
 	<name>REST Orchestrator</name>
 
 	<parent>
-		<groupId>org.flexiblepower</groupId>
+		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
 		<version>0.2.3-SNAPSHOT</version>
 		<relativePath>../master/pom.xml</relativePath>
@@ -93,12 +93,12 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.flexiblepower</groupId>
+			<groupId>org.flexiblepower.defpi</groupId>
 			<artifactId>api</artifactId>
 		</dependency>
 
 		<dependency>
-			<groupId>org.flexiblepower</groupId>
+			<groupId>org.flexiblepower.defpi</groupId>
 			<artifactId>commons</artifactId>
 		</dependency>
 	</dependencies>
