@@ -196,15 +196,21 @@ public class MoveProcess {
             ProcessConnector.getInstance().disconnect(this.process.getId());
 
             try {
-                if (DockerConnector.getInstance().removeProcess(this.process)) {
+                boolean success;
+                try {
+                    success = DockerConnector.getInstance().removeProcess(this.process);
+                } catch (final ServiceNotFoundException e) {
+                    RemoveDockerService.log.warn("Trying to remove Docker Service, but is already gone...");
+                    success = true;
+                }
+                if (success) {
                     RemoveDockerService.log.info(
                             "Removed Docker Service for process " + this.process.getId() + " while moving the process");
                     // Start next step
-                    PendingChangeManager.getInstance()
-                            .submit(new CreateDockerService(this.process,
-                                    this.nodePoolId,
-                                    this.privateNodeId,
-                                    this.suspendState));
+                    PendingChangeManager.getInstance().submit(new CreateDockerService(this.process,
+                            this.nodePoolId,
+                            this.privateNodeId,
+                            this.suspendState));
 
                     return Result.SUCCESS;
                 } else {

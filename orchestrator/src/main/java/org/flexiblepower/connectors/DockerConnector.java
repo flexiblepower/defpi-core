@@ -124,15 +124,23 @@ public class DockerConnector {
      * @param uuid
      * @return
      * @throws ProcessNotFoundException
+     * @throws ServiceNotFoundException
      */
-    public synchronized boolean removeProcess(final Process process) throws ProcessNotFoundException {
+    public synchronized boolean removeProcess(final Process process)
+            throws ProcessNotFoundException, ServiceNotFoundException {
         if (process.getDockerId() != null) {
             try {
                 this.client.removeService(process.getDockerId());
                 return true;
             } catch (final com.spotify.docker.client.exceptions.ServiceNotFoundException e) {
                 throw new ProcessNotFoundException(process.getId().toString());
-            } catch (DockerException | InterruptedException e) {
+            } catch (final DockerException e) {
+                if (e instanceof com.spotify.docker.client.exceptions.ServiceNotFoundException) {
+                    throw new ServiceNotFoundException();
+                } else {
+                    DockerConnector.log.error("Error while removing process: {}", e.getMessage());
+                }
+            } catch (final InterruptedException e) {
                 DockerConnector.log.error("Error while removing process: {}", e.getMessage());
             }
         }
@@ -181,8 +189,9 @@ public class DockerConnector {
                     .networkSettings()
                     .networks()
                     .containsKey(networkName)) {
-                DockerConnector.log
-                        .info("Connecting {} to network {}", DockerConnector.ORCHESTRATOR_CONTAINER_NAME, networkName);
+                DockerConnector.log.info("Connecting {} to network {}",
+                        DockerConnector.ORCHESTRATOR_CONTAINER_NAME,
+                        networkName);
                 this.client.connectToNetwork(DockerConnector.ORCHESTRATOR_CONTAINER_NAME, networkName);
             } else {
                 DockerConnector.log.debug("Container {} is already connected to {}",
