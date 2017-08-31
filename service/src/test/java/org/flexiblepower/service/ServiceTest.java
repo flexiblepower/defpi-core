@@ -64,7 +64,7 @@ public class ServiceTest {
         this.pbSerializer.addMessageClass(ErrorMessage.class);
     }
 
-    @Test
+    @Test(timeout = 60000)
     public void runTests() throws Exception {
         // One test since they have to be executed in the correct order
         this.runConfigure();
@@ -72,7 +72,7 @@ public class ServiceTest {
         this.runSuspend();
     }
 
-    @Test
+    @Test(timeout = 60000)
     public void runResumeTerminate() throws Exception {
         this.runResume();
         this.runTerminate();
