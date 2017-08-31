@@ -31,6 +31,7 @@ import com.spotify.docker.client.DockerClient.ListContainersParam;
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.Container;
+import com.spotify.docker.client.messages.ContainerInfo;
 import com.spotify.docker.client.messages.Network;
 import com.spotify.docker.client.messages.NetworkConfig;
 import com.spotify.docker.client.messages.mount.Mount;
@@ -326,6 +327,20 @@ public class DockerConnector {
                 .endpointSpec(endpointSpec.build())
                 .networks(usernet)
                 .build();
+    }
+
+    public String getContainerInfo() {
+        try {
+            final ContainerInfo info = this.client.inspectContainer(DockerConnector.ORCHESTRATOR_CONTAINER_NAME);
+            return String.format("image: %s\ncreated: %s\nnetworks: %s",
+                    info.image(),
+                    info.created(),
+                    info.networkSettings().networks().keySet());
+        } catch (DockerException | InterruptedException e) {
+            DockerConnector.log.warn("Error obtaining running image: {}", e.getMessage());
+            DockerConnector.log.trace(e.getMessage(), e);
+            return "Unknown";
+        }
     }
 
 }
