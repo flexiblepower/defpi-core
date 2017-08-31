@@ -83,7 +83,7 @@
 	<dependencies>
 		<!-- Use the defpi-service library to communicate with orchestrator -->
 		<dependency>
-			<groupId>org.flexiblepower</groupId>
+			<groupId>org.flexiblepower.defpi</groupId>
 			<artifactId>service</artifactId>
 			<version>${defpi.version}</version>
 		</dependency>
