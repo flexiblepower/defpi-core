@@ -9,7 +9,6 @@ import org.flexiblepower.connectors.DockerConnector;
 import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.connectors.ProcessConnector;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
-import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange;
 import org.mongodb.morphia.annotations.Entity;
@@ -107,28 +106,23 @@ public class TerminateProcess {
         public Result execute() {
             ProcessConnector.getInstance().disconnect(this.process.getId());
 
+            boolean removeDbRecord;
             try {
-                boolean success;
-                try {
-                    success = DockerConnector.getInstance().removeProcess(this.process);
-                } catch (final ServiceNotFoundException e) {
-                    RemoveDockerService.log.warn("Trying to remove Docker Service, but is already gone...");
-                    success = true;
-                }
-                if (success) {
-                    RemoveDockerService.log
-                            .debug("Removing Docker service for process " + this.process.getId() + " was successful");
-                    // Delete record from MongoDB
-                    MongoDbConnector.getInstance().delete(this.process);
-                    return Result.SUCCESS;
-                } else {
-                    RemoveDockerService.log
-                            .debug("Removing Docker service for process " + this.process.getId() + " failed");
-                    return Result.FAILED_TEMPORARY;
-                }
+                removeDbRecord = DockerConnector.getInstance().removeProcess(this.process);
+                RemoveDockerService.log
+                        .debug("Removing Docker service for process " + this.process.getId() + " was successful");
+                // Delete record from MongoDB
             } catch (final ProcessNotFoundException e) {
-                RemoveDockerService.log.info("No such process {}", this.process.getId());
-                return Result.FAILED_PERMANENTLY;
+                RemoveDockerService.log.warn("Trying to remove Docker Service, but is already gone...");
+                removeDbRecord = true;
+            }
+            if (removeDbRecord) {
+                MongoDbConnector.getInstance().delete(this.process);
+                return Result.SUCCESS;
+            } else {
+                RemoveDockerService.log
+                        .debug("Removing Docker service for process " + this.process.getId() + " failed");
+                return Result.FAILED_TEMPORARY;
             }
         }
 
