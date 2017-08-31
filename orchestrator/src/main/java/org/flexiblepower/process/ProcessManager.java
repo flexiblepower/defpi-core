@@ -12,6 +12,7 @@ import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
+import org.flexiblepower.model.NodePool;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Process.ProcessParameter;
@@ -116,8 +117,13 @@ public class ProcessManager {
         if (process.getNodePoolId() != null) {
             if (process.getPrivateNodeId() != null) {
                 throw new IllegalArgumentException("Either the nodepool or the privatenode should be set");
-            } else if (NodeManager.getInstance().getNodePool(process.getNodePoolId()) == null) {
-                throw new IllegalArgumentException("Could not find NodePool");
+            } else {
+                final NodePool nodepool = NodeManager.getInstance().getNodePool(process.getNodePoolId());
+                if (nodepool == null) {
+                    throw new IllegalArgumentException("Could not find NodePool");
+                } else if (NodeManager.getInstance().getPublicNodesInNodePool(nodepool).isEmpty()) {
+                    throw new IllegalArgumentException("Cannot assign a Process to an empty NodePool");
+                }
             }
         } else if (process.getPrivateNodeId() != null) {
             if (process.getNodePoolId() != null) {
