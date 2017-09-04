@@ -27,9 +27,9 @@
             "enum": [
               "boolean",
               "byte",
-              "char",
+              "character",
               "short",
-              "int",
+              "integer",
               "long",
               "float",
               "double",
