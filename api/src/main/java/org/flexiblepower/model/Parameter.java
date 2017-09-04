@@ -31,7 +31,7 @@ public class Parameter {
     public enum Type {
         BOOLEAN,
         BYTE,
-        CHAR,
+        CHARACTER,
         SHORT,
         INTEGER,
         LONG,
@@ -47,6 +47,10 @@ public class Parameter {
         public String getJavaTypeName() {
             if (this.equals(STRING)) {
                 return "String";
+            } else if (this.equals(CHARACTER)) {
+                return "char";
+            } else if (this.equals(INTEGER)) {
+                return "int";
             } else {
                 return this.name().toLowerCase();
             }

@@ -1,6 +1,15 @@
 {
   "name": "Echo Service",
   "version": "0.0.1-SNAPSHOT",
+  "parameters": [
+  	{
+  	  "id": "service.interval",
+  	  "name": "interval",
+  	  "type": "integer",
+  	  "values": ["1", "2", "more"],
+  	  "default": "2"
+  	}
+  ],
   "interfaces": [
     {
       "name": "Echo Interface",
