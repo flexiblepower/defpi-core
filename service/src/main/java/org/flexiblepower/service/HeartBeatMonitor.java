@@ -93,14 +93,18 @@ public class HeartBeatMonitor implements Closeable {
                     return;
                 }
 
-                if (this.receivedPong) {
-                    this.receivedPong = false;
-                    HeartBeatMonitor.log.trace("PING");
-                    this.connection.sendRaw(HeartBeatMonitor.PING);
-                } else {
+                if (!this.receivedPong) {
                     // If no PONG was received since the last PING, assume connection was interrupted!
                     HeartBeatMonitor.log.warn("No heartbeat received on connection, goto {}",
                             ConnectionState.INTERRUPTED);
+                    this.connection.goToInterruptedState();
+                }
+
+                HeartBeatMonitor.log.trace("PING");
+                if (this.connection.sendRaw(HeartBeatMonitor.PING)) {
+                    this.receivedPong = false;
+                } else {
+                    HeartBeatMonitor.log.warn("Unable to send heartbeat, goto {}", ConnectionState.INTERRUPTED);
                     this.connection.goToInterruptedState();
                 }
 
@@ -111,6 +115,7 @@ public class HeartBeatMonitor implements Closeable {
                 HeartBeatMonitor.HEARTBEAT_INITIAL_DELAY,
                 HeartBeatMonitor.HEARTBEAT_PERIOD_IN_SECONDS,
                 HeartBeatMonitor.HEARTBEAT_TIMING_UNIT);
+
     }
 
     @Override

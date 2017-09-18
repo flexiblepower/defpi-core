@@ -11,7 +11,6 @@ import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.zeromq.ZMQ.Socket;
 
 /**
  * ConnectionMonitor
@@ -23,16 +22,20 @@ import org.zeromq.ZMQ.Socket;
 public class HandShakeMonitor {
 
     private static final Logger log = LoggerFactory.getLogger(HandShakeMonitor.class);
-    private static final int MAX_RECEIVE_TRIES = 100;
+    // private static final int MAX_RECEIVE_TRIES = 100;
 
-    private final Socket publishSocket;
-    private final Socket subscribeSocket;
+    // private final Socket publishSocket;
+    // private final Socket subscribeSocket;
     private final String connectionId;
+    private final ManagedConnection connection;
     private final ProtobufMessageSerializer serializer;
 
-    public HandShakeMonitor(final Socket publishSocket, final Socket subscribeSocket, final String connectionId) {
-        this.publishSocket = publishSocket;
-        this.subscribeSocket = subscribeSocket;
+    public HandShakeMonitor(final ManagedConnection connection, final String connectionId) {
+        // final Socket publishSocket, final String connectionId) {
+        // , final Socket subscribeSocket, final String connectionId) {
+        // this.publishSocket = this.publishSocket;
+        // this.subscribeSocket = subscribeSocket;
+        this.connection = connection;
         this.connectionId = connectionId;
 
         // Add Protobuf serializer for ConnectionHandshake messages
@@ -40,7 +43,7 @@ public class HandShakeMonitor {
         this.serializer.addMessageClass(ConnectionHandshake.class);
     }
 
-    public boolean shakeHands(final ConnectionState currentState) {
+    public boolean sendHandshake(final ConnectionState currentState) {
         // Send the handshake
         final ConnectionHandshake initHandshakeMessage = ConnectionHandshake.newBuilder()
                 .setConnectionId(this.connectionId)
@@ -55,50 +58,52 @@ public class HandShakeMonitor {
             throw new RuntimeException("Exception while serializing message: " + initHandshakeMessage, e);
         }
 
-        if (!this.publishSocket.send(sendData)) {
+        if (!this.connection.sendRaw(sendData)) {
             // Failed sending handshake
             HandShakeMonitor.log.warn("Failed to send handshake");
             return false;
         }
 
+        return true;
+    }
+
+    public boolean receiveHandShake(final byte[] recvData) {
         // Receive the HandShake
-        for (int i = 0; i < HandShakeMonitor.MAX_RECEIVE_TRIES; i++) {
-            try {
-                ManagedConnection.log.trace("Listening for handshake..");
-                final byte[] recvData = this.subscribeSocket.recv();
+        try {
+            /*
+             * ManagedConnection.log.trace("Listening for handshake..");
+             * final byte[] recvData = this.subscribeSocket.recv();
+             *
+             * if (recvData == null) {
+             * // Timeout occured, try again
+             * return false;
+             * }
+             */
 
-                if (recvData == null) {
-                    // Timeout occured, try again
-                    continue;
-                }
+            final ConnectionHandshake handShakeMessage = (ConnectionHandshake) this.serializer.deserialize(recvData);
 
-                final ConnectionHandshake handShakeMessage = (ConnectionHandshake) this.serializer
-                        .deserialize(recvData);
-
-                if (handShakeMessage.getConnectionId().equals(this.connectionId)) {
-                    ManagedConnection.log.debug("Received acknowledge string: {}", handShakeMessage);
-                    // We are done
-                    return true;
-                } else {
-                    ManagedConnection.log
-                            .warn("Invalid Connection ID in Handshake message : " + handShakeMessage.getConnectionId());
-                    continue;
-                }
-            } catch (final SerializationException e) {
-                // Maybe it was a handshake?
-                HandShakeMonitor.log.warn("Received unexpected message while listening for handshake: {}",
-                        e.getMessage());
-                HandShakeMonitor.log.trace(e.getMessage(), e);
-                continue;
-            } catch (final Exception e) {
-                // The subscribeSocket is closed, probably the session was suspended before it was running
-                ManagedConnection.log.warn("Exception while receiving from socket: {}", e.getMessage());
-                HandShakeMonitor.log.trace(e.getMessage(), e);
+            if (handShakeMessage.getConnectionId().equals(this.connectionId)) {
+                ManagedConnection.log.debug("Received acknowledge string: {}", handShakeMessage);
+                // We are done
+                this.connection.goToConnectedState();
+                return true;
+            } else {
+                ManagedConnection.log
+                        .warn("Invalid Connection ID in Handshake message : " + handShakeMessage.getConnectionId());
                 return false;
             }
+        } catch (final SerializationException e) {
+            // Maybe it was a handshake?
+            // HandShakeMonitor.log.warn("Received unexpected message while listening for handshake: {}",
+            // e.getMessage());
+            // HandShakeMonitor.log.trace(e.getMessage(), e);
+            return false;
+        } catch (final Exception e) {
+            // The subscribeSocket is closed, probably the session was suspended before it was running
+            ManagedConnection.log.warn("Exception while receiving from socket: {}", e.getMessage());
+            HandShakeMonitor.log.trace(e.getMessage(), e);
+            return false;
         }
-        // Still no luck
-        return false;
     }
 
 }

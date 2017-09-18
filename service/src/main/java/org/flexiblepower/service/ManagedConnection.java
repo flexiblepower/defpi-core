@@ -38,9 +38,10 @@ final class ManagedConnection implements Connection, Closeable {
     protected static final Logger log = LoggerFactory.getLogger(ManagedConnection.class);
     private static int threadCount = 0;
 
-    private final String connectionId;
+    // private final String connectionId;
     private final Context zmqContext;
     private final HeartBeatMonitor heartBeat;
+    private final HandShakeMonitor handShake;
     private final MessageSerializer<Object> userMessageSerializer;
     private final Thread connectionThread;
 
@@ -69,13 +70,14 @@ final class ManagedConnection implements Connection, Closeable {
             final int listenPort,
             final String targetAddress,
             final InterfaceInfo info) throws ConnectionModificationException {
-        this.connectionId = connectionId;
+        // this.connectionId = connectionId;
         this.listenPort = listenPort;
         this.targetAddress = targetAddress;
         this.info = info;
 
         this.serviceExecutor = ServiceMain.getServiceExecutor();
         this.heartBeat = new HeartBeatMonitor(this);
+        this.handShake = new HandShakeMonitor(this, connectionId);
         this.state = ConnectionState.STARTING;
 
         // Add serializer to the connection for user-defined messages
@@ -145,11 +147,7 @@ final class ManagedConnection implements Connection, Closeable {
             return false;
         }
 
-        final HandShakeMonitor monitor = new HandShakeMonitor(this.publishSocket,
-                this.subscribeSocket,
-                this.connectionId);
-
-        if (monitor.shakeHands(this.state)) {
+        if (this.handShake.sendHandshake(this.state)) {
             this.heartBeat.start();
             return true;
         } else {
@@ -186,12 +184,9 @@ final class ManagedConnection implements Connection, Closeable {
             ManagedConnection.log.error("Error while serializing message, not sending message.", e);
             return;
         }
-        this.sendRaw(data);
-    }
 
-    void sendRaw(final byte[] data) {
         try {
-            if (!this.publishSocket.send(data)) {
+            if (!this.sendRaw(data)) {
                 ManagedConnection.log.warn("Failed to send message through socket, goto {}",
                         ConnectionState.INTERRUPTED);
                 this.goToInterruptedState();
@@ -201,7 +196,10 @@ final class ManagedConnection implements Connection, Closeable {
                     .error("Exception while sending message: {}, goto {}", e.getMessage(), ConnectionState.INTERRUPTED);
             ManagedConnection.log.trace(e.getMessage(), e);
         }
+    }
 
+    boolean sendRaw(final byte[] data) {
+        return this.publishSocket.send(data);
     }
 
     /*
@@ -296,6 +294,9 @@ final class ManagedConnection implements Connection, Closeable {
         try {
             buff = this.subscribeSocket.recv();
         } catch (final ZMQException e) {
+            ManagedConnection.log.warn("ZMQException while receiving message: {}", e.getMessage());
+            ManagedConnection.log.trace(e.getMessage(), e);
+
             if (e.getErrorCode() == 156384765) {
                 if (this.state == ConnectionState.CONNECTED) {
                     ManagedConnection.log.warn("Receive socket was disconnected.");
@@ -305,14 +306,22 @@ final class ManagedConnection implements Connection, Closeable {
             }
         } catch (final ClosedSelectorException | AssertionError e) {
             // The connection was suspended or terminated
+            ManagedConnection.log.warn("Exception while receiving message: {}", e.getMessage());
+            ManagedConnection.log.trace(e.getMessage(), e);
             return;
         }
+
         if (buff == null) {
             return;
         }
 
         // Check if it is a heart beat message.
         if (this.heartBeat.handleMessage(buff)) {
+            return;
+        }
+
+        // Check if it is a handshake message.
+        if (this.handShake.receiveHandShake(buff)) {
             return;
         }
 
@@ -359,6 +368,16 @@ final class ManagedConnection implements Connection, Closeable {
         // Wake up the main loop, so it tries to connect the sending
         synchronized (this.suspendLock) {
             this.suspendLock.notifyAll();
+        }
+    }
+
+    void goToConnectedState() {
+        this.state = ConnectionState.CONNECTED;
+
+        if (this.serviceHandler == null) {
+            // Initializing the connectionHandler involves invoking the constructor written by the user
+            ManagedConnection.this.serviceHandler = ConnectionManager.buildHandlerForConnection(ManagedConnection.this,
+                    ManagedConnection.this.info);
         }
     }
 
@@ -435,26 +454,18 @@ final class ManagedConnection implements Connection, Closeable {
         @Override
         public void run() {
             while (ManagedConnection.this.state != ConnectionState.TERMINATED) {
+                ManagedConnection.this.tryReceiveMessage();
 
                 if (ManagedConnection.this.state == ConnectionState.STARTING) {
                     // State is STARTING, goal is to connect
                     if (ManagedConnection.this.initPublishSocket()) {
-                        // Update state
-                        ManagedConnection.this.state = ConnectionState.CONNECTED;
                         this.resetBackOff();
-
-                        // Initializing the connectionHandler involves invoking the constructor written by the user
-                        ManagedConnection.this.serviceHandler = ConnectionManager
-                                .buildHandlerForConnection(ManagedConnection.this, ManagedConnection.this.info);
-
                     } else {
                         this.increaseBackOffAndWait();
                     }
-                } else if (ManagedConnection.this.state == ConnectionState.CONNECTED) {
-                    // State is CONNECTED, goal is to handle messages
-                    ManagedConnection.this.tryReceiveMessage();
+                } else
 
-                } else if (ManagedConnection.this.state == ConnectionState.SUSPENDED) {
+                if (ManagedConnection.this.state == ConnectionState.SUSPENDED) {
                     // State is SUSPENDED, there are two options: try to reconnect or wait for instructions to reconnect
                     if (ManagedConnection.this.listenPort == 0) {
                         // We are suspended and have received no instruction to resume, wait for instruction

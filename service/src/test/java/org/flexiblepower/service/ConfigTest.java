@@ -8,7 +8,6 @@ package org.flexiblepower.service;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.flexiblepower.service.ConfigTest.GeneratedConfig;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -20,7 +19,6 @@ import org.junit.Test;
  * @since 24 aug. 2017
  */
 @SuppressWarnings("static-method")
-@Configurable(GeneratedConfig.class)
 public class ConfigTest {
 
     @Test
