@@ -1,7 +1,7 @@
 package {{service.package}};
 
 import javax.annotation.Generated;
-
+{{config.imports}}
 /**
  * {{config.interface}} provides the interface for the {{service.name}} service
  *

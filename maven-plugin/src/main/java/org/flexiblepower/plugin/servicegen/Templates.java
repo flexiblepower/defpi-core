@@ -184,17 +184,21 @@ public class Templates {
         if (this.serviceDescription.getParameters() == null) {
             replaceMap.put("config.interface", "Void");
         } else {
+            boolean importDefaultValue = false;
             replaceMap.put("config.interface", PluginUtils.configInterfaceClass(this.serviceDescription));
             final Set<String> parameterDefinitions = new HashSet<>();
             for (final Parameter param : this.serviceDescription.getParameters()) {
                 final String defaultValue = (param.getDefaultValue() == null ? ""
                         : "    @DefaultValue(\"" + param.getDefaultValue() + "\")\n");
+                importDefaultValue = (defaultValue.isEmpty() ? importDefaultValue : true);
                 parameterDefinitions.add(String.format("%s    public %s get%s();",
                         defaultValue,
                         param.getType().getJavaTypeName(),
                         PluginUtils.getParameterName(param)));
             }
             replaceMap.put("config.definitions", String.join("\n\n", parameterDefinitions));
+            replaceMap.put("config.imports",
+                    importDefaultValue ? "\nimport org.flexiblepower.service.DefaultValue;\n" : "");
         }
 
         // Build replaceMaps for the manager
