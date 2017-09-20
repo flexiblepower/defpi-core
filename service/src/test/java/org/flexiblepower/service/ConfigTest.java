@@ -31,6 +31,8 @@ public class ConfigTest {
         final GeneratedConfig config = ServiceConfig.generateConfig(GeneratedConfig.class, valueMap);
         Assert.assertEquals("Configuration", config.getName());
         Assert.assertEquals(7, config.getUpdateInterval());
+        Assert.assertEquals(0.0, config.getInexistentParameter(), 1e-16);
+        Assert.assertEquals(20, config.getInexistentButDefaultByte());
 
         try {
             config.incorrectlyNamedProperty();
@@ -38,14 +40,6 @@ public class ConfigTest {
         } catch (final Exception e) {
             Assert.assertEquals(IllegalArgumentException.class, e.getClass());
             Assert.assertEquals("Can only invoke 'getters'", e.getMessage());
-        }
-
-        try {
-            config.getInexistentParameter();
-            Assert.fail("Expected " + IllegalArgumentException.class);
-        } catch (final Exception e) {
-            Assert.assertEquals(IllegalArgumentException.class, e.getClass());
-            Assert.assertEquals("Could not find method with name 'getInexistentParameter'", e.getMessage());
         }
 
         try {
@@ -107,6 +101,9 @@ public class ConfigTest {
         String getName();
 
         double getInexistentParameter();
+
+        @DefaultValue("0x14")
+        byte getInexistentButDefaultByte();
 
         float incorrectlyNamedProperty();
 
