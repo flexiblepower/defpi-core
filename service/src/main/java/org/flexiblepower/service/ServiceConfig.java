@@ -10,6 +10,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * ServiceConfig
  *
@@ -33,6 +36,8 @@ public class ServiceConfig {
      * @since 24 aug. 2017
      */
     private final static class GeneratedConfigHandler implements InvocationHandler {
+
+        private static final Logger log = LoggerFactory.getLogger(GeneratedConfigHandler.class);
 
         private final Map<String, String> values;
 
@@ -60,29 +65,35 @@ public class ServiceConfig {
             // We assume camelCaps
             final String key = methodName.substring(3, 4).toLowerCase() + methodName.substring(4, methodName.length());
 
+            String rawValue = "";
             if (!this.values.containsKey(key)) {
-                throw new IllegalArgumentException("Could not find method with name '" + methodName + "'");
+                if (method.isAnnotationPresent(DefaultValue.class)) {
+                    rawValue = method.getAnnotation(DefaultValue.class).value();
+                } else {
+                    GeneratedConfigHandler.log.warn("No parameter found with name \"{}\", returning type default", key);
+                }
+            } else {
+                rawValue = this.values.get(key);
             }
 
-            final String rawValue = this.values.get(key);
             if (method.getReturnType().equals(String.class)) {
                 return rawValue;
             } else if (method.getReturnType().equals(boolean.class)) {
-                return Boolean.parseBoolean(rawValue);
+                return rawValue.isEmpty() ? false : Boolean.parseBoolean(rawValue);
             } else if (method.getReturnType().equals(byte.class)) {
-                return Byte.decode(rawValue);
+                return rawValue.isEmpty() ? (byte) 0 : Byte.decode(rawValue);
             } else if (method.getReturnType().equals(char.class)) {
-                return rawValue.isEmpty() ? (char) 0 : rawValue.charAt(0);
+                return rawValue.isEmpty() ? (char) 0 : rawValue.isEmpty() ? (char) 0 : rawValue.charAt(0);
             } else if (method.getReturnType().equals(short.class)) {
-                return Short.decode(rawValue);
+                return rawValue.isEmpty() ? (short) 0 : Short.decode(rawValue);
             } else if (method.getReturnType().equals(int.class)) {
-                return Integer.decode(rawValue);
+                return rawValue.isEmpty() ? 0 : Integer.decode(rawValue);
             } else if (method.getReturnType().equals(long.class)) {
-                return Long.decode(rawValue);
+                return rawValue.isEmpty() ? 0L : Long.decode(rawValue);
             } else if (method.getReturnType().equals(float.class)) {
-                return Float.parseFloat(rawValue);
+                return rawValue.isEmpty() ? (float) 0.0 : Float.parseFloat(rawValue);
             } else if (method.getReturnType().equals(double.class)) {
-                return Double.parseDouble(rawValue);
+                return rawValue.isEmpty() ? 0.0 : Double.parseDouble(rawValue);
             } else {
                 throw new IllegalArgumentException(
                         "Unable to return parameter of type '" + method.getReturnType() + "'");

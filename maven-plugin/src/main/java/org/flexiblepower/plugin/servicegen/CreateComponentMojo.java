@@ -183,6 +183,7 @@ public class CreateComponentMojo extends AbstractMojo {
             }
 
             final ServiceDescription service = this.readServiceDefinition(serviceDescriptionFile);
+            service.setId(this.artifactId);
 
             final Path javaSourceFolder = Paths.get(this.sourceLocation).resolve(this.servicePackage.replace('.', '/'));
             Files.createDirectories(javaSourceFolder);
@@ -191,10 +192,7 @@ public class CreateComponentMojo extends AbstractMojo {
             this.compileDescriptors(service);
 
             // Add templates to generate java code and the dockerfile
-            this.templates = new Templates(this.servicePackage,
-                    this.protobufOutputPackage,
-                    this.xsdOutputPackage,
-                    service);
+            this.templates = new Templates(this.servicePackage, service);
 
             this.createJavaFiles(service, javaSourceFolder);
             this.createDockerfiles(service);

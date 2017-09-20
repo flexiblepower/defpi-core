@@ -75,7 +75,8 @@ public class Service {
 
     @JsonIgnore
     public String getFullImageName(final Architecture architecture) {
-        return this.registry + "/" + this.repository + "/" + this.getImageName() + ":" + this.tags.get(architecture);
+        return this.registry + "/" + this.repository + "/" + this.getImageName() + ":"
+                + (this.tags == null ? this.version : this.tags.get(architecture));
     }
 
     @JsonIgnore

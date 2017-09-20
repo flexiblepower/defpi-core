@@ -39,9 +39,9 @@ public class ServiceManager {
         return ServiceManager.instance;
     }
 
-    public List<String> listRepositories() {
-        return RegistryConnector.getInstance().listRepositories();
-    }
+    // public List<String> listRepositories() {
+    // return RegistryConnector.getInstance().listRepositories();
+    // }
 
     public Service getService(final String id) throws ServiceNotFoundException {
         return RegistryConnector.getInstance().getService(ServiceManager.SERVICE_REPOSITORY, id);

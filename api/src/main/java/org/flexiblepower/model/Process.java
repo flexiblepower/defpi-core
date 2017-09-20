@@ -21,6 +21,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.Value;
 
 /**
  * Process
@@ -49,7 +50,7 @@ public class Process {
         TERMINATED
     }
 
-    @Data
+    @Value
     public static class ProcessParameter {
 
         private String key;
