@@ -251,7 +251,7 @@ myApp
 											'reference').targetEntity(intface)
 											.targetField(nga.field('id'))
 											.label('Interface 1'),
-									nga.field('endpoint1.processId',
+									nga.field('endpoint2.processId',
 											'reference').targetEntity(process)
 											.targetField(nga.field('id'))
 											.label('Process 2'),

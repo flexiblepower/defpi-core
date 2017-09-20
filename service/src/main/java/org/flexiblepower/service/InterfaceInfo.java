@@ -21,8 +21,8 @@ import org.flexiblepower.serializers.MessageSerializer;
  * @since May 18, 2017
  */
 @Inherited
-@Target({ElementType.TYPE})
-@Retention(value = RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
 public @interface InterfaceInfo {
 
     public String name();

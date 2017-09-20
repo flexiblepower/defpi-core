@@ -36,18 +36,15 @@ public class Templates {
 
     private final static boolean PRETTY_PRINT_JSON = true;
     private final String servicePackage;
-    private final String protobufOutputPackage;
-    private final String xsdOutputPackage;
+    // private final String protobufOutputPackage;
+    // private final String xsdOutputPackage;
     private final ServiceDescription serviceDescription;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public Templates(final String targetPackage,
-            final String protobufOutputPackage,
-            final String xsdOutputPackage,
-            final ServiceDescription descr) {
+    public Templates(final String targetPackage, final ServiceDescription descr) {
         this.servicePackage = targetPackage;
-        this.protobufOutputPackage = protobufOutputPackage;
-        this.xsdOutputPackage = xsdOutputPackage;
+        // this.protobufOutputPackage = protobufOutputPackage;
+        // this.xsdOutputPackage = xsdOutputPackage;
         this.serviceDescription = descr;
     }
 
@@ -144,9 +141,9 @@ public class Templates {
                 final String recvHash = PluginUtils.getHash(ivd, ivd.getReceives());
                 versionList.add(new InterfaceVersion(ivd.getVersionName(), recvHash, sendHash));
             }
-            serviceInterfaces.add(new Interface(null,
+            serviceInterfaces.add(new Interface(service.getId() + "/" + descr.getId(),
                     descr.getName(),
-                    null,
+                    service.getId(),
                     versionList,
                     descr.isAllowMultiple(),
                     descr.isAutoConnect()));
@@ -190,7 +187,10 @@ public class Templates {
             replaceMap.put("config.interface", PluginUtils.configInterfaceClass(this.serviceDescription));
             final Set<String> parameterDefinitions = new HashSet<>();
             for (final Parameter param : this.serviceDescription.getParameters()) {
-                parameterDefinitions.add(String.format("    public %s get%s();",
+                final String defaultValue = (param.getDefaultValue() == null ? ""
+                        : "    @DefaultValue(\"" + param.getDefaultValue() + "\")\n");
+                parameterDefinitions.add(String.format("%s    public %s get%s();",
+                        defaultValue,
                         param.getType().getJavaTypeName(),
                         PluginUtils.getParameterName(param)));
             }
@@ -246,7 +246,6 @@ public class Templates {
 
         // Build replaceMaps for the interface versions
         if ((itf != null) && (version != null)) {
-            final String versionedName = PluginUtils.getVersionedName(itf, version);
             final String packageName = PluginUtils.getPackageName(itf, version);
 
             replaceMap.put("vitf.handler.interface", PluginUtils.connectionHandlerInterface(itf, version));

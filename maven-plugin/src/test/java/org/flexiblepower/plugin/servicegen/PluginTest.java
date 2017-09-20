@@ -51,7 +51,7 @@ public class PluginTest {
         final File inputFile = new File("src/test/resources/service.json");
         final ServiceDescription descr = this.mapper.readValue(inputFile, ServiceDescription.class);
 
-        final Templates t = new Templates("target.package", "", "", descr);
+        final Templates t = new Templates("target.package", descr);
         for (final InterfaceDescription itf : descr.getInterfaces()) {
             for (final InterfaceVersionDescription vitf : itf.getInterfaceVersions()) {
                 vitf.setHash("1234");
@@ -108,7 +108,7 @@ public class PluginTest {
         PluginTest.log.info(config.toString());
 
         final Map<String, String> hashes = Collections.singletonMap("ConfigurableService_004", "987");
-        final Templates t = new Templates("test.config", "", "", descr);
+        final Templates t = new Templates("test.config", descr);
         PluginTest.log.info(t.generateConfigInterface());
     }
 

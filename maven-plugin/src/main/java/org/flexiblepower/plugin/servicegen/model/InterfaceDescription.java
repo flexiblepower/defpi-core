@@ -2,6 +2,7 @@ package org.flexiblepower.plugin.servicegen.model;
 
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -42,5 +43,10 @@ public class InterfaceDescription {
     @JsonProperty("interfaceVersions")
     @JsonDeserialize(as = java.util.LinkedHashSet.class)
     private final Set<InterfaceVersionDescription> interfaceVersions = null;
+
+    @JsonIgnore
+    public String getId() {
+        return this.name.toLowerCase().replace(" ", "-");
+    }
 
 }
