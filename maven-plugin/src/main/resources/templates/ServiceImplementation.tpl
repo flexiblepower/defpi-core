@@ -1,7 +1,6 @@
 package {{service.package}};
 
 import java.io.Serializable;
-import java.util.Properties;
 
 import javax.annotation.Generated;
 
