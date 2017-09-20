@@ -209,10 +209,7 @@ myApp
 							[
 									nga.field('id'),
 									nga.field('name'),
-									nga.field('serviceId', 'reference')
-											.targetEntity(service).targetField(
-													nga.field('id')).label(
-													'Service') ]);
+									nga.field('serviceId') ]);
 
 					intface
 							.showView()
@@ -220,11 +217,7 @@ myApp
 									[
 											nga.field('id'),
 											nga.field('name'),
-											nga.field('serviceId', 'reference')
-													.targetEntity(service)
-													.targetField(
-															nga.field('id'))
-													.label('Service'),
+											nga.field('serviceId'),
 											nga.field('allowMultiple',
 													'boolean'),
 											nga.field('autoConnect', 'boolean'),
