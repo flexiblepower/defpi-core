@@ -31,11 +31,11 @@ public class RegistryConnectorTest {
 
     @Test
     public void testListServiceVersions() throws RepositoryNotFoundException, ServiceNotFoundException {
-        System.out.println(this.connector.listServiceVersions(this.repository));
+        System.out.println(this.connector.listAllServiceVersions(this.repository));
     }
 
     @Test
     public void testGetService() throws RepositoryNotFoundException, ServiceNotFoundException {
-        System.out.println(this.connector.getService(this.repository, "observations:latest"));
+        System.out.println(this.connector.getService(this.repository, "observations"));
     }
 }

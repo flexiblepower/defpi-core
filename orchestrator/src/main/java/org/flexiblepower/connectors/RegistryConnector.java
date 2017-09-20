@@ -66,6 +66,10 @@ public class RegistryConnector {
     private long serviceCacheLastUpdate = 0;
     private final Object serviceCacheLock = new Object();
 
+    private List<Service> allServiceCache = new ArrayList<>();
+    private long allServiceCacheLastUpdate = 0;
+    private final Object allServiceCacheLock = new Object();
+
     private RegistryConnector() {
         final String registryNameFromEnv = System.getenv(RegistryConnector.REGISTRY_URL_KEY);
         this.registryName = (registryNameFromEnv != null ? registryNameFromEnv : RegistryConnector.REGISTRY_URL_DFLT);
@@ -127,9 +131,9 @@ public class RegistryConnector {
         }
     }
 
-    public List<Service> listServices(final String repository) throws RepositoryNotFoundException {
-        synchronized (this.serviceCacheLock) {
-            final long cacheAge = System.currentTimeMillis() - this.serviceCacheLastUpdate;
+    public List<Service> listAllServiceVersions(final String repository) throws RepositoryNotFoundException {
+        synchronized (this.allServiceCacheLock) {
+            final long cacheAge = System.currentTimeMillis() - this.allServiceCacheLastUpdate;
             if (cacheAge > RegistryConnector.MAX_CACHE_AGE_MS) {
                 // Cache too old, refresh data
                 final List<Service> services = new ArrayList<>();
@@ -167,39 +171,56 @@ public class RegistryConnector {
                     RegistryConnector.log.warn("Interrupted while fetching Services");
                 }
 
+                this.allServiceCache = services;
+                this.allServiceCacheLastUpdate = System.currentTimeMillis();
+            }
+        }
+        return this.allServiceCache;
+    }
+
+    public List<Service> listServices(final String repository) throws RepositoryNotFoundException {
+        synchronized (this.serviceCacheLock) {
+            final long cacheAge = System.currentTimeMillis() - this.serviceCacheLastUpdate;
+            if (cacheAge > RegistryConnector.MAX_CACHE_AGE_MS) {
+                // Cache too old, refresh data
+                final List<Service> services = new ArrayList<>();
+
+                final ExecutorService pool1 = Executors.newFixedThreadPool(RegistryConnector.MAX_THREADS);
+                final ExecutorService pool2 = Executors.newFixedThreadPool(RegistryConnector.MAX_THREADS);
+
+                for (final String sn : this.listServiceNames(repository)) {
+                    pool1.submit(() -> {
+                        final List<String> tagsList = this.listTags(repository, sn);
+                        Collections.sort(tagsList);
+                        final String version = (tagsList.contains("latest") ? "latest" : tagsList.get(0));
+                        pool2.submit(() -> {
+                            try {
+                                final Map<Architecture, String> tagsMap = RegistryConnector
+                                        .tagsToArchitectureMap(tagsList);
+                                services.add(this.getServiceFromRegistry(repository, sn, version, tagsMap));
+                            } catch (final ServiceNotFoundException ex) {
+                                RegistryConnector.log.error("Could not find service {}: {}", sn, ex.getMessage());
+                                RegistryConnector.log.trace(ex.getMessage(), ex);
+                            }
+                        });
+                    });
+                }
+
+                try {
+                    pool1.shutdown();
+                    pool1.awaitTermination(RegistryConnector.MAX_CACHE_REFRESH_TIME, TimeUnit.MILLISECONDS);
+                    // By now all get serviceFromRegistry calls are scheduled
+                    pool2.shutdown();
+                    pool2.awaitTermination(RegistryConnector.MAX_CACHE_REFRESH_TIME, TimeUnit.MILLISECONDS);
+                } catch (final InterruptedException e) {
+                    RegistryConnector.log.warn("Interrupted while fetching Services");
+                }
+
                 this.serviceCache = services;
                 this.serviceCacheLastUpdate = System.currentTimeMillis();
             }
         }
         return this.serviceCache;
-    }
-
-    /**
-     * @param serviceRepository
-     * @return
-     * @throws RepositoryNotFoundException
-     */
-    public List<Service> listServiceVersions(final String repository) throws RepositoryNotFoundException {
-        final List<Service> services = new ArrayList<>();
-        final ExecutorService pool = Executors.newFixedThreadPool(RegistryConnector.MAX_THREADS);
-        for (final String sn : this.listServiceNames(repository)) {
-            pool.submit(() -> {
-                final List<String> tagsList = this.listTags(repository, sn);
-                final Map<String, List<String>> versions = RegistryConnector.groupTagVersions(tagsList);
-                for (final String version : versions.keySet()) {
-                    services.add(Service.builder().id(sn).version(version).build());
-                }
-            });
-        }
-
-        try {
-            pool.shutdown();
-            pool.awaitTermination(RegistryConnector.MAX_CACHE_REFRESH_TIME, TimeUnit.MILLISECONDS);
-        } catch (final InterruptedException e) {
-            RegistryConnector.log.warn("Interrupted while fetching Service versions");
-        }
-
-        return services;
     }
 
     /**
@@ -253,49 +274,6 @@ public class RegistryConnector {
         }
     }
 
-    // public void deleteService(final String repository, final String serviceName, final String tag)
-    // throws ServiceNotFoundException {
-    // RegistryConnector.log.info("Deleting image from service {}/{}:{}", repository, serviceName, tag);
-    //
-    // // First get the digest, because we MUST send that to delete it
-    // final URI getUri = this.buildUrl(repository, serviceName, "manifests", tag);
-    // RegistryConnector.log.debug("Requesting URL {}", getUri);
-    // final Response response = ClientBuilder.newClient()
-    // .target(getUri)
-    // .request()
-    // .accept("application/vnd.docker.distribution.manifest.v2+json")
-    // .head();
-    // RegistryConnector.validateResponse(response);
-    // final String digest = response.getHeaderString("Docker-Content-Digest");
-    //
-    // // Now we have the digest, so we can delete it.
-    // final URI deleteUri = this.buildUrl(repository, serviceName, "manifests", digest);
-    // RegistryConnector.log.debug("Requesting URL {} (DELETE)", deleteUri);
-    // final Response response2 = ClientBuilder.newClient().target(deleteUri).request().delete();
-    // RegistryConnector.validateResponse(response2);
-    // RegistryConnector.log.debug("Delete response: {} ({})",
-    // response2.getStatusInfo().getReasonPhrase(),
-    // response2.getStatus());
-    //
-    // }
-
-    // public Service getService(final String fullImageName) throws ServiceNotFoundException {
-    // RegistryConnector.log.info("Obtaining service {}", fullImageName);
-    // final int p1 = fullImageName.lastIndexOf('/');
-    // final int p2 = fullImageName.lastIndexOf(':');
-    //
-    // return this.getService(fullImageName.substring(0, p1),
-    // fullImageName.substring(p1 + 1, p2),
-    // fullImageName.substring(p2 + 1));
-    // }
-
-    // public Service getService(final String repository, final String serviceName, final String tag)
-    // throws ServiceNotFoundException {
-    // RegistryConnector.log.info("Obtaining service {}/{}:{}", repository, serviceName, tag);
-    // final URI url = this.buildUrl(repository, serviceName, "manifests", tag);
-    // return this.getService(url);
-    // }
-
     public Service getService(final String repository, final String id) throws ServiceNotFoundException {
         try {
             for (final Service service : this.listServices(repository)) {
@@ -334,7 +312,7 @@ public class RegistryConnector {
             }
             final String image = jsonResponse.getString("name");
             serviceBuilder.repository(ServiceManager.SERVICE_REPOSITORY);
-            final String serviceId = image.substring(image.indexOf("/") + 1) + ":" + version;
+            final String serviceId = image.substring(image.indexOf("/") + 1);
             serviceBuilder.id(serviceId);
             serviceBuilder.name(labels.getString("org.flexiblepower.serviceName"));
 
