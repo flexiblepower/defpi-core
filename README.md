@@ -38,9 +38,12 @@ The REST API uses JSON for serialization and deserialization, jackson fasterxml 
 This Java library to create services implements the basic functionality for a service to communicate.
 
 ## Defpi-maven-plugin
-This maven plugin generates the code based on a file ``service.json`` which must be places in the src/main/resoureces folder. The protobuf sources as well as the XSD files will be compiled to java code, and the interfaces and factories are built that are used by the service library.
+This maven plugin facilitates developers of dEF-Pi components. It does so by providing code that manages dEF-Pi connections and handles messages that are sent and received.
+The only necessary input to this process is a service description where you specify a list of components and which types of messages are sent and received by each component. Also, a link to the message format is provided. Currently EFI xsd and Protobuf messages are supported.
+This file ``service.json`` must be placed in the src/main/resources folder. The maven plugin generates protobuf sources as well as the XSD files will be compiled to java code, and the interfaces and factories are built that are used by the service library.
 
-The code generation is not bound by default to avoid overwriting code, in case the user wants to change interface, *even though this is not recommended!*. To use the code generation run the `generate` goal as following
+The code generation step only executes on demand; it is not bound by default to a maven phase. The reason is to avoid overwriting code, in case the user wants to change interface, *even though this is not recommended!*.
+To use the code generation first prepare a valid ``service.json`` file and then run the `generate` Maven goal, as follows:
 
 ```
 mvn defpi:generate
