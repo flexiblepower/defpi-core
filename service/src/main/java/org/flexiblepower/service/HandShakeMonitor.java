@@ -55,14 +55,15 @@ public class HandShakeMonitor {
             throw new RuntimeException("Exception while serializing message: " + initHandshakeMessage, e);
         }
 
-        if (!this.publishSocket.send(sendData)) {
-            // Failed sending handshake
-            HandShakeMonitor.log.warn("Failed to send handshake");
-            return false;
-        }
-
         // Receive the HandShake
         for (int i = 0; i < HandShakeMonitor.MAX_RECEIVE_TRIES; i++) {
+
+            if (!this.publishSocket.send(sendData)) {
+                // Failed sending handshake
+                HandShakeMonitor.log.warn("Failed to send handshake");
+                return false;
+            }
+
             try {
                 ManagedConnection.log.trace("Listening for handshake..");
                 final byte[] recvData = this.subscribeSocket.recv();
