@@ -76,6 +76,22 @@ public class ConfigTest {
         Assert.assertEquals("", config.getString());
     }
 
+    @Test
+    public void testArrays() {
+        final Map<String, String> valueMap = new HashMap<>();
+        valueMap.put("boolArray", "[True, True, False]");
+        valueMap.put("intArray", "[4,8,15,16,23,42]");
+        valueMap.put("longArray", "[, 180]");
+        valueMap.put("doubleArray", "[]");
+
+        final GeneratedConfig config = ServiceConfig.generateConfig(GeneratedConfig.class, valueMap);
+        Assert.assertArrayEquals(new boolean[] {true, true, false}, config.getBoolArray());
+        Assert.assertArrayEquals(new int[] {4, 8, 15, 16, 23, 42}, config.getIntArray());
+        Assert.assertArrayEquals(new long[] {0, 180}, config.getLongArray());
+        Assert.assertArrayEquals(new float[] {(float) 6.7, (float) 8.1}, config.getDefaultFloatArray(), (float) 0.1);
+        Assert.assertArrayEquals(new double[] {}, config.getDoubleArray(), 1e-16);
+    }
+
     public static interface GeneratedConfig {
 
         boolean getBool();
@@ -108,6 +124,18 @@ public class ConfigTest {
         float incorrectlyNamedProperty();
 
         Map<String, String> getInvalidObjectType();
+
+        boolean[] getBoolArray();
+
+        int[] getIntArray();
+
+        long[] getLongArray();
+
+        @DefaultValue("6.7,8.1,")
+        float[] getDefaultFloatArray();
+
+        double[] getDoubleArray();
+
     }
 
 }

@@ -36,15 +36,11 @@ public class Templates {
 
     private final static boolean PRETTY_PRINT_JSON = true;
     private final String servicePackage;
-    // private final String protobufOutputPackage;
-    // private final String xsdOutputPackage;
     private final ServiceDescription serviceDescription;
     private final ObjectMapper mapper = new ObjectMapper();
 
     public Templates(final String targetPackage, final ServiceDescription descr) {
         this.servicePackage = targetPackage;
-        // this.protobufOutputPackage = protobufOutputPackage;
-        // this.xsdOutputPackage = xsdOutputPackage;
         this.serviceDescription = descr;
     }
 
@@ -187,15 +183,22 @@ public class Templates {
             boolean importDefaultValue = false;
             replaceMap.put("config.interface", PluginUtils.configInterfaceClass(this.serviceDescription));
             final Set<String> parameterDefinitions = new HashSet<>();
+
             for (final Parameter param : this.serviceDescription.getParameters()) {
-                final String defaultValue = (param.getDefaultValue() == null ? ""
+                final String javadoc = ((param.getName() == null) || param.getName().isEmpty() ? ""
+                        : "    /**\n     * @return " + param.getName() + "\n     */\n");
+                final String annotation = (param.getDefaultValue() == null ? ""
                         : "    @DefaultValue(\"" + param.getDefaultValue() + "\")\n");
-                importDefaultValue = (defaultValue.isEmpty() ? importDefaultValue : true);
-                parameterDefinitions.add(String.format("%s    public %s get%s();",
-                        defaultValue,
+                final String arraydef = (param.isArray() ? "[]" : "");
+                importDefaultValue = (annotation.isEmpty() ? importDefaultValue : true);
+                parameterDefinitions.add(String.format("%s%s    public %s%s get%s();",
+                        javadoc,
+                        annotation,
                         param.getType().getJavaTypeName(),
-                        PluginUtils.getParameterName(param)));
+                        arraydef,
+                        param.getId()));
             }
+
             replaceMap.put("config.definitions", String.join("\n\n", parameterDefinitions));
             replaceMap.put("config.imports",
                     importDefaultValue ? "\nimport org.flexiblepower.service.DefaultValue;\n" : "");
