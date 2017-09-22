@@ -51,6 +51,8 @@ public class Process {
     }
 
     @Value
+    @AllArgsConstructor
+    @NoArgsConstructor(force = true)
     public static class ProcessParameter {
 
         private String key;
