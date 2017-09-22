@@ -3,13 +3,13 @@
   "version": "85",
   "parameters": [ 
   	{ 
-  	  "id": "books.frequency",
+  	  "id": "frequency",
   	  "name": "frequency",
   	  "type": "double",
   	  "default": "0.1"
   	},
   	{
-  	  "id": "books.type",
+  	  "id": "type",
   	  "name": "type",
   	  "type": "string",
   	  "values": ["historic", "romance", "sci-fi"],
