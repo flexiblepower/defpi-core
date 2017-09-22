@@ -17,7 +17,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z])([a-zA-Z0-9\\.])*$"
+            "pattern": "^([a-z])([a-zA-Z0-9])+$"
           },
           "name": {
            	"$ref":"#/definitions/name"
