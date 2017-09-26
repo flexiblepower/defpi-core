@@ -129,7 +129,6 @@ public final class ServiceMain {
     }
 
     public static <T> void main(final String[] args) {
-
         ServiceMain.reflections = new Reflections();
         // Get service from package
 

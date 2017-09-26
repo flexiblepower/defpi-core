@@ -145,6 +145,15 @@ public class CreateComponentMojo extends AbstractMojo {
     @Parameter(property = "xsd.output.package", defaultValue = "xml")
     private String xsdOutputPackage;
 
+    @Parameter(property = "defpi.docker-entrypoint",
+               defaultValue = "java -jar $JVM_ARGUMENTS /${project.artifactId}-${project.version}-jar-with-dependencies.jar")
+    private String dockerEntryPoint;
+
+    /**
+     * Folder where additional defpi resources may be put
+     */
+    private final String defpiResourceLocation = "defpi-resources";
+
     /**
      * Folder where the protobuf definitions should be copied to
      */
@@ -187,6 +196,9 @@ public class CreateComponentMojo extends AbstractMojo {
 
             final Path javaSourceFolder = Paths.get(this.sourceLocation).resolve(this.servicePackage.replace('.', '/'));
             Files.createDirectories(javaSourceFolder);
+
+            final Path defpiResourceFolder = Paths.get(this.resourceLocation).resolve(this.defpiResourceLocation);
+            Files.createDirectories(defpiResourceFolder);
 
             // Add descriptors and related hashes
             this.compileDescriptors(service);
@@ -336,10 +348,11 @@ public class CreateComponentMojo extends AbstractMojo {
         final Path dockerFolder = Files.createDirectories(this.resourcePath.resolve(this.dockerLocation));
         final Path dockerArmFolder = Files.createDirectories(this.resourcePath.resolve(this.dockerArmLocation));
 
-        Files.write(dockerFolder.resolve("Dockerfile"), this.templates.generateDockerfile("x86", service).getBytes());
+        Files.write(dockerFolder.resolve("Dockerfile"),
+                this.templates.generateDockerfile("x86", service, this.dockerEntryPoint).getBytes());
 
         Files.write(dockerArmFolder.resolve("Dockerfile"),
-                this.templates.generateDockerfile("arm", service).getBytes());
+                this.templates.generateDockerfile("arm", service, this.dockerEntryPoint).getBytes());
     }
 
     /**

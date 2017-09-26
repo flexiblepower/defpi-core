@@ -11,7 +11,6 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 import org.flexiblepower.model.Parameter;
@@ -42,6 +41,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since Jun 8, 2017
  */
 @Slf4j
+@SuppressWarnings("static-method")
 public class PluginTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -58,7 +58,7 @@ public class PluginTest {
             }
             PluginTest.log.info(t.generateManagerInterface(itf));
         }
-        PluginTest.log.info(t.generateDockerfile("x86", descr));
+        PluginTest.log.info(t.generateDockerfile("x86", descr, "run-java.sh"));
     }
 
     @Test
@@ -107,7 +107,6 @@ public class PluginTest {
         final Set<Parameter> config = descr.getParameters();
         PluginTest.log.info(config.toString());
 
-        final Map<String, String> hashes = Collections.singletonMap("ConfigurableService_004", "987");
         final Templates t = new Templates("test.config", descr);
         PluginTest.log.info(t.generateConfigInterface());
     }
