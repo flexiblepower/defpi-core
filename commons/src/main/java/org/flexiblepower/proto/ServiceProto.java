@@ -3,6 +3,7 @@
 
 package org.flexiblepower.proto;
 
+@SuppressWarnings("all")
 public final class ServiceProto {
   private ServiceProto() {}
   public static void registerAllExtensions(

@@ -53,18 +53,19 @@ public class XSDMessageSerializer implements MessageSerializer<Object> {
             }
         }
 
-		try {
-			return this.unmarshaller.unmarshal(new ByteArrayInputStream(data));
-		} catch (final JAXBException e) {
-			throw new SerializationException("Was not able to deserialize: " + e.getMessage());
-		}
-	}
+        try {
+            return this.unmarshaller.unmarshal(new ByteArrayInputStream(data));
+        } catch (final JAXBException e) {
+            throw new SerializationException("Was not able to deserialize: " + e.getMessage());
+        }
+    }
 
     @Override
     public DescriptorType getType() {
         return this.type;
     }
 
+    @SuppressWarnings("unchecked")
     private <T> byte[] serialize(final Object object, final Class<T> cls) throws JAXBException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         if (this.marshaller == null) {
