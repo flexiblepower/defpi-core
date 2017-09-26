@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.Set;
 
+import org.flexiblepower.model.Parameter;
 import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
 import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription;
 import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
@@ -77,6 +78,10 @@ public class PluginUtils {
 
     public static String managerClass(final InterfaceDescription itf) {
         return PluginUtils.camelCaps(itf.getName()) + PluginUtils.MANAGER_IMPL_SUFFIX;
+    }
+
+    public static Object getParameterId(final Parameter param) {
+        return Character.toUpperCase(param.getId().charAt(0)) + param.getId().substring(1);
     }
 
     /**

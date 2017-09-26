@@ -200,7 +200,7 @@ public class Templates {
                         annotation,
                         param.getType().getJavaTypeName(),
                         arraydef,
-                        param.getId()));
+                        PluginUtils.getParameterId(param)));
             }
 
             replaceMap.put("config.definitions", String.join("\n\n", parameterDefinitions));
