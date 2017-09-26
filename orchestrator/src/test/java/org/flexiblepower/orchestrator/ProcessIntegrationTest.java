@@ -105,22 +105,23 @@ public class ProcessIntegrationTest {
         final Process process2 = this.pm.createProcess(
                 Process.builder().serviceId(service.getId()).userId(user.getId()).privateNodeId(node2.getId()).build());
 
-        // Wait until we see that the processes are up and running
-        final DockerClient client = DefaultDockerClient.fromEnv().build();
-
         List<com.spotify.docker.client.messages.swarm.Service> servicesForP1;
         List<com.spotify.docker.client.messages.swarm.Service> servicesForP2;
+        // Wait until we see that the processes are up and running
 
-        do {
-            Thread.sleep(Duration.ofSeconds(1).toMillis());
-            servicesForP1 = client.listServices(Criteria.builder().serviceName(process1.getId().toString()).build());
-            ProcessIntegrationTest.log.info("Services for process 1: {}", servicesForP1);
+        try (final DockerClient client = DefaultDockerClient.fromEnv().build()) {
+            do {
+                Thread.sleep(Duration.ofSeconds(1).toMillis());
+                servicesForP1 = client
+                        .listServices(Criteria.builder().serviceName(process1.getId().toString()).build());
+                ProcessIntegrationTest.log.info("Services for process 1: {}", servicesForP1);
 
-            servicesForP2 = client.listServices(Criteria.builder().serviceName(process2.getId().toString()).build());
-            ProcessIntegrationTest.log.info("Services for process 2: {}", servicesForP2);
-        } while (servicesForP1.isEmpty() || servicesForP2.isEmpty());
+                servicesForP2 = client
+                        .listServices(Criteria.builder().serviceName(process2.getId().toString()).build());
+                ProcessIntegrationTest.log.info("Services for process 2: {}", servicesForP2);
+            } while (servicesForP1.isEmpty() || servicesForP2.isEmpty());
 
-        client.close();
+        }
 
         Assert.assertFalse(servicesForP1.isEmpty());
         Assert.assertFalse(servicesForP2.isEmpty());

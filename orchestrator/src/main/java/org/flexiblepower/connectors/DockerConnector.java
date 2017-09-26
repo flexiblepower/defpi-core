@@ -183,9 +183,8 @@ public class DockerConnector {
                     .networkSettings()
                     .networks()
                     .containsKey(networkName)) {
-                DockerConnector.log.info("Connecting {} to network {}",
-                        DockerConnector.ORCHESTRATOR_CONTAINER_NAME,
-                        networkName);
+                DockerConnector.log
+                        .info("Connecting {} to network {}", DockerConnector.ORCHESTRATOR_CONTAINER_NAME, networkName);
                 this.client.connectToNetwork(DockerConnector.ORCHESTRATOR_CONTAINER_NAME, networkName);
             } else {
                 DockerConnector.log.debug("Container {} is already connected to {}",
@@ -233,6 +232,7 @@ public class DockerConnector {
      * @throws InterruptedException
      * @throws DockerException
      */
+    @SuppressWarnings("unused")
     private void removeNetwork(final String networkId) throws DockerException, InterruptedException {
         this.client.disconnectFromNetwork(DockerConnector.ORCHESTRATOR_CONTAINER_NAME, networkId);
         this.client.removeNetwork(networkId);
