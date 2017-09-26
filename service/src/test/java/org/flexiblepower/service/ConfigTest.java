@@ -24,8 +24,8 @@ public class ConfigTest {
     @Test
     public void runConfigTest() {
         final Map<String, String> valueMap = new HashMap<>();
-        valueMap.put("updateInterval", "7");
-        valueMap.put("name", "Configuration");
+        valueMap.put("UpdAteInteRval", "7");
+        valueMap.put("NAME", "Configuration");
         valueMap.put("invalidObjectType", "{\"key\":\"value\"}");
 
         final GeneratedConfig config = ServiceConfig.generateConfig(GeneratedConfig.class, valueMap);
