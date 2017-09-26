@@ -9,6 +9,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.IntStream;
@@ -57,7 +58,8 @@ public class ServiceConfig {
          * @param rawValues
          */
         public GeneratedConfigHandler(final Map<String, String> rawValues) {
-            this.values = rawValues;
+            this.values = new HashMap<>();
+            rawValues.forEach((k, v) -> this.values.put(k.toLowerCase(), v));
         }
 
         /*
@@ -75,14 +77,15 @@ public class ServiceConfig {
             }
 
             // We assume camelCaps
-            final String key = methodName.substring(3, 4).toLowerCase() + methodName.substring(4, methodName.length());
+            final String key = methodName.substring(3).toLowerCase();
 
             String rawValue = "";
             if (!this.values.containsKey(key)) {
                 if (method.isAnnotationPresent(DefaultValue.class)) {
                     rawValue = method.getAnnotation(DefaultValue.class).value();
                 } else {
-                    GeneratedConfigHandler.log.warn("No parameter found with name \"{}\", returning type default", key);
+                    GeneratedConfigHandler.log.warn("No parameter found with name \"{}\", returning type default",
+                            method.getName().substring(3));
                 }
             } else {
                 rawValue = this.values.get(key);
