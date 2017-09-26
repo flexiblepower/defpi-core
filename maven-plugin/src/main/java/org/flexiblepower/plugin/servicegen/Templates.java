@@ -102,12 +102,14 @@ public class Templates {
      *
      * @param platform
      * @param service
+     * @param dockerEntryPoint
      * @return
      * @throws JsonProcessingException
      */
-    public String generateDockerfile(final String platform, final ServiceDescription service)
-            throws JsonProcessingException,
-            IOException {
+    public String
+            generateDockerfile(final String platform, final ServiceDescription service, final String dockerEntryPoint)
+                    throws JsonProcessingException,
+                    IOException {
         final Map<String, String> replace = new HashMap<>();
         if (platform.equals("x86")) {
             replace.put("from", "java:alpine");
@@ -148,6 +150,8 @@ public class Templates {
         final String interfaces = writer.writeValueAsString(serviceInterfaces);
         // final String encoded = Base64.getEncoder().encodeToString(interfaces.getBytes());
         replace.put("interfaces", interfaces.replaceAll("\n", " \\\\ \n"));
+
+        replace.put("entrypoint", dockerEntryPoint);
 
         return Templates.replaceMap(this.getTemplate("Dockerfile"), replace);
     }

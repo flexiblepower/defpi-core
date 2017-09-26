@@ -5,7 +5,7 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>service-parent</artifactId>
-	<version>0.2.4-SNAPSHOT</version>
+	<version>0.2.5-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<properties>
@@ -14,7 +14,7 @@
 		<java.source>1.8</java.source>
 		<java.target>1.8</java.target>
 
-		<defpi.version>0.2.4-SNAPSHOT</defpi.version>
+		<defpi.version>0.2.5-SNAPSHOT</defpi.version>
 		<protobuf.version>3.3.0</protobuf.version>
 
 		<!-- Main class for any service should be the main from the library -->
@@ -150,6 +150,10 @@
 									<targetPath>${project.build.directory}/docker</targetPath>
 									<include>Dockerfile</include>
 									<filtering>true</filtering>
+								</resource>
+								<resource>
+									<directory>${project.resourcedir}/defpi-resources</directory>
+									<targetPath>${project.build.directory}/docker/defpi-resources</targetPath>
 								</resource>
 								<resource>
 									<directory>${project.resourcedir}/docker-arm</directory>
