@@ -51,7 +51,7 @@ public class RegistryConnector {
     private static final String REGISTRY_URL_DFLT = "defpi.hesilab.nl:5000";
     private static final long MAX_CACHE_AGE_MS = 90000;
     private static final long MAX_CACHE_REFRESH_TIME = 30000;
-    private static final int MAX_THREADS = 64;
+    private static final int MAX_THREADS = 10;
 
     private static RegistryConnector instance = null;
 

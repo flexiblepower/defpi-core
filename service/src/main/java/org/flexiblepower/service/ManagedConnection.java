@@ -11,7 +11,6 @@ import java.lang.reflect.Method;
 import java.nio.channels.ClosedSelectorException;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.concurrent.ExecutorService;
 
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
@@ -51,7 +50,7 @@ final class ManagedConnection implements Connection, Closeable {
     protected volatile ConnectionState state;
 
     protected final InterfaceInfo info;
-    protected final ExecutorService serviceExecutor;
+    protected final ServiceExecutor serviceExecutor;
     protected final Object suspendLock = new Object();
 
     protected int listenPort;
@@ -74,7 +73,7 @@ final class ManagedConnection implements Connection, Closeable {
         this.targetAddress = targetAddress;
         this.info = info;
 
-        this.serviceExecutor = ServiceMain.getServiceExecutor();
+        this.serviceExecutor = ServiceExecutor.getInstance();
         this.heartBeat = new HeartBeatMonitor(this);
         this.state = ConnectionState.STARTING;
 
