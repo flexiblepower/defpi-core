@@ -129,6 +129,8 @@ public class ConnectionIntegrationTest {
             Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h1").state);
             Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h2").state);
 
+            Assert.assertTrue((ConnectionIntegrationTest.handlerMap.get("h1").lastMessage == null)
+                    ^ (ConnectionIntegrationTest.handlerMap.get("h2").lastMessage == null));
             Assert.assertNull(ConnectionIntegrationTest.handlerMap.get("h1").lastMessage);
             Assert.assertNotNull(ConnectionIntegrationTest.handlerMap.get("h2").lastMessage);
 
