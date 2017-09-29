@@ -31,6 +31,7 @@ public class HeartBeatMonitor implements Closeable {
     private static final long HEARTBEAT_PERIOD_IN_SECONDS = 10;
     private static final long HEARTBEAT_INITIAL_DELAY = 1;
     private static final TimeUnit HEARTBEAT_TIMING_UNIT = TimeUnit.SECONDS;
+    private static final int MAX_MISSED_HEARTBEATS = 1;
 
     private static final byte[] PING = new byte[] {(byte) 0xA};
     private static final byte[] PONG = new byte[] {(byte) 0xB};
@@ -42,6 +43,7 @@ public class HeartBeatMonitor implements Closeable {
 
     private ScheduledFuture<?> heartBeatFuture;
     private boolean receivedPong;
+    private int missed_heartbeats;
 
     HeartBeatMonitor(final ManagedConnection c) {
         this.connection = c;
@@ -87,17 +89,25 @@ public class HeartBeatMonitor implements Closeable {
         }
 
         this.receivedPong = true;
+        this.missed_heartbeats = 0;
         this.heartBeatFuture = this.executor.scheduleAtFixedRate(() -> {
             try {
                 if (!this.connection.isConnected()) {
+                    HeartBeatMonitor.log.info("Connection is not connected, stopping heartbeat");
                     return;
                 }
 
                 if (this.receivedPong) {
+                    this.missed_heartbeats = 0;
                     this.receivedPong = false;
-                    HeartBeatMonitor.log.trace("PING");
-                    this.connection.sendRaw(HeartBeatMonitor.PING);
                 } else {
+                    this.missed_heartbeats++;
+                }
+
+                HeartBeatMonitor.log.trace("PING");
+                this.connection.sendRaw(HeartBeatMonitor.PING);
+
+                if (this.missed_heartbeats > HeartBeatMonitor.MAX_MISSED_HEARTBEATS) {
                     // If no PONG was received since the last PING, assume connection was interrupted!
                     HeartBeatMonitor.log.warn("No heartbeat received on connection, goto {}",
                             ConnectionState.INTERRUPTED);
@@ -115,6 +125,7 @@ public class HeartBeatMonitor implements Closeable {
 
     @Override
     public void close() {
+        HeartBeatMonitor.log.info("Stopping heartbeat");
         if (this.heartBeatFuture != null) {
             this.heartBeatFuture.cancel(true);
             this.heartBeatFuture = null;

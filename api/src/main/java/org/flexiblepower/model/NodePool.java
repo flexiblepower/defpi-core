@@ -12,8 +12,9 @@ import org.mongodb.morphia.annotations.Id;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
-import lombok.Getter;
-import lombok.ToString;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.Value;
 
 /**
  * NodePool
@@ -23,8 +24,9 @@ import lombok.ToString;
  * @since 20 mrt. 2017
  */
 @Entity
-@Getter
-@ToString
+@Value
+@AllArgsConstructor
+@NoArgsConstructor(force = true)
 public class NodePool {
 
     @Id

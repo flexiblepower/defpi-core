@@ -11,7 +11,6 @@ import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.nio.channels.ClosedSelectorException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -59,7 +58,7 @@ public class ServiceManager<T> implements Closeable {
     public static final int MANAGEMENT_PORT = 4999;
     private static int threadCount = 0;
 
-    private final ExecutorService serviceExecutor;
+    private final ServiceExecutor serviceExecutor;
     private final Thread managerThread;
     private final ConnectionManager connectionManager;
     private final JavaIOSerializer javaIoSerializer = new JavaIOSerializer();
@@ -79,7 +78,7 @@ public class ServiceManager<T> implements Closeable {
     }
 
     public ServiceManager() {
-        this.serviceExecutor = ServiceMain.getServiceExecutor();
+        this.serviceExecutor = ServiceExecutor.getInstance();
 
         this.connectionManager = new ConnectionManager();
         this.managementSocket = ZMQ.context(1).socket(ZMQ.REP);
@@ -356,7 +355,11 @@ public class ServiceManager<T> implements Closeable {
     }
 
     private static ErrorMessage createErrorMessage(final String processId, final Exception e) {
-        return ErrorMessage.newBuilder().setDebugInformation(e.getMessage()).setProcessId(processId).build();
+        return ErrorMessage.newBuilder()
+                .setDebugInformation(
+                        e != null ? e.getClass().toString() + ": " + e.getMessage() : "Unknown exception occurred")
+                .setProcessId(processId)
+                .build();
     }
 
 }
