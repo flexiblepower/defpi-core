@@ -50,7 +50,7 @@ final class ManagedConnection implements Connection, Closeable {
     protected volatile ConnectionState state;
 
     protected final InterfaceInfo info;
-    protected final ServiceExecutor serviceExecutor;
+    protected final ServiceExecutor serviceExecutor = ServiceExecutor.getInstance();
     protected final Object suspendLock = new Object();
 
     protected int listenPort;
@@ -73,7 +73,6 @@ final class ManagedConnection implements Connection, Closeable {
         this.targetAddress = targetAddress;
         this.info = info;
 
-        this.serviceExecutor = ServiceExecutor.getInstance();
         this.heartBeat = new HeartBeatMonitor(this);
         this.state = ConnectionState.STARTING;
 
@@ -247,7 +246,9 @@ final class ManagedConnection implements Connection, Closeable {
         this.closePublishSocket();
         this.closeSubscribeSocket();
 
-        this.heartBeat.close();
+        if (this.heartBeat != null) {
+            this.heartBeat.close();
+        }
 
         if (!this.zmqContext.isTerminated()) {
             // Close this in another thread, because it sometimes locks the VM
@@ -260,6 +261,11 @@ final class ManagedConnection implements Connection, Closeable {
      */
     void goToInterruptedState() {
         if (this.state == ConnectionState.INTERRUPTED) {
+            return;
+        }
+
+        if (this.serviceHandler == null) {
+            ManagedConnection.log.warn("ServiceHandler not yet instantiated, not interrupting...");
             return;
         }
 
@@ -279,6 +285,11 @@ final class ManagedConnection implements Connection, Closeable {
     protected void resumeAfterInterruptedState() {
         // Update state
         this.state = ConnectionState.CONNECTED;
+
+        if (this.serviceHandler == null) {
+            ManagedConnection.log.warn("ServiceHandler not yet instantiated, not resuming...");
+            return;
+        }
 
         // Notify Service implementation
         this.serviceExecutor.submit(() -> {
