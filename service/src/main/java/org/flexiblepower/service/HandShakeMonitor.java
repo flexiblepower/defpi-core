@@ -84,8 +84,12 @@ public class HandShakeMonitor {
 
             if (handShakeMessage.getConnectionId().equals(this.connectionId)) {
                 ManagedConnection.log.debug("Received acknowledge string: {}", handShakeMessage);
-                // We are done
-                this.connection.goToConnectedState();
+                // Success! Maybe go to connected state?
+                if (!this.connection.isConnected()) {
+                    this.connection.goToConnectedState();
+                }
+
+                // Maybe send response back?
                 if (!handShakeMessage.getConnectionState().equals(ConnectionState.CONNECTED)) {
                     return this.sendHandshake(this.connection.getState());
                 } else {

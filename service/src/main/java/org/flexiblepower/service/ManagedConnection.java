@@ -492,11 +492,21 @@ final class ManagedConnection implements Connection, Closeable {
             this.heartBeat.close();
         }
 
-        if (!this.zmqContext.isTerminated()) {
+        if (!this.zmqContext.isTerminated() && !this.connectionExecutor.isShutdown()) {
             // Close this in another thread, because it sometimes locks the VM
             this.connectionExecutor.submit(() -> this.zmqContext.close());
             // (new Thread(() -> this.zmqContext.close())).start();
         }
+
+        this.connectionExecutor.shutdownNow();
+        // try {
+        // if (!this.connectionExecutor.awaitTermination(3, TimeUnit.SECONDS)) {
+        // // Force shutdown
+        // this.connectionExecutor.shutdownNow();
+        // }
+        // } catch (final InterruptedException e) {
+        // e.printStackTrace();
+        // }
     }
 
     /**

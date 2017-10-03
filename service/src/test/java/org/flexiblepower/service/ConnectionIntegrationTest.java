@@ -218,7 +218,7 @@ public class ConnectionIntegrationTest {
         }
     }
 
-    @Test(timeout = 10000)
+    @Test(timeout = 15000)
     public void testSuspendAndResume() throws ConnectionModificationException, InterruptedException {
         final InterfaceInfo info = TestHandler.class.getAnnotation(InterfaceInfo.class);
         ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandlerBuilder());
