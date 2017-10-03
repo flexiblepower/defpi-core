@@ -23,4 +23,8 @@ public abstract class NotFoundException extends Exception {
         super(msg);
     }
 
+    protected NotFoundException(final String msg, final Throwable cause) {
+        super(msg, cause);
+    }
+
 }

@@ -1,16 +1,22 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>org.flexiblepower.defpi</groupId>
-    <artifactId>service-parent</artifactId>
-    <version>0.2.3-SNAPSHOT</version>
-    <relativePath>../master/service-parent/pom.xml</relativePath>
-  </parent>
+	<parent>
+		<groupId>org.flexiblepower.defpi</groupId>
+		<artifactId>service-parent</artifactId>
+		<version>0.2.5-SNAPSHOT</version>
+		<relativePath>../master/service-parent/pom.xml</relativePath>
+	</parent>
 
-  <artifactId>booksample</artifactId>
-  <version>0.0.1</version>
+	<artifactId>booksample</artifactId>
+	<version>0.0.1</version>
+
+	<properties>
+		<xsd.input.directory>${project.resourcedir}</xsd.input.directory>
+		<xsd.resource.directory>${project.resourcedir}/xsds</xsd.resource.directory>
+		<xsd.output.package>bookmodel</xsd.output.package>
+		<defpi.docker-entrypoint>/bin/sh runJava.sh</defpi.docker-entrypoint>
+	</properties>
 
 </project>

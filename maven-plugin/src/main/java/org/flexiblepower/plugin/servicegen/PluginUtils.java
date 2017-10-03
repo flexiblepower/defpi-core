@@ -62,10 +62,6 @@ public class PluginUtils {
         return PluginUtils.camelCaps(d.getName()) + PluginUtils.CONFIG_SUFFIX;
     }
 
-    public static String getParameterName(final Parameter param) {
-        return PluginUtils.camelCaps(param.getName());
-    }
-
     public static String connectionHandlerInterface(final InterfaceDescription itf,
             final InterfaceVersionDescription version) {
         return PluginUtils.camelCaps(itf.getName() + "_" + version.getVersionName()) + PluginUtils.HANDLER_SUFFIX;
@@ -82,6 +78,10 @@ public class PluginUtils {
 
     public static String managerClass(final InterfaceDescription itf) {
         return PluginUtils.camelCaps(itf.getName()) + PluginUtils.MANAGER_IMPL_SUFFIX;
+    }
+
+    public static Object getParameterId(final Parameter param) {
+        return Character.toUpperCase(param.getId().charAt(0)) + param.getId().substring(1);
     }
 
     /**

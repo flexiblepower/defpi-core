@@ -21,15 +21,19 @@ public class RepositoryNotFoundException extends NotFoundException {
 
     public static final String REPOSITORY_NOT_FOUND_MESSAGE = "Repository not found";
 
+    public RepositoryNotFoundException(final String msg, final Exception cause) {
+        super(msg, cause);
+    }
+
     /**
-     * @param msg
+     * @param repositoryName
      */
     public RepositoryNotFoundException(final String repositoryName) {
         super(RepositoryNotFoundException.REPOSITORY_NOT_FOUND_MESSAGE + ": " + repositoryName.toString());
     }
 
     /**
-     * @param msg
+     * @param repositoryName
      */
     public RepositoryNotFoundException() {
         super(RepositoryNotFoundException.REPOSITORY_NOT_FOUND_MESSAGE);

@@ -209,10 +209,7 @@ myApp
 							[
 									nga.field('id'),
 									nga.field('name'),
-									nga.field('serviceId', 'reference')
-											.targetEntity(service).targetField(
-													nga.field('id')).label(
-													'Service') ]);
+									nga.field('serviceId') ]);
 
 					intface
 							.showView()
@@ -220,11 +217,7 @@ myApp
 									[
 											nga.field('id'),
 											nga.field('name'),
-											nga.field('serviceId', 'reference')
-													.targetEntity(service)
-													.targetField(
-															nga.field('id'))
-													.label('Service'),
+											nga.field('serviceId'),
 											nga.field('allowMultiple',
 													'boolean'),
 											nga.field('autoConnect', 'boolean'),
@@ -251,7 +244,7 @@ myApp
 											'reference').targetEntity(intface)
 											.targetField(nga.field('id'))
 											.label('Interface 1'),
-									nga.field('endpoint1.processId',
+									nga.field('endpoint2.processId',
 											'reference').targetEntity(process)
 											.targetField(nga.field('id'))
 											.label('Process 2'),

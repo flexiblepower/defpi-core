@@ -1,7 +1,7 @@
 package {{service.package}};
 
 import javax.annotation.Generated;
-
+{{config.imports}}
 /**
  * {{config.interface}} provides the interface for the {{service.name}} service
  *
@@ -11,7 +11,7 @@ import javax.annotation.Generated;
  * 
  * @author {{username}}
  */
- @Generated(value = "{{generator}}", date = "{{date}}")
+@Generated(value = "{{generator}}", date = "{{date}}")
 public interface {{config.interface}} {
 
 {{config.definitions}}

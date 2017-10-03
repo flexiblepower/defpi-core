@@ -20,6 +20,7 @@ import org.zeromq.ZMQ.Socket;
  * @version 0.1
  * @since Aug 22, 2017
  */
+@SuppressWarnings("static-method")
 @Ignore // This is not (yet) a real test
 public class JeroMQTest {
 
@@ -80,11 +81,10 @@ public class JeroMQTest {
         });
 
         reqThread.start();
-        // Thread.sleep(Duration.ofSeconds(1).toMillis());
-        // repThread.start();
+        Thread.sleep(Duration.ofSeconds(1).toMillis());
+        repThread.start();
 
         Thread.sleep(Duration.ofMinutes(1).toMillis());
-
     }
 
 }

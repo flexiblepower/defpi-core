@@ -24,13 +24,15 @@ public class ConfigTest {
     @Test
     public void runConfigTest() {
         final Map<String, String> valueMap = new HashMap<>();
-        valueMap.put("updateInterval", "7");
-        valueMap.put("name", "Configuration");
+        valueMap.put("UpdAteInteRval", "7");
+        valueMap.put("NAME", "Configuration");
         valueMap.put("invalidObjectType", "{\"key\":\"value\"}");
 
         final GeneratedConfig config = ServiceConfig.generateConfig(GeneratedConfig.class, valueMap);
         Assert.assertEquals("Configuration", config.getName());
         Assert.assertEquals(7, config.getUpdateInterval());
+        Assert.assertEquals(0.0, config.getInexistentParameter(), 1e-16);
+        Assert.assertEquals(20, config.getInexistentButDefaultByte());
 
         try {
             config.incorrectlyNamedProperty();
@@ -38,14 +40,6 @@ public class ConfigTest {
         } catch (final Exception e) {
             Assert.assertEquals(IllegalArgumentException.class, e.getClass());
             Assert.assertEquals("Can only invoke 'getters'", e.getMessage());
-        }
-
-        try {
-            config.getInexistentParameter();
-            Assert.fail("Expected " + IllegalArgumentException.class);
-        } catch (final Exception e) {
-            Assert.assertEquals(IllegalArgumentException.class, e.getClass());
-            Assert.assertEquals("Could not find method with name 'getInexistentParameter'", e.getMessage());
         }
 
         try {
@@ -82,6 +76,22 @@ public class ConfigTest {
         Assert.assertEquals("", config.getString());
     }
 
+    @Test
+    public void testArrays() {
+        final Map<String, String> valueMap = new HashMap<>();
+        valueMap.put("boolArray", "[True, True, False]");
+        valueMap.put("intArray", "[4,8,15,16,23,42]");
+        valueMap.put("longArray", "[, 180]");
+        valueMap.put("doubleArray", "[]");
+
+        final GeneratedConfig config = ServiceConfig.generateConfig(GeneratedConfig.class, valueMap);
+        Assert.assertArrayEquals(new boolean[] {true, true, false}, config.getBoolArray());
+        Assert.assertArrayEquals(new int[] {4, 8, 15, 16, 23, 42}, config.getIntArray());
+        Assert.assertArrayEquals(new long[] {0, 180}, config.getLongArray());
+        Assert.assertArrayEquals(new float[] {(float) 6.7, (float) 8.1}, config.getDefaultFloatArray(), (float) 0.1);
+        Assert.assertArrayEquals(new double[] {}, config.getDoubleArray(), 1e-16);
+    }
+
     public static interface GeneratedConfig {
 
         boolean getBool();
@@ -108,9 +118,24 @@ public class ConfigTest {
 
         double getInexistentParameter();
 
+        @DefaultValue("0x14")
+        byte getInexistentButDefaultByte();
+
         float incorrectlyNamedProperty();
 
         Map<String, String> getInvalidObjectType();
+
+        boolean[] getBoolArray();
+
+        int[] getIntArray();
+
+        long[] getLongArray();
+
+        @DefaultValue("6.7,8.1,")
+        float[] getDefaultFloatArray();
+
+        double[] getDoubleArray();
+
     }
 
 }

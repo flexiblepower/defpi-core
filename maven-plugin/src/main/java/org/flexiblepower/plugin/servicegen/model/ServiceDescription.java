@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import lombok.Getter;
+import lombok.Setter;
 
 /**
  * ServiceDescription
@@ -26,6 +27,10 @@ public class ServiceDescription {
      */
     @JsonProperty("name")
     private String name;
+
+    @Setter
+    @JsonProperty("id")
+    private String id;
 
     /**
      * (Required)

@@ -283,7 +283,7 @@ public class ConnectionTest {
             this.in.close();
             this.in = null;
         }
-        Thread.sleep(100);
+        Thread.sleep(200);
     }
 
 }

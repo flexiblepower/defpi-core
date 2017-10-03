@@ -1,5 +1,7 @@
 package org.flexiblepower.connectors;
 
+import java.io.IOException;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -17,8 +19,8 @@ import org.mongodb.morphia.Morphia;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoClient;
 
 import lombok.extern.slf4j.Slf4j;
@@ -156,11 +158,26 @@ public final class MongoDbConnector {
     }
 
     public static Map<String, Object> parseFilters(final String filters) {
-        final Gson gson = new GsonBuilder().create();
-        @SuppressWarnings("unchecked")
-        final Map<String, Object> filter = gson.fromJson(filters, Map.class);
-        return filter;
+        try {
+            final ObjectMapper om = new ObjectMapper();
+            return om.readValue(filters, new TypeReference<Map<String, Object>>() {
+                // Map of String -> Object
+            });
+        } catch (final IOException e) {
+            MongoDbConnector.log.error("Unable to parse filters");
+            return Collections.emptyMap();
+        }
     }
+
+    /*
+     * public static Map<String, Object> parseFilters(final String filters) {
+     * final Gson gson = new GsonBuilder().create();
+     *
+     * @SuppressWarnings("unchecked")
+     * final Map<String, Object> filter = gson.fromJson(filters, Map.class);
+     * return filter;
+     * }
+     */
 
     /**
      * @param entity

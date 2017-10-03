@@ -67,7 +67,7 @@ public class HandShakeMonitor {
         return true;
     }
 
-    public boolean receiveHandShake(final byte[] recvData) {
+    public boolean handleHandShake(final byte[] recvData) {
         // Receive the HandShake
         try {
             /*
@@ -86,14 +86,18 @@ public class HandShakeMonitor {
                 ManagedConnection.log.debug("Received acknowledge string: {}", handShakeMessage);
                 // We are done
                 this.connection.goToConnectedState();
-                return true;
+                if (!handShakeMessage.getConnectionState().equals(ConnectionState.CONNECTED)) {
+                    return this.sendHandshake(this.connection.getState());
+                } else {
+                    return true;
+                }
             } else {
                 ManagedConnection.log
                         .warn("Invalid Connection ID in Handshake message : " + handShakeMessage.getConnectionId());
                 return false;
             }
         } catch (final SerializationException e) {
-            // Maybe it was a handshake?
+            // Maybe it was a not a handshake?
             // HandShakeMonitor.log.warn("Received unexpected message while listening for handshake: {}",
             // e.getMessage());
             // HandShakeMonitor.log.trace(e.getMessage(), e);

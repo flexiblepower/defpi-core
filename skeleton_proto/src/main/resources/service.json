@@ -3,7 +3,7 @@
   "version": "0.0.1-SNAPSHOT",
   "parameters": [
   	{
-  	  "id": "service.interval",
+  	  "id": "interval",
   	  "name": "interval",
   	  "type": "integer",
   	  "values": ["1", "2", "more"],

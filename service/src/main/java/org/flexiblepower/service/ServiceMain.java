@@ -7,9 +7,6 @@ package org.flexiblepower.service;
 
 import java.lang.reflect.Constructor;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 
 import org.flexiblepower.service.exceptions.ServiceInvocationException;
 import org.reflections.Reflections;
@@ -33,9 +30,7 @@ import org.slf4j.LoggerFactory;
 public final class ServiceMain {
 
     private static final Logger log = LoggerFactory.getLogger(ServiceMain.class);
-    private static final ThreadFactory threadFactory = r -> new Thread(r,
-            "dEF-Pi userThread " + ServiceMain.threadCount++);
-    private static final ExecutorService serviceExecutor = Executors.newSingleThreadExecutor(ServiceMain.threadFactory);
+    private static final ServiceExecutor serviceExecutor = ServiceExecutor.getInstance();
     private static Reflections reflections;
     protected static int threadCount = 0;
 
@@ -56,10 +51,6 @@ public final class ServiceMain {
         }
 
         return set.iterator().next();
-    }
-
-    static ExecutorService getServiceExecutor() {
-        return ServiceMain.serviceExecutor;
     }
 
     /**
@@ -129,7 +120,6 @@ public final class ServiceMain {
     }
 
     public static <T> void main(final String[] args) {
-
         ServiceMain.reflections = new Reflections();
         // Get service from package
 

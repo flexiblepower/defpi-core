@@ -5,22 +5,32 @@
  */
 package org.flexiblepower.service;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
-import org.flexiblepower.proto.ConnectionProto.ConnectionState;
+import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 // These tests are useful, but take very long
+@RunWith(Parameterized.class)
 public class ConnectionIntegrationTest {
 
     protected static Map<String, TestHandler> handlerMap = new HashMap<>();
     protected static int counter;
+
+    @Parameters
+    public static List<Object[]> data() {
+        return Arrays.asList(new Object[100][0]);
+    }
 
     /**
      * TestHandlerBuilder
@@ -37,21 +47,20 @@ public class ConnectionIntegrationTest {
             ConnectionIntegrationTest.handlerMap.put(name, ret);
             return ret;
         }
-
     }
 
     @InterfaceInfo(name = "Test",
                    version = "1",
                    serializer = ProtobufMessageSerializer.class,
                    receivesHash = "eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252",
-                   receiveTypes = {ConnectionHandshake.class},
+                   receiveTypes = {ErrorMessage.class},
                    manager = TestService.class,
                    sendsHash = "eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252",
-                   sendTypes = {ConnectionHandshake.class})
+                   sendTypes = {ErrorMessage.class})
     public static class TestHandler implements ConnectionHandler {
 
         private final String name;
-        public ConnectionHandshake lastMessage;
+        public ErrorMessage lastMessage;
         public String state;
 
         public TestHandler(final String name, final Connection connection) {
@@ -60,10 +69,8 @@ public class ConnectionIntegrationTest {
             System.out.println(this.name + ": connected");
             this.state = "connected";
             if (this.name.equals("h1")) {
-                connection.send(ConnectionHandshake.newBuilder()
-                        .setConnectionId("test")
-                        .setConnectionState(ConnectionState.CONNECTED)
-                        .build());
+                connection.send(
+                        ErrorMessage.newBuilder().setDebugInformation("test").setProcessId("Error process").build());
             }
         }
 
@@ -97,18 +104,31 @@ public class ConnectionIntegrationTest {
             this.state = "terminated";
         }
 
-        public void handleConnectionHandshakeMessage(final ConnectionHandshake o) {
-            System.out.println(this.name + ": received object with value " + o.getConnectionId());
+        public void handleErrorMessageMessage(final ErrorMessage o) {
+            System.out.println(this.name + ": received object with value " + o.getDebugInformation());
             this.lastMessage = o;
         }
 
     }
 
+    // @Test
+    // public void runTests() throws Exception {
+    // for (int i = 0; i < 100; i++) {
+    // this.reset();
+    // this.testNormalConnection();
+    // this.reset();
+    // this.testInterruptDetectionAndResume();
+    // this.reset();
+    // this.testSuspendAndResume();
+    // }
+    // }
+
     @Before
     @SuppressWarnings("static-method")
-    public void reset() {
+    public void reset() throws InterruptedException {
         ConnectionIntegrationTest.handlerMap.clear();
         ConnectionIntegrationTest.counter = 1;
+        Thread.sleep(1000);
     }
 
     @Test(timeout = 10000)
@@ -124,7 +144,7 @@ public class ConnectionIntegrationTest {
                         "tcp://localhost:5000",
                         info)) {
 
-            Thread.sleep(1000);
+            Thread.sleep(2500); // Make sure at least 1 heartbeat is sent
 
             Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h1").state);
             Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h2").state);
@@ -135,12 +155,10 @@ public class ConnectionIntegrationTest {
             mc1.goToTerminatedState();
             mc2.goToTerminatedState();
 
-            Thread.sleep(1000);
+            Thread.sleep(500);
 
             Assert.assertEquals("terminated", ConnectionIntegrationTest.handlerMap.get("h1").state);
             Assert.assertEquals("terminated", ConnectionIntegrationTest.handlerMap.get("h2").state);
-
-            Thread.sleep(1000);
         }
     }
 
@@ -226,8 +244,8 @@ public class ConnectionIntegrationTest {
             Assert.assertEquals("suspended", ConnectionIntegrationTest.handlerMap.get("h2").state);
 
             // Now we move mc2 to port 5002
-            mc1.resumeAfterSuspendedState(5000, "tcp://localhost:5002");
-            mc2.resumeAfterSuspendedState(5002, "tcp://localhost:5000");
+            mc1.goToResumedState(5000, "tcp://localhost:5002");
+            mc2.goToResumedState(5002, "tcp://localhost:5000");
 
             Thread.sleep(1000);
 

@@ -66,10 +66,12 @@ public class HeartBeatMonitor implements Closeable {
             // If ponged, it is a response to our ping
             this.receivedPong = true;
             return true;
-        } else if (Arrays.equals(data, HeartBeatMonitor.PING) && this.connection.isConnected()) {
-            // If pinged, respond with a pong
+        } else if (Arrays.equals(data, HeartBeatMonitor.PING)) {
+            // If pinged, respond with a pong if we can already
             HeartBeatMonitor.log.trace("PONG");
-            this.connection.sendRaw(HeartBeatMonitor.PONG);
+            if (this.connection.isConnected()) {
+                this.connection.sendRaw(HeartBeatMonitor.PONG);
+            }
             return true;
         } else {
             return false;
@@ -109,7 +111,7 @@ public class HeartBeatMonitor implements Closeable {
                 }
 
             } catch (final Exception e) {
-                HeartBeatMonitor.log.error("Error while sending heardbeat", e);
+                HeartBeatMonitor.log.error("Error while sending heartbeat", e);
             }
         },
                 HeartBeatMonitor.HEARTBEAT_INITIAL_DELAY,

@@ -1,5 +1,6 @@
 package org.flexiblepower.connectors;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -9,11 +10,13 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.core.Response;
@@ -30,30 +33,42 @@ import org.flexiblepower.orchestrator.ServiceManager;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
-import com.google.gson.Gson;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RegistryConnector {
 
+    /**
+     *
+     */
     public static final String REGISTRY_URL_KEY = "REGISTRY_URL";
     private static final String REGISTRY_URL_DFLT = "defpi.hesilab.nl:5000";
-    private static final long MAX_CACHE_AGE_MS = 30000;
+    private static final long MAX_CACHE_AGE_MS = 90000;
+    private static final long MAX_CACHE_REFRESH_TIME = 30000;
+    private static final int MAX_THREADS = 10;
 
     private static RegistryConnector instance = null;
 
     private final String registryName;
     private final String registryApiLink;
-    private final Gson gson = new Gson();
+    // private final Gson gson = new Gson();
+    private final ObjectMapper om = new ObjectMapper();
 
     private final Set<Interface> interfaceCache = new HashSet<>();
 
     private List<Service> serviceCache = new ArrayList<>();
     private long serviceCacheLastUpdate = 0;
     private final Object serviceCacheLock = new Object();
+
+    private List<Service> allServiceCache = new ArrayList<>();
+    private long allServiceCacheLastUpdate = 0;
+    private final Object allServiceCacheLock = new Object();
 
     private RegistryConnector() {
         final String registryNameFromEnv = System.getenv(RegistryConnector.REGISTRY_URL_KEY);
@@ -68,31 +83,33 @@ public class RegistryConnector {
         return RegistryConnector.instance;
     }
 
-    public List<String> listRepositories() {
-        RegistryConnector.log.info("Listing all repositories");
-        final Set<String> ret = new HashSet<>();
-        try {
-            final String textResponse = RegistryConnector.queryRegistry(this.buildUrl("_catalog"));
-            final List<String> allServices = this.gson.fromJson(textResponse, Catalog.class).getRepositories();
-
-            for (final String service : allServices) {
-                final int p = service.indexOf("/");
-                if (p > 0) {
-                    ret.add(service.substring(0, p));
-                }
-            }
-        } catch (final ServiceNotFoundException e) {
-            // Error obtaining list from registry, no worries, return empty list
-        }
-
-        return new ArrayList<>(ret);
-    }
+    /*
+     * public List<String> listRepositories() {
+     * RegistryConnector.log.info("Listing all repositories");
+     * final Set<String> ret = new HashSet<>();
+     * try {
+     * final String textResponse = RegistryConnector.queryRegistry(this.buildUrl("_catalog"));
+     * final List<String> allServices = this.gson.fromJson(textResponse, Catalog.class).getRepositories();
+     *
+     * for (final String service : allServices) {
+     * final int p = service.indexOf("/");
+     * if (p > 0) {
+     * ret.add(service.substring(0, p));
+     * }
+     * }
+     * } catch (final ServiceNotFoundException e) {
+     * // Error obtaining list from registry, no worries, return empty list
+     * }
+     *
+     * return new ArrayList<>(ret);
+     * }
+     */
 
     private List<String> listServiceNames(final String repository) throws RepositoryNotFoundException {
         try {
             RegistryConnector.log.info("Listing services in repository {}", repository);
             final String textResponse = RegistryConnector.queryRegistry(this.buildUrl("_catalog"));
-            final List<String> allServices = this.gson.fromJson(textResponse, Catalog.class).getRepositories();
+            final List<String> allServices = this.om.readValue(textResponse, Catalog.class).getRepositories();
 
             if ((repository == null) || repository.isEmpty() || repository.equals("all") || repository.equals("*")) {
                 // If the requested repository is null, empty, "all" or "*", we want to return any service we found
@@ -109,7 +126,56 @@ public class RegistryConnector {
             }
         } catch (final ServiceNotFoundException e) {
             throw new RepositoryNotFoundException(repository);
+        } catch (final IOException e) {
+            throw new RepositoryNotFoundException("Error parsing response", e);
         }
+    }
+
+    public List<Service> listAllServiceVersions(final String repository) throws RepositoryNotFoundException {
+        synchronized (this.allServiceCacheLock) {
+            final long cacheAge = System.currentTimeMillis() - this.allServiceCacheLastUpdate;
+            if (cacheAge > RegistryConnector.MAX_CACHE_AGE_MS) {
+                // Cache too old, refresh data
+                final List<Service> services = new ArrayList<>();
+
+                final ExecutorService pool1 = Executors.newFixedThreadPool(RegistryConnector.MAX_THREADS);
+                final ExecutorService pool2 = Executors.newFixedThreadPool(RegistryConnector.MAX_THREADS);
+
+                for (final String sn : this.listServiceNames(repository)) {
+                    pool1.submit(() -> {
+                        final List<String> tagsList = this.listTags(repository, sn);
+                        final Map<String, List<String>> versions = RegistryConnector.groupTagVersions(tagsList);
+                        for (final Entry<String, List<String>> e : versions.entrySet()) {
+                            pool2.submit(() -> {
+                                try {
+                                    final String version = e.getKey();
+                                    final Map<Architecture, String> tagsMap = RegistryConnector
+                                            .tagsToArchitectureMap(e.getValue());
+                                    services.add(this.getServiceFromRegistry(repository, sn, version, tagsMap));
+                                } catch (final ServiceNotFoundException ex) {
+                                    RegistryConnector.log.error("Could not find service {}: {}", sn, ex.getMessage());
+                                    RegistryConnector.log.trace(ex.getMessage(), ex);
+                                }
+                            });
+                        }
+                    });
+                }
+
+                try {
+                    pool1.shutdown();
+                    pool1.awaitTermination(RegistryConnector.MAX_CACHE_REFRESH_TIME, TimeUnit.MILLISECONDS);
+                    // By now all get serviceFromRegistry calls are scheduled
+                    pool2.shutdown();
+                    pool2.awaitTermination(RegistryConnector.MAX_CACHE_REFRESH_TIME, TimeUnit.MILLISECONDS);
+                } catch (final InterruptedException e) {
+                    RegistryConnector.log.warn("Interrupted while fetching Services");
+                }
+
+                this.allServiceCache = services;
+                this.allServiceCacheLastUpdate = System.currentTimeMillis();
+            }
+        }
+        return this.allServiceCache;
     }
 
     public List<Service> listServices(final String repository) throws RepositoryNotFoundException {
@@ -118,21 +184,38 @@ public class RegistryConnector {
             if (cacheAge > RegistryConnector.MAX_CACHE_AGE_MS) {
                 // Cache too old, refresh data
                 final List<Service> services = new ArrayList<>();
+
+                final ExecutorService pool1 = Executors.newFixedThreadPool(RegistryConnector.MAX_THREADS);
+                final ExecutorService pool2 = Executors.newFixedThreadPool(RegistryConnector.MAX_THREADS);
+
                 for (final String sn : this.listServiceNames(repository)) {
-                    try {
+                    pool1.submit(() -> {
                         final List<String> tagsList = this.listTags(repository, sn);
-                        final Map<String, List<String>> versions = RegistryConnector.groupTagVersions(tagsList);
-                        for (final Entry<String, List<String>> e : versions.entrySet()) {
-                            final String version = e.getKey();
-                            final Map<Architecture, String> tagsMap = RegistryConnector
-                                    .tagsToArchitectureMap(e.getValue());
-                            services.add(this.getServiceFromRegistry(repository, sn, version, tagsMap));
-                        }
-                    } catch (final ServiceNotFoundException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
+                        Collections.sort(tagsList);
+                        final String version = (tagsList.contains("latest") ? "latest" : tagsList.get(0));
+                        pool2.submit(() -> {
+                            try {
+                                final Map<Architecture, String> tagsMap = RegistryConnector
+                                        .tagsToArchitectureMap(tagsList);
+                                services.add(this.getServiceFromRegistry(repository, sn, version, tagsMap));
+                            } catch (final ServiceNotFoundException ex) {
+                                RegistryConnector.log.error("Could not find service {}: {}", sn, ex.getMessage());
+                                RegistryConnector.log.trace(ex.getMessage(), ex);
+                            }
+                        });
+                    });
                 }
+
+                try {
+                    pool1.shutdown();
+                    pool1.awaitTermination(RegistryConnector.MAX_CACHE_REFRESH_TIME, TimeUnit.MILLISECONDS);
+                    // By now all get serviceFromRegistry calls are scheduled
+                    pool2.shutdown();
+                    pool2.awaitTermination(RegistryConnector.MAX_CACHE_REFRESH_TIME, TimeUnit.MILLISECONDS);
+                } catch (final InterruptedException e) {
+                    RegistryConnector.log.warn("Interrupted while fetching Services");
+                }
+
                 this.serviceCache = services;
                 this.serviceCacheLastUpdate = System.currentTimeMillis();
             }
@@ -173,56 +256,23 @@ public class RegistryConnector {
         return result;
     }
 
-    private List<String> listTags(final String repository, final String serviceName) throws ServiceNotFoundException {
+    private List<String> listTags(final String repository, final String serviceName) {
         RegistryConnector.log.info("Listing tags from service {}/{}", repository, serviceName);
-        final String textResponse = RegistryConnector
-                .queryRegistry(this.buildUrl(repository, serviceName, "tags", "list"));
-        final List<String> ret = this.gson.fromJson(textResponse, TagList.class).getTags();
-        return ret == null ? Collections.emptyList() : ret;
+        try {
+            final String textResponse = RegistryConnector
+                    .queryRegistry(this.buildUrl(repository, serviceName, "tags", "list"));
+            final List<String> ret = this.om.readValue(textResponse, TagList.class).getTags();
+            return ret == null ? Collections.emptyList() : ret;
+        } catch (final ServiceNotFoundException e) {
+            RegistryConnector.log.error("Could not find service {}: {}", serviceName, e.getMessage());
+            RegistryConnector.log.trace(e.getMessage(), e);
+            return Collections.emptyList();
+        } catch (final IOException e) {
+            RegistryConnector.log.error("Error parsing tag list: {}", e.getMessage());
+            RegistryConnector.log.trace(e.getMessage(), e);
+            return Collections.emptyList();
+        }
     }
-
-    // public void deleteService(final String repository, final String serviceName, final String tag)
-    // throws ServiceNotFoundException {
-    // RegistryConnector.log.info("Deleting image from service {}/{}:{}", repository, serviceName, tag);
-    //
-    // // First get the digest, because we MUST send that to delete it
-    // final URI getUri = this.buildUrl(repository, serviceName, "manifests", tag);
-    // RegistryConnector.log.debug("Requesting URL {}", getUri);
-    // final Response response = ClientBuilder.newClient()
-    // .target(getUri)
-    // .request()
-    // .accept("application/vnd.docker.distribution.manifest.v2+json")
-    // .head();
-    // RegistryConnector.validateResponse(response);
-    // final String digest = response.getHeaderString("Docker-Content-Digest");
-    //
-    // // Now we have the digest, so we can delete it.
-    // final URI deleteUri = this.buildUrl(repository, serviceName, "manifests", digest);
-    // RegistryConnector.log.debug("Requesting URL {} (DELETE)", deleteUri);
-    // final Response response2 = ClientBuilder.newClient().target(deleteUri).request().delete();
-    // RegistryConnector.validateResponse(response2);
-    // RegistryConnector.log.debug("Delete response: {} ({})",
-    // response2.getStatusInfo().getReasonPhrase(),
-    // response2.getStatus());
-    //
-    // }
-
-    // public Service getService(final String fullImageName) throws ServiceNotFoundException {
-    // RegistryConnector.log.info("Obtaining service {}", fullImageName);
-    // final int p1 = fullImageName.lastIndexOf('/');
-    // final int p2 = fullImageName.lastIndexOf(':');
-    //
-    // return this.getService(fullImageName.substring(0, p1),
-    // fullImageName.substring(p1 + 1, p2),
-    // fullImageName.substring(p2 + 1));
-    // }
-
-    // public Service getService(final String repository, final String serviceName, final String tag)
-    // throws ServiceNotFoundException {
-    // RegistryConnector.log.info("Obtaining service {}/{}:{}", repository, serviceName, tag);
-    // final URI url = this.buildUrl(repository, serviceName, "manifests", tag);
-    // return this.getService(url);
-    // }
 
     public Service getService(final String repository, final String id) throws ServiceNotFoundException {
         try {
@@ -262,37 +312,49 @@ public class RegistryConnector {
             }
             final String image = jsonResponse.getString("name");
             serviceBuilder.repository(ServiceManager.SERVICE_REPOSITORY);
-            final String serviceId = image.substring(image.indexOf("/") + 1) + ":" + version;
+            final String serviceId = image.substring(image.indexOf("/") + 1);
             serviceBuilder.id(serviceId);
             serviceBuilder.name(labels.getString("org.flexiblepower.serviceName"));
 
-            final Set<Interface> interfaces = new LinkedHashSet<>();
-            @SuppressWarnings("unchecked")
-            final Set<Object> set = this.gson.fromJson(labels.getString("org.flexiblepower.interfaces"), Set.class);
-            for (final Object obj : set) {
-                final Interface intf = this.gson.fromJson(this.gson.toJson(obj), Interface.class);
-                final String interfaceId = serviceId + "/" + intf.getName().toLowerCase().replace(" ", "-");
-                interfaces.add(new Interface(interfaceId,
-                        intf.getName(),
-                        serviceId,
-                        intf.getInterfaceVersions(),
-                        intf.isAllowMultiple(),
-                        intf.isAutoConnect()));
+            try {
+                // final Set<Interface> interfaces = new LinkedHashSet<>();
+                final Set<Interface> interfaces = this.om.readValue(labels.getString("org.flexiblepower.interfaces"),
+                        new TypeReference<Set<Interface>>() {
+                            // A list of services
+                        });
+                // final Set<Object> set = this.gson.fromJson(labels.getString("org.flexiblepower.interfaces"),
+                // Set.class);
+
+                // for (final Object obj : set) {
+                // // final Interface intf = this.gson.fromJson(this.gson.toJson(obj), Interface.class);
+                // final Interface intf = this.om.readValue(obj, Interface.class);
+                // final String interfaceId = serviceId + "/" + intf.getName().toLowerCase().replace(" ", "-");
+                // interfaces.add(new Interface(interfaceId,
+                // intf.getName(),
+                // serviceId,
+                // intf.getInterfaceVersions(),
+                // intf.isAllowMultiple(),
+                // intf.isAutoConnect()));
+                // }
+                serviceBuilder.interfaces(interfaces);
+
+                // final Set<String> mappings = this.gson.fromJson(labels.getString("org.flexiblepower.mappings"),
+                // Set.class);
+                // final Set<String> ports = this.gson.fromJson(labels.getString("org.flexiblepower.ports"), Set.class);
+
+                // Add interfaces to the cache
+                this.interfaceCache.addAll(interfaces);
+            } catch (final IOException ex) {
+                RegistryConnector.log.warn("Exception while parsing interface: {}", ex.getMessage());
+                RegistryConnector.log.trace(ex.getMessage(), ex);
+                continue;
             }
-            serviceBuilder.interfaces(interfaces);
-
-            // final Set<String> mappings = this.gson.fromJson(labels.getString("org.flexiblepower.mappings"),
-            // Set.class);
-            // final Set<String> ports = this.gson.fromJson(labels.getString("org.flexiblepower.ports"), Set.class);
-
-            // Add interfaces to the cache
-            this.interfaceCache.addAll(interfaces);
-
         }
 
         serviceBuilder.tags(tags).registry(this.registryName).version(version);
 
         return serviceBuilder.build();
+
         //
         // final Service service = new Service();
         // service.setName(labels.getString("org.flexiblepower.serviceName"));
@@ -342,32 +404,17 @@ public class RegistryConnector {
         }
     }
 
-    //
-    // /**
-    // * @return
-    // */
-    // public List<Interface> getInterfaces() {
-    // // TODO: find ALL interfaces
-    // return new ArrayList<>(this.interfaceCache);
-    // }
-    //
-    // /**
-    // * @param sha256
-    // * @return
-    // */
-    // public Interface getInterface(final String sha256) {
-    // return null;
-    // }
-
     @Getter
-    private final class Catalog {
+    @NoArgsConstructor
+    private static final class Catalog {
 
         private List<String> repositories;
 
     }
 
     @Getter
-    private final class TagList {
+    @NoArgsConstructor
+    private static final class TagList {
 
         private String name;
         private List<String> tags;

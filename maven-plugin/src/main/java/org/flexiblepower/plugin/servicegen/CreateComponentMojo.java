@@ -1,13 +1,11 @@
 package org.flexiblepower.plugin.servicegen;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -145,6 +143,15 @@ public class CreateComponentMojo extends AbstractMojo {
     @Parameter(property = "xsd.output.package", defaultValue = "xml")
     private String xsdOutputPackage;
 
+    @Parameter(property = "defpi.docker-entrypoint",
+               defaultValue = "java -jar $JVM_ARGUMENTS /${project.artifactId}-${project.version}-jar-with-dependencies.jar")
+    private String dockerEntryPoint;
+
+    /**
+     * Folder where additional defpi resources may be put
+     */
+    private final String defpiResourceLocation = "defpi-resources";
+
     /**
      * Folder where the protobuf definitions should be copied to
      */
@@ -183,18 +190,19 @@ public class CreateComponentMojo extends AbstractMojo {
             }
 
             final ServiceDescription service = this.readServiceDefinition(serviceDescriptionFile);
+            service.setId(this.artifactId);
 
             final Path javaSourceFolder = Paths.get(this.sourceLocation).resolve(this.servicePackage.replace('.', '/'));
             Files.createDirectories(javaSourceFolder);
+
+            final Path defpiResourceFolder = Paths.get(this.resourceLocation).resolve(this.defpiResourceLocation);
+            Files.createDirectories(defpiResourceFolder);
 
             // Add descriptors and related hashes
             this.compileDescriptors(service);
 
             // Add templates to generate java code and the dockerfile
-            this.templates = new Templates(this.servicePackage,
-                    this.protobufOutputPackage,
-                    this.xsdOutputPackage,
-                    service);
+            this.templates = new Templates(this.servicePackage, service);
 
             this.createJavaFiles(service, javaSourceFolder);
             this.createDockerfiles(service);
@@ -338,10 +346,11 @@ public class CreateComponentMojo extends AbstractMojo {
         final Path dockerFolder = Files.createDirectories(this.resourcePath.resolve(this.dockerLocation));
         final Path dockerArmFolder = Files.createDirectories(this.resourcePath.resolve(this.dockerArmLocation));
 
-        Files.write(dockerFolder.resolve("Dockerfile"), this.templates.generateDockerfile("x86", service).getBytes());
+        Files.write(dockerFolder.resolve("Dockerfile"),
+                this.templates.generateDockerfile("x86", service, this.dockerEntryPoint).getBytes());
 
         Files.write(dockerArmFolder.resolve("Dockerfile"),
-                this.templates.generateDockerfile("arm", service).getBytes());
+                this.templates.generateDockerfile("arm", service, this.dockerEntryPoint).getBytes());
     }
 
     /**
@@ -466,11 +475,12 @@ public class CreateComponentMojo extends AbstractMojo {
             this.getLog().info("Downloading descriptor from " + url);
             final Path tempFile = Files.createTempFile(null, null);
             try (
-                    BufferedReader reader = new BufferedReader(
-                            new InputStreamReader(url.openConnection().getInputStream()));
-                    BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile.toFile()))) {
-                while (reader.ready()) {
-                    writer.write(reader.readLine() + "\n");
+                    InputStream is = url.openConnection().getInputStream();
+                    FileOutputStream fos = new FileOutputStream(tempFile.toFile())) {
+                final byte[] buff = new byte[1024];
+                int read = 0;
+                while ((read = is.read(buff)) != -1) {
+                    fos.write(buff, 0, read);
                 }
             }
             // If we wrote it, continue with the downloaded file

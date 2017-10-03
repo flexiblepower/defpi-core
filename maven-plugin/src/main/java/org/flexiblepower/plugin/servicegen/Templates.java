@@ -36,18 +36,11 @@ public class Templates {
 
     private final static boolean PRETTY_PRINT_JSON = true;
     private final String servicePackage;
-    private final String protobufOutputPackage;
-    private final String xsdOutputPackage;
     private final ServiceDescription serviceDescription;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public Templates(final String targetPackage,
-            final String protobufOutputPackage,
-            final String xsdOutputPackage,
-            final ServiceDescription descr) {
+    public Templates(final String targetPackage, final ServiceDescription descr) {
         this.servicePackage = targetPackage;
-        this.protobufOutputPackage = protobufOutputPackage;
-        this.xsdOutputPackage = xsdOutputPackage;
         this.serviceDescription = descr;
     }
 
@@ -109,12 +102,14 @@ public class Templates {
      *
      * @param platform
      * @param service
+     * @param dockerEntryPoint
      * @return
      * @throws JsonProcessingException
      */
-    public String generateDockerfile(final String platform, final ServiceDescription service)
-            throws JsonProcessingException,
-            IOException {
+    public String
+            generateDockerfile(final String platform, final ServiceDescription service, final String dockerEntryPoint)
+                    throws JsonProcessingException,
+                    IOException {
         final Map<String, String> replace = new HashMap<>();
         if (platform.equals("x86")) {
             replace.put("from", "java:alpine");
@@ -144,9 +139,9 @@ public class Templates {
                 final String recvHash = PluginUtils.getHash(ivd, ivd.getReceives());
                 versionList.add(new InterfaceVersion(ivd.getVersionName(), recvHash, sendHash));
             }
-            serviceInterfaces.add(new Interface(null,
+            serviceInterfaces.add(new Interface(service.getId() + "/" + descr.getId(),
                     descr.getName(),
-                    null,
+                    service.getId(),
                     versionList,
                     descr.isAllowMultiple(),
                     descr.isAutoConnect()));
@@ -155,6 +150,8 @@ public class Templates {
         final String interfaces = writer.writeValueAsString(serviceInterfaces);
         // final String encoded = Base64.getEncoder().encodeToString(interfaces.getBytes());
         replace.put("interfaces", interfaces.replaceAll("\n", " \\\\ \n"));
+
+        replace.put("entrypoint", dockerEntryPoint);
 
         return Templates.replaceMap(this.getTemplate("Dockerfile"), replace);
     }
@@ -187,14 +184,28 @@ public class Templates {
         if (this.serviceDescription.getParameters() == null) {
             replaceMap.put("config.interface", "Void");
         } else {
+            boolean importDefaultValue = false;
             replaceMap.put("config.interface", PluginUtils.configInterfaceClass(this.serviceDescription));
             final Set<String> parameterDefinitions = new HashSet<>();
+
             for (final Parameter param : this.serviceDescription.getParameters()) {
-                parameterDefinitions.add(String.format("    public %s get%s();",
+                final String javadoc = ((param.getName() == null) || param.getName().isEmpty() ? ""
+                        : "    /**\n     * @return " + param.getName() + "\n     */\n");
+                final String annotation = (param.getDefaultValue() == null ? ""
+                        : "    @DefaultValue(\"" + param.getDefaultValue() + "\")\n");
+                final String arraydef = (param.isArray() ? "[]" : "");
+                importDefaultValue = (annotation.isEmpty() ? importDefaultValue : true);
+                parameterDefinitions.add(String.format("%s%s    public %s%s get%s();",
+                        javadoc,
+                        annotation,
                         param.getType().getJavaTypeName(),
-                        PluginUtils.getParameterName(param)));
+                        arraydef,
+                        PluginUtils.getParameterId(param)));
             }
+
             replaceMap.put("config.definitions", String.join("\n\n", parameterDefinitions));
+            replaceMap.put("config.imports",
+                    importDefaultValue ? "\nimport org.flexiblepower.service.DefaultValue;\n" : "");
         }
 
         // Build replaceMaps for the manager
@@ -246,7 +257,6 @@ public class Templates {
 
         // Build replaceMaps for the interface versions
         if ((itf != null) && (version != null)) {
-            final String versionedName = PluginUtils.getVersionedName(itf, version);
             final String packageName = PluginUtils.getPackageName(itf, version);
 
             replaceMap.put("vitf.handler.interface", PluginUtils.connectionHandlerInterface(itf, version));

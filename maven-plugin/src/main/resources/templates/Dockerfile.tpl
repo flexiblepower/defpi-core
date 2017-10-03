@@ -4,10 +4,10 @@
 
 FROM {{from}}
 
-COPY ${project.artifactId}-${project.version}-jar-with-dependencies.jar /
+COPY ${project.artifactId}-${project.version}-jar-with-dependencies.jar defpi-resources/* /
 
 LABEL org.flexiblepower.serviceName="{{service.name}}" 
 LABEL org.flexiblepower.parameters='{{parameters}}'
 LABEL org.flexiblepower.interfaces='{{interfaces}}'
 
-ENTRYPOINT java -jar $JVM_ARGUMENTS /${project.artifactId}-${project.version}-jar-with-dependencies.jar
+ENTRYPOINT {{entrypoint}}
