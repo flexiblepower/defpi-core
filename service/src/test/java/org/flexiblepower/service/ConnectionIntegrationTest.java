@@ -29,7 +29,7 @@ public class ConnectionIntegrationTest {
 
     @Parameters
     public static List<Object[]> data() {
-        return Arrays.asList(new Object[100][0]);
+        return Arrays.asList(new Object[30][0]);
     }
 
     /**
@@ -128,7 +128,7 @@ public class ConnectionIntegrationTest {
     public void reset() throws InterruptedException {
         ConnectionIntegrationTest.handlerMap.clear();
         ConnectionIntegrationTest.counter = 1;
-        Thread.sleep(1000);
+        Thread.sleep(100);
     }
 
     @Test(timeout = 10000)
@@ -144,7 +144,7 @@ public class ConnectionIntegrationTest {
                         "tcp://localhost:5000",
                         info)) {
 
-            Thread.sleep(2500); // Make sure at least 1 heartbeat is sent
+            Thread.sleep(1500); // Make sure at least 1 heartbeat is sent
 
             Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h1").state);
             Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h2").state);
@@ -178,7 +178,7 @@ public class ConnectionIntegrationTest {
                 Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h1").state);
                 Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h2").state);
 
-                Thread.sleep(1500);
+                Thread.sleep(500);
                 // By now we must have slept longer than HeartBeatMonitor.HEARTBEAT_INITIAL_DELAY
 
                 // Close ONE. However, we cannot predict which handler is attached to it
@@ -238,7 +238,7 @@ public class ConnectionIntegrationTest {
             mc1.goToSuspendedState();
             mc2.goToSuspendedState();
 
-            Thread.sleep(1500);
+            Thread.sleep(500);
 
             Assert.assertEquals("suspended", ConnectionIntegrationTest.handlerMap.get("h1").state);
             Assert.assertEquals("suspended", ConnectionIntegrationTest.handlerMap.get("h2").state);
@@ -247,7 +247,7 @@ public class ConnectionIntegrationTest {
             mc1.goToResumedState(5000, "tcp://localhost:5002");
             mc2.goToResumedState(5002, "tcp://localhost:5000");
 
-            Thread.sleep(1000);
+            Thread.sleep(500);
 
             Assert.assertEquals("resume-suspended", ConnectionIntegrationTest.handlerMap.get("h1").state);
             Assert.assertEquals("resume-suspended", ConnectionIntegrationTest.handlerMap.get("h2").state);

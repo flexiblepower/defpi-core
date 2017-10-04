@@ -83,7 +83,7 @@ public class HandShakeMonitor {
             final ConnectionHandshake handShakeMessage = (ConnectionHandshake) this.serializer.deserialize(recvData);
 
             if (handShakeMessage.getConnectionId().equals(this.connectionId)) {
-                ManagedConnection.log.debug("Received acknowledge string: {}", handShakeMessage);
+                ManagedConnection.log.debug("Received acknowledge string: {}", handShakeMessage.getConnectionState());
                 // Success! Maybe go to connected state?
                 if (!this.connection.isConnected()) {
                     this.connection.goToConnectedState();

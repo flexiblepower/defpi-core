@@ -60,7 +60,8 @@ final class ManagedConnection implements Connection, Closeable {
 
     protected volatile ConnectionState state;
     protected final HandShakeMonitor handShake;
-    private final Object messageLock = new Object();
+    private final Object handlerLock = new Object();
+    private final Object subscribeLock = new Object();
 
     /**
      * @param connectionId
@@ -102,7 +103,7 @@ final class ManagedConnection implements Connection, Closeable {
         }
 
         // Init ZMQ
-        this.zmqContext = ZMQ.context(1);
+        this.zmqContext = ZMQ.context(4);
         this.state = ConnectionState.STARTING;
 
         this.initSubscribeSocket();
@@ -116,18 +117,20 @@ final class ManagedConnection implements Connection, Closeable {
             ManagedConnection.log.debug("Re-creating subscribesocket");
             this.closeSubscribeSocket();
             try {
-                // Let the socket close...
-                Thread.sleep(100);
+                // Let the socket close
+                Thread.sleep(10);
             } catch (final InterruptedException e) {
                 // Do nothing
             }
         }
 
-        this.subscribeSocket = this.zmqContext.socket(ZMQ.PULL);
-        final String listenAddress = "tcp://*:" + this.listenPort;
-        ManagedConnection.log.debug("Creating subscribeSocket listening on port {}", listenAddress);
-        this.subscribeSocket.setReceiveTimeOut(ManagedConnection.RECEIVE_TIMEOUT);
-        this.subscribeSocket.bind(listenAddress);
+        synchronized (this.subscribeLock) {
+            this.subscribeSocket = this.zmqContext.socket(ZMQ.PULL);
+            final String listenAddress = "tcp://*:" + this.listenPort;
+            ManagedConnection.log.debug("Creating subscribeSocket listening on port {}", listenAddress);
+            this.subscribeSocket.setReceiveTimeOut(ManagedConnection.RECEIVE_TIMEOUT);
+            this.subscribeSocket.bind(listenAddress);
+        }
 
         this.connectionExecutor.submit(() -> {
             while (this.state != ConnectionState.TERMINATED) {
@@ -214,34 +217,42 @@ final class ManagedConnection implements Connection, Closeable {
     }
 
     protected void tryReceiveMessage() {
-        if (this.subscribeSocket == null) {
-            // This is possible if the socket was closed in another thread
-            return;
-        }
-
         try {
-            final byte[] buff = this.subscribeSocket.recv();
-            if ((buff == null) || (buff.length == 0)) {
+            // Make sure we don't hog the subscribe lock
+            Thread.sleep(10);
+        } catch (final InterruptedException e) {
+            // Interrupted?
+        }
+        synchronized (this.subscribeLock) {
+            if (this.subscribeSocket == null) {
+                // This is possible if the socket was closed in another thread
                 return;
-            } else {
-                this.connectionExecutor.submit(() -> this.handleMessage(buff));
             }
-        } catch (final ZMQException e) {
 
-            // if (e.getErrorCode() == 156384765) {
-            if (this.state == ConnectionState.CONNECTED) {
-                ManagedConnection.log.warn("ZMQException while receiving message: {}", e.getMessage());
+            try {
+                final byte[] buff = this.subscribeSocket.recv();
+                if ((buff == null) || (buff.length == 0)) {
+                    return;
+                } else {
+                    this.connectionExecutor.submit(() -> this.handleMessage(buff));
+                }
+            } catch (final ZMQException e) {
+
+                // if (e.getErrorCode() == 156384765) {
+                if (this.state == ConnectionState.CONNECTED) {
+                    ManagedConnection.log.warn("ZMQException while receiving message: {}", e.getMessage());
+                    ManagedConnection.log.trace(e.getMessage(), e);
+                    // ManagedConnection.log.warn("Receive socket was disconnected.");
+                    this.goToInterruptedState();
+                }
+                return;
+                // }
+            } catch (final ClosedSelectorException | AssertionError e) {
+                // The connection was suspended or terminated
+                ManagedConnection.log.warn("Exception while receiving message: {}", e.getMessage());
                 ManagedConnection.log.trace(e.getMessage(), e);
-                // ManagedConnection.log.warn("Receive socket was disconnected.");
-                this.goToInterruptedState();
+                return;
             }
-            return;
-            // }
-        } catch (final ClosedSelectorException | AssertionError e) {
-            // The connection was suspended or terminated
-            ManagedConnection.log.warn("Exception while receiving message: {}", e.getMessage());
-            ManagedConnection.log.trace(e.getMessage(), e);
-            return;
         }
 
     }
@@ -264,12 +275,12 @@ final class ManagedConnection implements Connection, Closeable {
 
         // It can only be a user-defined process message!
         try {
-            synchronized (this.messageLock) {
+            synchronized (this.handlerLock) {
                 if (this.serviceHandler == null) {
                     try {
                         ManagedConnection.log.warn("Received message {} before connection is established. Hold...",
                                 new String(buff));
-                        this.messageLock.wait();
+                        this.handlerLock.wait();
                         ManagedConnection.log.trace("continue...");
                     } catch (final InterruptedException e) {
                         ManagedConnection.log.trace(e.getMessage(), e);
@@ -338,10 +349,10 @@ final class ManagedConnection implements Connection, Closeable {
         case STARTING:
             // This can only be true the first time, create the service handler!
             this.serviceExecutor.submit(() -> {
-                synchronized (this.messageLock) {
+                synchronized (this.handlerLock) {
                     ManagedConnection.this.serviceHandler = ConnectionManager
                             .buildHandlerForConnection(ManagedConnection.this, ManagedConnection.this.info);
-                    this.messageLock.notifyAll();
+                    this.handlerLock.notifyAll();
                 }
             });
             break;
@@ -476,9 +487,11 @@ final class ManagedConnection implements Connection, Closeable {
      *
      */
     private void closeSubscribeSocket() {
-        if (this.subscribeSocket != null) {
-            this.subscribeSocket.close();
-            this.subscribeSocket = null;
+        synchronized (this.subscribeLock) {
+            if (this.subscribeSocket != null) {
+                this.subscribeSocket.close();
+                this.subscribeSocket = null;
+            }
         }
     }
 
@@ -493,22 +506,23 @@ final class ManagedConnection implements Connection, Closeable {
             this.heartBeat.close();
         }
 
-        if (!this.zmqContext.isTerminated() && !this.connectionExecutor.isShutdown()) {
-            // Close this in another thread, because it sometimes locks the VM
-            this.connectionExecutor.execute(() -> this.zmqContext.close());
-            // (new Thread(() -> this.zmqContext.close())).start();
-        }
-
         if (!this.connectionExecutor.isShutdown()) {
+            ManagedConnection.log.debug("Shutting down connection threads");
             this.connectionExecutor.shutdown();
             try {
                 if (!this.connectionExecutor.awaitTermination(3, TimeUnit.SECONDS)) {
                     // Force shutdown
+                    ManagedConnection.log.debug("Force shutting down connection threads");
                     this.connectionExecutor.shutdownNow();
                 }
             } catch (final InterruptedException e) {
-                e.printStackTrace();
+                ManagedConnection.log.warn("Interupted while shutting down connection threads");
             }
+        }
+
+        if (!this.zmqContext.isTerminated()) {
+            // Close this in another thread, because it sometimes locks the VM
+            new Thread(() -> this.zmqContext.close()).start();
         }
     }
 
@@ -546,7 +560,6 @@ final class ManagedConnection implements Connection, Closeable {
                      * // Do nothing
                      * }
                      */
-                    ManagedConnection.log.debug("Connection handshake sent, end-of-thread");
                     return;
                 } else {
                     // If the handshake is not sent, we want to re-init the socket.
