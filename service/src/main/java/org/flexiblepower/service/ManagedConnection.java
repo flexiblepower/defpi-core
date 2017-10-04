@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
@@ -494,19 +495,21 @@ final class ManagedConnection implements Connection, Closeable {
 
         if (!this.zmqContext.isTerminated() && !this.connectionExecutor.isShutdown()) {
             // Close this in another thread, because it sometimes locks the VM
-            this.connectionExecutor.submit(() -> this.zmqContext.close());
+            this.connectionExecutor.execute(() -> this.zmqContext.close());
             // (new Thread(() -> this.zmqContext.close())).start();
         }
 
-        this.connectionExecutor.shutdownNow();
-        // try {
-        // if (!this.connectionExecutor.awaitTermination(3, TimeUnit.SECONDS)) {
-        // // Force shutdown
-        // this.connectionExecutor.shutdownNow();
-        // }
-        // } catch (final InterruptedException e) {
-        // e.printStackTrace();
-        // }
+        if (!this.connectionExecutor.isShutdown()) {
+            this.connectionExecutor.shutdown();
+            try {
+                if (!this.connectionExecutor.awaitTermination(3, TimeUnit.SECONDS)) {
+                    // Force shutdown
+                    this.connectionExecutor.shutdownNow();
+                }
+            } catch (final InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     /**
