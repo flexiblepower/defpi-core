@@ -219,7 +219,7 @@ final class ManagedConnection implements Connection, Closeable {
     protected void tryReceiveMessage() {
         try {
             // Make sure we don't hog the subscribe lock
-            Thread.sleep(10);
+            Thread.sleep(0, 100);
         } catch (final InterruptedException e) {
             // Interrupted?
         }
