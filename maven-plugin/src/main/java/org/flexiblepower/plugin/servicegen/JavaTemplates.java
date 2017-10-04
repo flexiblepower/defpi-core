@@ -1,29 +1,20 @@
 package org.flexiblepower.plugin.servicegen;
 
 import java.io.IOException;
-import java.net.URL;
 import java.text.DateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Scanner;
 import java.util.Set;
 
-import org.flexiblepower.model.Interface;
-import org.flexiblepower.model.InterfaceVersion;
+import org.flexiblepower.codegen.PluginUtils;
+import org.flexiblepower.codegen.Templates;
+import org.flexiblepower.codegen.model.InterfaceDescription;
+import org.flexiblepower.codegen.model.InterfaceVersionDescription;
+import org.flexiblepower.codegen.model.ServiceDescription;
+import org.flexiblepower.codegen.model.InterfaceVersionDescription.Type;
 import org.flexiblepower.model.Parameter;
-import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
-import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription;
-import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription.Type;
-import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
 
 /**
  * Templates
@@ -32,16 +23,13 @@ import com.fasterxml.jackson.databind.ObjectWriter;
  * @version 0.1
  * @since Jun 8, 2017
  */
-public class Templates {
+public class JavaTemplates extends Templates {
 
-    private final static boolean PRETTY_PRINT_JSON = true;
     private final String servicePackage;
-    private final ServiceDescription serviceDescription;
-    private final ObjectMapper mapper = new ObjectMapper();
 
-    public Templates(final String targetPackage, final ServiceDescription descr) {
+    public JavaTemplates(final String targetPackage, final ServiceDescription descr) {
+        super(descr);
         this.servicePackage = targetPackage;
-        this.serviceDescription = descr;
     }
 
     /**
@@ -98,65 +86,6 @@ public class Templates {
     }
 
     /**
-     * Generate the docker file for this service
-     *
-     * @param platform
-     * @param service
-     * @param dockerEntryPoint
-     * @return
-     * @throws JsonProcessingException
-     */
-    public String
-            generateDockerfile(final String platform, final ServiceDescription service, final String dockerEntryPoint)
-                    throws JsonProcessingException,
-                    IOException {
-        final Map<String, String> replace = new HashMap<>();
-        if (platform.equals("x86")) {
-            replace.put("from", "java:alpine");
-        } else {
-            replace.put("from", "larmog/armhf-alpine-java:jdk-8u73");
-        }
-
-        replace.put("service.name", service.getName());
-
-        final ObjectWriter writer = Templates.PRETTY_PRINT_JSON ? this.mapper.writerWithDefaultPrettyPrinter()
-                : this.mapper.writer();
-
-        final Set<Parameter> parameters = service.getParameters();
-        if (parameters == null) {
-            replace.put("parameters", "null");
-        } else {
-            replace.put("parameters", writer.writeValueAsString(parameters).replaceAll("\n", " \\\\ \n"));
-        }
-
-        final Set<InterfaceDescription> input = service.getInterfaces();
-
-        final Set<Interface> serviceInterfaces = new HashSet<>();
-        for (final InterfaceDescription descr : input) {
-            final List<InterfaceVersion> versionList = new ArrayList<>();
-            for (final InterfaceVersionDescription ivd : descr.getInterfaceVersions()) {
-                final String sendHash = PluginUtils.getHash(ivd, ivd.getSends());
-                final String recvHash = PluginUtils.getHash(ivd, ivd.getReceives());
-                versionList.add(new InterfaceVersion(ivd.getVersionName(), recvHash, sendHash));
-            }
-            serviceInterfaces.add(new Interface(service.getId() + "/" + descr.getId(),
-                    descr.getName(),
-                    service.getId(),
-                    versionList,
-                    descr.isAllowMultiple(),
-                    descr.isAutoConnect()));
-        }
-
-        final String interfaces = writer.writeValueAsString(serviceInterfaces);
-        // final String encoded = Base64.getEncoder().encodeToString(interfaces.getBytes());
-        replace.put("interfaces", interfaces.replaceAll("\n", " \\\\ \n"));
-
-        replace.put("entrypoint", dockerEntryPoint);
-
-        return Templates.replaceMap(this.getTemplate("Dockerfile"), replace);
-    }
-
-    /**
      * Generate a file based on the template and the provided interface description and version description
      *
      * @param templateName
@@ -174,10 +103,10 @@ public class Templates {
         // Generic stuff that is the same everywhere
         replaceMap.put("username", System.getProperty("user.name"));
         replaceMap.put("date", DateFormat.getDateTimeInstance().format(new Date()));
-        replaceMap.put("generator", Templates.class.getPackage().getName().toString());
+        replaceMap.put("generator", JavaTemplates.class.getPackage().getName().toString());
 
         replaceMap.put("service.package", this.servicePackage);
-        replaceMap.put("service.class", PluginUtils.serviceImplClass(this.serviceDescription));
+        replaceMap.put("service.class", JavaPluginUtils.serviceImplClass(this.serviceDescription));
         replaceMap.put("service.version", this.serviceDescription.getVersion());
         replaceMap.put("service.name", this.serviceDescription.getName());
 
@@ -185,7 +114,7 @@ public class Templates {
             replaceMap.put("config.interface", "Void");
         } else {
             boolean importDefaultValue = false;
-            replaceMap.put("config.interface", PluginUtils.configInterfaceClass(this.serviceDescription));
+            replaceMap.put("config.interface", JavaPluginUtils.configInterfaceClass(this.serviceDescription));
             final Set<String> parameterDefinitions = new HashSet<>();
 
             for (final Parameter param : this.serviceDescription.getParameters()) {
@@ -200,7 +129,7 @@ public class Templates {
                         annotation,
                         param.getType().getJavaTypeName(),
                         arraydef,
-                        PluginUtils.getParameterId(param)));
+                        JavaPluginUtils.getParameterId(param)));
             }
 
             replaceMap.put("config.definitions", String.join("\n\n", parameterDefinitions));
@@ -210,27 +139,27 @@ public class Templates {
 
         // Build replaceMaps for the manager
         if (itf != null) {
-            final String interfacePackage = PluginUtils.getPackageName(itf);
+            final String interfacePackage = JavaPluginUtils.getPackageName(itf);
             replaceMap.put("itf.package", interfacePackage);
-            replaceMap.put("itf.manager.class", PluginUtils.managerClass(itf));
-            replaceMap.put("itf.manager.interface", PluginUtils.managerInterface(itf));
+            replaceMap.put("itf.manager.class", JavaPluginUtils.managerClass(itf));
+            replaceMap.put("itf.manager.interface", JavaPluginUtils.managerInterface(itf));
 
             final Set<String> definitions = new HashSet<>();
             final Set<String> implementations = new HashSet<>();
             final Set<String> itfimports = new HashSet<>();
             final Set<String> clsimports = new HashSet<>();
             for (final InterfaceVersionDescription vitf : itf.getInterfaceVersions()) {
-                final String interfaceVersionPackage = PluginUtils.getPackageName(vitf);
-                final String interfaceClass = PluginUtils.connectionHandlerInterface(itf, vitf);
-                final String implementationClass = PluginUtils.connectionHandlerClass(itf, vitf);
+                final String interfaceVersionPackage = JavaPluginUtils.getPackageName(vitf);
+                final String interfaceClass = JavaPluginUtils.connectionHandlerInterface(itf, vitf);
+                final String implementationClass = JavaPluginUtils.connectionHandlerClass(itf, vitf);
 
                 final Map<String, String> handlerReplace = new HashMap<>();
                 handlerReplace.put("vitf.handler.interface", interfaceClass);
                 handlerReplace.put("vitf.handler.class", implementationClass);
-                handlerReplace.put("vitf.version", PluginUtils.getVersion(vitf));
+                handlerReplace.put("vitf.version", JavaPluginUtils.getVersion(vitf));
 
-                definitions.add(Templates.replaceMap(this.getTemplate("BuilderDefinition"), handlerReplace));
-                implementations.add(Templates.replaceMap(this.getTemplate("BuilderImplementation"), handlerReplace));
+                definitions.add(this.replaceMap(this.getTemplate("BuilderDefinition"), handlerReplace));
+                implementations.add(this.replaceMap(this.getTemplate("BuilderImplementation"), handlerReplace));
                 itfimports.add(String.format("import %s.%s.%s.%s;",
                         this.servicePackage,
                         interfacePackage,
@@ -257,10 +186,10 @@ public class Templates {
 
         // Build replaceMaps for the interface versions
         if ((itf != null) && (version != null)) {
-            final String packageName = PluginUtils.getPackageName(itf, version);
+            final String packageName = JavaPluginUtils.getPackageName(itf, version);
 
-            replaceMap.put("vitf.handler.interface", PluginUtils.connectionHandlerInterface(itf, version));
-            replaceMap.put("vitf.handler.class", PluginUtils.connectionHandlerClass(itf, version));
+            replaceMap.put("vitf.handler.interface", JavaPluginUtils.connectionHandlerInterface(itf, version));
+            replaceMap.put("vitf.handler.class", JavaPluginUtils.connectionHandlerClass(itf, version));
 
             replaceMap.put("itf.name", itf.getName());
             replaceMap.put("vitf.version", version.getVersionName());
@@ -287,8 +216,8 @@ public class Templates {
             for (final String type : version.getReceives()) {
                 final Map<String, String> handlerReplace = new HashMap<>();
                 handlerReplace.put("handle.type", type);
-                definitions.add(Templates.replaceMap(this.getTemplate("HandlerDefinition"), handlerReplace));
-                implementations.add(Templates.replaceMap(this.getTemplate("HandlerImplementation"), handlerReplace));
+                definitions.add(this.replaceMap(this.getTemplate("HandlerDefinition"), handlerReplace));
+                implementations.add(this.replaceMap(this.getTemplate("HandlerImplementation"), handlerReplace));
             }
             replaceMap.put("vitf.handler.definitions", String.join("\n\n", definitions));
             replaceMap.put("vitf.handler.implementations", String.join("\n\n", implementations));
@@ -313,40 +242,21 @@ public class Templates {
             replaceMap.put("vitf.handler.imports", String.join("\n", imports));
         }
 
-        return Templates.replaceMap(template, replaceMap);
+        return this.replaceMap(template, replaceMap);
     }
 
-    /**
-     * Find a template file
+    /*
+     * (non-Javadoc)
      *
-     * @param name
-     * @return
-     * @throws IOException
+     * @see org.flexiblepower.plugin.servicegen.Templates#getDockerBaseImage(java.lang.String)
      */
-    private String getTemplate(final String name) throws IOException {
-        String result = "";
-        final URL url = this.getClass().getClassLoader().getResource("templates/" + name + ".tpl");
-        try (final Scanner scanner = new Scanner(url.openStream())) {
-            result = scanner.useDelimiter("\\A").next();
+    @Override
+    protected String getDockerBaseImage(final String platform) {
+        if (platform.equals("x86")) {
+            return "java:alpine";
+        } else {
+            return "larmog/armhf-alpine-java:jdk-8u73";
         }
-        return result;
-    }
-
-    /**
-     * Replace all keys in the template with their values
-     *
-     * @param template
-     * @param replace
-     * @return
-     */
-    private static String replaceMap(final String template, final Map<String, String> replace) {
-        String ret = template;
-        for (final Entry<String, String> entry : replace.entrySet()) {
-            if (entry.getValue() != null) {
-                ret = ret.replace("{{" + entry.getKey() + "}}", entry.getValue());
-            }
-        }
-        return ret;
     }
 
 }

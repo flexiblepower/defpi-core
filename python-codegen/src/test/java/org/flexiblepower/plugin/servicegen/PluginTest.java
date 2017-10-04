@@ -40,13 +40,13 @@ public class PluginTest {
         final File inputFile = new File("src/test/resources/service.json");
         final ServiceDescription descr = this.mapper.readValue(inputFile, ServiceDescription.class);
 
-        final JavaTemplates t = new JavaTemplates("target.package", descr);
+        final PythonTemplates t = new PythonTemplates(descr);
         for (final InterfaceDescription itf : descr.getInterfaces()) {
             for (final InterfaceVersionDescription vitf : itf.getInterfaceVersions()) {
                 vitf.setHash("1234");
             }
-            PluginTest.log.info(t.generateManagerInterface(itf));
         }
+        PluginTest.log.info(t.generateServiceImplementation());
         PluginTest.log.info(t.generateDockerfile("x86", descr, "run-java.sh"));
     }
 
@@ -65,7 +65,7 @@ public class PluginTest {
         final Set<Parameter> config = descr.getParameters();
         PluginTest.log.info(config.toString());
 
-        final JavaTemplates t = new JavaTemplates("test.config", descr);
+        final PythonTemplates t = new PythonTemplates(descr);
         PluginTest.log.info(t.generateConfigInterface());
     }
 

@@ -1,4 +1,4 @@
-package org.flexiblepower.plugin.servicegen.model;
+package org.flexiblepower.codegen.model;
 
 import lombok.Data;
 

@@ -12,6 +12,8 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import org.flexiblepower.codegen.compiler.Compiler;
+
 import com.sun.tools.xjc.Driver;
 
 import lombok.Setter;

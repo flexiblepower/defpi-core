@@ -32,19 +32,17 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- https://mvnrepository.com/artifact/com.github.fge/json-schema-validator -->
-		<dependency>
-			<groupId>com.github.fge</groupId>
-			<artifactId>json-schema-validator</artifactId>
-			<version>2.2.6</version>
-		</dependency>
-
 		<dependency>
 			<groupId>org.flexiblepower.defpi</groupId>
 			<artifactId>api</artifactId>
 		</dependency>
 		
-		<!-- https://mvnrepository.com/artifact/org.glassfish.jaxb/jaxb-xjc -->
+		<dependency>
+			<groupId>org.flexiblepower.defpi</groupId>
+			<artifactId>codegen-common</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		
 		<dependency>
 		    <groupId>org.glassfish.jaxb</groupId>
 		    <artifactId>jaxb-xjc</artifactId>

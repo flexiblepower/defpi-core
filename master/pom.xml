@@ -21,6 +21,7 @@
 		<module>service-parent</module>
 		<module>../api</module>
 		<module>../commons</module>
+		<module>../codegen-common</module>
 		<module>../maven-plugin</module>
 		<module>../orchestrator</module>
 		<module>../service</module>

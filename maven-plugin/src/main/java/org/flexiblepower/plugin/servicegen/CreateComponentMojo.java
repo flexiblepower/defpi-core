@@ -2,11 +2,7 @@ package org.flexiblepower.plugin.servicegen;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -36,23 +32,13 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.flexiblepower.codegen.PluginUtils;
+import org.flexiblepower.codegen.model.InterfaceDescription;
+import org.flexiblepower.codegen.model.InterfaceVersionDescription;
+import org.flexiblepower.codegen.model.InterfaceVersionDescription.Type;
+import org.flexiblepower.codegen.model.ServiceDescription;
 import org.flexiblepower.plugin.servicegen.compiler.ProtoCompiler;
 import org.flexiblepower.plugin.servicegen.compiler.XjcCompiler;
-import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
-import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription;
-import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription.Type;
-import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
-
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.fge.jackson.JsonLoader;
-import com.github.fge.jsonschema.core.exceptions.ProcessingException;
-import com.github.fge.jsonschema.core.report.ProcessingMessage;
-import com.github.fge.jsonschema.core.report.ProcessingReport;
-import com.github.fge.jsonschema.main.JsonSchema;
-import com.github.fge.jsonschema.main.JsonSchemaFactory;
 
 /**
  * CreateComponentMojo
@@ -117,7 +103,7 @@ public class CreateComponentMojo extends AbstractMojo {
      */
     @Parameter(property = "protobuf.resource.directory",
                defaultValue = "${project.basedir}/src/main/resources/protobuf")
-    private String protobufResourceLocation;
+    private String protobufOutputLocation;
 
     /**
      * Package where the protobuf sources should be placed
@@ -135,7 +121,7 @@ public class CreateComponentMojo extends AbstractMojo {
      * Folder where the XSD resources should be put
      */
     @Parameter(property = "xsd.resource.directory", defaultValue = "${project.basedir}/src/main/resources/xsd")
-    private String xsdResourceLocation;
+    private String xsdOutputLocation;
 
     /**
      * Folder where the XSD definitions should be copied to
@@ -168,7 +154,7 @@ public class CreateComponentMojo extends AbstractMojo {
     private XjcCompiler xjcCompiler;
 
     private Path resourcePath;
-    private Templates templates;
+    private JavaTemplates templates;
 
     /**
      * Main function of the Maven plugin, will call the several stages of the
@@ -185,11 +171,11 @@ public class CreateComponentMojo extends AbstractMojo {
 
             this.resourcePath = Paths.get(this.resourceLocation);
             final File serviceDescriptionFile = this.resourcePath.resolve(this.serviceFilename).toFile();
-            if (!this.validateServiceDefinition(serviceDescriptionFile)) {
+            if (!PluginUtils.validateServiceDefinition(serviceDescriptionFile)) {
                 throw new MojoExecutionException("Invalid service description, see message log");
             }
 
-            final ServiceDescription service = this.readServiceDefinition(serviceDescriptionFile);
+            final ServiceDescription service = PluginUtils.readServiceDefinition(serviceDescriptionFile);
             service.setId(this.artifactId);
 
             final Path javaSourceFolder = Paths.get(this.sourceLocation).resolve(this.servicePackage.replace('.', '/'));
@@ -202,7 +188,7 @@ public class CreateComponentMojo extends AbstractMojo {
             this.compileDescriptors(service);
 
             // Add templates to generate java code and the dockerfile
-            this.templates = new Templates(this.servicePackage, service);
+            this.templates = new JavaTemplates(this.servicePackage, service);
 
             this.createJavaFiles(service, javaSourceFolder);
             this.createDockerfiles(service);
@@ -211,60 +197,6 @@ public class CreateComponentMojo extends AbstractMojo {
             this.getLog().debug(e);
             throw new MojoExecutionException(e.getMessage(), e);
         }
-    }
-
-    /**
-     * Reads and parses the service json into a ServiceDescription object
-     *
-     * @return ServiceDescription object containing the data of the json
-     * @throws ProcessingException
-     * @throws IOException
-     * @throws FileNotFoundException
-     *             service.yml is not found in the resource directory
-     * @throws JsonParseException
-     *             file could not be parsed as json file
-     * @throws JsonMappingException
-     *             Json could not be mapped to a ServiceDescription
-     */
-    private ServiceDescription readServiceDefinition(final File inputFile) throws ProcessingException, IOException {
-        this.getLog().info(String.format("Reading service definition from %s", inputFile));
-
-        final ObjectMapper mapper = new ObjectMapper();
-        return mapper.readValue(inputFile, ServiceDescription.class);
-    }
-
-    /**
-     * @param inputFile
-     * @throws IOException
-     * @throws ProcessingException
-     */
-    public boolean validateServiceDefinition(final File inputFile) throws ProcessingException {
-        final JsonSchemaFactory factory = JsonSchemaFactory.byDefault();
-        final URL schemaURL = this.getClass().getClassLoader().getResource("schema.json");
-
-        try {
-            final JsonNode schemaNode = JsonLoader.fromURL(schemaURL);
-            final JsonNode data = JsonLoader.fromFile(inputFile);
-
-            final JsonSchema schema = factory.getJsonSchema(schemaNode);
-            final ProcessingReport report = schema.validate(data);
-
-            if (report.isSuccess()) {
-                return true;
-            } else {
-                this.getLog().warn("Errors while reading " + inputFile + ":");
-                for (final ProcessingMessage m : report) {
-                    this.getLog().warn(m.getMessage());
-                }
-            }
-        } catch (final JsonParseException e) {
-            this.getLog().warn("Invalid JSON syntax: " + e.getMessage());
-        } catch (final IOException e) {
-            this.getLog().warn("IOException while reading file: " + e.getMessage());
-        }
-
-        return false;
-
     }
 
     /**
@@ -283,11 +215,11 @@ public class CreateComponentMojo extends AbstractMojo {
         Files.createDirectories(dest);
 
         if (serviceDescription.getParameters() != null) {
-            final Path configInterface = dest.resolve(PluginUtils.configInterfaceClass(serviceDescription) + ext);
+            final Path configInterface = dest.resolve(JavaPluginUtils.configInterfaceClass(serviceDescription) + ext);
             Files.write(configInterface, this.templates.generateConfigInterface().getBytes());
         }
 
-        final Path serviceImpl = dest.resolve(PluginUtils.serviceImplClass(serviceDescription) + ext);
+        final Path serviceImpl = dest.resolve(JavaPluginUtils.serviceImplClass(serviceDescription) + ext);
         if (serviceImpl.toFile().exists()) {
             this.getLog().debug("Skipping existing file " + serviceImpl.toString());
         } else {
@@ -295,9 +227,9 @@ public class CreateComponentMojo extends AbstractMojo {
         }
 
         for (final InterfaceDescription itf : serviceDescription.getInterfaces()) {
-            final Path interfacePath = Files.createDirectories(dest.resolve(PluginUtils.getPackageName(itf)));
-            final Path manager = interfacePath.resolve(PluginUtils.managerInterface(itf) + ext);
-            final Path managerImpl = interfacePath.resolve(PluginUtils.managerClass(itf) + ext);
+            final Path interfacePath = Files.createDirectories(dest.resolve(JavaPluginUtils.getPackageName(itf)));
+            final Path manager = interfacePath.resolve(JavaPluginUtils.managerInterface(itf) + ext);
+            final Path managerImpl = interfacePath.resolve(JavaPluginUtils.managerClass(itf) + ext);
 
             // Write interface files
             Files.write(manager, this.templates.generateManagerInterface(itf).getBytes());
@@ -310,13 +242,13 @@ public class CreateComponentMojo extends AbstractMojo {
 
             for (final InterfaceVersionDescription version : itf.getInterfaceVersions()) {
                 final Path interfaceVersionPath = Files
-                        .createDirectories(interfacePath.resolve(PluginUtils.getPackageName(version)));
+                        .createDirectories(interfacePath.resolve(JavaPluginUtils.getPackageName(version)));
 
                 // Create intermediate directories
                 final Path connectionHandler = interfaceVersionPath
-                        .resolve(PluginUtils.connectionHandlerInterface(itf, version) + ext);
+                        .resolve(JavaPluginUtils.connectionHandlerInterface(itf, version) + ext);
                 final Path connectionHandlerImpl = interfaceVersionPath
-                        .resolve(PluginUtils.connectionHandlerClass(itf, version) + ext);
+                        .resolve(JavaPluginUtils.connectionHandlerClass(itf, version) + ext);
 
                 // Write files
                 Files.write(connectionHandler, this.templates.generateHandlerInterface(itf, version).getBytes());
@@ -384,7 +316,7 @@ public class CreateComponentMojo extends AbstractMojo {
     private void compileXSDDescriptor(final InterfaceDescription itf, final InterfaceVersionDescription vitf)
             throws IOException {
         // First get the hash of the input file
-        final Path xsdSourceFilePath = this.downloadFileOrResolve(vitf.getLocation(),
+        final Path xsdSourceFilePath = PluginUtils.downloadFileOrResolve(vitf.getLocation(),
                 this.resourcePath.resolve(this.xsdInputLocation));
 
         // Compute hash and store in interface
@@ -398,12 +330,12 @@ public class CreateComponentMojo extends AbstractMojo {
 
         // Get the package name and add the hash
         vitf.setModelPackageName(
-                this.servicePackage + "." + PluginUtils.getPackageName(itf, vitf) + "." + this.xsdOutputPackage);
+                this.servicePackage + "." + JavaPluginUtils.getPackageName(itf, vitf) + "." + this.xsdOutputPackage);
         this.hashes.put(interfaceHash, vitf);
 
         // Append additional compilation info to the proto file and compile the java code
-        final Path xsdResourceFolder = Files.createDirectories(this.resourcePath.resolve(this.xsdResourceLocation));
-        final String versionedName = PluginUtils.getVersionedName(itf, vitf);
+        final Path xsdResourceFolder = Files.createDirectories(this.resourcePath.resolve(this.xsdOutputLocation));
+        final String versionedName = JavaPluginUtils.getVersionedName(itf, vitf);
         final Path xsdDestFilePath = xsdResourceFolder.resolve(versionedName + ".xsd");
 
         // Copy the descriptor and start compilation
@@ -420,7 +352,7 @@ public class CreateComponentMojo extends AbstractMojo {
      */
     private void compileProtoDescriptor(final InterfaceDescription itf, final InterfaceVersionDescription vitf)
             throws IOException {
-        final Path protoSourceFilePath = this.downloadFileOrResolve(vitf.getLocation(),
+        final Path protoSourceFilePath = PluginUtils.downloadFileOrResolve(vitf.getLocation(),
                 this.resourcePath.resolve(this.protobufInputLocation));
 
         // Compute hash and store in interface
@@ -434,8 +366,8 @@ public class CreateComponentMojo extends AbstractMojo {
         }
 
         // Get the package name and add the hash
-        final String versionedName = PluginUtils.getVersionedName(itf, vitf);
-        String protoPackageName = this.servicePackage + "." + PluginUtils.getPackageName(itf, vitf);
+        final String versionedName = JavaPluginUtils.getVersionedName(itf, vitf);
+        String protoPackageName = this.servicePackage + "." + JavaPluginUtils.getPackageName(itf, vitf);
         if ((this.protobufOutputPackage != null) && !this.protobufOutputPackage.isEmpty()) {
             protoPackageName = protoPackageName + "." + this.protobufOutputPackage;
         }
@@ -448,7 +380,7 @@ public class CreateComponentMojo extends AbstractMojo {
 
         // Append additional compilation info to the proto file and compile the java code
 
-        final Path protoDestFilePath = Files.createDirectories(this.resourcePath.resolve(this.protobufResourceLocation))
+        final Path protoDestFilePath = Files.createDirectories(this.resourcePath.resolve(this.protobufOutputLocation))
                 .resolve(versionedName + ".proto");
         Files.copy(protoSourceFilePath, protoDestFilePath, StandardCopyOption.REPLACE_EXISTING);
 
@@ -461,33 +393,6 @@ public class CreateComponentMojo extends AbstractMojo {
 
         this.protoCompiler.compile(protoDestFilePath, Paths.get(this.sourceLocation));
 
-    }
-
-    /**
-     * @param location
-     * @param resolve
-     * @return
-     */
-    private Path downloadFileOrResolve(final String location, final Path resolve) {
-        // First get the hash of the input file
-        try {
-            final URL url = new URL(location);
-            this.getLog().info("Downloading descriptor from " + url);
-            final Path tempFile = Files.createTempFile(null, null);
-            try (
-                    InputStream is = url.openConnection().getInputStream();
-                    FileOutputStream fos = new FileOutputStream(tempFile.toFile())) {
-                final byte[] buff = new byte[1024];
-                int read = 0;
-                while ((read = is.read(buff)) != -1) {
-                    fos.write(buff, 0, read);
-                }
-            }
-            // If we wrote it, continue with the downloaded file
-            return tempFile;
-        } catch (final IOException e) {
-            return this.resourcePath.resolve(this.protobufInputLocation).resolve(location);
-        }
     }
 
 }

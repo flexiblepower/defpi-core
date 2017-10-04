@@ -3,7 +3,7 @@
  *
  * Copyright 2017 TNO
  */
-package org.flexiblepower.plugin.servicegen.compiler;
+package org.flexiblepower.codegen.compiler;
 
 import java.io.IOException;
 import java.nio.file.Path;
