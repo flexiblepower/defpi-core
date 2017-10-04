@@ -1,13 +1,11 @@
 package org.flexiblepower.plugin.servicegen;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -477,11 +475,12 @@ public class CreateComponentMojo extends AbstractMojo {
             this.getLog().info("Downloading descriptor from " + url);
             final Path tempFile = Files.createTempFile(null, null);
             try (
-                    BufferedReader reader = new BufferedReader(
-                            new InputStreamReader(url.openConnection().getInputStream()));
-                    BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile.toFile()))) {
-                while (reader.ready()) {
-                    writer.write(reader.readLine() + "\n");
+                    InputStream is = url.openConnection().getInputStream();
+                    FileOutputStream fos = new FileOutputStream(tempFile.toFile())) {
+                final byte[] buff = new byte[1024];
+                int read = 0;
+                while ((read = is.read(buff)) != -1) {
+                    fos.write(buff, 0, read);
                 }
             }
             // If we wrote it, continue with the downloaded file

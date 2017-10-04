@@ -60,8 +60,7 @@ public class ConnectionManager implements Closeable {
             if (!this.connections.containsKey(connectionId)) {
                 this.createConnection(connectionId, message);
             }
-            this.connections.get(connectionId).resumeAfterSuspendedState(message.getListenPort(),
-                    message.getTargetAddress());
+            this.connections.get(connectionId).goToResumedState(message.getListenPort(), message.getTargetAddress());
             return ConnectionHandshake.newBuilder()
                     .setConnectionId(connectionId)
                     .setConnectionState(ConnectionState.CONNECTED)
@@ -125,7 +124,7 @@ public class ConnectionManager implements Closeable {
             final Method buildMethod = chf.getClass().getMethod(methodName, Connection.class);
             return (ConnectionHandler) buildMethod.invoke(chf, c);
         } catch (final Exception e) {
-            throw new RuntimeException("Error building connection handler: " + e.getMessage());
+            throw new RuntimeException("Error building connection handler: " + e.getMessage(), e);
         }
     }
 
@@ -172,13 +171,13 @@ public class ConnectionManager implements Closeable {
         for (final ManagedConnection conn : this.connections.values()) {
             conn.goToTerminatedState();
         }
-        for (final ManagedConnection conn : this.connections.values()) {
-            try {
-                conn.waitTillFinished();
-            } catch (final InterruptedException e) {
-                ConnectionManager.log.warn("Interrupted while waiting for cloning connection", e);
-            }
-        }
+        // for (final ManagedConnection conn : this.connections.values()) {
+        // try {
+        // conn.waitTillFinished();
+        // } catch (final InterruptedException e) {
+        // ConnectionManager.log.warn("Interrupted while waiting for cloning connection", e);
+        // }
+        // }
     }
 
 }

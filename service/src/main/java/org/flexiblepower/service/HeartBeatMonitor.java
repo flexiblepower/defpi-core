@@ -31,7 +31,6 @@ public class HeartBeatMonitor implements Closeable {
     private static final long HEARTBEAT_PERIOD_IN_SECONDS = 10;
     private static final long HEARTBEAT_INITIAL_DELAY = 1;
     private static final TimeUnit HEARTBEAT_TIMING_UNIT = TimeUnit.SECONDS;
-    private static final int MAX_MISSED_HEARTBEATS = 1;
 
     private static final byte[] PING = new byte[] {(byte) 0xA};
     private static final byte[] PONG = new byte[] {(byte) 0xB};
@@ -43,7 +42,6 @@ public class HeartBeatMonitor implements Closeable {
 
     private ScheduledFuture<?> heartBeatFuture;
     private boolean receivedPong;
-    private int missed_heartbeats;
 
     HeartBeatMonitor(final ManagedConnection c) {
         this.connection = c;
@@ -68,10 +66,12 @@ public class HeartBeatMonitor implements Closeable {
             // If ponged, it is a response to our ping
             this.receivedPong = true;
             return true;
-        } else if (Arrays.equals(data, HeartBeatMonitor.PING) && this.connection.isConnected()) {
-            // If pinged, respond with a pong
+        } else if (Arrays.equals(data, HeartBeatMonitor.PING)) {
+            // If pinged, respond with a pong if we can already
             HeartBeatMonitor.log.trace("PONG");
-            this.connection.sendRaw(HeartBeatMonitor.PONG);
+            if (this.connection.isConnected()) {
+                this.connection.sendRaw(HeartBeatMonitor.PONG);
+            }
             return true;
         } else {
             return false;
@@ -89,43 +89,39 @@ public class HeartBeatMonitor implements Closeable {
         }
 
         this.receivedPong = true;
-        this.missed_heartbeats = 0;
         this.heartBeatFuture = this.executor.scheduleAtFixedRate(() -> {
             try {
                 if (!this.connection.isConnected()) {
-                    HeartBeatMonitor.log.info("Connection is not connected, stopping heartbeat");
                     return;
                 }
 
-                if (this.receivedPong) {
-                    this.missed_heartbeats = 0;
-                    this.receivedPong = false;
-                } else {
-                    this.missed_heartbeats++;
-                }
-
-                HeartBeatMonitor.log.trace("PING");
-                this.connection.sendRaw(HeartBeatMonitor.PING);
-
-                if (this.missed_heartbeats > HeartBeatMonitor.MAX_MISSED_HEARTBEATS) {
+                if (!this.receivedPong) {
                     // If no PONG was received since the last PING, assume connection was interrupted!
                     HeartBeatMonitor.log.warn("No heartbeat received on connection, goto {}",
                             ConnectionState.INTERRUPTED);
                     this.connection.goToInterruptedState();
                 }
 
+                HeartBeatMonitor.log.trace("PING");
+                if (this.connection.sendRaw(HeartBeatMonitor.PING)) {
+                    this.receivedPong = false;
+                } else {
+                    HeartBeatMonitor.log.warn("Unable to send heartbeat, goto {}", ConnectionState.INTERRUPTED);
+                    this.connection.goToInterruptedState();
+                }
+
             } catch (final Exception e) {
-                HeartBeatMonitor.log.error("Error while sending heardbeat", e);
+                HeartBeatMonitor.log.error("Error while sending heartbeat", e);
             }
         },
                 HeartBeatMonitor.HEARTBEAT_INITIAL_DELAY,
                 HeartBeatMonitor.HEARTBEAT_PERIOD_IN_SECONDS,
                 HeartBeatMonitor.HEARTBEAT_TIMING_UNIT);
+
     }
 
     @Override
     public void close() {
-        HeartBeatMonitor.log.info("Stopping heartbeat");
         if (this.heartBeatFuture != null) {
             this.heartBeatFuture.cancel(true);
             this.heartBeatFuture = null;
