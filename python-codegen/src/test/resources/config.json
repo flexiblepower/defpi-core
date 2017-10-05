@@ -1,0 +1,25 @@
+{
+  "name": "Configurable Service",
+  "version": "0.0.4",
+  "parameters": [
+    {
+      "id": "updateInterval",
+      "name": "Some service update interval (ms)",
+      "type": "double"
+    },
+    {
+      "id": "state",
+      "name": "Configuration state",
+      "type": "string",
+      "values": ["connected", "disconnected"],
+      "labels": ["Connected", "Not connected"],
+      "default": "disconnected"
+    },
+	{
+      "id": "delay",
+      "type": "short",
+      "isArray": true,
+      "default": "[100, 200]"
+    }
+  ]
+}

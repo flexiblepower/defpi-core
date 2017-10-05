@@ -3,7 +3,7 @@
  *
  * Copyright 2017 TNO
  */
-package org.flexiblepower.plugin.servicegen.model;
+package org.flexiblepower.codegen.model;
 
 /**
  * InterfaceVersionDescription

@@ -60,7 +60,7 @@ public class HandShakeMonitor {
 
         if (!this.connection.sendRaw(sendData)) {
             // Failed sending handshake
-            HandShakeMonitor.log.warn("Failed to send handshake");
+            HandShakeMonitor.log.warn("[{}] - Failed to send handshake", this.connectionId);
             return false;
         }
 
@@ -83,7 +83,9 @@ public class HandShakeMonitor {
             final ConnectionHandshake handShakeMessage = (ConnectionHandshake) this.serializer.deserialize(recvData);
 
             if (handShakeMessage.getConnectionId().equals(this.connectionId)) {
-                ManagedConnection.log.debug("Received acknowledge string: {}", handShakeMessage.getConnectionState());
+                ManagedConnection.log.debug("[{}] - Received acknowledge string: {}",
+                        this.connectionId,
+                        handShakeMessage.getConnectionState());
                 // Success! Maybe go to connected state?
                 if (!this.connection.isConnected()) {
                     this.connection.goToConnectedState();
@@ -96,8 +98,9 @@ public class HandShakeMonitor {
                     return true;
                 }
             } else {
-                ManagedConnection.log
-                        .warn("Invalid Connection ID in Handshake message : " + handShakeMessage.getConnectionId());
+                ManagedConnection.log.warn("[{}] - Invalid Connection ID in Handshake message: {}",
+                        this.connectionId,
+                        handShakeMessage.getConnectionId());
                 return false;
             }
         } catch (final SerializationException e) {
@@ -108,7 +111,8 @@ public class HandShakeMonitor {
             return false;
         } catch (final Exception e) {
             // The subscribeSocket is closed, probably the session was suspended before it was running
-            ManagedConnection.log.warn("Exception while receiving from socket: {}", e.getMessage());
+            ManagedConnection.log
+                    .warn("[{}] - Exception while receiving from socket: {}", this.connectionId, e.getMessage());
             HandShakeMonitor.log.trace(e.getMessage(), e);
             return false;
         }

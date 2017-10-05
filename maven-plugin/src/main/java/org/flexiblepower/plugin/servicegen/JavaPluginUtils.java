@@ -5,18 +5,11 @@
  */
 package org.flexiblepower.plugin.servicegen;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.util.Set;
-
+import org.flexiblepower.codegen.PluginUtils;
+import org.flexiblepower.codegen.model.InterfaceDescription;
+import org.flexiblepower.codegen.model.InterfaceVersionDescription;
+import org.flexiblepower.codegen.model.ServiceDescription;
 import org.flexiblepower.model.Parameter;
-import org.flexiblepower.plugin.servicegen.model.InterfaceDescription;
-import org.flexiblepower.plugin.servicegen.model.InterfaceVersionDescription;
-import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
 
 /**
  * PluginUtils
@@ -25,7 +18,7 @@ import org.flexiblepower.plugin.servicegen.model.ServiceDescription;
  * @version 0.1
  * @since Jun 8, 2017
  */
-public class PluginUtils {
+public class JavaPluginUtils {
 
     private static final String SERVICE_SUFFIX = "";
     private static final String CONFIG_SUFFIX = "Configuration";
@@ -35,15 +28,15 @@ public class PluginUtils {
     private static final String MANAGER_IMPL_SUFFIX = "ConnectionManagerImpl";
 
     public static String getPackageName(final InterfaceDescription itf) {
-        return PluginUtils.toPackageName(itf.getName());
+        return JavaPluginUtils.toPackageName(itf.getName());
     }
 
     public static String getPackageName(final InterfaceVersionDescription vitf) {
-        return PluginUtils.toPackageName(vitf.getVersionName());
+        return JavaPluginUtils.toPackageName(vitf.getVersionName());
     }
 
     public static String getPackageName(final InterfaceDescription itf, final InterfaceVersionDescription vitf) {
-        return PluginUtils.getPackageName(itf) + "." + PluginUtils.getPackageName(vitf);
+        return JavaPluginUtils.getPackageName(itf) + "." + JavaPluginUtils.getPackageName(vitf);
     }
 
     public static String getVersion(final InterfaceVersionDescription vitf) {
@@ -55,29 +48,30 @@ public class PluginUtils {
     }
 
     public static String serviceImplClass(final ServiceDescription d) {
-        return PluginUtils.camelCaps(d.getName()) + PluginUtils.SERVICE_SUFFIX;
+        return PluginUtils.camelCaps(d.getName()) + JavaPluginUtils.SERVICE_SUFFIX;
     }
 
     public static String configInterfaceClass(final ServiceDescription d) {
-        return PluginUtils.camelCaps(d.getName()) + PluginUtils.CONFIG_SUFFIX;
+        return PluginUtils.camelCaps(d.getName()) + JavaPluginUtils.CONFIG_SUFFIX;
     }
 
     public static String connectionHandlerInterface(final InterfaceDescription itf,
             final InterfaceVersionDescription version) {
-        return PluginUtils.camelCaps(itf.getName() + "_" + version.getVersionName()) + PluginUtils.HANDLER_SUFFIX;
+        return PluginUtils.camelCaps(itf.getName() + "_" + version.getVersionName()) + JavaPluginUtils.HANDLER_SUFFIX;
     }
 
     public static String connectionHandlerClass(final InterfaceDescription itf,
             final InterfaceVersionDescription version) {
-        return PluginUtils.camelCaps(itf.getName() + "_" + version.getVersionName()) + PluginUtils.HANDLER_IMPL_SUFFIX;
+        return PluginUtils.camelCaps(itf.getName() + "_" + version.getVersionName())
+                + JavaPluginUtils.HANDLER_IMPL_SUFFIX;
     }
 
     public static String managerInterface(final InterfaceDescription itf) {
-        return PluginUtils.camelCaps(itf.getName()) + PluginUtils.MANAGER_SUFFIX;
+        return PluginUtils.camelCaps(itf.getName()) + JavaPluginUtils.MANAGER_SUFFIX;
     }
 
     public static String managerClass(final InterfaceDescription itf) {
-        return PluginUtils.camelCaps(itf.getName()) + PluginUtils.MANAGER_IMPL_SUFFIX;
+        return PluginUtils.camelCaps(itf.getName()) + JavaPluginUtils.MANAGER_IMPL_SUFFIX;
     }
 
     public static Object getParameterId(final Parameter param) {
@@ -101,50 +95,4 @@ public class PluginUtils {
         }
         return ret;
     }
-
-    /**
-     * @param i
-     * @return
-     */
-    private static String camelCaps(final String str) {
-        final StringBuilder ret = new StringBuilder();
-
-        for (final String word : str.split(" ")) {
-            if (!word.isEmpty()) {
-                ret.append(Character.toUpperCase(word.charAt(0)));
-                ret.append(word.substring(1).toLowerCase());
-            }
-        }
-
-        // Return a cleaned-up string
-        return ret.toString().replaceAll("[^a-zA-Z0-9_]", "");
-    }
-
-    public static String getHash(final InterfaceVersionDescription vitf, final Set<String> messageSet) {
-        String baseHash = vitf.getHash();
-        for (final String key : messageSet) {
-            baseHash += ";" + key;
-        }
-        return PluginUtils.SHA256(baseHash);
-    }
-
-    public static String SHA256(final String body) {
-        return PluginUtils.SHA256(body.getBytes(StandardCharsets.UTF_8));
-    }
-
-    public static String SHA256(final Path path) throws IOException {
-        return PluginUtils.SHA256(Files.readAllBytes(path));
-    }
-
-    private static String SHA256(final byte[] barr) {
-        try {
-            final MessageDigest md = MessageDigest.getInstance("SHA-256");
-            final byte[] mdbytes = md.digest(barr);
-            return String.format("%x", new BigInteger(1, mdbytes));
-            // return Base64.getEncoder().encodeToString(mdbytes);
-        } catch (final Exception e) {
-            throw new RuntimeException("Error computing hash: " + e.getMessage());
-        }
-    }
-
 }

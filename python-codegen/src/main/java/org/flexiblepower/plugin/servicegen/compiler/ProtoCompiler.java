@@ -5,17 +5,14 @@
  */
 package org.flexiblepower.plugin.servicegen.compiler;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Scanner;
 
+import org.flexiblepower.codegen.PluginUtils;
 import org.flexiblepower.codegen.compiler.Compiler;
 
 /**
@@ -55,26 +52,6 @@ public class ProtoCompiler implements Compiler {
     }
 
     /**
-     * @param src
-     * @param dst
-     */
-    private static void downloadFile(final String src, final File dst) throws IOException {
-        System.out.println("Downloading " + src + " to " + dst);
-        final URL url = new URL(src);
-
-        try (
-                final InputStream in = new BufferedInputStream(url.openStream());
-                final FileOutputStream out = new FileOutputStream(dst)) {
-            final byte[] buf = new byte[1024];
-            int n = 0;
-            while (-1 != (n = in.read(buf))) {
-                out.write(buf, 0, n);
-            }
-        }
-
-    }
-
-    /**
      * @param sourcePath
      * @throws IOException
      */
@@ -87,7 +64,7 @@ public class ProtoCompiler implements Compiler {
 
         if (!this.compilerFile.exists()) {
             Files.createDirectories(this.compilerFile.toPath().getParent());
-            ProtoCompiler.downloadFile(
+            PluginUtils.downloadFile(
                     "http://central.maven.org/maven2/com/google/protobuf/protoc/" + this.protobufVersion + "/"
                             + this.compilerFile.getName().toString(),
                     this.compilerFile);
@@ -95,7 +72,7 @@ public class ProtoCompiler implements Compiler {
         }
 
         // Build and execute the command
-        final String cmd = String.format("%s --java_out=%s --proto_path=%s %s",
+        final String cmd = String.format("%s --python_out=%s --proto_path=%s %s",
                 ProtoCompiler.this.compilerFile.getAbsolutePath(),
                 targetPath.toString(),
                 filePath.getParent().toString(),

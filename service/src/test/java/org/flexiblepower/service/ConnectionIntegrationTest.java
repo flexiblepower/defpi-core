@@ -129,6 +129,7 @@ public class ConnectionIntegrationTest {
         ConnectionIntegrationTest.handlerMap.clear();
         ConnectionIntegrationTest.counter = 1;
         Thread.sleep(100);
+        ServiceExecutor.getInstance().shutDown();
     }
 
     @Test(timeout = 10000)
@@ -138,11 +139,8 @@ public class ConnectionIntegrationTest {
         ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandlerBuilder());
 
         try (
-                final ManagedConnection mc1 = new ManagedConnection("connectionId", 5000, "tcp://localhost:5001", info);
-                final ManagedConnection mc2 = new ManagedConnection("connectionId",
-                        5001,
-                        "tcp://localhost:5000",
-                        info)) {
+                final ManagedConnection mc1 = new ManagedConnection("CIT", 5000, "tcp://localhost:5001", info);
+                final ManagedConnection mc2 = new ManagedConnection("CIT", 5001, "tcp://localhost:5000", info)) {
 
             Thread.sleep(1500); // Make sure at least 1 heartbeat is sent
 
@@ -167,12 +165,8 @@ public class ConnectionIntegrationTest {
         final InterfaceInfo info = TestHandler.class.getAnnotation(InterfaceInfo.class);
         ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandlerBuilder());
 
-        try (final ManagedConnection mc2 = new ManagedConnection("connectionId", 5001, "tcp://localhost:5000", info)) {
-            try (
-                    final ManagedConnection mc1 = new ManagedConnection("connectionId",
-                            5000,
-                            "tcp://localhost:5001",
-                            info)) {
+        try (final ManagedConnection mc2 = new ManagedConnection("CIT", 5001, "tcp://localhost:5000", info)) {
+            try (final ManagedConnection mc1 = new ManagedConnection("CIT", 5000, "tcp://localhost:5001", info)) {
                 Thread.sleep(1500);
 
                 Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h1").state);
@@ -195,11 +189,7 @@ public class ConnectionIntegrationTest {
             Assert.assertTrue(("terminated".equals(state1) && "interrupted".equals(state2))
                     || ("terminated".equals(state2) && "interrupted".equals(state1)));
 
-            try (
-                    final ManagedConnection mc3 = new ManagedConnection("connectionId",
-                            5000,
-                            "tcp://localhost:5001",
-                            info)) {
+            try (final ManagedConnection mc3 = new ManagedConnection("CIT", 5000, "tcp://localhost:5001", info)) {
                 Thread.sleep(1000); // Timing is important here since there is an exponential backoff
 
                 state1 = ConnectionIntegrationTest.handlerMap.get("h1").state;
@@ -224,11 +214,8 @@ public class ConnectionIntegrationTest {
         ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandlerBuilder());
 
         try (
-                final ManagedConnection mc1 = new ManagedConnection("connectionId", 5000, "tcp://localhost:5001", info);
-                final ManagedConnection mc2 = new ManagedConnection("connectionId",
-                        5001,
-                        "tcp://localhost:5000",
-                        info)) {
+                final ManagedConnection mc1 = new ManagedConnection("CIT", 5000, "tcp://localhost:5001", info);
+                final ManagedConnection mc2 = new ManagedConnection("CIT", 5001, "tcp://localhost:5000", info)) {
 
             Thread.sleep(1500);
 
