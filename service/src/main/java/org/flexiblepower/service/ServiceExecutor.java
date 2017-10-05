@@ -68,4 +68,9 @@ public class ServiceExecutor {
         });
     }
 
+    public void shutDown() {
+        this.executor.shutdownNow();
+        ServiceExecutor.instance = null;
+    }
+
 }

@@ -37,14 +37,16 @@ public class HeartBeatMonitor implements Closeable {
 
     private static int threadCount = 0;
 
-    private final ScheduledExecutorService executor;
     private final ManagedConnection connection;
+    private final String connectionId;
+    private final ScheduledExecutorService executor;
 
     private ScheduledFuture<?> heartBeatFuture;
     private boolean receivedPong;
 
-    HeartBeatMonitor(final ManagedConnection c) {
+    HeartBeatMonitor(final ManagedConnection c, final String connectionId) {
         this.connection = c;
+        this.connectionId = connectionId;
         final ThreadFactory threadFactory = r -> new Thread(r, "dEF-Pi hbMonThread-" + HeartBeatMonitor.threadCount++);
         this.executor = Executors.newSingleThreadScheduledExecutor(threadFactory);
     }
@@ -64,14 +66,13 @@ public class HeartBeatMonitor implements Closeable {
         // If message is only 1 byte long, it is probably a heartbeat
         if (Arrays.equals(data, HeartBeatMonitor.PONG)) {
             // If ponged, it is a response to our ping
+            HeartBeatMonitor.log.trace("[{}] - -> PONG", this.connectionId);
             this.receivedPong = true;
             return true;
         } else if (Arrays.equals(data, HeartBeatMonitor.PING)) {
-            // If pinged, respond with a pong if we can already
-            HeartBeatMonitor.log.trace("PONG");
-            if (this.connection.isConnected()) {
-                this.connection.sendRaw(HeartBeatMonitor.PONG);
-            }
+            // If pinged, respond with a pong
+            HeartBeatMonitor.log.trace("[{}] - PING -> PONG", this.connectionId);
+            this.connection.sendRaw(HeartBeatMonitor.PONG);
             return true;
         } else {
             return false;
@@ -97,21 +98,24 @@ public class HeartBeatMonitor implements Closeable {
 
                 if (!this.receivedPong) {
                     // If no PONG was received since the last PING, assume connection was interrupted!
-                    HeartBeatMonitor.log.warn("No heartbeat received on connection, goto {}",
+                    HeartBeatMonitor.log.warn("[{}] - No heartbeat received on connection, goto {}",
+                            this.connectionId,
                             ConnectionState.INTERRUPTED);
                     this.connection.goToInterruptedState();
                 }
 
-                HeartBeatMonitor.log.trace("PING");
+                HeartBeatMonitor.log.trace("[{}] - PING ->", this.connectionId);
                 if (this.connection.sendRaw(HeartBeatMonitor.PING)) {
                     this.receivedPong = false;
                 } else {
-                    HeartBeatMonitor.log.warn("Unable to send heartbeat, goto {}", ConnectionState.INTERRUPTED);
+                    HeartBeatMonitor.log.warn("[{}] - Unable to send heartbeat, goto {}",
+                            this.connectionId,
+                            ConnectionState.INTERRUPTED);
                     this.connection.goToInterruptedState();
                 }
 
             } catch (final Exception e) {
-                HeartBeatMonitor.log.error("Error while sending heartbeat", e);
+                HeartBeatMonitor.log.error("[{}] - Error while sending heartbeat", this.connectionId, e);
             }
         },
                 HeartBeatMonitor.HEARTBEAT_INITIAL_DELAY,
