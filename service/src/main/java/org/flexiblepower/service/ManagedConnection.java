@@ -6,9 +6,13 @@
 package org.flexiblepower.service;
 
 import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.channels.ClosedSelectorException;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.concurrent.ExecutorService;
@@ -21,10 +25,6 @@ import org.flexiblepower.serializers.MessageSerializer;
 import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.zeromq.ZMQ;
-import org.zeromq.ZMQ.Context;
-import org.zeromq.ZMQ.Socket;
-import org.zeromq.ZMQException;
 
 /**
  * ManagedConnection
@@ -42,11 +42,13 @@ final class ManagedConnection implements Connection, Closeable {
     private static final int MAX_THREADS = 10;
 
     private final String connectionId;
-    private final Context zmqContext;
     private final MessageSerializer<Object> userMessageSerializer;
 
+    private ServerSocket serverSocket;
     private Socket subscribeSocket;
     private Socket publishSocket;
+    private OutputStream os;
+    private InputStream is;
     private String targetAddress;
 
     private final InterfaceInfo info;
@@ -61,7 +63,6 @@ final class ManagedConnection implements Connection, Closeable {
     protected volatile ConnectionState state;
     protected final HandShakeMonitor handShake;
     private final Object handlerLock = new Object();
-    private final Object subscribeLock = new Object();
 
     /**
      * @param connectionId
@@ -103,7 +104,6 @@ final class ManagedConnection implements Connection, Closeable {
         }
 
         // Init ZMQ
-        this.zmqContext = ZMQ.context(1);
         this.state = ConnectionState.STARTING;
 
         this.initSubscribeSocket();
@@ -124,16 +124,19 @@ final class ManagedConnection implements Connection, Closeable {
             }
         }
 
-        synchronized (this.subscribeLock) {
-            this.subscribeSocket = this.zmqContext.socket(ZMQ.PULL);
-            final String listenAddress = "tcp://*:" + this.listenPort;
-            ManagedConnection.log
-                    .debug("[{}] - Creating subscribeSocket listening on port {}", this.connectionId, listenAddress);
-            this.subscribeSocket.setReceiveTimeOut(ManagedConnection.RECEIVE_TIMEOUT);
-            this.subscribeSocket.bind(listenAddress);
-        }
-
         this.connectionExecutor.submit(() -> {
+            ManagedConnection.log
+                    .debug("[{}] - Creating subscribeSocket listening on port {}", this.connectionId, this.listenPort);
+            try {
+                this.serverSocket = new ServerSocket(this.listenPort);
+                this.subscribeSocket = this.serverSocket.accept();
+                this.is = this.subscribeSocket.getInputStream();
+            } catch (final Exception e) {
+                ManagedConnection.log.error("Error while creating subscribe socket: {}", e.getMessage());
+                ManagedConnection.log.trace(e.getMessage(), e);
+                return;
+            }
+
             while (this.state != ConnectionState.TERMINATED) {
                 this.tryReceiveMessage();
             }
@@ -147,23 +150,20 @@ final class ManagedConnection implements Connection, Closeable {
     }
 
     protected boolean initPublishSocket() {
-        // Initialize socket
-        if (this.publishSocket == null) {
-            this.publishSocket = this.zmqContext.socket(ZMQ.PUSH);
-            this.publishSocket.setSendTimeOut(ManagedConnection.SEND_TIMEOUT);
-            this.publishSocket.setImmediate(false);
-        }
-
+        final String[] targetParts = this.targetAddress.split("[:/]+");
         // Try to connect
         try {
             ManagedConnection.log
                     .debug("[{}] - Creating publishSocket sending to {}", this.connectionId, this.targetAddress);
-            if (!this.publishSocket.connect(this.targetAddress)) {
+
+            this.publishSocket = new Socket(targetParts[1], Integer.parseInt(targetParts[2]));
+            if (!this.publishSocket.isConnected() || this.publishSocket.isClosed()) {
                 ManagedConnection.log.debug("[{}] - Failed to connect to {}, remote side not ready?",
                         this.connectionId);
                 return false;
             }
-        } catch (final IllegalArgumentException e) {
+            this.os = this.publishSocket.getOutputStream();
+        } catch (final Exception e) {
             // Could not resolve hostname, other container is not yet ready
             ManagedConnection.log
                     .debug("[{}] - Exception while connecting to remote: {}", this.connectionId, e.getMessage());
@@ -223,7 +223,22 @@ final class ManagedConnection implements Connection, Closeable {
     }
 
     boolean sendRaw(final byte[] data) {
-        return (this.publishSocket == null) || this.publishSocket.send(data);
+        if (this.publishSocket == null) {
+            return false;
+        }
+        try {
+            ManagedConnection.log.trace("Writing {} bytes to stream", data.length);
+            this.os.write(data.length / 256);
+            this.os.write(data.length % 256);
+            this.os.write(data);
+            this.os.write(0xFF);
+            this.os.flush();
+            return true;
+        } catch (final Exception e) {
+            ManagedConnection.log.warn("Error writing to stream: {}", e.getMessage());
+            ManagedConnection.log.trace(e.getMessage(), e);
+            return false;
+        }
     }
 
     protected void tryReceiveMessage() {
@@ -233,39 +248,47 @@ final class ManagedConnection implements Connection, Closeable {
         } catch (final InterruptedException e) {
             // Interrupted?
         }
-        synchronized (this.subscribeLock) {
-            if (this.subscribeSocket == null) {
-                // This is possible if the socket was closed in another thread
-                return;
-            }
-
-            try {
-                final byte[] buff = this.subscribeSocket.recv();
-                if ((buff == null) || (buff.length == 0)) {
-                    return;
-                } else {
-                    this.connectionExecutor.submit(() -> this.handleMessage(buff));
-                }
-            } catch (final ZMQException e) {
-
-                // if (e.getErrorCode() == 156384765) {
-                if (this.state == ConnectionState.CONNECTED) {
-                    ManagedConnection.log
-                            .warn("[{}] - ZMQException while receiving message: {}", this.connectionId, e.getMessage());
-                    ManagedConnection.log.trace(e.getMessage(), e);
-                    // ManagedConnection.log.warn("Receive socket was disconnected.");
-                    this.goToInterruptedState();
-                }
-                return;
-                // }
-            } catch (final ClosedSelectorException | AssertionError e) {
-                // The connection was suspended or terminated
-                ManagedConnection.log
-                        .warn("[{}] - Exception while receiving message: {}", this.connectionId, e.getMessage());
-                ManagedConnection.log.trace(e.getMessage(), e);
-                return;
-            }
+        // synchronized (this.subscribeLock) {
+        if (this.subscribeSocket == null) {
+            // This is possible if the socket was closed in another thread
+            return;
         }
+
+        try {
+            // final byte[] data = new byte[0];
+            final int len = (this.is.read() * 256) + this.is.read();
+            ManagedConnection.log.trace("Reading {} bytes from input stream", len);
+            if (len < 0) {
+                ManagedConnection.log.debug("End of stream reached");
+                this.goToInterruptedState();
+                return;
+            }
+
+            final byte[] data = new byte[len];
+            // final byte[] buf = new byte[1024];
+            final int read = this.is.read(data);
+            if (read != len) {
+                ManagedConnection.log.warn("Expected {} bytes, only received {}", len, read);
+            }
+            int eof = this.is.read();
+            if (eof != 0xFF) {
+                ManagedConnection.log.warn("Expected EOF, skipping stream");
+                while (eof != 0xFF) {
+                    eof = this.is.read();
+                }
+            }
+
+            ManagedConnection.log.debug("Received: {}", new String(data));
+            this.connectionExecutor.submit(() -> this.handleMessage(data));
+
+        } catch (final Exception e) {
+            // The connection was suspended or terminated
+            ManagedConnection.log
+                    .warn("[{}] - Exception while receiving message: {}", this.connectionId, e.getMessage());
+            ManagedConnection.log.trace(e.getMessage(), e);
+            return;
+        }
+        // }
 
     }
 
@@ -293,7 +316,7 @@ final class ManagedConnection implements Connection, Closeable {
                         ManagedConnection.log.warn(
                                 "[{}] - Received message {} before connection is established. Hold...",
                                 this.connectionId,
-                                new String(buff));
+                                new String(buff).replaceAll("\0", "\\0"));
                         this.handlerLock.wait();
                         ManagedConnection.log.trace("[{}] - continue...", this.connectionId);
                     } catch (final InterruptedException e) {
@@ -505,7 +528,12 @@ final class ManagedConnection implements Connection, Closeable {
 
     private void closePublishSocket() {
         if (this.publishSocket != null) {
-            this.publishSocket.close();
+            try {
+                this.os.close();
+                this.publishSocket.close();
+            } catch (final IOException e) {
+                ManagedConnection.log.warn("Exception while closing socket: {}", e.getMessage());
+            }
             this.publishSocket = null;
         }
     }
@@ -514,11 +542,15 @@ final class ManagedConnection implements Connection, Closeable {
      *
      */
     private void closeSubscribeSocket() {
-        synchronized (this.subscribeLock) {
-            if (this.subscribeSocket != null) {
+        if (this.subscribeSocket != null) {
+            try {
+                this.is.close();
                 this.subscribeSocket.close();
-                this.subscribeSocket = null;
+                this.serverSocket.close();
+            } catch (final IOException e) {
+                ManagedConnection.log.warn("Exception while closing socket: {}", e.getMessage());
             }
+            this.subscribeSocket = null;
         }
     }
 
@@ -548,10 +580,10 @@ final class ManagedConnection implements Connection, Closeable {
             }
         }
 
-        if (!this.zmqContext.isTerminated()) {
-            // Close this in another thread, because it sometimes locks the VM
-            new Thread(() -> this.zmqContext.close()).start();
-        }
+        // if (!this.zmqContext.isTerminated()) {
+        // // Close this in another thread, because it sometimes locks the VM
+        // new Thread(() -> this.zmqContext.close()).start();
+        // }
     }
 
     /**

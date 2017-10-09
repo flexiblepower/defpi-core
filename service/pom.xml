@@ -18,12 +18,13 @@
 		    <artifactId>reflections</artifactId>
 		    <version>0.9.11</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.zeromq</groupId>
 			<artifactId>jeromq</artifactId>
+			<version>0.4.2</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.flexiblepower.defpi</groupId>
 			<artifactId>commons</artifactId>
