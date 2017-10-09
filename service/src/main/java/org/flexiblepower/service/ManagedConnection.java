@@ -103,7 +103,7 @@ final class ManagedConnection implements Connection, Closeable {
         }
 
         // Init ZMQ
-        this.zmqContext = ZMQ.context(4);
+        this.zmqContext = ZMQ.context(1);
         this.state = ConnectionState.STARTING;
 
         this.initSubscribeSocket();

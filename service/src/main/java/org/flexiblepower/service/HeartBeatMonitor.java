@@ -35,6 +35,8 @@ public class HeartBeatMonitor implements Closeable {
     private static final byte[] PING = new byte[] {(byte) 0xA};
     private static final byte[] PONG = new byte[] {(byte) 0xB};
 
+    private static final int MAX_MISSED_HEARTBEATS = 2;
+
     private static int threadCount = 0;
 
     private final ManagedConnection connection;
@@ -43,6 +45,7 @@ public class HeartBeatMonitor implements Closeable {
 
     private ScheduledFuture<?> heartBeatFuture;
     private boolean receivedPong;
+    private int missedHeartBeats;
 
     HeartBeatMonitor(final ManagedConnection c, final String connectionId) {
         this.connection = c;
@@ -68,6 +71,7 @@ public class HeartBeatMonitor implements Closeable {
             // If ponged, it is a response to our ping
             HeartBeatMonitor.log.trace("[{}] - -> PONG", this.connectionId);
             this.receivedPong = true;
+            this.missedHeartBeats = 0;
             return true;
         } else if (Arrays.equals(data, HeartBeatMonitor.PING)) {
             // If pinged, respond with a pong
@@ -90,6 +94,7 @@ public class HeartBeatMonitor implements Closeable {
         }
 
         this.receivedPong = true;
+        this.missedHeartBeats = 0;
         this.heartBeatFuture = this.executor.scheduleAtFixedRate(() -> {
             try {
                 if (!this.connection.isConnected()) {
@@ -98,16 +103,20 @@ public class HeartBeatMonitor implements Closeable {
 
                 if (!this.receivedPong) {
                     // If no PONG was received since the last PING, assume connection was interrupted!
-                    HeartBeatMonitor.log.warn("[{}] - No heartbeat received on connection, goto {}",
-                            this.connectionId,
-                            ConnectionState.INTERRUPTED);
-                    this.connection.goToInterruptedState();
+                    HeartBeatMonitor.log
+                            .warn("[{}] - Missed a heartbeat...", this.connectionId, ConnectionState.INTERRUPTED);
+                    if (++this.missedHeartBeats > HeartBeatMonitor.MAX_MISSED_HEARTBEATS) {
+                        HeartBeatMonitor.log.warn("[{}] - Missed more than {} heartbeats, goto {}",
+                                this.connectionId,
+                                HeartBeatMonitor.MAX_MISSED_HEARTBEATS,
+                                ConnectionState.INTERRUPTED);
+                        this.connection.goToInterruptedState();
+                    }
                 }
 
+                this.receivedPong = false;
                 HeartBeatMonitor.log.trace("[{}] - PING ->", this.connectionId);
-                if (this.connection.sendRaw(HeartBeatMonitor.PING)) {
-                    this.receivedPong = false;
-                } else {
+                if (!this.connection.sendRaw(HeartBeatMonitor.PING)) {
                     HeartBeatMonitor.log.warn("[{}] - Unable to send heartbeat, goto {}",
                             this.connectionId,
                             ConnectionState.INTERRUPTED);

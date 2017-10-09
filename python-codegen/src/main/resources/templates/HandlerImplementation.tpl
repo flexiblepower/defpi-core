@@ -1,5 +1,2 @@
-	@Override
-	public void handle{{handle.type}}Message({{handle.type}} message) {
-		// TODO Auto-generated stub
-		
-	}
+	def handle{{handle.type}}Message(self, message):
+		''' Handles messages of type {{handle.type}} '''

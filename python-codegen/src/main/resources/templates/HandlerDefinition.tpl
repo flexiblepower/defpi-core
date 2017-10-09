@@ -1,1 +1,2 @@
-	public void handle{{handle.type}}Message({{handle.type}} message);
+	@abstractmethod
+	def handle{{handle.type}}Message(self, message):

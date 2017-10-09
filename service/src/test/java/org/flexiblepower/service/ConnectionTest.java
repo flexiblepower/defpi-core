@@ -109,14 +109,15 @@ public class ConnectionTest {
 
         final String serviceURI = String
                 .format("tcp://%s:%d", ConnectionTest.TEST_HOST, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
-        this.out = this.ctx.socket(ZMQ.PUSH);
+        this.out = this.ctx.socket(ZMQ.PUB);
         this.out.setSendTimeOut(ConnectionTest.OUT_SEND_TIMEOUT);
 
         this.out.setImmediate(false);
         this.out.connect(serviceURI.toString());
 
         final String listenURI = String.format("tcp://*:%d", ConnectionTest.TEST_SERVICE_TARGET_PORT);
-        this.in = this.ctx.socket(ZMQ.PULL);
+        this.in = this.ctx.socket(ZMQ.SUB);
+        this.in.subscribe("");
         this.in.setReceiveTimeOut(ConnectionTest.IN_RECEIVE_TIMEOUT);
         this.in.bind(listenURI.toString());
 
@@ -215,7 +216,7 @@ public class ConnectionTest {
                 .setSendHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
                 .build())));
 
-        this.out = this.ctx.socket(ZMQ.PUSH);
+        this.out = this.ctx.socket(ZMQ.PUB);
         this.out.setSendTimeOut(ConnectionTest.OUT_SEND_TIMEOUT);
         this.out.setImmediate(false);
 
