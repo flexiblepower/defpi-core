@@ -243,14 +243,7 @@ final class ManagedConnection implements Connection, Closeable {
         }
     }
 
-    protected void tryReceiveMessage() {
-        // try {
-        // // Make sure we don't hog the subscribe lock
-        // Thread.sleep(0, 100);
-        // } catch (final InterruptedException e) {
-        // // Interrupted?
-        // }
-        // synchronized (this.subscribeLock) {
+    protected synchronized void tryReceiveMessage() {
         if (this.subscribeSocket == null) {
             // This is possible if the socket was closed in another thread
             return;
@@ -296,7 +289,6 @@ final class ManagedConnection implements Connection, Closeable {
     }
 
     private void handleMessage(final byte[] buff) {
-
         if (buff == null) {
             return;
         }
@@ -479,7 +471,7 @@ final class ManagedConnection implements Connection, Closeable {
 
         // Stop communication
         // this.closeSubscribeSocket();
-        // this.closePublishSocket();
+        this.closePublishSocket();
 
         // Indicate that we have received no instruction to resume
         this.listenPort = 0;
