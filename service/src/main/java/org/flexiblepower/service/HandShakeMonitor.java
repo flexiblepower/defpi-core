@@ -83,7 +83,7 @@ public class HandShakeMonitor {
             final ConnectionHandshake handShakeMessage = (ConnectionHandshake) this.serializer.deserialize(recvData);
 
             if (handShakeMessage.getConnectionId().equals(this.connectionId)) {
-                ManagedConnection.log.debug("[{}] - Received acknowledge string: {}",
+                HandShakeMonitor.log.debug("[{}] - Received acknowledgement: {}",
                         this.connectionId,
                         handShakeMessage.getConnectionState());
                 // Success! Maybe go to connected state?
@@ -93,15 +93,15 @@ public class HandShakeMonitor {
 
                 // Maybe send response back?
                 if (!handShakeMessage.getConnectionState().equals(ConnectionState.CONNECTED)) {
-                    return this.sendHandshake(this.connection.getState());
-                } else {
-                    return true;
+                    this.sendHandshake(this.connection.getState());
                 }
+
+                return true;
             } else {
-                ManagedConnection.log.warn("[{}] - Invalid Connection ID in Handshake message: {}",
+                HandShakeMonitor.log.warn("[{}] - Invalid Connection ID in Handshake message: {}",
                         this.connectionId,
                         handShakeMessage.getConnectionId());
-                return false;
+                return true;
             }
         } catch (final SerializationException e) {
             // Maybe it was a not a handshake?
@@ -111,7 +111,7 @@ public class HandShakeMonitor {
             return false;
         } catch (final Exception e) {
             // The subscribeSocket is closed, probably the session was suspended before it was running
-            ManagedConnection.log
+            HandShakeMonitor.log
                     .warn("[{}] - Exception while receiving from socket: {}", this.connectionId, e.getMessage());
             HandShakeMonitor.log.trace(e.getMessage(), e);
             return false;

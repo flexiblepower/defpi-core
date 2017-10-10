@@ -13,6 +13,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.concurrent.ExecutorService;
@@ -34,14 +35,14 @@ import org.slf4j.LoggerFactory;
  */
 final class ManagedConnection implements Connection, Closeable {
 
-    private static final int RECEIVE_TIMEOUT = 100;
-    private static final int SEND_TIMEOUT = 200;
+    // private static final int RECEIVE_TIMEOUT = 100;
+    // private static final int SEND_TIMEOUT = 200;
 
     protected static final Logger log = LoggerFactory.getLogger(ManagedConnection.class);
     // private static int threadCount = 0;
     private static final int MAX_THREADS = 10;
 
-    private final String connectionId;
+    protected final String connectionId;
     private final MessageSerializer<Object> userMessageSerializer;
 
     private ServerSocket serverSocket;
@@ -56,6 +57,7 @@ final class ManagedConnection implements Connection, Closeable {
     private final ExecutorService connectionExecutor;
     // private final Object suspendLock = new Object();
     private final HeartBeatMonitor heartBeat;
+    private final ConnectionRunner connectionRunner = new ConnectionRunner();
 
     private int listenPort;
     private ConnectionHandler serviceHandler;
@@ -63,26 +65,29 @@ final class ManagedConnection implements Connection, Closeable {
     protected volatile ConnectionState state;
     protected final HandShakeMonitor handShake;
     private final Object handlerLock = new Object();
+    protected final Object handshakeLock = new Object();
+    private static int threadCounter;
 
     /**
      * @param connectionId
      * @param listenPort
      * @param targetAddress
      * @param info
+     * @throws IOException
      * @throws ConnectionModificationException
      */
     @SuppressWarnings("unchecked")
     ManagedConnection(final String connectionId,
             final int listenPort,
             final String targetAddress,
-            final InterfaceInfo info) throws ConnectionModificationException {
+            final InterfaceInfo info) throws IOException {
         this.connectionId = connectionId;
         this.listenPort = listenPort;
         this.targetAddress = targetAddress;
         this.info = info;
 
         this.connectionExecutor = Executors.newFixedThreadPool(ManagedConnection.MAX_THREADS,
-                r -> new Thread(r, "dEF-Pi connThread"));
+                r -> new Thread(r, "dEF-Pi connThread" + ManagedConnection.threadCounter++));
         this.heartBeat = new HeartBeatMonitor(this, connectionId);
         this.handShake = new HandShakeMonitor(this, connectionId);
         this.state = ConnectionState.STARTING;
@@ -108,28 +113,25 @@ final class ManagedConnection implements Connection, Closeable {
 
         this.initSubscribeSocket();
 
-        this.connectionExecutor.submit(new ConnectionRunner());
+        this.connectionExecutor.submit(() -> this.connectionRunner.fixConnection());
         // new Thread(new ConnectionRunner(), "dEF-Pi connThread").start();
     }
 
-    private void initSubscribeSocket() {
+    private void initSubscribeSocket() throws IOException {
         if (this.subscribeSocket != null) {
             ManagedConnection.log.debug("[{}] - Re-creating subscribesocket", this.connectionId);
             this.closeSubscribeSocket();
-            try {
-                // Let the socket close
-                Thread.sleep(10);
-            } catch (final InterruptedException e) {
-                // Do nothing
-            }
         }
 
+        ManagedConnection.log
+                .debug("[{}] - Creating subscribeSocket listening on port {}", this.connectionId, this.listenPort);
+        this.serverSocket = new ServerSocket(this.listenPort);
+
         this.connectionExecutor.submit(() -> {
-            ManagedConnection.log
-                    .debug("[{}] - Creating subscribeSocket listening on port {}", this.connectionId, this.listenPort);
             try {
-                this.serverSocket = new ServerSocket(this.listenPort);
                 this.subscribeSocket = this.serverSocket.accept();
+                ManagedConnection.log.info("Received client connection from {}",
+                        this.subscribeSocket.getRemoteSocketAddress());
                 this.is = this.subscribeSocket.getInputStream();
             } catch (final Exception e) {
                 ManagedConnection.log.error("Error while creating subscribe socket: {}", e.getMessage());
@@ -227,7 +229,7 @@ final class ManagedConnection implements Connection, Closeable {
             return false;
         }
         try {
-            ManagedConnection.log.trace("Writing {} bytes to stream", data.length);
+            // ManagedConnection.log.trace("Writing {} bytes to stream", data.length);
             this.os.write(data.length / 256);
             this.os.write(data.length % 256);
             this.os.write(data);
@@ -242,12 +244,12 @@ final class ManagedConnection implements Connection, Closeable {
     }
 
     protected void tryReceiveMessage() {
-        try {
-            // Make sure we don't hog the subscribe lock
-            Thread.sleep(0, 100);
-        } catch (final InterruptedException e) {
-            // Interrupted?
-        }
+        // try {
+        // // Make sure we don't hog the subscribe lock
+        // Thread.sleep(0, 100);
+        // } catch (final InterruptedException e) {
+        // // Interrupted?
+        // }
         // synchronized (this.subscribeLock) {
         if (this.subscribeSocket == null) {
             // This is possible if the socket was closed in another thread
@@ -257,10 +259,11 @@ final class ManagedConnection implements Connection, Closeable {
         try {
             // final byte[] data = new byte[0];
             final int len = (this.is.read() * 256) + this.is.read();
-            ManagedConnection.log.trace("Reading {} bytes from input stream", len);
             if (len < 0) {
-                ManagedConnection.log.debug("End of stream reached");
-                this.goToInterruptedState();
+                if (this.isConnected()) {
+                    ManagedConnection.log.debug("End of stream reached");
+                    this.goToInterruptedState();
+                }
                 return;
             }
 
@@ -278,17 +281,17 @@ final class ManagedConnection implements Connection, Closeable {
                 }
             }
 
-            ManagedConnection.log.debug("Received: {}", new String(data));
+            // ManagedConnection.log.debug("Received: {}", new String(data));
             this.connectionExecutor.submit(() -> this.handleMessage(data));
 
         } catch (final Exception e) {
-            // The connection was suspended or terminated
-            ManagedConnection.log
-                    .warn("[{}] - Exception while receiving message: {}", this.connectionId, e.getMessage());
-            ManagedConnection.log.trace(e.getMessage(), e);
-            return;
+            // The connection is probably suspended or terminated
+            if (!e.getClass().equals(SocketException.class) || !e.getMessage().equals("Socket closed")) {
+                ManagedConnection.log
+                        .warn("[{}] - Exception while receiving message: {}", this.connectionId, e.getMessage());
+                ManagedConnection.log.trace(e.getMessage(), e);
+            }
         }
-        // }
 
     }
 
@@ -380,8 +383,8 @@ final class ManagedConnection implements Connection, Closeable {
      * in a separate thread and starting the heartbeat
      */
     void goToConnectedState() {
-        // ManagedConnection.log
-        // .info("Connection {} going from {} to {}", this.connectionId, this.state, ConnectionState.CONNECTED);
+        ManagedConnection.log
+                .info("Connection {} going from {} to {}", this.connectionId, this.state, ConnectionState.CONNECTED);
         final ConnectionState previousState = this.state;
         this.state = ConnectionState.CONNECTED;
 
@@ -390,14 +393,7 @@ final class ManagedConnection implements Connection, Closeable {
             ManagedConnection.log.debug("[{}] - Ignoring goToConnected, already connected...", this.connectionId);
             return;
         case STARTING:
-            // This can only be true the first time, create the service handler!
-            this.serviceExecutor.submit(() -> {
-                synchronized (this.handlerLock) {
-                    ManagedConnection.this.serviceHandler = ConnectionManager
-                            .buildHandlerForConnection(ManagedConnection.this, ManagedConnection.this.info);
-                    this.handlerLock.notifyAll();
-                }
-            });
+            // Service handler is created by connectionRunner
             break;
         case INTERRUPTED:
             this.serviceExecutor.submit(() -> this.serviceHandler.resumeAfterInterrupt());
@@ -410,6 +406,9 @@ final class ManagedConnection implements Connection, Closeable {
             ManagedConnection.log.error("[{}] - Unexpected previous state: {}", this.connectionId, this.state);
         }
 
+        synchronized (this.handshakeLock) {
+            this.handshakeLock.notifyAll();
+        }
         this.heartBeat.start();
     }
 
@@ -443,7 +442,12 @@ final class ManagedConnection implements Connection, Closeable {
         });
 
         // Start a thread to fix the connection
-        this.connectionExecutor.submit(new ConnectionRunner());
+        try {
+            this.initSubscribeSocket();
+        } catch (final IOException e) {
+            e.printStackTrace();
+        }
+        this.connectionExecutor.submit(() -> this.connectionRunner.fixConnection());
         // new Thread(new ConnectionRunner(), "dEF-Pi connThread").start();
     }
 
@@ -474,7 +478,8 @@ final class ManagedConnection implements Connection, Closeable {
         }
 
         // Stop communication
-        this.closePublishSocket();
+        // this.closeSubscribeSocket();
+        // this.closePublishSocket();
 
         // Indicate that we have received no instruction to resume
         this.listenPort = 0;
@@ -487,8 +492,9 @@ final class ManagedConnection implements Connection, Closeable {
      *
      * @param listenPort
      * @param targetAddress
+     * @throws IOException
      */
-    void goToResumedState(final int newListenPort, final String newTargetAddress) {
+    void goToResumedState(final int newListenPort, final String newTargetAddress) throws IOException {
         if (this.state != ConnectionState.SUSPENDED) {
             ManagedConnection.log.warn("[{}] - Unable to resume connection when not in {}",
                     this.connectionId,
@@ -500,11 +506,11 @@ final class ManagedConnection implements Connection, Closeable {
         this.listenPort = newListenPort;
         this.targetAddress = newTargetAddress;
 
-        // Initialize a (new) publish socket with the new target
+        // Initialize a (new) subscribe socket with the new port
         this.initSubscribeSocket();
 
-        // Make sure we fix the connection
-        this.connectionExecutor.submit(new ConnectionRunner());
+        // Create a new publish socket, and make sure we are connected
+        this.connectionExecutor.submit(() -> this.connectionRunner.fixConnection());
         // new Thread(new ConnectionRunner(), "conn-fix").start();
     }
 
@@ -546,11 +552,19 @@ final class ManagedConnection implements Connection, Closeable {
             try {
                 this.is.close();
                 this.subscribeSocket.close();
-                this.serverSocket.close();
             } catch (final IOException e) {
                 ManagedConnection.log.warn("Exception while closing socket: {}", e.getMessage());
             }
             this.subscribeSocket = null;
+        }
+
+        if (this.serverSocket != null) {
+            try {
+                this.serverSocket.close();
+            } catch (final IOException e) {
+                ManagedConnection.log.warn("Exception while closing server socket: {}", e.getMessage());
+            }
+            this.serverSocket = null;
         }
     }
 
@@ -593,7 +607,7 @@ final class ManagedConnection implements Connection, Closeable {
      * @version 0.1
      * @since Aug 22, 2017
      */
-    public class ConnectionRunner implements Runnable {
+    public class ConnectionRunner {
 
         private static final long INITIAL_BACKOFF_MS = 100;
         private static final long MAX_BACKOFF_MS = 60000;
@@ -604,34 +618,48 @@ final class ManagedConnection implements Connection, Closeable {
          *
          * @see java.lang.Runnable#run()
          */
-        @Override
-        public void run() {
-            while (ManagedConnection.this.state != ConnectionState.TERMINATED) {
+        public synchronized void fixConnection() {
+            this.backOffMs = ConnectionRunner.INITIAL_BACKOFF_MS;
+            while ((ManagedConnection.this.state != ConnectionState.TERMINATED)
+                    && (ManagedConnection.this.state != ConnectionState.CONNECTED)) {
+
                 while (!ManagedConnection.this.initPublishSocket()) {
                     this.increaseBackOffAndWait();
                 }
 
-                if (ManagedConnection.this.handShake.sendHandshake(ManagedConnection.this.state)) {
-                    // The handshake is sent successfully, now wait until the other side confirms. If it does not, retry
-                    try {
-                        Thread.sleep(1000);
-                    } catch (final InterruptedException e) {
-                        // Do nothing
-                    }
-
-                    if (ManagedConnection.this.state.equals(ConnectionState.CONNECTED)) {
-                        ManagedConnection.log.info("[{}] - Connection established",
-                                ManagedConnection.this.connectionId);
-                        return;
-                    } else {
-                        ManagedConnection.log.warn("[{}] - Expected connection to be restored...",
-                                ManagedConnection.this.connectionId);
-                        continue;
-                    }
-
-                } else {
+                if (!ManagedConnection.this.handShake.sendHandshake(ManagedConnection.this.state)) {
                     // If the handshake is not sent, we want to re-init the socket.
                     this.increaseBackOffAndWait();
+                }
+
+                // The handshake is sent successfully, now wait until the other side confirms. If it does not, retry
+                try {
+                    synchronized (ManagedConnection.this.handshakeLock) {
+                        ManagedConnection.this.handshakeLock.wait(500);
+                    }
+                } catch (final InterruptedException e) {
+                    // Do nothing
+                }
+
+                if (ManagedConnection.this.state.equals(ConnectionState.CONNECTED)) {
+                    ManagedConnection.log.info("[{}] - Connection established", ManagedConnection.this.connectionId);
+
+                    // If this is the first time, build the serviceHandler
+                    if (ManagedConnection.this.serviceHandler == null) {
+                        ManagedConnection.this.serviceExecutor.submit(() -> {
+                            synchronized (ManagedConnection.this.handlerLock) {
+                                ManagedConnection.this.serviceHandler = ConnectionManager
+                                        .buildHandlerForConnection(ManagedConnection.this, ManagedConnection.this.info);
+                                ManagedConnection.this.handlerLock.notifyAll();
+                            }
+                        });
+                    }
+
+                    return;
+                } else {
+                    ManagedConnection.log.warn("[{}] - Expected connection to be restored...",
+                            ManagedConnection.this.connectionId);
+                    continue;
                 }
             }
 

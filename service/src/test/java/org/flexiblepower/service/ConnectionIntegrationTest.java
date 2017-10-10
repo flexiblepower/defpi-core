@@ -12,7 +12,6 @@ import java.util.Map;
 
 import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
-import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -133,7 +132,7 @@ public class ConnectionIntegrationTest {
     }
 
     @Test(timeout = 10000)
-    public void testNormalConnection() throws ConnectionModificationException, InterruptedException {
+    public void testNormalConnection() throws Exception {
 
         final InterfaceInfo info = TestHandler.class.getAnnotation(InterfaceInfo.class);
         ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandlerBuilder());
@@ -161,7 +160,7 @@ public class ConnectionIntegrationTest {
     }
 
     @Test(timeout = 30000)
-    public void testInterruptDetectionAndResume() throws ConnectionModificationException, InterruptedException {
+    public void testInterruptDetectionAndResume() throws Exception {
         final InterfaceInfo info = TestHandler.class.getAnnotation(InterfaceInfo.class);
         ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandlerBuilder());
 
@@ -209,7 +208,7 @@ public class ConnectionIntegrationTest {
     }
 
     @Test(timeout = 15000)
-    public void testSuspendAndResume() throws ConnectionModificationException, InterruptedException {
+    public void testSuspendAndResume() throws Exception {
         final InterfaceInfo info = TestHandler.class.getAnnotation(InterfaceInfo.class);
         ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandlerBuilder());
 

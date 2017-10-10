@@ -6,6 +6,7 @@
 package org.flexiblepower.service;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,7 +48,8 @@ public class ConnectionManager implements Closeable {
      * @return
      * @throws ConnectionModificationException
      */
-    public Message handleConnectionMessage(final ConnectionMessage message) throws ConnectionModificationException {
+    public Message handleConnectionMessage(final ConnectionMessage message) throws IOException,
+            ConnectionModificationException {
         final String connectionId = message.getConnectionId();
         ConnectionManager.log
                 .info("Received ConnectionMessage for connection {} ({})", connectionId, message.getMode());
@@ -85,9 +87,11 @@ public class ConnectionManager implements Closeable {
     /**
      * @param message
      * @throws ConnectionModificationException
+     * @throws IOException
      */
     private Message createConnection(final String connectionId, final ConnectionMessage message)
-            throws ConnectionModificationException {
+            throws ConnectionModificationException,
+            IOException {
         // First find the correct handler to attach to the connection
         final String key = ConnectionManager.handlerKey(message.getReceiveHash(), message.getSendHash());
         final ConnectionHandlerManager chf = ConnectionManager.connectionHandlers.get(key);

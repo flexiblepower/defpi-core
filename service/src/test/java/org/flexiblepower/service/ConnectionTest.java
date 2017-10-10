@@ -73,6 +73,7 @@ public class ConnectionTest {
 
     @Before
     public void initConnection() throws Exception {
+        ConnectionTest.logger.info("*** Start of test ***");
         this.testService = new TestService();
         this.manager = new ServiceManager<>(this.testService);
 
@@ -118,6 +119,7 @@ public class ConnectionTest {
 
         // final String serviceURI = String
         // .format("tcp://%s:%d", ConnectionTest.TEST_HOST, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
+        Thread.sleep(500);
         this.out = new Socket(ConnectionTest.TEST_HOST, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
         this.os = this.out.getOutputStream();
         // this.out = this.ctx.socket(ZMQ.PUB);
@@ -129,9 +131,8 @@ public class ConnectionTest {
         final String listenURI = String.format("tcp://*:%d", ConnectionTest.TEST_SERVICE_TARGET_PORT);
         ConnectionTest.logger.info("Listening on {}", listenURI);
         this.s = new ServerSocket(ConnectionTest.TEST_SERVICE_TARGET_PORT);
-        ConnectionTest.logger.info("{}", this.s);
+        this.s.setReuseAddress(true);
         this.in = this.s.accept();
-        ConnectionTest.logger.info("{}", this.in);
         this.is = this.in.getInputStream();
         // this.in = this.ctx.socket(ZMQ.SUB);
         // this.in.subscribe("");
@@ -163,7 +164,7 @@ public class ConnectionTest {
         // Send the real ack
         final ConnectionHandshake correctHandshake = ConnectionHandshake.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
-                .setConnectionState(ConnectionState.STARTING)
+                .setConnectionState(ConnectionState.CONNECTED)
                 .build();
 
         this.write(this.serializer.serialize(correctHandshake));
@@ -171,51 +172,6 @@ public class ConnectionTest {
         // The other guy already sent an ack and was waiting for us, now it should continue;
         Thread.sleep(200);
         Assert.assertEquals("connected", this.testService.getState());
-    }
-
-    /**
-     * @param serialize
-     * @throws IOException
-     */
-    private void write(final byte[] msg) throws IOException {
-        ConnectionTest.logger.trace("sending {} + {} = {} bytes ", msg.length / 256, msg.length % 256, msg.length);
-        this.os.write(msg.length / 256);
-        this.os.write(msg.length % 256);
-        this.os.write(msg);
-        this.os.write(0xFF);
-        this.os.flush();
-    }
-
-    private byte[] readSocketFilterHeartbeat() throws IOException {
-        byte[] data = this.readRaw();
-
-        if (data != null) {
-            while (data.length == 1) {
-                ConnectionTest.logger.debug("Received heartbeat!");
-                data = this.readRaw();
-            }
-            ConnectionTest.logger.info("Received: {}", new String(data));
-        }
-        return data;
-    }
-
-    private byte[] readRaw() throws IOException {
-        final int len = (this.is.read() * 256) + this.is.read();
-        ConnectionTest.logger.trace("Reading {} bytes from input stream", len);
-
-        final byte[] data = new byte[len];
-        final int read = this.is.read(data);
-        if (read != len) {
-            ConnectionTest.logger.warn("Expected {} bytes, only received {}", len, read);
-        }
-        int eof = this.is.read();
-        if (eof != 0xFF) {
-            ConnectionTest.logger.warn("Expected EOF, skipping stream");
-            while (eof != 0xFF) {
-                eof = this.is.read();
-            }
-        }
-        return data;
     }
 
     @Test(timeout = 10000)
@@ -242,12 +198,13 @@ public class ConnectionTest {
                 .build())));
 
         // Make sure we get the correct response
-        byte[] recv = this.managementSocket.recv();
+        final byte[] recv = this.managementSocket.recv();
         ConnectionHandshake acknowledgement = (ConnectionHandshake) this.serializer.deserialize(recv);
         Assert.assertEquals(ConnectionState.SUSPENDED, acknowledgement.getConnectionState());
         Thread.sleep(10);
         Assert.assertEquals("connection-suspended", this.testService.getState());
 
+        // Make a new connection TO the test service
         this.os.close();
         this.out.close();
 
@@ -261,39 +218,46 @@ public class ConnectionTest {
                 .setSendHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
                 .build())));
 
+        Thread.sleep(500);
         this.out = new Socket(ConnectionTest.TEST_HOST, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
         this.os = this.out.getOutputStream();
+
+        this.in = this.s.accept();
+        this.is = this.in.getInputStream();
+
         // this.out = this.ctx.socket(ZMQ.PUB);
         // this.out.setSendTimeOut(ConnectionTest.OUT_SEND_TIMEOUT);
         // this.out.setImmediate(false);
 
-        final String serviceURI = String
-                .format("tcp://%s:%d", ConnectionTest.TEST_HOST, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
+        // final String serviceURI = String
+        // .format("tcp://%s:%d", ConnectionTest.TEST_HOST, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
 
         // this.out.connect(serviceURI.toString());
 
         Thread.sleep(100);
-        recv = this.managementSocket.recv();
-        final Message msg = this.serializer.deserialize(recv);
+
+        final Message msg = this.serializer.deserialize(this.managementSocket.recv());
         if (msg instanceof ErrorMessage) {
             Assert.fail("Received error message: " + ((ErrorMessage) msg).getDebugInformation());
         }
         acknowledgement = (ConnectionHandshake) msg;
         Assert.assertEquals(ConnectionState.CONNECTED, acknowledgement.getConnectionState());
 
-        Thread.sleep(100);
+        Thread.sleep(1000);
 
-        // We need to receive and send a handshake before the connection is in teh CONNECTED state again
-        Assert.assertTrue(this.serializer.deserialize(this.readSocketFilterHeartbeat()) instanceof ConnectionHandshake);
+        // We need to receive and send a handshake before the connection is in the CONNECTED state again
+        final Object receivedHandshake = this.serializer.deserialize(this.readSocketFilterHeartbeat());
+        Assert.assertEquals(ConnectionHandshake.class, receivedHandshake.getClass());
+        Assert.assertEquals(ConnectionState.SUSPENDED, ((ConnectionHandshake) receivedHandshake).getConnectionState());
 
         final ConnectionHandshake correctHandshake = ConnectionHandshake.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
-                .setConnectionState(ConnectionState.STARTING)
+                .setConnectionState(ConnectionState.CONNECTED)
                 .build();
 
         this.write(this.serializer.serialize(correctHandshake));
 
-        Thread.sleep(1000);
+        Thread.sleep(100);
 
         Assert.assertEquals("connection-resumed", this.testService.getState());
     }
@@ -317,6 +281,7 @@ public class ConnectionTest {
 
     @After()
     public void closeConnection() throws InterruptedException, IOException {
+        ConnectionTest.logger.info("*** END-OF-TEST ***");
         if (this.manager != null) {
             this.manager.close();
             this.manager = null;
@@ -333,6 +298,51 @@ public class ConnectionTest {
             this.in = null;
         }
         Thread.sleep(200);
+    }
+
+    /**
+     * @param serialize
+     * @throws IOException
+     */
+    private void write(final byte[] msg) throws IOException {
+        this.os.write(msg.length / 256);
+        this.os.write(msg.length % 256);
+        this.os.write(msg);
+        this.os.write(0xFF);
+        this.os.flush();
+    }
+
+    private byte[] readSocketFilterHeartbeat() throws IOException {
+        byte[] data = this.readRaw();
+
+        if (data != null) {
+            while (data.length == 1) {
+                ConnectionTest.logger.debug("Received heartbeat!");
+                data = this.readRaw();
+            }
+            ConnectionTest.logger.info("Received: {}", new String(data));
+        }
+        return data;
+    }
+
+    private byte[] readRaw() throws IOException {
+        final int len = (this.is.read() * 256) + this.is.read();
+        if (len < 0) {
+            return null;
+        }
+        final byte[] data = new byte[len];
+        final int read = this.is.read(data);
+        if (read != len) {
+            ConnectionTest.logger.warn("Expected {} bytes, only received {}", len, read);
+        }
+        int eof = this.is.read();
+        if (eof != 0xFF) {
+            ConnectionTest.logger.warn("Expected EOF, skipping stream");
+            while (eof != 0xFF) {
+                eof = this.is.read();
+            }
+        }
+        return data;
     }
 
 }

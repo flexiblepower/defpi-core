@@ -24,7 +24,7 @@ import org.zeromq.ZMQ.Socket;
 public class ManagedConnectionTest {
 
     @Test(timeout = 5000)
-    public void testConnection() throws ConnectionModificationException {
+    public void testConnection() throws Exception {
         try (
                 ManagedConnection conn = new ManagedConnection("ConnID1234",
                         1234,
