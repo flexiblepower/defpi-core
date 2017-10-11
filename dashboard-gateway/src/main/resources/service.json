@@ -1,0 +1,25 @@
+{
+	"name": "Dashboard Gateway",
+	"version": "1",
+	"parameters": [],
+	"interfaces": [
+		{
+			"name": "Dashboard",
+			"autoConnect": true,
+			"allowMultiple": true,
+			"interfaceVersions": [
+				{
+					"versionName": "HTTP",
+					"type": "proto",
+					"location": "HTTP.proto",
+					"sends": [
+						"HTTPRequest"
+					],
+					"receives": [
+						"HTTPResponse"
+					]
+				}
+			]
+		}
+	]
+}
