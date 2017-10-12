@@ -112,18 +112,18 @@ public class TCPSocket implements Closeable {
     }
 
     public byte[] read() throws InterruptedException, IOException {
-        TCPSocket.log.trace("Waiting to read...");
+        // TCPSocket.log.trace("Waiting to read...");
         if (this.isClosed()) {
             throw new ClosedChannelException();
         }
         this.waitUntilConnected(100);
         synchronized (this.inputStream) {
-            TCPSocket.log.trace("Allowed to read");
+            // TCPSocket.log.trace("Allowed to read");
             final int len = (this.inputStream.read() * 256) + this.inputStream.read();
             if (len < 0) {
                 throw new IOException("Reached end of stream");
             }
-            TCPSocket.log.trace("Reading {} bytes", len);
+            // TCPSocket.log.trace("Reading {} bytes", len);
             final byte[] data = new byte[len];
             int read = 0;
             while (read < len) {
@@ -139,7 +139,7 @@ public class TCPSocket implements Closeable {
                     eof = this.inputStream.read();
                 }
             }
-            TCPSocket.log.trace("Finished read: {}", new String(data).replace("\0", "\\0"));
+            // TCPSocket.log.trace("Finished read: {}", new String(data).replace("\0", "\\0"));
             return data;
         }
     }
