@@ -40,7 +40,7 @@ public class ConnectionIntegrationTest {
      */
     public class TestHandlerBuilder implements ConnectionHandlerManager {
 
-        public synchronized TestHandler build1(final Connection c) {
+        public synchronized TestHandler build1(final Connection c) throws InterruptedException {
             final String name = "h" + ConnectionIntegrationTest.counter++;
             final TestHandler ret = new TestHandler(name, c);
             ConnectionIntegrationTest.handlerMap.put(name, ret);
@@ -63,13 +63,14 @@ public class ConnectionIntegrationTest {
         public ErrorMessage lastMessage;
         public String state;
 
-        public TestHandler(final String name, final Connection connection) {
+        public TestHandler(final String name, final Connection connection) throws InterruptedException {
             this.name = name;
 
             System.out.println(this.name + ": connected");
             this.state = "connected";
             this.connection = connection;
             if (this.name.equals("h1")) {
+                Thread.sleep(100);
                 connection.send(
                         ErrorMessage.newBuilder().setDebugInformation("started").setProcessId("Error process").build());
             }
@@ -142,7 +143,7 @@ public class ConnectionIntegrationTest {
         TCPSocket.destroyLingeringSockets();
         ServiceExecutor.getInstance().shutDown();
         System.gc();
-        Thread.sleep(10000);
+        Thread.sleep(500);
         System.out.println("Alles weer schoon!");
     }
 
@@ -162,6 +163,7 @@ public class ConnectionIntegrationTest {
             Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h2").state);
 
             Assert.assertNull(ConnectionIntegrationTest.handlerMap.get("h1").lastMessage);
+            Assert.assertNotNull(ConnectionIntegrationTest.handlerMap.get("h2").lastMessage);
             Assert.assertEquals("started",
                     ConnectionIntegrationTest.handlerMap.get("h2").lastMessage.getDebugInformation());
 
@@ -226,8 +228,7 @@ public class ConnectionIntegrationTest {
         try (final TCPConnection mc2 = new TCPConnection("CIT", 5003, "localhost", info)) {
             try (final TCPConnection mc1 = new TCPConnection("CIT", 5003, "", info)) {
                 mc1.waitUntilConnected(0);
-
-                Thread.sleep(1000);
+                Thread.sleep(1500);
 
                 Assert.assertNotNull(ConnectionIntegrationTest.handlerMap.get("h1"));
                 Assert.assertNotNull(ConnectionIntegrationTest.handlerMap.get("h2"));
@@ -235,6 +236,7 @@ public class ConnectionIntegrationTest {
                 Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h2").state);
 
                 Assert.assertNull(ConnectionIntegrationTest.handlerMap.get("h1").lastMessage);
+                Assert.assertNotNull(ConnectionIntegrationTest.handlerMap.get("h2").lastMessage);
                 Assert.assertEquals("started",
                         ConnectionIntegrationTest.handlerMap.get("h2").lastMessage.getDebugInformation());
 
@@ -257,7 +259,7 @@ public class ConnectionIntegrationTest {
 
             try (final TCPConnection mc3 = new TCPConnection("CIT", 5003, "", info)) {
                 mc3.waitUntilConnected(0);
-                Thread.sleep(500);
+                Thread.sleep(1500);
 
                 state1 = ConnectionIntegrationTest.handlerMap.get("h1").state;
                 state2 = ConnectionIntegrationTest.handlerMap.get("h2").state;
@@ -271,6 +273,7 @@ public class ConnectionIntegrationTest {
                         || ("connected".equals(state3) && "resume-interrupted".equals(state1)));
 
                 Assert.assertNull(ConnectionIntegrationTest.handlerMap.get("h1").lastMessage);
+                Assert.assertNotNull(ConnectionIntegrationTest.handlerMap.get("h3").lastMessage);
                 Assert.assertEquals("resumed from interrupt",
                         ConnectionIntegrationTest.handlerMap.get("h3").lastMessage.getDebugInformation());
             }

@@ -81,7 +81,8 @@ public class ProcessConnector {
     }
 
     public boolean createConnectionEndpoint(final Connection connection, final Endpoint endpoint)
-            throws ProcessNotFoundException, ServiceNotFoundException {
+            throws ProcessNotFoundException,
+            ServiceNotFoundException {
         final Endpoint otherEndpoint = connection.getOtherEndpoint(endpoint);
         final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
 
@@ -95,11 +96,15 @@ public class ProcessConnector {
         final Interface intface = service.getInterface(endpoint.getInterfaceId());
         final InterfaceVersion interfaceVersion = intface.getInterfaceVersionByName(endpoint.getInterfaceVersionName());
 
+        // Decide if this endpoint will be server or client
+        final String targetAddress = (endpoint.getProcessId().compareTo(otherEndpoint.getProcessId()) > 0
+                ? otherEndpoint.getProcessId().toString()
+                : "");
+
         return pc.setUpConnection(connection.getId(),
                 endpoint.getListenPort(),
                 interfaceVersion.getSendsHash(),
-                otherEndpoint.getProcessId().toString(),
-                otherEndpoint.getListenPort(),
+                targetAddress,
                 interfaceVersion.getReceivesHash());
 
     }
@@ -128,7 +133,8 @@ public class ProcessConnector {
      * @throws ProcessNotFoundException
      */
     public boolean resumeConnectionEndpoint(final Connection connection, final Endpoint endpoint)
-            throws ServiceNotFoundException, ProcessNotFoundException {
+            throws ServiceNotFoundException,
+            ProcessNotFoundException {
         final Endpoint otherEndpoint = connection.getOtherEndpoint(endpoint);
         final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
 
@@ -258,11 +264,8 @@ public class ProcessConnector {
         public boolean setUpConnection(final ObjectId connectionId,
                 final int listeningPort,
                 final String sendsHash,
-                final String receivingHost,
-                final int targetPort,
+                final String targetAddress,
                 final String receivesHash) {
-            final String targetAddress = "tcp://" + receivingHost + ":" + targetPort;
-
             final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
                     .setConnectionId(connectionId.toString())
                     .setMode(ConnectionMessage.ModeType.CREATE)
@@ -343,9 +346,8 @@ public class ProcessConnector {
 
         public boolean startProcess() throws ProcessNotFoundException {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final Builder builder = SetConfigMessage.newBuilder()
-                    .setProcessId(process.getId().toString())
-                    .setIsUpdate(false);
+            final Builder builder = SetConfigMessage.newBuilder().setProcessId(process.getId().toString()).setIsUpdate(
+                    false);
             if (process.getConfiguration() != null) {
                 for (final ProcessParameter p : process.getConfiguration()) {
                     builder.putConfig(p.getKey(), p.getValue());
@@ -384,9 +386,8 @@ public class ProcessConnector {
          * @return true if successful, false in failed
          */
         public boolean updateConfiguration(final List<ProcessParameter> newConfiguration) {
-            final Builder builder = SetConfigMessage.newBuilder()
-                    .setProcessId(this.processId.toString())
-                    .setIsUpdate(true);
+            final Builder builder = SetConfigMessage.newBuilder().setProcessId(this.processId.toString()).setIsUpdate(
+                    true);
             for (final ProcessParameter p : newConfiguration) {
                 builder.putConfig(p.getKey(), p.getValue());
             }

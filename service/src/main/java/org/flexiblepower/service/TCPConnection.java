@@ -348,7 +348,23 @@ final class TCPConnection implements Connection, Closeable {
                     continue;
                 }
 
-                TCPConnection.this.connectionExecutor.submit(new MonitorRunner());
+                // Create the monitors
+                TCPConnection.this.handShakeMonitor = new HandShakeMonitor(TCPConnection.this.socket,
+                        TCPConnection.this.connectionId);
+                TCPConnection.this.heartBeatMonitor = new HeartBeatMonitor(TCPConnection.this.socket,
+                        TCPConnection.this.connectionId);
+
+                // Now we have a functioning socket, make sure that as soon as there is a handshake, go connected
+                TCPConnection.this.connectionExecutor.submit(() -> {
+                    try {
+                        TCPConnection.this.handShakeMonitor.sendHandshake(TCPConnection.this.getState());
+                        TCPConnection.this.handShakeMonitor.waitUntilFinished(0);
+                        TCPConnection.this.heartBeatMonitor.start();
+                        TCPConnection.this.goToConnectedState();
+                    } catch (final InterruptedException e) {
+                        TCPConnection.log.warn("Interrupted while waiting for TCP socket to initialize");
+                    }
+                });
 
                 while (this.keepRunning && TCPConnection.this.socket.isConnected()) {
                     try {
@@ -382,31 +398,6 @@ final class TCPConnection implements Connection, Closeable {
             this.keepRunning = false;
         }
 
-    }
-
-    private final class MonitorRunner implements Runnable {
-
-        protected MonitorRunner() {
-            // Protected constructor for TCPConnection
-        }
-
-        @Override
-        public void run() {
-            try {
-                TCPConnection.this.heartBeatMonitor = new HeartBeatMonitor(TCPConnection.this.socket,
-                        TCPConnection.this.connectionId);
-                TCPConnection.this.heartBeatMonitor.start();
-
-                TCPConnection.this.handShakeMonitor = new HandShakeMonitor(TCPConnection.this.socket,
-                        TCPConnection.this.connectionId);
-                TCPConnection.this.handShakeMonitor.sendHandshake(TCPConnection.this.getState());
-
-                TCPConnection.this.handShakeMonitor.waitUntilFinished(0);
-                TCPConnection.this.goToConnectedState();
-            } catch (final InterruptedException e) {
-                TCPConnection.log.warn("Interrupted while waiting for TCP socket to initialize");
-            }
-        }
     }
 
     private final class MessageQueue implements Runnable {
