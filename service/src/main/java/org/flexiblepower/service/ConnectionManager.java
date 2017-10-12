@@ -40,7 +40,7 @@ public class ConnectionManager implements Closeable {
     private static final Map<String, ConnectionHandlerManager> connectionHandlers = new HashMap<>();
     private static final Map<String, InterfaceInfo> interfaceInfo = new HashMap<>();
 
-    private final Map<String, ManagedConnection> connections = new HashMap<>();
+    private final Map<String, TCPConnection> connections = new HashMap<>();
 
     /**
      * @param parseFrom
@@ -105,7 +105,7 @@ public class ConnectionManager implements Closeable {
             throw new ConnectionModificationException("Unknown connection handling hash: " + key);
         } else {
             @SuppressWarnings("resource")
-            final ManagedConnection conn = new ManagedConnection(message.getConnectionId(),
+            final TCPConnection conn = new TCPConnection(message.getConnectionId(),
                     message.getListenPort(),
                     message.getTargetAddress(),
                     info);
@@ -172,7 +172,7 @@ public class ConnectionManager implements Closeable {
      */
     @Override
     public void close() {
-        for (final ManagedConnection conn : this.connections.values()) {
+        for (final TCPConnection conn : this.connections.values()) {
             conn.goToTerminatedState();
         }
         // for (final ManagedConnection conn : this.connections.values()) {

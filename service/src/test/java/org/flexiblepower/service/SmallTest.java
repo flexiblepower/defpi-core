@@ -5,6 +5,7 @@
  */
 package org.flexiblepower.service;
 
+import org.junit.After;
 import org.junit.Test;
 
 /**
@@ -21,6 +22,11 @@ public class SmallTest {
         final String test = "tcp://123456:808";
         final String[] results = test.split("[:/]+");
         System.out.println(String.join("-", results));
+    }
+
+    @After
+    public void stop() {
+        System.out.println("Dit is ook mooi");
     }
 
 }

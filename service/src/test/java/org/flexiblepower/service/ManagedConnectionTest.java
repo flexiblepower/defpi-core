@@ -26,7 +26,7 @@ public class ManagedConnectionTest {
     @Test(timeout = 5000)
     public void testConnection() throws Exception {
         try (
-                ManagedConnection conn = new ManagedConnection("ConnID1234",
+                TCPConnection conn = new TCPConnection("ConnID1234",
                         1234,
                         "tcp://localhost:5678",
                         TestService.class.getAnnotation(InterfaceInfo.class))) {

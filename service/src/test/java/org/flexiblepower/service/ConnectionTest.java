@@ -6,12 +6,8 @@
 package org.flexiblepower.service;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.Serializable;
 import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.net.UnknownHostException;
 
 import org.flexiblepower.exceptions.SerializationException;
@@ -45,8 +41,6 @@ import com.google.protobuf.Message;
 // @Ignore // TODO These tests run fine from Eclipse, but not from maven.
 public class ConnectionTest {
 
-    private static final int IN_RECEIVE_TIMEOUT = 1000;
-    private static final int OUT_SEND_TIMEOUT = 1000;
     private static final int MANAGEMENT_READ_TIMEOUT = 5000;
 
     private final static Logger logger = LoggerFactory.getLogger(ConnectionTest.class);
@@ -54,20 +48,15 @@ public class ConnectionTest {
     private static final String CONNECTION_ID = "1";
     private static final String WRONG_CONNECTION_ID = "8";
     // private static final String TEST_HOST = "172.17.0.2";
-    private static final String TEST_HOST = "localhost";
 
     private static final int TEST_SERVICE_LISTEN_PORT = 5020;
-    private static final int TEST_SERVICE_TARGET_PORT = 5025;
 
     private TestService testService;
     private ServiceManager<TestServiceConfiguration> manager;
     private ZMQ.Socket managementSocket;
 
-    private ServerSocket s;
-    private Socket out;
-    private Socket in;
-    private OutputStream os;
-    private InputStream is;
+    private TCPSocket socket;
+
     private ProtobufMessageSerializer serializer;
     private Context ctx;
 
@@ -84,8 +73,8 @@ public class ConnectionTest {
         this.serializer.addMessageClass(ConnectionMessage.class);
         this.serializer.addMessageClass(ErrorMessage.class);
 
-        final String managementURI = String
-                .format("tcp://%s:%d", ConnectionTest.TEST_HOST, ServiceManager.MANAGEMENT_PORT);
+        final String hostOfTestRunner = InetAddress.getLocalHost().getCanonicalHostName();
+        final String managementURI = String.format("tcp://%s:%d", hostOfTestRunner, ServiceManager.MANAGEMENT_PORT);
         this.ctx = ZMQ.context(1);
 
         this.managementSocket = this.ctx.socket(ZMQ.REQ);
@@ -94,12 +83,10 @@ public class ConnectionTest {
 
         this.managementSocket.connect(managementURI.toString());
 
-        final String hostOfTestRunner = "127.0.0.1"; // InetAddress.getLocalHost().getCanonicalHostName();
-
         final ConnectionMessage createMsg = ConnectionMessage.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
                 .setMode(ConnectionMessage.ModeType.CREATE)
-                .setTargetAddress("tcp://" + hostOfTestRunner + ":" + ConnectionTest.TEST_SERVICE_TARGET_PORT)
+                .setTargetAddress("")
                 .setListenPort(ConnectionTest.TEST_SERVICE_LISTEN_PORT)
                 .setReceiveHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
                 .setSendHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
@@ -117,27 +104,8 @@ public class ConnectionTest {
         Assert.assertNotNull(message);
         Assert.assertEquals(ConnectionState.STARTING, message.getConnectionState());
 
-        // final String serviceURI = String
-        // .format("tcp://%s:%d", ConnectionTest.TEST_HOST, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
-        Thread.sleep(500);
-        this.out = new Socket(ConnectionTest.TEST_HOST, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
-        this.os = this.out.getOutputStream();
-        // this.out = this.ctx.socket(ZMQ.PUB);
-        // this.out.setSendTimeOut(ConnectionTest.OUT_SEND_TIMEOUT);
-
-        // this.out.setImmediate(false);
-        // this.out.connect(serviceURI.toString());
-
-        final String listenURI = String.format("tcp://*:%d", ConnectionTest.TEST_SERVICE_TARGET_PORT);
-        ConnectionTest.logger.info("Listening on {}", listenURI);
-        this.s = new ServerSocket(ConnectionTest.TEST_SERVICE_TARGET_PORT);
-        this.s.setReuseAddress(true);
-        this.in = this.s.accept();
-        this.is = this.in.getInputStream();
-        // this.in = this.ctx.socket(ZMQ.SUB);
-        // this.in.subscribe("");
-        // this.in.setReceiveTimeOut(ConnectionTest.IN_RECEIVE_TIMEOUT);
-        // this.in.bind(listenURI.toString());
+        // Create our local socket to connect to
+        this.socket = TCPSocket.asClient(hostOfTestRunner, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
 
         this.testAck();
     }
@@ -157,7 +125,7 @@ public class ConnectionTest {
                 .setConnectionState(ConnectionState.STARTING)
                 .build();
 
-        this.write(this.serializer.serialize(wrongHandshake));
+        this.socket.send(this.serializer.serialize(wrongHandshake));
 
         Assert.assertNotEquals("connected", this.testService.getState());
 
@@ -167,10 +135,10 @@ public class ConnectionTest {
                 .setConnectionState(ConnectionState.CONNECTED)
                 .build();
 
-        this.write(this.serializer.serialize(correctHandshake));
+        this.socket.send(this.serializer.serialize(correctHandshake));
 
         // The other guy already sent an ack and was waiting for us, now it should continue;
-        Thread.sleep(200);
+        Thread.sleep(1000);
         Assert.assertEquals("connected", this.testService.getState());
     }
 
@@ -181,14 +149,14 @@ public class ConnectionTest {
         final int numTests = 100;
         final MessageSerializer<Serializable> serializer = new JavaIOSerializer();
         for (int i = 0; i < numTests; i++) {
-            this.write(serializer.serialize("THIS IS A TEST " + i));
+            this.socket.send(serializer.serialize("THIS IS A TEST " + i));
         }
 
         Thread.sleep(1000);
         Assert.assertEquals(numTests, this.testService.getCounter());
     }
 
-    @Test(timeout = 10000)
+    @Test // (timeout = 10000)
     public void
             testSuspend() throws SerializationException, InterruptedException, ServiceInvocationException, IOException {
         Assert.assertNotEquals("connection-suspended", this.testService.getState());
@@ -205,34 +173,22 @@ public class ConnectionTest {
         Assert.assertEquals("connection-suspended", this.testService.getState());
 
         // Make a new connection TO the test service
-        this.os.close();
-        this.out.close();
+        this.socket.close();
+
+        // Wait for at least one potential heartbeat that should NOT properly go
+        Thread.sleep(4000);
 
         final String hostOfTestRunner = InetAddress.getLocalHost().getCanonicalHostName();
         Assert.assertTrue(this.managementSocket.send(this.serializer.serialize(ConnectionMessage.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
                 .setMode(ConnectionMessage.ModeType.RESUME)
-                .setTargetAddress("tcp://" + hostOfTestRunner + ":" + ConnectionTest.TEST_SERVICE_TARGET_PORT)
+                .setTargetAddress("")
                 .setListenPort(ConnectionTest.TEST_SERVICE_LISTEN_PORT)
                 .setReceiveHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
                 .setSendHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
                 .build())));
 
-        Thread.sleep(500);
-        this.out = new Socket(ConnectionTest.TEST_HOST, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
-        this.os = this.out.getOutputStream();
-
-        this.in = this.s.accept();
-        this.is = this.in.getInputStream();
-
-        // this.out = this.ctx.socket(ZMQ.PUB);
-        // this.out.setSendTimeOut(ConnectionTest.OUT_SEND_TIMEOUT);
-        // this.out.setImmediate(false);
-
-        // final String serviceURI = String
-        // .format("tcp://%s:%d", ConnectionTest.TEST_HOST, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
-
-        // this.out.connect(serviceURI.toString());
+        this.socket = TCPSocket.asClient(hostOfTestRunner, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
 
         Thread.sleep(100);
 
@@ -255,9 +211,9 @@ public class ConnectionTest {
                 .setConnectionState(ConnectionState.CONNECTED)
                 .build();
 
-        this.write(this.serializer.serialize(correctHandshake));
+        this.socket.send(this.serializer.serialize(correctHandshake));
 
-        Thread.sleep(100);
+        Thread.sleep(1000);
 
         Assert.assertEquals("connection-resumed", this.testService.getState());
     }
@@ -275,7 +231,7 @@ public class ConnectionTest {
         final byte[] recv = this.managementSocket.recv();
         final ConnectionHandshake acknowledgement = (ConnectionHandshake) this.serializer.deserialize(recv);
         Assert.assertEquals(ConnectionState.TERMINATED, acknowledgement.getConnectionState());
-        Thread.sleep(1000); // Terminate method is call asynchronous
+        Thread.sleep(100); // Terminate method is call asynchronous
         Assert.assertEquals("connection-terminated", this.testService.getState());
     }
 
@@ -286,61 +242,22 @@ public class ConnectionTest {
             this.manager.close();
             this.manager = null;
         }
-        if (this.out != null) {
-            this.os.close();
-            this.out.close();
-            this.out = null;
-        }
-        if (this.in != null) {
-            this.is.close();
-            this.in.close();
-            this.s.close();
-            this.in = null;
+        if (this.socket != null) {
+            this.socket.close();
+            this.socket = null;
         }
         Thread.sleep(200);
     }
 
-    /**
-     * @param serialize
-     * @throws IOException
-     */
-    private void write(final byte[] msg) throws IOException {
-        this.os.write(msg.length / 256);
-        this.os.write(msg.length % 256);
-        this.os.write(msg);
-        this.os.write(0xFF);
-        this.os.flush();
-    }
-
-    private byte[] readSocketFilterHeartbeat() throws IOException {
-        byte[] data = this.readRaw();
+    private byte[] readSocketFilterHeartbeat() throws IOException, InterruptedException {
+        byte[] data = this.socket.read();
 
         if (data != null) {
             while (data.length == 1) {
                 ConnectionTest.logger.debug("Received heartbeat!");
-                data = this.readRaw();
+                data = this.socket.read();
             }
             ConnectionTest.logger.info("Received: {}", new String(data));
-        }
-        return data;
-    }
-
-    private byte[] readRaw() throws IOException {
-        final int len = (this.is.read() * 256) + this.is.read();
-        if (len < 0) {
-            return null;
-        }
-        final byte[] data = new byte[len];
-        final int read = this.is.read(data);
-        if (read != len) {
-            ConnectionTest.logger.warn("Expected {} bytes, only received {}", len, read);
-        }
-        int eof = this.is.read();
-        if (eof != 0xFF) {
-            ConnectionTest.logger.warn("Expected EOF, skipping stream");
-            while (eof != 0xFF) {
-                eof = this.is.read();
-            }
         }
         return data;
     }
