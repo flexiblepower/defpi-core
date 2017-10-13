@@ -220,7 +220,7 @@ final class TCPConnection implements Connection, Closeable {
         case STARTING:
             this.serviceExecutor.submit(() -> {
                 this.serviceHandler = ConnectionManager.buildHandlerForConnection(this, this.info);
-                this.releaseWaitLock();
+                // this.releaseWaitLock();
             });
             break;
         case INTERRUPTED:
@@ -233,7 +233,7 @@ final class TCPConnection implements Connection, Closeable {
         default:
             TCPConnection.log.error("[{}] - Unexpected previous state: {}", this.connectionId, this.state);
         }
-        this.releaseWaitLock();
+        this.serviceExecutor.submit(() -> this.releaseWaitLock());
     }
 
     void goToSuspendedState() {

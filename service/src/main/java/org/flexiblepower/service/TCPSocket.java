@@ -116,7 +116,7 @@ public class TCPSocket implements Closeable {
         if (this.isClosed()) {
             throw new ClosedChannelException();
         }
-        this.waitUntilConnected(100);
+        this.waitUntilConnected(0);
         synchronized (this.inputStream) {
             // TCPSocket.log.trace("Allowed to read");
             final int len = (this.inputStream.read() * 256) + this.inputStream.read();
@@ -149,7 +149,7 @@ public class TCPSocket implements Closeable {
         if (this.isClosed()) {
             throw new ClosedChannelException();
         }
-        this.waitUntilConnected(100);
+        this.waitUntilConnected(0);
         synchronized (this.outputStream) {
             // TCPSocket.log.trace("Sending {} bytes", data.length);
             this.outputStream.write(data.length / 256);

@@ -70,7 +70,7 @@ public class ConnectionIntegrationTest {
             this.state = "connected";
             this.connection = connection;
             if (this.name.equals("h1")) {
-                Thread.sleep(100);
+                // Thread.sleep(100);
                 connection.send(
                         ErrorMessage.newBuilder().setDebugInformation("started").setProcessId("Error process").build());
             }
