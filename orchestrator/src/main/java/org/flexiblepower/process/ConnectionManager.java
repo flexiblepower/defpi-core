@@ -146,8 +146,9 @@ public class ConnectionManager {
 
     private static void setPorts(final Connection connection) {
         // TODO implement better strategy
-        connection.getEndpoint1().setListenPort(5000 + new Random().nextInt(5000));
-        connection.getEndpoint2().setListenPort(5000 + new Random().nextInt(5000));
+        final int port = 5000 + new Random().nextInt(5000);
+        connection.getEndpoint1().setListenPort(port);
+        connection.getEndpoint2().setListenPort(port);
     }
 
     private static void validateConnection(final Connection c) {

@@ -5,11 +5,13 @@
  */
 package org.flexiblepower.connectors;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.bson.types.ObjectId;
+import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
@@ -34,8 +36,6 @@ import org.flexiblepower.proto.ServiceProto.SetConfigMessage.Builder;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.zeromq.ZMQ;
-import org.zeromq.ZMQ.Socket;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
@@ -81,7 +81,8 @@ public class ProcessConnector {
     }
 
     public boolean createConnectionEndpoint(final Connection connection, final Endpoint endpoint)
-            throws ProcessNotFoundException, ServiceNotFoundException {
+            throws ProcessNotFoundException,
+            ServiceNotFoundException {
         final Endpoint otherEndpoint = connection.getOtherEndpoint(endpoint);
         final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
 
@@ -95,11 +96,15 @@ public class ProcessConnector {
         final Interface intface = service.getInterface(endpoint.getInterfaceId());
         final InterfaceVersion interfaceVersion = intface.getInterfaceVersionByName(endpoint.getInterfaceVersionName());
 
+        // Decide if this endpoint will be server or client
+        final String targetAddress = (endpoint.getProcessId().compareTo(otherEndpoint.getProcessId()) > 0
+                ? otherEndpoint.getProcessId().toString()
+                : "");
+
         return pc.setUpConnection(connection.getId(),
                 endpoint.getListenPort(),
                 interfaceVersion.getSendsHash(),
-                otherEndpoint.getProcessId().toString(),
-                otherEndpoint.getListenPort(),
+                targetAddress,
                 interfaceVersion.getReceivesHash());
 
     }
@@ -128,7 +133,8 @@ public class ProcessConnector {
      * @throws ProcessNotFoundException
      */
     public boolean resumeConnectionEndpoint(final Connection connection, final Endpoint endpoint)
-            throws ServiceNotFoundException, ProcessNotFoundException {
+            throws ServiceNotFoundException,
+            ProcessNotFoundException {
         final Endpoint otherEndpoint = connection.getOtherEndpoint(endpoint);
         final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
 
@@ -203,13 +209,11 @@ public class ProcessConnector {
     private static final class ProcessConnection {
 
         private static final long RETRY_TIMEOUT = 1000;
-
-        private static final int MANAGEMENT_SOCKET_SEND_TIMEOUT = 10000;
-        private static final int MANAGEMENT_SOCKET_RECV_TIMEOUT = 10000;
+        private static final int MANAGEMENT_SOCKET_CONNECT_TIMEOUT = 10000;
         private static final int MANAGEMENT_PORT = 4999;
 
         private final ProtobufMessageSerializer serializer = new ProtobufMessageSerializer();
-        private Socket socket = null;
+        private TCPSocket socket = null;
         private final ObjectId processId;
         private String uri;
 
@@ -233,13 +237,9 @@ public class ProcessConnector {
                     throw new IllegalArgumentException(
                             "Provided ObjectId for Process " + this.processId + " does not exist");
                 }
-                this.uri = String.format("tcp://%s:%d", process.getId().toString(), ProcessConnection.MANAGEMENT_PORT);
 
-                this.socket = ZMQ.context(1).socket(ZMQ.REQ);
-                this.socket.setImmediate(false);
-                this.socket.connect(this.uri.toString());
-                this.socket.setSendTimeOut(ProcessConnection.MANAGEMENT_SOCKET_SEND_TIMEOUT);
-                this.socket.setReceiveTimeOut(ProcessConnection.MANAGEMENT_SOCKET_RECV_TIMEOUT);
+                this.socket = TCPSocket.asClient(process.getId().toString(), ProcessConnection.MANAGEMENT_PORT);
+                this.socket.waitUntilConnected(ProcessConnection.MANAGEMENT_SOCKET_CONNECT_TIMEOUT);
                 ProcessConnector.log.debug("Connected with process on address " + this.uri);
                 return true;
             } catch (final Throwable t) {
@@ -258,11 +258,8 @@ public class ProcessConnector {
         public boolean setUpConnection(final ObjectId connectionId,
                 final int listeningPort,
                 final String sendsHash,
-                final String receivingHost,
-                final int targetPort,
+                final String targetAddress,
                 final String receivesHash) {
-            final String targetAddress = "tcp://" + receivingHost + ":" + targetPort;
-
             final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
                     .setConnectionId(connectionId.toString())
                     .setMode(ConnectionMessage.ModeType.CREATE)
@@ -343,9 +340,8 @@ public class ProcessConnector {
 
         public boolean startProcess() throws ProcessNotFoundException {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final Builder builder = SetConfigMessage.newBuilder()
-                    .setProcessId(process.getId().toString())
-                    .setIsUpdate(false);
+            final Builder builder = SetConfigMessage.newBuilder().setProcessId(process.getId().toString()).setIsUpdate(
+                    false);
             if (process.getConfiguration() != null) {
                 for (final ProcessParameter p : process.getConfiguration()) {
                     builder.putConfig(p.getKey(), p.getValue());
@@ -384,9 +380,8 @@ public class ProcessConnector {
          * @return true if successful, false in failed
          */
         public boolean updateConfiguration(final List<ProcessParameter> newConfiguration) {
-            final Builder builder = SetConfigMessage.newBuilder()
-                    .setProcessId(this.processId.toString())
-                    .setIsUpdate(true);
+            final Builder builder = SetConfigMessage.newBuilder().setProcessId(this.processId.toString()).setIsUpdate(
+                    true);
             for (final ProcessParameter p : newConfiguration) {
                 builder.putConfig(p.getKey(), p.getValue());
             }
@@ -449,7 +444,6 @@ public class ProcessConnector {
         void close() {
             ProcessConnector.log.debug("Terminating connection with process " + this.processId);
             // Terminate connection with process
-            this.socket.disconnect(this.uri);
             this.socket.close();
             ProcessConnector.getInstance().processConnectionTerminated(this.processId);
         }
@@ -466,37 +460,19 @@ public class ProcessConnector {
                     return null;
                 }
 
-                // try {
-                if (!this.socket.send(data)) {
+                try {
+                    this.socket.send(data);
+                } catch (final Exception e) {
                     ProcessConnector.log.warn("Unable to send message to Process, try to resend.");
                     return null;
                 }
-                // } catch (final ZMQException e) {
-                // if (e.getErrorCode() == 156384763) {
-                // ProcessConnector.log
-                // .error("Got ZMQ error 156384763. Disconnecting with process, try to reconnect.");
-                // this.close();
-                // return null;
-                // }
-                // }
 
-                // try {
-                final byte[] recv = this.socket.recv();
-                // } catch (final ZMQException e) {
-                // if (e.getErrorCode() == 156384763) {
-                // ProcessConnector.log
-                // .error("Got ZMQ error 156384763. Disconnecting with process, try to reconnect.");
-                // this.close();
-                // }
-                // }
-
-                if (recv == null) {
-                    // This is very scary!! We just successfully sent the process a message, but it never replied. We
-                    // may as
-                    // well kill the process now.
-                    ProcessConnector.log.error(
-                            "Failed to receive response from process {}. Try to recover by closing connection, but most likely the process is in a invalid state",
-                            this.processId);
+                byte[] recv = null;
+                try {
+                    recv = this.socket.read();
+                } catch (InterruptedException | IOException e) {
+                    ProcessConnector.log.warn("Exception while reading from socket {}", e.getMessage());
+                    ProcessConnector.log.trace(e.getMessage(), e);
                     this.close();
                     return null;
                 }

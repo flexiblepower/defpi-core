@@ -49,9 +49,28 @@ public class PythonTemplates extends Templates {
      * @param version
      * @return
      */
+    public String generateHandlerInterface(final InterfaceDescription itf, final InterfaceVersionDescription version)
+            throws IOException {
+        return this.generate("ConnectionHandlerInterface", itf, version);
+    }
+
+    /**
+     * @param itf
+     * @param version
+     * @return
+     */
     public String generateHandlerImplementation(final InterfaceDescription itf,
             final InterfaceVersionDescription version) throws IOException {
         return this.generate("ConnectionHandlerClass", itf, version);
+    }
+
+    /**
+     * @param itf
+     * @param version
+     * @return
+     */
+    public String generateManagerInterface(final InterfaceDescription itf) throws IOException {
+        return this.generate("ManagerInterface", itf, null);
     }
 
     /**

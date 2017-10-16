@@ -5,6 +5,9 @@
  */
 package org.flexiblepower.service;
 
+import java.io.IOException;
+
+import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
@@ -22,100 +25,106 @@ import org.slf4j.LoggerFactory;
 public class HandShakeMonitor {
 
     private static final Logger log = LoggerFactory.getLogger(HandShakeMonitor.class);
-    // private static final int MAX_RECEIVE_TRIES = 100;
 
-    // private final Socket publishSocket;
-    // private final Socket subscribeSocket;
     private final String connectionId;
-    private final ManagedConnection connection;
+    private final TCPSocket socket;
     private final ProtobufMessageSerializer serializer;
 
-    public HandShakeMonitor(final ManagedConnection connection, final String connectionId) {
-        // final Socket publishSocket, final String connectionId) {
-        // , final Socket subscribeSocket, final String connectionId) {
-        // this.publishSocket = this.publishSocket;
-        // this.subscribeSocket = subscribeSocket;
-        this.connection = connection;
+    private final Object waitLock = new Object();
+    private boolean ready;
+
+    public HandShakeMonitor(final TCPSocket socket, final String connectionId) {
+        this.socket = socket;
         this.connectionId = connectionId;
+        this.ready = false;
 
         // Add Protobuf serializer for ConnectionHandshake messages
         this.serializer = new ProtobufMessageSerializer();
         this.serializer.addMessageClass(ConnectionHandshake.class);
     }
 
-    public boolean sendHandshake(final ConnectionState currentState) {
+    public void sendHandshake(final ConnectionState currentState) {
         // Send the handshake
         final ConnectionHandshake initHandshakeMessage = ConnectionHandshake.newBuilder()
                 .setConnectionId(this.connectionId)
                 .setConnectionState(currentState)
                 .build();
-
-        final byte[] sendData;
+        HandShakeMonitor.log.trace("Sending handshake {}", currentState);
         try {
-            sendData = this.serializer.serialize(initHandshakeMessage);
+            this.socket.send(this.serializer.serialize(initHandshakeMessage));
         } catch (final SerializationException e) {
             // This should not happen
             throw new RuntimeException("Exception while serializing message: " + initHandshakeMessage, e);
+        } catch (final InterruptedException | IOException e) {
+            this.close();
         }
-
-        if (!this.connection.sendRaw(sendData)) {
-            // Failed sending handshake
-            HandShakeMonitor.log.warn("[{}] - Failed to send handshake", this.connectionId);
-            return false;
-        }
-
-        return true;
     }
 
     public boolean handleHandShake(final byte[] recvData) {
         // Receive the HandShake
+        ConnectionHandshake handShakeMessage = null;
+
         try {
-            /*
-             * ManagedConnection.log.trace("Listening for handshake..");
-             * final byte[] recvData = this.subscribeSocket.recv();
-             *
-             * if (recvData == null) {
-             * // Timeout occured, try again
-             * return false;
-             * }
-             */
-
-            final ConnectionHandshake handShakeMessage = (ConnectionHandshake) this.serializer.deserialize(recvData);
-
-            if (handShakeMessage.getConnectionId().equals(this.connectionId)) {
-                ManagedConnection.log.debug("[{}] - Received acknowledge string: {}",
-                        this.connectionId,
-                        handShakeMessage.getConnectionState());
-                // Success! Maybe go to connected state?
-                if (!this.connection.isConnected()) {
-                    this.connection.goToConnectedState();
-                }
-
-                // Maybe send response back?
-                if (!handShakeMessage.getConnectionState().equals(ConnectionState.CONNECTED)) {
-                    return this.sendHandshake(this.connection.getState());
-                } else {
-                    return true;
-                }
-            } else {
-                ManagedConnection.log.warn("[{}] - Invalid Connection ID in Handshake message: {}",
-                        this.connectionId,
-                        handShakeMessage.getConnectionId());
-                return false;
-            }
+            handShakeMessage = (ConnectionHandshake) this.serializer.deserialize(recvData);
         } catch (final SerializationException e) {
-            // Maybe it was a not a handshake?
-            // HandShakeMonitor.log.warn("Received unexpected message while listening for handshake: {}",
-            // e.getMessage());
-            // HandShakeMonitor.log.trace(e.getMessage(), e);
-            return false;
-        } catch (final Exception e) {
-            // The subscribeSocket is closed, probably the session was suspended before it was running
-            ManagedConnection.log
-                    .warn("[{}] - Exception while receiving from socket: {}", this.connectionId, e.getMessage());
-            HandShakeMonitor.log.trace(e.getMessage(), e);
+            // It is not a handshake
             return false;
         }
+
+        if (handShakeMessage.getConnectionId().equals(this.connectionId)) {
+            HandShakeMonitor.log.debug("[{}] - Received acknowledgement: {}",
+                    this.connectionId,
+                    handShakeMessage.getConnectionState());
+            // Success! Send response back, or we are finished
+            if (!this.ready || !handShakeMessage.getConnectionState().equals(ConnectionState.CONNECTED)) {
+                // This is the handshake that will make the other guy READY
+                this.sendHandshake(ConnectionState.CONNECTED);
+            } else {
+                HandShakeMonitor.log.info("Not responding to handshake");
+            }
+
+            if (handShakeMessage.getConnectionState().equals(ConnectionState.CONNECTED)) {
+                this.ready = true;
+                this.releaseWaitLock();
+            }
+
+            return true;
+        } else {
+            HandShakeMonitor.log.warn("[{}] - Invalid Connection ID in Handshake message: {}",
+                    this.connectionId,
+                    handShakeMessage.getConnectionId());
+            return true;
+        }
+
+    }
+
+    public boolean ready() {
+        return this.ready;
+    }
+
+    public void waitUntilFinished(final long millis) throws InterruptedException {
+        if (this.ready()) {
+            return;
+        } else {
+            synchronized (this.waitLock) {
+                if (millis < 1) {
+                    this.waitLock.wait();
+                } else {
+                    this.waitLock.wait(millis);
+                }
+            }
+        }
+    }
+
+    private void releaseWaitLock() {
+        synchronized (this.waitLock) {
+            this.waitLock.notifyAll();
+        }
+    }
+
+    public void close() {
+        this.releaseWaitLock();
+        this.socket.close();
     }
 
 }

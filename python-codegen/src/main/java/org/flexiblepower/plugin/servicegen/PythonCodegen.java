@@ -114,7 +114,7 @@ public class PythonCodegen {
             final Path managerImpl = interfacePath.resolve(JavaPluginUtils.managerClass(itf) + ext);
 
             // Write interface files
-            // Files.write(manager, this.templates.generateManagerInterface(itf).getBytes());
+            Files.write(manager, this.templates.generateManagerInterface(itf).getBytes());
 
             if (managerImpl.toFile().exists()) {
                 PythonCodegen.log.debug("Skipping existing file " + managerImpl.toString());
@@ -133,7 +133,7 @@ public class PythonCodegen {
                         .resolve(JavaPluginUtils.connectionHandlerClass(itf, version) + ext);
 
                 // Write files
-                // Files.write(connectionHandler, this.templates.generateHandlerInterface(itf, version).getBytes());
+                Files.write(connectionHandler, this.templates.generateHandlerInterface(itf, version).getBytes());
 
                 if (connectionHandlerImpl.toFile().exists()) {
                     PythonCodegen.log.debug("Skipping existing file " + connectionHandlerImpl.toString());
