@@ -266,6 +266,7 @@ final class TCPConnection implements Connection, Closeable {
 
         // Have the socket reader reinstatiate the socket one
         this.socket.close();
+        this.socket = null;
     }
 
     void goToInterruptedState() {
@@ -285,7 +286,7 @@ final class TCPConnection implements Connection, Closeable {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         this.socketReader.stop();
 
         this.releaseWaitLock();
@@ -306,6 +307,7 @@ final class TCPConnection implements Connection, Closeable {
 
         if (this.socket != null) {
             this.socket.close();
+            this.socket = null;
         }
 
         this.connectionExecutor.shutdownNow();

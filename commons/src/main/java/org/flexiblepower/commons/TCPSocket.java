@@ -12,6 +12,8 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.channels.ClosedChannelException;
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -26,6 +28,8 @@ import org.slf4j.LoggerFactory;
  * @since Oct 11, 2017
  */
 public class TCPSocket implements Closeable {
+
+    private static final Collection<TCPSocket> ALL_SOCKETS = new LinkedList<>();
 
     private static final int EOM = 0xFF;
     protected static final Logger log = LoggerFactory.getLogger(TCPSocket.class);
@@ -45,20 +49,27 @@ public class TCPSocket implements Closeable {
 
     protected volatile boolean keepOpen = true;
 
-    public static TCPSocket asClient(final String targetAddress, final int port) {
+    public static synchronized TCPSocket asClient(final String targetAddress, final int port) {
         return new TCPSocket(targetAddress, port);
     }
 
-    public static TCPSocket asServer(final int port) {
+    public static synchronized TCPSocket asServer(final int port) {
         return new TCPSocket(port);
+    }
+
+    public static void destroyLingeringSockets() {
+        TCPSocket.ALL_SOCKETS.forEach(s -> s.close());
+        TCPSocket.ALL_SOCKETS.clear();
     }
 
     private TCPSocket(final int port) {
         this.executor.submit(new ServerSocketRunner(port));
+        TCPSocket.ALL_SOCKETS.add(this);
     }
 
     private TCPSocket(final String address, final int port) {
         this.executor.submit(new ClientSocketRunner(address, port));
+        TCPSocket.ALL_SOCKETS.add(this);
     }
 
     public boolean ready() {
@@ -147,7 +158,7 @@ public class TCPSocket implements Closeable {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         this.keepOpen = false;
         this.releaseWaitLock();
 
@@ -168,12 +179,8 @@ public class TCPSocket implements Closeable {
             }
             this.clientSocket = null;
         }
+
         this.executor.shutdownNow();
-        // try {
-        // this.executor.awaitTermination(3, TimeUnit.SECONDS);
-        // } catch (final InterruptedException e) {
-        // TCPSocket.log.error("Error shutting down executor");
-        // }
     }
 
     /**
@@ -196,6 +203,13 @@ public class TCPSocket implements Closeable {
             this.backOffMs = SocketRunner.INITIAL_BACKOFF_MS;
             try {
                 TCPSocket.this.clientSocket = this.init();
+
+                if (!TCPSocket.this.keepOpen) {
+                    // Check if in the mean time we got a close request...
+                    TCPSocket.this.close();
+                    return;
+                }
+
                 TCPSocket.this.inputStream = TCPSocket.this.clientSocket.getInputStream();
                 TCPSocket.this.outputStream = TCPSocket.this.clientSocket.getOutputStream();
                 TCPSocket.this.ready = true;
@@ -266,6 +280,7 @@ public class TCPSocket implements Closeable {
         protected Socket init() {
             while (TCPSocket.this.keepOpen) {
                 try {
+                    TCPSocket.log.info("Starting server socket at {}", this.listenPort);
                     TCPSocket.this.serverSocket = new ServerSocket(this.listenPort);
                     // TCPSocket.this.serverSocket.setReuseAddress(false);
                     // TCPSocket.this.serverSocket.setPerformancePreferences(0, 1, 1);

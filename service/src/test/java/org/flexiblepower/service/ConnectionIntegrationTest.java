@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.junit.After;
@@ -146,7 +147,9 @@ public class ConnectionIntegrationTest {
         ConnectionIntegrationTest.counter = 1;
         ServiceExecutor.getInstance().shutDown();
         System.gc();
-        Thread.sleep(1000);
+        Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
+        TCPSocket.destroyLingeringSockets();
+        Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
         System.out.println("Alles weer schoon!");
     }
 
