@@ -243,6 +243,7 @@ public class ConnectionTest {
             this.dataSocket.close();
             this.dataSocket = null;
         }
+        TCPSocket.destroyLingeringSockets();
         Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
     }
 

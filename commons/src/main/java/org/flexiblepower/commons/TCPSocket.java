@@ -289,6 +289,14 @@ public class TCPSocket implements Closeable {
                     return client;
                 } catch (final IOException e) {
                     TCPSocket.log.trace("Unable to connect ({}), retrying...", e.getMessage());
+                    if (TCPSocket.this.serverSocket != null) {
+                        try {
+                            TCPSocket.this.serverSocket.close();
+                        } catch (final IOException e2) {
+                            // It's okay... just try again in a bit
+                        }
+                        TCPSocket.this.serverSocket = null;
+                    }
                     this.increaseBackOffAndWait();
                 }
             }
