@@ -6,8 +6,8 @@
 package org.flexiblepower.service;
 
 import java.io.Serializable;
-import java.net.UnknownHostException;
 
+import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage;
 import org.flexiblepower.proto.ServiceProto.ProcessState;
@@ -18,13 +18,10 @@ import org.flexiblepower.serializers.JavaIOSerializer;
 import org.flexiblepower.serializers.MessageSerializer;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.flexiblepower.service.TestService.TestServiceConfiguration;
-import org.flexiblepower.service.exceptions.ServiceInvocationException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.zeromq.ZMQ;
-import org.zeromq.ZMQ.Socket;
 
 import com.google.protobuf.ByteString;
 
@@ -46,16 +43,14 @@ public class ServiceTest {
     private final ProtobufMessageSerializer pbSerializer = new ProtobufMessageSerializer();
 
     private ServiceManager<TestServiceConfiguration> manager;
-    private Socket managementSocket;
+    private TCPSocket managementSocket;
 
     @Before
-    public void init() throws InterruptedException, UnknownHostException, ServiceInvocationException {
+    public void init() throws Exception {
         this.manager = new ServiceManager<>(this.testService);
 
-        final String uri = String.format("tcp://%s:%d", ServiceTest.TEST_HOST, ServiceManager.MANAGEMENT_PORT);
-        this.managementSocket = ZMQ.context(1).socket(ZMQ.REQ);
-        this.managementSocket.setReceiveTimeOut(1000);
-        this.managementSocket.connect(uri.toString());
+        this.managementSocket = TCPSocket.asClient(ServiceTest.TEST_HOST, ServiceManager.MANAGEMENT_PORT);
+        this.managementSocket.waitUntilConnected(0);
 
         this.pbSerializer.addMessageClass(GoToProcessStateMessage.class);
         this.pbSerializer.addMessageClass(SetConfigMessage.class);
@@ -69,6 +64,7 @@ public class ServiceTest {
         // One test since they have to be executed in the correct order
         this.runConfigure();
         this.runReconfigure();
+        this.runWithError();
         this.runSuspend();
     }
 
@@ -83,9 +79,9 @@ public class ServiceTest {
                 .setProcessId(ServiceTest.PROCESS_ID)
                 .setStateData(ByteString.copyFrom(this.serializer.serialize(TestService.class)))
                 .build());
-        Assert.assertTrue(this.managementSocket.send(data));
+        this.managementSocket.send(data);
 
-        final byte[] received = this.managementSocket.recv();
+        final byte[] received = this.managementSocket.read();
         Assert.assertEquals(
                 ProcessStateUpdateMessage.newBuilder()
                         .setProcessId(ServiceTest.PROCESS_ID)
@@ -103,8 +99,8 @@ public class ServiceTest {
                 .setIsUpdate(false)
                 .putConfig("key", "value")
                 .build());
-        Assert.assertTrue(this.managementSocket.send(msg));
-        final byte[] received = this.managementSocket.recv();
+        this.managementSocket.send(msg);
+        final byte[] received = this.managementSocket.read();
         Assert.assertArrayEquals(this.pbSerializer.serialize(ProcessStateUpdateMessage.newBuilder()
                 .setProcessId(ServiceTest.PROCESS_ID)
                 .setState(ProcessState.RUNNING)
@@ -114,17 +110,31 @@ public class ServiceTest {
         Assert.assertEquals("init", this.testService.getState());
     }
 
+    public void runWithError() throws Exception {
+        final byte[] msg = this.pbSerializer.serialize(SetConfigMessage.newBuilder()
+                .setProcessId(ServiceTest.PROCESS_ID)
+                .setIsUpdate(false)
+                .putConfig("makeMeThrowAnError", "true")
+                .build());
+        this.managementSocket.send(msg);
+        final byte[] received = this.managementSocket.read();
+        Assert.assertArrayEquals(this.pbSerializer.serialize(ErrorMessage.newBuilder()
+                .setProcessId(ServiceTest.PROCESS_ID)
+                .setDebugInformation("Error handling message: java.lang.RuntimeException: I am an error!")
+                .build()), received);
+    }
+
     public void runReconfigure() throws Exception {
-        Assert.assertTrue(this.managementSocket.send(this.pbSerializer.serialize(SetConfigMessage.newBuilder()
+        this.managementSocket.send(this.pbSerializer.serialize(SetConfigMessage.newBuilder()
                 .setProcessId(ServiceTest.PROCESS_ID)
                 .setIsUpdate(true)
                 .putConfig("key", "othervalue")
-                .build())));
+                .build()));
         Assert.assertArrayEquals(this.pbSerializer.serialize(ProcessStateUpdateMessage.newBuilder()
                 .setProcessId(ServiceTest.PROCESS_ID)
                 .setState(ProcessState.RUNNING)
                 .setStateData(ByteString.EMPTY)
-                .build()), this.managementSocket.recv());
+                .build()), this.managementSocket.read());
         Thread.sleep(100);
         Assert.assertEquals("modify", this.testService.getState());
     }
@@ -142,11 +152,11 @@ public class ServiceTest {
     // }
 
     public void runSuspend() throws Exception {
-        Assert.assertTrue(this.managementSocket.send(this.pbSerializer.serialize(GoToProcessStateMessage.newBuilder()
+        this.managementSocket.send(this.pbSerializer.serialize(GoToProcessStateMessage.newBuilder()
                 .setProcessId(ServiceTest.PROCESS_ID)
                 .setTargetState(ProcessState.SUSPENDED)
-                .build())));
-        final byte[] barr = this.managementSocket.recv();
+                .build()));
+        final byte[] barr = this.managementSocket.read();
         Assert.assertArrayEquals(this.pbSerializer.serialize(ProcessStateUpdateMessage.newBuilder()
                 .setProcessId(ServiceTest.PROCESS_ID)
                 .setState(ProcessState.SUSPENDED)
@@ -157,15 +167,15 @@ public class ServiceTest {
     }
 
     public void runTerminate() throws Exception {
-        Assert.assertTrue(this.managementSocket.send(this.pbSerializer.serialize(GoToProcessStateMessage.newBuilder()
+        this.managementSocket.send(this.pbSerializer.serialize(GoToProcessStateMessage.newBuilder()
                 .setProcessId(ServiceTest.PROCESS_ID)
                 .setTargetState(ProcessState.TERMINATED)
-                .build())));
+                .build()));
         Assert.assertArrayEquals(this.pbSerializer.serialize(ProcessStateUpdateMessage.newBuilder()
                 .setProcessId(ServiceTest.PROCESS_ID)
                 .setState(ProcessState.TERMINATED)
                 .setStateData(ByteString.EMPTY)
-                .build()), this.managementSocket.recv());
+                .build()), this.managementSocket.read());
         Thread.sleep(100);
         Assert.assertEquals("terminate", this.testService.getState());
     }

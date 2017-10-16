@@ -6,6 +6,7 @@
 package org.flexiblepower.service;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -13,6 +14,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
+import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +41,7 @@ public class HeartBeatMonitor implements Closeable {
 
     private static int threadCount = 0;
 
-    private final ManagedConnection connection;
+    private final TCPSocket socket;
     private final String connectionId;
     private final ScheduledExecutorService executor;
 
@@ -47,11 +49,14 @@ public class HeartBeatMonitor implements Closeable {
     private boolean receivedPong;
     private int missedHeartBeats;
 
-    HeartBeatMonitor(final ManagedConnection c, final String connectionId) {
-        this.connection = c;
-        this.connectionId = connectionId;
+    /**
+     * @param object
+     */
+    public HeartBeatMonitor(final TCPSocket socket, final String connectionId) {
         final ThreadFactory threadFactory = r -> new Thread(r, "dEF-Pi hbMonThread-" + HeartBeatMonitor.threadCount++);
         this.executor = Executors.newSingleThreadScheduledExecutor(threadFactory);
+        this.socket = socket;
+        this.connectionId = connectionId;
     }
 
     /**
@@ -76,7 +81,12 @@ public class HeartBeatMonitor implements Closeable {
         } else if (Arrays.equals(data, HeartBeatMonitor.PING)) {
             // If pinged, respond with a pong
             HeartBeatMonitor.log.trace("[{}] - PING -> PONG", this.connectionId);
-            this.connection.sendRaw(HeartBeatMonitor.PONG);
+            try {
+                this.socket.send(HeartBeatMonitor.PONG);
+            } catch (final Exception e) {
+                HeartBeatMonitor.log.warn("[{}] - Unable to reply heartbeat, closing socket", this.connectionId);
+                this.socket.close();
+            }
             return true;
         } else {
             return false;
@@ -97,7 +107,8 @@ public class HeartBeatMonitor implements Closeable {
         this.missedHeartBeats = 0;
         this.heartBeatFuture = this.executor.scheduleAtFixedRate(() -> {
             try {
-                if (!this.connection.isConnected()) {
+                if (!this.socket.isConnected()) {
+                    this.close();
                     return;
                 }
 
@@ -106,25 +117,24 @@ public class HeartBeatMonitor implements Closeable {
                     HeartBeatMonitor.log
                             .warn("[{}] - Missed a heartbeat...", this.connectionId, ConnectionState.INTERRUPTED);
                     if (++this.missedHeartBeats > HeartBeatMonitor.MAX_MISSED_HEARTBEATS) {
-                        HeartBeatMonitor.log.warn("[{}] - Missed more than {} heartbeats, goto {}",
+                        HeartBeatMonitor.log.warn("[{}] - Missed more than {} heartbeats, closing socket",
                                 this.connectionId,
-                                HeartBeatMonitor.MAX_MISSED_HEARTBEATS,
-                                ConnectionState.INTERRUPTED);
-                        this.connection.goToInterruptedState();
+                                HeartBeatMonitor.MAX_MISSED_HEARTBEATS);
+                        this.close();
                     }
                 }
 
-                this.receivedPong = false;
-                HeartBeatMonitor.log.trace("[{}] - PING ->", this.connectionId);
-                if (!this.connection.sendRaw(HeartBeatMonitor.PING)) {
-                    HeartBeatMonitor.log.warn("[{}] - Unable to send heartbeat, goto {}",
-                            this.connectionId,
-                            ConnectionState.INTERRUPTED);
-                    this.connection.goToInterruptedState();
+                try {
+                    this.receivedPong = false;
+                    HeartBeatMonitor.log.trace("[{}] - PING ->", this.connectionId);
+                    this.socket.send(HeartBeatMonitor.PING);
+                } catch (final IOException e) {
+                    HeartBeatMonitor.log.warn("[{}] - Unable to send heartbeat, closing socket", this.connectionId);
+                    this.close();
                 }
-
             } catch (final Exception e) {
                 HeartBeatMonitor.log.error("[{}] - Error while sending heartbeat", this.connectionId, e);
+                this.close();
             }
         },
                 HeartBeatMonitor.HEARTBEAT_INITIAL_DELAY,
@@ -135,6 +145,11 @@ public class HeartBeatMonitor implements Closeable {
 
     @Override
     public void close() {
+        this.stop();
+        this.socket.close();
+    }
+
+    public void stop() {
         if (this.heartBeatFuture != null) {
             this.heartBeatFuture.cancel(true);
             this.heartBeatFuture = null;

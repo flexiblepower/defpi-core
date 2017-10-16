@@ -6,6 +6,7 @@
 package org.flexiblepower.service;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,7 +40,7 @@ public class ConnectionManager implements Closeable {
     private static final Map<String, ConnectionHandlerManager> connectionHandlers = new HashMap<>();
     private static final Map<String, InterfaceInfo> interfaceInfo = new HashMap<>();
 
-    private final Map<String, ManagedConnection> connections = new HashMap<>();
+    private final Map<String, TCPConnection> connections = new HashMap<>();
 
     /**
      * @param parseFrom
@@ -47,7 +48,8 @@ public class ConnectionManager implements Closeable {
      * @return
      * @throws ConnectionModificationException
      */
-    public Message handleConnectionMessage(final ConnectionMessage message) throws ConnectionModificationException {
+    public Message handleConnectionMessage(final ConnectionMessage message) throws IOException,
+            ConnectionModificationException {
         final String connectionId = message.getConnectionId();
         ConnectionManager.log
                 .info("Received ConnectionMessage for connection {} ({})", connectionId, message.getMode());
@@ -85,9 +87,11 @@ public class ConnectionManager implements Closeable {
     /**
      * @param message
      * @throws ConnectionModificationException
+     * @throws IOException
      */
     private Message createConnection(final String connectionId, final ConnectionMessage message)
-            throws ConnectionModificationException {
+            throws ConnectionModificationException,
+            IOException {
         // First find the correct handler to attach to the connection
         final String key = ConnectionManager.handlerKey(message.getReceiveHash(), message.getSendHash());
         final ConnectionHandlerManager chf = ConnectionManager.connectionHandlers.get(key);
@@ -101,7 +105,7 @@ public class ConnectionManager implements Closeable {
             throw new ConnectionModificationException("Unknown connection handling hash: " + key);
         } else {
             @SuppressWarnings("resource")
-            final ManagedConnection conn = new ManagedConnection(message.getConnectionId(),
+            final TCPConnection conn = new TCPConnection(message.getConnectionId(),
                     message.getListenPort(),
                     message.getTargetAddress(),
                     info);
@@ -168,7 +172,7 @@ public class ConnectionManager implements Closeable {
      */
     @Override
     public void close() {
-        for (final ManagedConnection conn : this.connections.values()) {
+        for (final TCPConnection conn : this.connections.values()) {
             conn.goToTerminatedState();
         }
         // for (final ManagedConnection conn : this.connections.values()) {

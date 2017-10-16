@@ -4,7 +4,7 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>master</artifactId>
-	<version>0.2.5-SNAPSHOT</version>
+	<version>0.2.6-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<properties>
@@ -23,6 +23,7 @@
 		<module>../commons</module>
 		<module>../codegen-common</module>
 		<module>../maven-plugin</module>
+		<module>../python-codegen</module>
 		<module>../orchestrator</module>
 		<module>../service</module>
 	</modules>
@@ -113,12 +114,6 @@
 				<groupId>com.google.protobuf</groupId>
 				<artifactId>protobuf-java</artifactId>
 				<version>${protobuf.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>org.zeromq</groupId>
-				<artifactId>jeromq</artifactId>
-				<version>0.4.2</version>
 			</dependency>
 
 			<dependency>
