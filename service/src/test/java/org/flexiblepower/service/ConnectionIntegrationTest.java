@@ -23,12 +23,16 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class ConnectionIntegrationTest {
 
+    /**
+     *
+     */
+    private static final int WAIT_AFTER_CONNECT = 100;
     protected static Map<String, TestHandler> handlerMap = new HashMap<>();
     protected static int counter = 1;
 
     @Parameters
     public static List<Object[]> data() {
-        return Arrays.asList(new Object[3][0]);
+        return Arrays.asList(new Object[30][0]);
     }
 
     /**
@@ -157,7 +161,7 @@ public class ConnectionIntegrationTest {
                 final TCPConnection mc1 = new TCPConnection("CIT", 5000, "", info);
                 final TCPConnection mc2 = new TCPConnection("CIT", 5000, "localhost", info)) {
             mc2.waitUntilConnected(0);
-            Thread.sleep(1500); // Make sure at least 1 heartbeat is sent
+            Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT); // Make sure at least 1 heartbeat is sent
 
             Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h1").state);
             Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h2").state);
@@ -179,11 +183,11 @@ public class ConnectionIntegrationTest {
         ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandlerBuilder());
 
         try (
-                final TCPConnection mc1 = new TCPConnection("CIT", 5001, "", info);
-                final TCPConnection mc2 = new TCPConnection("CIT", 5001, "localhost", info)) {
+                final TCPConnection mc1 = new TCPConnection("CIT", 5000, "", info);
+                final TCPConnection mc2 = new TCPConnection("CIT", 5000, "localhost", info)) {
 
             mc1.waitUntilConnected(0);
-            Thread.sleep(1500);
+            Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
 
             Assert.assertNotNull(ConnectionIntegrationTest.handlerMap.get("h1"));
             Assert.assertNotNull(ConnectionIntegrationTest.handlerMap.get("h2"));
@@ -199,7 +203,7 @@ public class ConnectionIntegrationTest {
             mc1.goToSuspendedState();
             mc2.goToSuspendedState();
 
-            Thread.sleep(1500);
+            Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
 
             Assert.assertEquals("suspended", ConnectionIntegrationTest.handlerMap.get("h1").state);
             Assert.assertEquals("suspended", ConnectionIntegrationTest.handlerMap.get("h2").state);
@@ -209,7 +213,7 @@ public class ConnectionIntegrationTest {
             mc2.goToResumedState(5002, "localhost");
 
             mc1.waitUntilConnected(0);
-            Thread.sleep(1500);
+            Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
 
             Assert.assertNull(ConnectionIntegrationTest.handlerMap.get("h1").lastMessage);
             Assert.assertEquals("resumed from suspend",
@@ -225,10 +229,10 @@ public class ConnectionIntegrationTest {
         final InterfaceInfo info = TestHandler.class.getAnnotation(InterfaceInfo.class);
         ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandlerBuilder());
 
-        try (final TCPConnection mc2 = new TCPConnection("CIT", 5003, "localhost", info)) {
-            try (final TCPConnection mc1 = new TCPConnection("CIT", 5003, "", info)) {
+        try (final TCPConnection mc2 = new TCPConnection("CIT", 5000, "localhost", info)) {
+            try (final TCPConnection mc1 = new TCPConnection("CIT", 5000, "", info)) {
                 mc1.waitUntilConnected(0);
-                Thread.sleep(1500);
+                Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
 
                 Assert.assertNotNull(ConnectionIntegrationTest.handlerMap.get("h1"));
                 Assert.assertNotNull(ConnectionIntegrationTest.handlerMap.get("h2"));
@@ -239,15 +243,9 @@ public class ConnectionIntegrationTest {
                 Assert.assertNotNull(ConnectionIntegrationTest.handlerMap.get("h2").lastMessage);
                 Assert.assertEquals("started",
                         ConnectionIntegrationTest.handlerMap.get("h2").lastMessage.getDebugInformation());
-
-                Thread.sleep(500);
-                // By now we must have slept longer than HeartBeatMonitor.HEARTBEAT_INITIAL_DELAY
-
-                // Close ONE. However, we cannot predict which handler is attached to it
-                mc1.goToTerminatedState();
             }
 
-            Thread.sleep(12000);
+            Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
 
             String state1 = ConnectionIntegrationTest.handlerMap.get("h1").state;
             String state2 = ConnectionIntegrationTest.handlerMap.get("h2").state;
@@ -257,9 +255,9 @@ public class ConnectionIntegrationTest {
             Assert.assertTrue(("terminated".equals(state1) && "interrupted".equals(state2))
                     || ("terminated".equals(state2) && "interrupted".equals(state1)));
 
-            try (final TCPConnection mc3 = new TCPConnection("CIT", 5003, "", info)) {
+            try (final TCPConnection mc3 = new TCPConnection("CIT", 5000, "", info)) {
                 mc3.waitUntilConnected(0);
-                Thread.sleep(1500);
+                Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
 
                 state1 = ConnectionIntegrationTest.handlerMap.get("h1").state;
                 state2 = ConnectionIntegrationTest.handlerMap.get("h2").state;

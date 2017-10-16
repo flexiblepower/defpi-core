@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.List;
 
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
@@ -24,6 +26,9 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zeromq.ZMQ;
@@ -39,8 +44,10 @@ import com.google.protobuf.Message;
  * @since May 12, 2017
  */
 // @Ignore // TODO These tests run fine from Eclipse, but not from maven.
+@RunWith(Parameterized.class)
 public class ConnectionTest {
 
+    private static final int WAIT_AFTER_CONNECT = 100;
     private static final int MANAGEMENT_READ_TIMEOUT = 5000;
 
     private final static Logger logger = LoggerFactory.getLogger(ConnectionTest.class);
@@ -59,6 +66,11 @@ public class ConnectionTest {
 
     private ProtobufMessageSerializer serializer;
     private Context ctx;
+
+    @Parameters
+    public static List<Object[]> data() {
+        return Arrays.asList(new Object[30][0]);
+    }
 
     @Before
     public void initConnection() throws Exception {
@@ -138,7 +150,7 @@ public class ConnectionTest {
         this.socket.send(this.serializer.serialize(correctHandshake));
 
         // The other guy already sent an ack and was waiting for us, now it should continue;
-        Thread.sleep(1000);
+        Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
         Assert.assertEquals("connected", this.testService.getState());
     }
 
@@ -147,16 +159,16 @@ public class ConnectionTest {
             testSend() throws InterruptedException, SerializationException, ServiceInvocationException, IOException {
         this.testService.resetCount();
         final int numTests = 100;
-        final MessageSerializer<Serializable> serializer = new JavaIOSerializer();
+        final MessageSerializer<Serializable> javaSerializer = new JavaIOSerializer();
         for (int i = 0; i < numTests; i++) {
-            this.socket.send(serializer.serialize("THIS IS A TEST " + i));
+            this.socket.send(javaSerializer.serialize("THIS IS A TEST " + i));
         }
 
-        Thread.sleep(1000);
+        Thread.sleep(500);
         Assert.assertEquals(numTests, this.testService.getCounter());
     }
 
-    @Test // (timeout = 10000)
+    @Test(timeout = 10000)
     public void
             testSuspend() throws SerializationException, InterruptedException, ServiceInvocationException, IOException {
         Assert.assertNotEquals("connection-suspended", this.testService.getState());
@@ -169,7 +181,7 @@ public class ConnectionTest {
         final byte[] recv = this.managementSocket.recv();
         ConnectionHandshake acknowledgement = (ConnectionHandshake) this.serializer.deserialize(recv);
         Assert.assertEquals(ConnectionState.SUSPENDED, acknowledgement.getConnectionState());
-        Thread.sleep(10);
+        Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
         Assert.assertEquals("connection-suspended", this.testService.getState());
 
         // Make a new connection TO the test service
@@ -178,7 +190,6 @@ public class ConnectionTest {
         // Wait for at least one potential heartbeat that should NOT properly go
         Thread.sleep(4000);
 
-        final String hostOfTestRunner = InetAddress.getLocalHost().getCanonicalHostName();
         Assert.assertTrue(this.managementSocket.send(this.serializer.serialize(ConnectionMessage.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
                 .setMode(ConnectionMessage.ModeType.RESUME)
@@ -188,9 +199,9 @@ public class ConnectionTest {
                 .setSendHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
                 .build())));
 
+        final String hostOfTestRunner = InetAddress.getLocalHost().getCanonicalHostName();
         this.socket = TCPSocket.asClient(hostOfTestRunner, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
-
-        Thread.sleep(100);
+        this.socket.waitUntilConnected(0);
 
         final Message msg = this.serializer.deserialize(this.managementSocket.recv());
         if (msg instanceof ErrorMessage) {
@@ -199,7 +210,7 @@ public class ConnectionTest {
         acknowledgement = (ConnectionHandshake) msg;
         Assert.assertEquals(ConnectionState.CONNECTED, acknowledgement.getConnectionState());
 
-        Thread.sleep(1000);
+        Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
 
         // We need to receive and send a handshake before the connection is in the CONNECTED state again
         final Object receivedHandshake = this.serializer.deserialize(this.readSocketFilterHeartbeat());
@@ -213,7 +224,7 @@ public class ConnectionTest {
 
         this.socket.send(this.serializer.serialize(correctHandshake));
 
-        Thread.sleep(1000);
+        Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
 
         Assert.assertEquals("connection-resumed", this.testService.getState());
     }
@@ -231,7 +242,7 @@ public class ConnectionTest {
         final byte[] recv = this.managementSocket.recv();
         final ConnectionHandshake acknowledgement = (ConnectionHandshake) this.serializer.deserialize(recv);
         Assert.assertEquals(ConnectionState.TERMINATED, acknowledgement.getConnectionState());
-        Thread.sleep(100); // Terminate method is call asynchronous
+        Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT); // Terminate method is call asynchronous
         Assert.assertEquals("connection-terminated", this.testService.getState());
     }
 
@@ -246,7 +257,7 @@ public class ConnectionTest {
             this.socket.close();
             this.socket = null;
         }
-        Thread.sleep(200);
+        Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
     }
 
     private byte[] readSocketFilterHeartbeat() throws IOException, InterruptedException {
