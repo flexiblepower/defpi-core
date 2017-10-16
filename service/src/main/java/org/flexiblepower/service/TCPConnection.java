@@ -233,6 +233,7 @@ final class TCPConnection implements Connection, Closeable {
         default:
             TCPConnection.log.error("[{}] - Unexpected previous state: {}", this.connectionId, this.state);
         }
+        // Make sure it runs AFTER user constructor
         this.serviceExecutor.submit(() -> this.releaseWaitLock());
     }
 
@@ -344,8 +345,12 @@ final class TCPConnection implements Connection, Closeable {
                 try {
                     TCPConnection.this.socket.waitUntilConnected(0);
                 } catch (final Exception e) {
-                    TCPConnection.log.warn("Interrupted while waiting for connection to establish");
-                    continue;
+                    if (this.keepRunning) {
+                        TCPConnection.log.warn("Interrupted while waiting for connection to establish");
+                        continue;
+                    } else {
+                        break;
+                    }
                 }
 
                 // Create the monitors
@@ -362,7 +367,9 @@ final class TCPConnection implements Connection, Closeable {
                         TCPConnection.this.heartBeatMonitor.start();
                         TCPConnection.this.goToConnectedState();
                     } catch (final InterruptedException e) {
-                        TCPConnection.log.warn("Interrupted while waiting for TCP socket to initialize");
+                        if (this.keepRunning) {
+                            TCPConnection.log.warn("Interrupted while waiting for TCP socket to initialize");
+                        }
                     }
                 });
 
@@ -378,10 +385,7 @@ final class TCPConnection implements Connection, Closeable {
                                 && !TCPConnection.this.handShakeMonitor.handleHandShake(data)) {
                             TCPConnection.this.messageQueue.addMessage(data);
                         }
-                    } catch (final InterruptedException e) {
-                        // Should never happen
-                        TCPConnection.log.warn("Interrupted while reading message: {}", e.getMessage());
-                    } catch (final IOException e) {
+                    } catch (final IOException | InterruptedException e) {
                         // See if this was on purpose
                         if (TCPConnection.this.isConnected() && this.keepRunning) {
                             TCPConnection.log.warn("IOException while reading from socket: {}", e.getMessage());

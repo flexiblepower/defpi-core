@@ -172,7 +172,7 @@ public class ConnectionIntegrationTest {
                     ConnectionIntegrationTest.handlerMap.get("h2").lastMessage.getDebugInformation());
 
         }
-
+        Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
         Assert.assertEquals("terminated", ConnectionIntegrationTest.handlerMap.get("h1").state);
         Assert.assertEquals("terminated", ConnectionIntegrationTest.handlerMap.get("h2").state);
     }

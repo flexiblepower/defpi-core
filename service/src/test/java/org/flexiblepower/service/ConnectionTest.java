@@ -188,7 +188,7 @@ public class ConnectionTest {
         this.socket.close();
 
         // Wait for at least one potential heartbeat that should NOT properly go
-        Thread.sleep(4000);
+        Thread.sleep(1000);
 
         Assert.assertTrue(this.managementSocket.send(this.serializer.serialize(ConnectionMessage.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
@@ -199,10 +199,6 @@ public class ConnectionTest {
                 .setSendHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
                 .build())));
 
-        final String hostOfTestRunner = InetAddress.getLocalHost().getCanonicalHostName();
-        this.socket = TCPSocket.asClient(hostOfTestRunner, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
-        this.socket.waitUntilConnected(0);
-
         final Message msg = this.serializer.deserialize(this.managementSocket.recv());
         if (msg instanceof ErrorMessage) {
             Assert.fail("Received error message: " + ((ErrorMessage) msg).getDebugInformation());
@@ -212,6 +208,9 @@ public class ConnectionTest {
 
         Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
 
+        final String hostOfTestRunner = InetAddress.getLocalHost().getCanonicalHostName();
+        this.socket = TCPSocket.asClient(hostOfTestRunner, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
+        this.socket.waitUntilConnected(0);
         // We need to receive and send a handshake before the connection is in the CONNECTED state again
         final Object receivedHandshake = this.serializer.deserialize(this.readSocketFilterHeartbeat());
         Assert.assertEquals(ConnectionHandshake.class, receivedHandshake.getClass());
