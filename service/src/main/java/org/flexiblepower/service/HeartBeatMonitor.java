@@ -14,6 +14,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
+import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

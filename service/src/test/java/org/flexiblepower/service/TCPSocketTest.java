@@ -5,6 +5,7 @@
  */
 package org.flexiblepower.service;
 
+import org.flexiblepower.commons.TCPSocket;
 import org.junit.Test;
 
 /**

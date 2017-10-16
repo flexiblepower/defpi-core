@@ -8,10 +8,10 @@ package org.flexiblepower.service;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
@@ -31,8 +31,6 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.zeromq.ZMQ;
-import org.zeromq.ZMQ.Context;
 
 import com.google.protobuf.Message;
 
@@ -48,7 +46,6 @@ import com.google.protobuf.Message;
 public class ConnectionTest {
 
     private static final int WAIT_AFTER_CONNECT = 100;
-    private static final int MANAGEMENT_READ_TIMEOUT = 5000;
 
     private final static Logger logger = LoggerFactory.getLogger(ConnectionTest.class);
 
@@ -60,12 +57,10 @@ public class ConnectionTest {
 
     private TestService testService;
     private ServiceManager<TestServiceConfiguration> manager;
-    private ZMQ.Socket managementSocket;
-
-    private TCPSocket socket;
+    private TCPSocket managementSocket;
+    private TCPSocket dataSocket;
 
     private ProtobufMessageSerializer serializer;
-    private Context ctx;
 
     @Parameters
     public static List<Object[]> data() {
@@ -86,14 +81,9 @@ public class ConnectionTest {
         this.serializer.addMessageClass(ErrorMessage.class);
 
         final String hostOfTestRunner = InetAddress.getLocalHost().getCanonicalHostName();
-        final String managementURI = String.format("tcp://%s:%d", hostOfTestRunner, ServiceManager.MANAGEMENT_PORT);
-        this.ctx = ZMQ.context(1);
 
-        this.managementSocket = this.ctx.socket(ZMQ.REQ);
-        this.managementSocket.setImmediate(false);
-        this.managementSocket.setReceiveTimeOut(ConnectionTest.MANAGEMENT_READ_TIMEOUT);
-
-        this.managementSocket.connect(managementURI.toString());
+        this.managementSocket = TCPSocket.asClient(hostOfTestRunner, ServiceManager.MANAGEMENT_PORT);
+        this.managementSocket.waitUntilConnected(0);
 
         final ConnectionMessage createMsg = ConnectionMessage.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
@@ -104,9 +94,9 @@ public class ConnectionTest {
                 .setSendHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
                 .build();
 
-        Assert.assertTrue(this.managementSocket.send(this.serializer.serialize(createMsg)));
+        this.managementSocket.send(this.serializer.serialize(createMsg));
 
-        final byte[] response = this.managementSocket.recv();
+        final byte[] response = this.managementSocket.read();
         final Message msg = this.serializer.deserialize(response);
         if (msg instanceof ErrorMessage) {
             Assert.fail("Error message received: " + ((ErrorMessage) msg).getDebugInformation());
@@ -117,7 +107,7 @@ public class ConnectionTest {
         Assert.assertEquals(ConnectionState.STARTING, message.getConnectionState());
 
         // Create our local socket to connect to
-        this.socket = TCPSocket.asClient(hostOfTestRunner, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
+        this.dataSocket = TCPSocket.asClient(hostOfTestRunner, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
 
         this.testAck();
     }
@@ -137,7 +127,7 @@ public class ConnectionTest {
                 .setConnectionState(ConnectionState.STARTING)
                 .build();
 
-        this.socket.send(this.serializer.serialize(wrongHandshake));
+        this.dataSocket.send(this.serializer.serialize(wrongHandshake));
 
         Assert.assertNotEquals("connected", this.testService.getState());
 
@@ -147,7 +137,7 @@ public class ConnectionTest {
                 .setConnectionState(ConnectionState.CONNECTED)
                 .build();
 
-        this.socket.send(this.serializer.serialize(correctHandshake));
+        this.dataSocket.send(this.serializer.serialize(correctHandshake));
 
         // The other guy already sent an ack and was waiting for us, now it should continue;
         Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
@@ -161,7 +151,7 @@ public class ConnectionTest {
         final int numTests = 100;
         final MessageSerializer<Serializable> javaSerializer = new JavaIOSerializer();
         for (int i = 0; i < numTests; i++) {
-            this.socket.send(javaSerializer.serialize("THIS IS A TEST " + i));
+            this.dataSocket.send(javaSerializer.serialize("THIS IS A TEST " + i));
         }
 
         Thread.sleep(500);
@@ -172,34 +162,34 @@ public class ConnectionTest {
     public void
             testSuspend() throws SerializationException, InterruptedException, ServiceInvocationException, IOException {
         Assert.assertNotEquals("connection-suspended", this.testService.getState());
-        Assert.assertTrue(this.managementSocket.send(this.serializer.serialize(ConnectionMessage.newBuilder()
+        this.managementSocket.send(this.serializer.serialize(ConnectionMessage.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
                 .setMode(ConnectionMessage.ModeType.SUSPEND)
-                .build())));
+                .build()));
 
         // Make sure we get the correct response
-        final byte[] recv = this.managementSocket.recv();
+        final byte[] recv = this.managementSocket.read();
         ConnectionHandshake acknowledgement = (ConnectionHandshake) this.serializer.deserialize(recv);
         Assert.assertEquals(ConnectionState.SUSPENDED, acknowledgement.getConnectionState());
         Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
         Assert.assertEquals("connection-suspended", this.testService.getState());
 
         // Make a new connection TO the test service
-        this.socket.close();
+        this.dataSocket.close();
 
         // Wait for at least one potential heartbeat that should NOT properly go
         Thread.sleep(1000);
 
-        Assert.assertTrue(this.managementSocket.send(this.serializer.serialize(ConnectionMessage.newBuilder()
+        this.managementSocket.send(this.serializer.serialize(ConnectionMessage.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
                 .setMode(ConnectionMessage.ModeType.RESUME)
                 .setTargetAddress("")
                 .setListenPort(ConnectionTest.TEST_SERVICE_LISTEN_PORT)
                 .setReceiveHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
                 .setSendHash("eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252")
-                .build())));
+                .build()));
 
-        final Message msg = this.serializer.deserialize(this.managementSocket.recv());
+        final Message msg = this.serializer.deserialize(this.managementSocket.read());
         if (msg instanceof ErrorMessage) {
             Assert.fail("Received error message: " + ((ErrorMessage) msg).getDebugInformation());
         }
@@ -209,8 +199,8 @@ public class ConnectionTest {
         Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
 
         final String hostOfTestRunner = InetAddress.getLocalHost().getCanonicalHostName();
-        this.socket = TCPSocket.asClient(hostOfTestRunner, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
-        this.socket.waitUntilConnected(0);
+        this.dataSocket = TCPSocket.asClient(hostOfTestRunner, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
+        this.dataSocket.waitUntilConnected(0);
         // We need to receive and send a handshake before the connection is in the CONNECTED state again
         final Object receivedHandshake = this.serializer.deserialize(this.readSocketFilterHeartbeat());
         Assert.assertEquals(ConnectionHandshake.class, receivedHandshake.getClass());
@@ -221,7 +211,7 @@ public class ConnectionTest {
                 .setConnectionState(ConnectionState.CONNECTED)
                 .build();
 
-        this.socket.send(this.serializer.serialize(correctHandshake));
+        this.dataSocket.send(this.serializer.serialize(correctHandshake));
 
         Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
 
@@ -229,16 +219,13 @@ public class ConnectionTest {
     }
 
     @Test(timeout = 10000)
-    public void testTerminate() throws SerializationException,
-            InterruptedException,
-            UnknownHostException,
-            ServiceInvocationException {
+    public void testTerminate() throws Exception {
         Assert.assertNotEquals("connection-terminated", this.testService.getState());
-        Assert.assertTrue(this.managementSocket.send(this.serializer.serialize(ConnectionMessage.newBuilder()
+        this.managementSocket.send(this.serializer.serialize(ConnectionMessage.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
                 .setMode(ConnectionMessage.ModeType.TERMINATE)
-                .build())));
-        final byte[] recv = this.managementSocket.recv();
+                .build()));
+        final byte[] recv = this.managementSocket.read();
         final ConnectionHandshake acknowledgement = (ConnectionHandshake) this.serializer.deserialize(recv);
         Assert.assertEquals(ConnectionState.TERMINATED, acknowledgement.getConnectionState());
         Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT); // Terminate method is call asynchronous
@@ -252,20 +239,20 @@ public class ConnectionTest {
             this.manager.close();
             this.manager = null;
         }
-        if (this.socket != null) {
-            this.socket.close();
-            this.socket = null;
+        if (this.dataSocket != null) {
+            this.dataSocket.close();
+            this.dataSocket = null;
         }
         Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
     }
 
     private byte[] readSocketFilterHeartbeat() throws IOException, InterruptedException {
-        byte[] data = this.socket.read();
+        byte[] data = this.dataSocket.read();
 
         if (data != null) {
             while (data.length == 1) {
                 ConnectionTest.logger.debug("Received heartbeat!");
-                data = this.socket.read();
+                data = this.dataSocket.read();
             }
             ConnectionTest.logger.info("Received: {}", new String(data));
         }

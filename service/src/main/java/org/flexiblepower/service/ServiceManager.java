@@ -9,12 +9,12 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Method;
-import java.nio.channels.ClosedSelectorException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
 import org.flexiblepower.proto.ServiceProto.ErrorMessage;
@@ -29,14 +29,10 @@ import org.flexiblepower.service.exceptions.ConnectionModificationException;
 import org.flexiblepower.service.exceptions.ServiceInvocationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.zeromq.ZMQ;
-import org.zeromq.ZMQ.Socket;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
-
-import zmq.ZError;
 
 /**
  * ServiceManager
@@ -47,7 +43,6 @@ import zmq.ZError;
  */
 public class ServiceManager<T> implements Closeable {
 
-    private static final TimeUnit SECONDS = TimeUnit.SECONDS;
     private static final Logger log = LoggerFactory.getLogger(ServiceManager.class);
 
     /**
@@ -63,7 +58,7 @@ public class ServiceManager<T> implements Closeable {
     private final ConnectionManager connectionManager;
     private final JavaIOSerializer javaIoSerializer = new JavaIOSerializer();
     private final ProtobufMessageSerializer pbSerializer = new ProtobufMessageSerializer();
-    private final Socket managementSocket;
+    private final TCPSocket managementSocket;
 
     private Service<T> managedService;
     private Class<T> configClass;
@@ -81,15 +76,8 @@ public class ServiceManager<T> implements Closeable {
         this.serviceExecutor = ServiceExecutor.getInstance();
 
         this.connectionManager = new ConnectionManager();
-        this.managementSocket = ZMQ.context(1).socket(ZMQ.REP);
-
-        // this.managerThread = new Thread(() -> {
-        final String listenAddr = "tcp://*:" + ServiceManager.MANAGEMENT_PORT;
-        ServiceManager.log.info("Start listening thread on {}", listenAddr);
-
-        // Receive timeout must be -1, making the recv() blocking until something is received
-        this.managementSocket.setReceiveTimeOut(-1);
-        this.managementSocket.bind(listenAddr);
+        ServiceManager.log.info("Start listening thread on {}", ServiceManager.MANAGEMENT_PORT);
+        this.managementSocket = TCPSocket.asServer(ServiceManager.MANAGEMENT_PORT);
 
         // Initializer the ProtoBufe message serializer
         this.pbSerializer.addMessageClass(GoToProcessStateMessage.class);
@@ -103,31 +91,46 @@ public class ServiceManager<T> implements Closeable {
         this.keepThreadAlive = true;
         this.managerThread = new Thread(() -> {
             while (this.keepThreadAlive) {
+                byte[] messageArray;
+                try {
+                    messageArray = this.managementSocket.read();
+                } catch (IOException | InterruptedException e) {
+                    if (this.keepThreadAlive) {
+                        ServiceManager.log.warn("Socket closed while expecting instruction, stopping thread", e);
+                    }
+                    break;
+                }
+
                 // Handle the message
                 Message response;
                 try {
-                    final byte[] data = this.managementSocket.recv();
-                    final Message msg = this.pbSerializer.deserialize(data);
+                    final Message msg = this.pbSerializer.deserialize(messageArray);
                     response = this.handleServiceMessage(msg);
                 } catch (final Exception e) {
                     ServiceManager.log.error("Exception handling message", e);
                     response = ErrorMessage.newBuilder()
                             .setProcessId(this.processId)
-                            .setDebugInformation("Error during handling of message: " + e.getMessage())
+                            .setDebugInformation("Error handling message: " + e.getMessage())
                             .build();
+                }
+
+                byte[] responseArray;
+                try {
+                    responseArray = this.pbSerializer.serialize(response);
+                } catch (final SerializationException e) {
+                    responseArray = "Serialization error in servicemanager".getBytes();
+                    ServiceManager.log
+                            .error("Error during serialization of message type " + response.getClass().getSimpleName());
                 }
 
                 // Now try to send the response
                 try {
-                    this.managementSocket.send(this.pbSerializer.serialize(response));
-                } catch (final SerializationException e) {
-                    ServiceManager.log
-                            .error("Error during serialization of message type " + response.getClass().getSimpleName());
-                    // We must send something to continue the REQ/REP pattern
-                    this.managementSocket.send("Panic!".getBytes());
-                } catch (final ClosedSelectorException | ZError.IOException e) {
+                    this.managementSocket.send(responseArray);
+                } catch (final IOException | InterruptedException e) {
                     // Socket is closed, we are stopped
-                    ServiceManager.log.warn("Socket forcibly closed, stopping thread", e);
+                    if (this.keepThreadAlive) {
+                        ServiceManager.log.warn("Socket closed while sending reply, stopping thread", e);
+                    }
                     break;
                 }
             }
@@ -185,18 +188,21 @@ public class ServiceManager<T> implements Closeable {
      * @throws IOException
      * @throws ServiceInvocationException
      * @throws ConnectionModificationException
+     * @throws TimeoutException
+     * @throws ExecutionException
+     * @throws InterruptedException
      */
-    private Message handleServiceMessage(final Message msg) throws IOException,
-            ServiceInvocationException,
+    private Message handleServiceMessage(final Message msg) throws ServiceInvocationException,
             ConnectionModificationException,
-            SerializationException {
+            SerializationException,
+            InterruptedException,
+            ExecutionException,
+            TimeoutException,
+            IOException {
 
         if (this.managedService == null) {
-            return ErrorMessage.newBuilder()
-                    .setDebugInformation(
-                            "User service has not instantiated yet, perhaps there is a problem in the constructor")
-                    .setProcessId(this.processId)
-                    .build();
+            throw new ServiceInvocationException(
+                    "User service has not instantiated yet, perhaps there is a problem in the constructor");
         } else if (msg instanceof GoToProcessStateMessage) {
             return this.handleGoToProcessStateMessage((GoToProcessStateMessage) msg);
         } else if (msg instanceof ResumeProcessMessage) {
@@ -275,33 +281,41 @@ public class ServiceManager<T> implements Closeable {
     /**
      * @param msg
      * @throws ServiceInvocationException
+     * @throws SerializationException
+     * @throws TimeoutException
+     * @throws ExecutionException
+     * @throws InterruptedException
      */
-    private Message handleResumeProcessMessage(final ResumeProcessMessage msg) throws ServiceInvocationException {
-        Future<ProcessStateUpdateMessage> future;
+    private Message handleResumeProcessMessage(final ResumeProcessMessage msg) throws ServiceInvocationException,
+            SerializationException,
+            InterruptedException,
+            ExecutionException,
+            TimeoutException {
         ServiceManager.log.info("Received ResumeProcessMessage for process {}", msg.getProcessId());
         this.processId = msg.getProcessId();
-        try {
-            final Serializable state = msg.getStateData().isEmpty() ? null
-                    : this.javaIoSerializer.deserialize(msg.getStateData().toByteArray());
-            future = this.serviceExecutor.submit(() -> {
-                this.managedService.resumeFrom(state);
-                return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
-            });
-            return future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, ServiceManager.SECONDS);
-        } catch (final Exception e) {
-            ServiceManager.log.error("Exception while resuming from suspended: {}", e.getMessage());
-            ServiceManager.log.trace(e.getMessage(), e);
-            return ServiceManager.createErrorMessage(this.processId, e);
-        }
+
+        final Serializable state = msg.getStateData().isEmpty() ? null
+                : this.javaIoSerializer.deserialize(msg.getStateData().toByteArray());
+        final Future<ProcessStateUpdateMessage> future = this.serviceExecutor.submit(() -> {
+            this.managedService.resumeFrom(state);
+            return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
+        });
+
+        return future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
     /**
      * @param parseFrom
      * @return
      * @throws ServiceInvocationException
+     * @throws TimeoutException
+     * @throws ExecutionException
+     * @throws InterruptedException
      */
-    private Message handleSetConfigMessage(final SetConfigMessage message) throws ServiceInvocationException {
-        final Future<ProcessStateUpdateMessage> future;
+    private Message handleSetConfigMessage(final SetConfigMessage message) throws ServiceInvocationException,
+            InterruptedException,
+            ExecutionException,
+            TimeoutException {
         ServiceManager.log.info("Received SetConfigMessage for process {}", message.getProcessId());
         ServiceManager.log
                 .debug("Properties to set: {} (update: {})", message.getConfigMap().toString(), message.getIsUpdate());
@@ -316,7 +330,7 @@ public class ServiceManager<T> implements Closeable {
         this.processId = message.getProcessId();
         final T config = ServiceConfig.generateConfig(this.configClass, message.getConfigMap());
 
-        future = this.serviceExecutor.submit(() -> {
+        final Future<ProcessStateUpdateMessage> future = this.serviceExecutor.submit(() -> {
             if (!this.configured) {
                 this.managedService.init(config);
                 this.configured = true;
@@ -326,13 +340,7 @@ public class ServiceManager<T> implements Closeable {
             return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
         });
 
-        try {
-            return future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, ServiceManager.SECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            ServiceManager.log.error("Exception while handling config message: {}", e.getMessage());
-            ServiceManager.log.trace(e.getMessage(), e);
-            return ServiceManager.createErrorMessage(this.processId, e);
-        }
+        return future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
     private ProcessStateUpdateMessage createProcessStateUpdateMessage(final ProcessState processState) {
@@ -351,14 +359,6 @@ public class ServiceManager<T> implements Closeable {
                 .setProcessId(this.processId)
                 .setState(processState)
                 .setStateData(byteString)
-                .build();
-    }
-
-    private static ErrorMessage createErrorMessage(final String processId, final Exception e) {
-        return ErrorMessage.newBuilder()
-                .setDebugInformation(
-                        e != null ? e.getClass().toString() + ": " + e.getMessage() : "Unknown exception occurred")
-                .setProcessId(processId)
                 .build();
     }
 

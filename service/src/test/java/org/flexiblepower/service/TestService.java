@@ -40,6 +40,8 @@ public class TestService implements Service<TestServiceConfiguration>, Connectio
 
         public String getKey();
 
+        public boolean getMakeMeThrowAnError();
+
     }
 
     private static final Logger log = LoggerFactory.getLogger(TestService.class);
@@ -76,6 +78,9 @@ public class TestService implements Service<TestServiceConfiguration>, Connectio
     @Override
     public void modify(final TestServiceConfiguration props) {
         TestService.log.info("Modify is called with key {}!", props.getKey());
+        if (props.getMakeMeThrowAnError()) {
+            throw new RuntimeException("I am an error!");
+        }
         this.state = "modify";
     }
 

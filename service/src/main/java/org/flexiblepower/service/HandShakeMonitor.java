@@ -7,6 +7,7 @@ package org.flexiblepower.service;
 
 import java.io.IOException;
 
+import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;

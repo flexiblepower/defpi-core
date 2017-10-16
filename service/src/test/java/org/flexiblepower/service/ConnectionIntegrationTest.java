@@ -144,10 +144,9 @@ public class ConnectionIntegrationTest {
     public void reset() throws InterruptedException {
         ConnectionIntegrationTest.handlerMap.clear();
         ConnectionIntegrationTest.counter = 1;
-        TCPSocket.destroyLingeringSockets();
         ServiceExecutor.getInstance().shutDown();
         System.gc();
-        Thread.sleep(500);
+        Thread.sleep(1000);
         System.out.println("Alles weer schoon!");
     }
 

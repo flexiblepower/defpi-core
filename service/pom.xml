@@ -20,12 +20,6 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.zeromq</groupId>
-			<artifactId>jeromq</artifactId>
-			<version>0.4.2</version>
-		</dependency>
-
-		<dependency>
 			<groupId>org.flexiblepower.defpi</groupId>
 			<artifactId>commons</artifactId>
 		</dependency>

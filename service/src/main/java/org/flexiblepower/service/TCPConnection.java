@@ -17,6 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.serializers.MessageSerializer;
