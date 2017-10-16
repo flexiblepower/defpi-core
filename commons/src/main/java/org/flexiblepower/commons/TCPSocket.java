@@ -3,7 +3,7 @@
  *
  * Copyright 2017 TNO
  */
-package org.flexiblepower.service;
+package org.flexiblepower.commons;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -12,8 +12,6 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.channels.ClosedChannelException;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -29,10 +27,8 @@ import org.slf4j.LoggerFactory;
  */
 public class TCPSocket implements Closeable {
 
-    private static final Collection<TCPSocket> ALL_SOCKETS = new HashSet<>();
-
     private static final int EOM = 0xFF;
-    protected static final Logger log = LoggerFactory.getLogger(TCPConnection.class);
+    protected static final Logger log = LoggerFactory.getLogger(TCPSocket.class);
 
     private static int threadCounter = 0;
 
@@ -49,30 +45,20 @@ public class TCPSocket implements Closeable {
 
     protected volatile boolean keepOpen = true;
 
-    static void destroyLingeringSockets() {
-        TCPSocket.ALL_SOCKETS.forEach(s -> s.close());
-    }
-
-    static TCPSocket asClient(final String targetAddress, final int port) {
+    public static TCPSocket asClient(final String targetAddress, final int port) {
         return new TCPSocket(targetAddress, port);
     }
 
-    static TCPSocket asServer(final int port) {
+    public static TCPSocket asServer(final int port) {
         return new TCPSocket(port);
     }
 
     private TCPSocket(final int port) {
         this.executor.submit(new ServerSocketRunner(port));
-        TCPSocket.ALL_SOCKETS.add(this);
-        // this.connectionThread = new Thread(new ServerSocketRunner(port));
-        // this.connectionThread.start();
     }
 
     private TCPSocket(final String address, final int port) {
         this.executor.submit(new ClientSocketRunner(address, port));
-        TCPSocket.ALL_SOCKETS.add(this);
-        // this.connectionThread = new Thread(new ClientSocketRunner(address, port));
-        // this.connectionThread.start();
     }
 
     public boolean ready() {
@@ -130,7 +116,7 @@ public class TCPSocket implements Closeable {
                 read += this.inputStream.read(data, read, len - read);
             }
             if (read != len) {
-                TCPConnection.log.warn("Expected {} bytes, instead received {}", len, read);
+                TCPSocket.log.warn("Expected {} bytes, instead received {}", len, read);
             }
             int eof = this.inputStream.read();
             if (eof != TCPSocket.EOM) {
