@@ -399,6 +399,15 @@ final class TCPConnection implements Connection, Closeable {
                         break;
                     }
                 }
+
+                // Don't hog the thread...
+                try {
+                    Thread.sleep(10);
+                } catch (final InterruptedException e) {
+                    // It's okay
+                }
+
+                // Retry setting up the connection
             }
         }
 
