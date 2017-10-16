@@ -160,7 +160,6 @@ public class TCPSocket implements Closeable {
     @Override
     public synchronized void close() {
         this.keepOpen = false;
-        this.releaseWaitLock();
 
         if (this.serverSocket != null) {
             try {
@@ -181,6 +180,7 @@ public class TCPSocket implements Closeable {
         }
 
         this.executor.shutdownNow();
+        this.releaseWaitLock();
     }
 
     /**
@@ -288,7 +288,7 @@ public class TCPSocket implements Closeable {
                     TCPSocket.log.info("Accepted client socket at {}", client.getRemoteSocketAddress());
                     return client;
                 } catch (final IOException e) {
-                    TCPSocket.log.trace("Unable to connect ({}), retrying...", e.getMessage());
+                    TCPSocket.log.trace("Unable to listen ({}), retrying...", e.getMessage());
                     if (TCPSocket.this.serverSocket != null) {
                         try {
                             TCPSocket.this.serverSocket.close();

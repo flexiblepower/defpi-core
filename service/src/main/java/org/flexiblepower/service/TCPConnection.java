@@ -289,7 +289,6 @@ final class TCPConnection implements Connection, Closeable {
     public synchronized void close() {
         this.socketReader.stop();
 
-        this.releaseWaitLock();
         // Update the state
         if (!this.state.equals(ConnectionState.TERMINATED)) {
             this.state = ConnectionState.TERMINATED;
@@ -316,6 +315,8 @@ final class TCPConnection implements Connection, Closeable {
         } catch (final InterruptedException e) {
             TCPConnection.log.error("Interrupted while awaiting termination");
         }
+
+        this.releaseWaitLock();
     }
 
     private final class SocketReader implements Runnable {
