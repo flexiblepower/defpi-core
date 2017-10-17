@@ -6,9 +6,9 @@
 package org.flexiblepower.connectors;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.commons.TCPSocket;
@@ -53,7 +53,7 @@ public class ProcessConnector {
 
     private static ProcessConnector instance = null;
 
-    private final Map<ObjectId, ProcessConnection> connections = new HashMap<>();
+    private final Map<ObjectId, ProcessConnection> connections = new ConcurrentHashMap<>();
 
     private ProcessConnector() {
     }
@@ -65,7 +65,8 @@ public class ProcessConnector {
         return ProcessConnector.instance;
     }
 
-    private ProcessConnection getProcessConnection(final ObjectId processId) throws ProcessNotFoundException {
+    private synchronized ProcessConnection getProcessConnection(final ObjectId processId)
+            throws ProcessNotFoundException {
         // Let's throw a message if the process is not present in DB
         ProcessManager.getInstance().getProcess(processId);
 
@@ -238,11 +239,18 @@ public class ProcessConnector {
                             "Provided ObjectId for Process " + this.processId + " does not exist");
                 }
 
+                if (this.socket != null) {
+                    this.socket.close();
+                }
                 this.socket = TCPSocket.asClient(process.getId().toString(), ProcessConnection.MANAGEMENT_PORT);
                 this.socket.waitUntilConnected(ProcessConnection.MANAGEMENT_SOCKET_CONNECT_TIMEOUT);
                 ProcessConnector.log.debug("Connected with process on address " + this.uri);
                 return true;
             } catch (final Throwable t) {
+                if (this.socket != null) {
+                    this.socket.close();
+                }
+
                 ProcessConnector.log.error("Could not connect with container");
                 ProcessConnector.log.trace("Could not connect with container ", t);
                 try {
