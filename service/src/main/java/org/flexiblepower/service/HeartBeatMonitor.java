@@ -74,13 +74,13 @@ public class HeartBeatMonitor implements Closeable {
         // If message is only 1 byte long, it is probably a heartbeat
         if (Arrays.equals(data, HeartBeatMonitor.PONG)) {
             // If ponged, it is a response to our ping
-            HeartBeatMonitor.log.trace("[{}] - -> PONG", this.connectionId);
+            // HeartBeatMonitor.log.trace("[{}] - -> PONG", this.connectionId);
             this.receivedPong = true;
             this.missedHeartBeats = 0;
             return true;
         } else if (Arrays.equals(data, HeartBeatMonitor.PING)) {
             // If pinged, respond with a pong
-            HeartBeatMonitor.log.trace("[{}] - PING -> PONG", this.connectionId);
+            // HeartBeatMonitor.log.trace("[{}] - PING -> PONG", this.connectionId);
             try {
                 this.socket.send(HeartBeatMonitor.PONG);
             } catch (final Exception e) {
@@ -126,7 +126,7 @@ public class HeartBeatMonitor implements Closeable {
 
                 try {
                     this.receivedPong = false;
-                    HeartBeatMonitor.log.trace("[{}] - PING ->", this.connectionId);
+                    // HeartBeatMonitor.log.trace("[{}] - PING ->", this.connectionId);
                     this.socket.send(HeartBeatMonitor.PING);
                 } catch (final IOException e) {
                     HeartBeatMonitor.log.warn("[{}] - Unable to send heartbeat, closing socket", this.connectionId);
