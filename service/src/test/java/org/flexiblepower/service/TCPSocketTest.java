@@ -22,6 +22,7 @@ public class TCPSocketTest {
         try (
                 final TCPSocket client = TCPSocket.asClient("127.0.0.1", 5000);
                 final TCPSocket server = TCPSocket.asServer(5000)) {
+            client.waitUntilConnected(0);
             client.send("Test data".getBytes());
             System.out.println(new String(server.read()));
         }
@@ -32,6 +33,7 @@ public class TCPSocketTest {
         try (
                 final TCPSocket client = TCPSocket.asClient("127.0.0.1", 5000);
                 final TCPSocket server = TCPSocket.asServer(5000)) {
+            client.waitUntilConnected(0);
             client.send("MORE ! Test data".getBytes());
             System.out.println(new String(server.read()));
         }

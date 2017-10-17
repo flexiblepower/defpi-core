@@ -108,7 +108,7 @@ public class ConnectionTest {
 
         // Create our local socket to connect to
         this.dataSocket = TCPSocket.asClient(hostOfTestRunner, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
-
+        this.dataSocket.waitUntilConnected(0);
         this.testAck();
     }
 

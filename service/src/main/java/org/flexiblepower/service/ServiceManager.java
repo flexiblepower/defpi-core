@@ -93,6 +93,7 @@ public class ServiceManager<T> implements Closeable {
             while (this.keepThreadAlive) {
                 byte[] messageArray;
                 try {
+                    this.managementSocket.waitUntilConnected(0);
                     messageArray = this.managementSocket.read();
                 } catch (IOException | InterruptedException e) {
                     if (this.keepThreadAlive) {
