@@ -33,7 +33,7 @@ public class ConnectionIntegrationTest {
 
     @Parameters
     public static List<Object[]> data() {
-        return Arrays.asList(new Object[30][0]);
+        return Arrays.asList(new Object[3][0]);
     }
 
     /**
