@@ -222,7 +222,7 @@ public final class MongoDbConnector {
      * @return the user that is stored in the database that has the provided user name and password
      */
     public User getUser(final String username, final String password) {
-        MongoDbConnector.log.debug("Searching for user with name {} and matching password", username);
+        MongoDbConnector.log.trace("Searching for user with name {} and matching password", username);
         if ((username == null) || username.isEmpty() || (password == null) || password.isEmpty()) {
             return null;
         }

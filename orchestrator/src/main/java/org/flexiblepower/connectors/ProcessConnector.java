@@ -218,8 +218,7 @@ public class ProcessConnector {
 
     private static final class ProcessConnection {
 
-        private static final long RETRY_TIMEOUT = 1000;
-        private static final int MANAGEMENT_SOCKET_CONNECT_TIMEOUT = 10000;
+        private static final int IO_TIMEOUT = 1000;
         private static final int MANAGEMENT_PORT = 4999;
 
         private final ProtobufMessageSerializer serializer = new ProtobufMessageSerializer();
@@ -251,16 +250,16 @@ public class ProcessConnector {
                     this.socket.close();
                 }
                 this.socket = TCPSocket.asClient(process.getId().toString(), ProcessConnection.MANAGEMENT_PORT);
-                this.socket.waitUntilConnected(ProcessConnection.MANAGEMENT_SOCKET_CONNECT_TIMEOUT);
+                this.socket.waitUntilConnected(ProcessConnection.IO_TIMEOUT);
                 ProcessConnector.log.debug("Connected with process on address " + process.getId());
                 return true;
-            } catch (final Exception t) {
+            } catch (final Exception e) {
                 if (this.socket != null) {
                     this.socket.close();
                 }
 
-                ProcessConnector.log.error("Could not connect with container");
-                ProcessConnector.log.trace("Could not connect with container ", t);
+                ProcessConnector.log.warn("Could not connect with container: {}", e.getMessage());
+                ProcessConnector.log.trace(e.getMessage(), e);
                 return false;
             }
         }
@@ -441,7 +440,7 @@ public class ProcessConnector {
             if (response != null) {
                 this.updateProcessStateInDb(response.getState());
                 if (!response.getState().equals(org.flexiblepower.proto.ServiceProto.ProcessState.TERMINATED)) {
-                    ProcessConnector.log.error("Sent terminate insruction to Process " + this.processId.toString()
+                    ProcessConnector.log.error("Sent terminate instruction to Process " + this.processId.toString()
                             + ", but the process did not go to terminated state.");
                 }
             }
@@ -471,16 +470,17 @@ public class ProcessConnector {
                 }
 
                 try {
-                    this.socket.send(data, 1000);
+                    this.socket.send(data, ProcessConnection.IO_TIMEOUT);
                 } catch (final Exception e) {
                     ProcessConnector.log.warn("Exception while sending message to Process ({}), try to resend.",
                             e.getMessage());
+                    this.close();
                     return null;
                 }
 
                 byte[] recv = null;
                 try {
-                    recv = this.socket.read(1000);
+                    recv = this.socket.read(ProcessConnection.IO_TIMEOUT);
                 } catch (InterruptedException | ExecutionException | TimeoutException e) {
                     ProcessConnector.log.warn("Exception while reading from socket {}", e.getMessage());
                     ProcessConnector.log.trace(e.getMessage(), e);
