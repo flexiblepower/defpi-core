@@ -14,8 +14,11 @@ import java.net.Socket;
 import java.nio.channels.ClosedChannelException;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,6 +111,10 @@ public class TCPSocket implements Closeable {
         }
     }
 
+    public byte[] read(final int timeout) throws InterruptedException, ExecutionException, TimeoutException {
+        return this.executor.submit(() -> this.read()).get(timeout, TimeUnit.MILLISECONDS);
+    }
+
     public byte[] read() throws InterruptedException, IOException {
         // TCPSocket.log.trace("Waiting to read...");
         if (this.isClosed()) {
@@ -139,6 +146,15 @@ public class TCPSocket implements Closeable {
             // TCPSocket.log.trace("Finished read: {}", new String(data).replace("\0", "\\0"));
             return data;
         }
+    }
+
+    public void send(final byte[] data, final int timeout) throws InterruptedException,
+            ExecutionException,
+            TimeoutException {
+        this.executor.submit(() -> {
+            this.send(data);
+            return true;
+        }).get(timeout, TimeUnit.MILLISECONDS);
     }
 
     public void send(final byte[] data) throws InterruptedException, IOException {

@@ -60,7 +60,7 @@ public class TerminateConnection extends PendingChange {
                 return Result.FAILED_TEMPORARY;
             }
         } catch (final ProcessNotFoundException e) {
-            TerminateConnection.log.info("Failed to terminate process {}, failed permanently",
+            TerminateConnection.log.info("Failed to terminate connection {}, failed permanently",
                     this.endpoint.getProcessId());
             return Result.FAILED_PERMANENTLY;
         }

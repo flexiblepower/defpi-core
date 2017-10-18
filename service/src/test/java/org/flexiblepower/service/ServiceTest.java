@@ -118,10 +118,9 @@ public class ServiceTest {
                 .build());
         this.managementSocket.send(msg);
         final byte[] received = this.managementSocket.read();
-        Assert.assertArrayEquals(this.pbSerializer.serialize(ErrorMessage.newBuilder()
-                .setProcessId(ServiceTest.PROCESS_ID)
-                .setDebugInformation("Error handling message: java.lang.RuntimeException: I am an error!")
-                .build()), received);
+        final Object err = this.pbSerializer.deserialize(received);
+        Assert.assertEquals(ErrorMessage.class, err.getClass());
+        Assert.assertEquals(ServiceTest.PROCESS_ID, ((ErrorMessage) err).getProcessId());
     }
 
     public void runReconfigure() throws Exception {
