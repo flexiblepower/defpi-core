@@ -30,6 +30,11 @@ public class TerminateProcess {
 
         private Process process;
 
+        @Override
+        public long delayMs() {
+            return 2000;
+        }
+
         public SendTerminateSignal() {
             super();
         }
