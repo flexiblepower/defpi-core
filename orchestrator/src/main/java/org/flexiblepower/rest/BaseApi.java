@@ -56,7 +56,7 @@ public abstract class BaseApi {
             return;
         }
 
-        BaseApi.log.debug("User {} logged in", this.sessionUser.getUsername());
+        BaseApi.log.trace("User {} logged in", this.sessionUser.getUsername());
     }
 
     /**

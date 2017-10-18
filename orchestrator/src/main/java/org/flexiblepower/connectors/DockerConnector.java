@@ -5,6 +5,8 @@
  */
 package org.flexiblepower.connectors;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -27,10 +29,8 @@ import org.flexiblepower.orchestrator.ServiceManager;
 
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
-import com.spotify.docker.client.DockerClient.ListContainersParam;
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
-import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerInfo;
 import com.spotify.docker.client.messages.Network;
 import com.spotify.docker.client.messages.NetworkConfig;
@@ -56,13 +56,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DockerConnector {
 
-    /**
-     *
-     */
-    private static final String ORCHESTRATOR_CONTAINER_NAME = "orchestrator_orchestrator_1";
-
     private static final int INTERNAL_DEBUGGING_PORT = 8000;
 
+    private static final String BUILD_TIMESTAMP_KEY = "BUILD_TIMESTAMP";
+    private static final String BUILD_USER_KEY = "BUILD_USER";
     private static final String DOCKER_HOST_KEY = "DOCKER_HOST";
 
     private static final String SERVICE_LABEL_KEY = "service.name";
@@ -175,28 +172,27 @@ public class DockerConnector {
      */
     public void ensureProcessNetworkIsAttached(final Process process) throws DockerException, InterruptedException {
         final String networkName = DockerConnector.getNetworkFromProcess(process);
-        final List<Container> orchestratorContainers = this.client
-                .listContainers(ListContainersParam.filter("name", DockerConnector.ORCHESTRATOR_CONTAINER_NAME));
-        if (!orchestratorContainers.isEmpty()) {
-            // If the list is empty the orchestrator does not exist!
-            if (!this.client.inspectContainer(DockerConnector.ORCHESTRATOR_CONTAINER_NAME)
-                    .networkSettings()
-                    .networks()
-                    .containsKey(networkName)) {
-                DockerConnector.log
-                        .info("Connecting {} to network {}", DockerConnector.ORCHESTRATOR_CONTAINER_NAME, networkName);
-                this.client.connectToNetwork(DockerConnector.ORCHESTRATOR_CONTAINER_NAME, networkName);
-            } else {
-                DockerConnector.log.debug("Container {} is already connected to {}",
-                        DockerConnector.ORCHESTRATOR_CONTAINER_NAME,
-                        networkName);
-            }
-        } else {
-            DockerConnector.log.warn("No container running with expected name {}. Not connecting to network {}.",
-                    DockerConnector.ORCHESTRATOR_CONTAINER_NAME,
-                    networkName);
+        final String containerId = DockerConnector.getMyContainerId();
+        final ContainerInfo info = this.client.inspectContainer(containerId);
+        if (!info.networkSettings().networks().containsKey(networkName)) {
+            DockerConnector.log.info("Connecting {} to network {}", containerId, networkName);
+            this.client.connectToNetwork(containerId, networkName);
         }
 
+    }
+
+    /**
+     * Get the container id of the current container by getting the local hostname.
+     *
+     * @return
+     * @throws DockerException
+     */
+    private static String getMyContainerId() throws DockerException {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (final UnknownHostException e) {
+            throw new DockerException("Unable to get local container id by hostname", e);
+        }
     }
 
     /**
@@ -234,7 +230,7 @@ public class DockerConnector {
      */
     @SuppressWarnings("unused")
     private void removeNetwork(final String networkId) throws DockerException, InterruptedException {
-        this.client.disconnectFromNetwork(DockerConnector.ORCHESTRATOR_CONTAINER_NAME, networkId);
+        this.client.disconnectFromNetwork(DockerConnector.getMyContainerId(), networkId);
         this.client.removeNetwork(networkId);
     }
 
@@ -333,10 +329,12 @@ public class DockerConnector {
 
     public String getContainerInfo() {
         try {
-            final ContainerInfo info = this.client.inspectContainer(DockerConnector.ORCHESTRATOR_CONTAINER_NAME);
-            return String.format("image: %s\ncreated: %s\nnetworks: %s",
+            final ContainerInfo info = this.client.inspectContainer(DockerConnector.getMyContainerId());
+            return String.format("image: %s\nbuilt: %s (by %s)\nstarted: %s\nnetworks: %s",
                     info.image(),
-                    info.created(),
+                    System.getenv(DockerConnector.BUILD_TIMESTAMP_KEY),
+                    System.getenv(DockerConnector.BUILD_USER_KEY),
+                    info.created().toInstant(),
                     info.networkSettings().networks().keySet());
         } catch (DockerException | InterruptedException e) {
             DockerConnector.log.warn("Error obtaining running image: {}", e.getMessage());

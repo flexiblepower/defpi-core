@@ -76,7 +76,7 @@ final class TCPConnection implements Connection, Closeable {
             throw new RuntimeException("Unable to instantiate connection serializer");
         }
 
-        // Add sending and receiving types to serializer, don't add them twice
+        // Add sending and receiving types to serializer
         Arrays.asList(info.sendTypes()).forEach((type) -> this.userMessageSerializer.addMessageClass(type));
         Arrays.asList(info.receiveTypes()).forEach((type) -> this.userMessageSerializer.addMessageClass(type));
 

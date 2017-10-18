@@ -83,7 +83,9 @@ public class ProcessIntegrationTest {
         // Get a private node or create one
         List<PrivateNode> myNodes = this.nm.getPrivateNodesForUser(user);
         if (myNodes.isEmpty()) {
-            final UnidentifiedNode un = this.nm.getUnidentifiedNodes().get(0);
+            final List<UnidentifiedNode> UNList = this.nm.getUnidentifiedNodes();
+            Assume.assumeFalse(UNList.isEmpty());
+            final UnidentifiedNode un = UNList.get(0);
             this.nm.makeUnidentifiedNodePrivate(un, user);
             myNodes = this.nm.getPrivateNodesForUser(user);
         }
