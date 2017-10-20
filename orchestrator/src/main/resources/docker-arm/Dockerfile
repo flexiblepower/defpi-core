@@ -2,6 +2,9 @@ FROM hypriot/rpi-java:jre-1.8.111
 
 ENV BUILD_TIMESTAMP ${maven.build.timestamp}
 ENV BUILD_USER ${user.name}
+ENV GIT_BRANCH ${git.branch}
+ENV GIT_COMMIT ${git.commit.id}
+ENV GIT_LOG ${git.commit.message.short}
 
 COPY def-pi-cacert.crt $JAVA_HOME/jre/lib/security
 
