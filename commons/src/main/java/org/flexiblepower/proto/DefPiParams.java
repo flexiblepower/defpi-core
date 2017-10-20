@@ -6,6 +6,7 @@ package org.flexiblepower.proto;
 public enum DefPiParams {
 
     ORCHESTRATOR_HOST,
+    ORCHESTRATOR_PORT,
     ORCHESTRATOR_TOKEN,
     USER_ID,
     USERNAME,

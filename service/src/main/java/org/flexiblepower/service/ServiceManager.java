@@ -357,9 +357,17 @@ public class ServiceManager<T> implements Closeable {
      * @return
      */
     private DefPiParameters generateDefPiParameters(final Map<String, String> params) {
+        int orchestratorPort = 0;
+        try {
+            orchestratorPort = params.containsKey(DefPiParams.ORCHESTRATOR_PORT.name())
+                    ? Integer.parseInt(params.get(DefPiParams.ORCHESTRATOR_PORT.name())) : 0;
+        } catch (final NumberFormatException e) {
+            // 0 is the default value
+        }
         return new DefPiParameters(
                 params.containsKey(DefPiParams.ORCHESTRATOR_HOST.name())
                         ? params.get(DefPiParams.ORCHESTRATOR_HOST.name()) : null,
+                orchestratorPort,
                 params.containsKey(DefPiParams.ORCHESTRATOR_TOKEN.name())
                         ? params.get(DefPiParams.ORCHESTRATOR_TOKEN.name()) : null,
                 this.processId,

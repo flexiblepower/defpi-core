@@ -27,6 +27,7 @@ import org.flexiblepower.model.Process.ProcessParameter;
 import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.model.User;
+import org.flexiblepower.orchestrator.Main;
 import org.flexiblepower.orchestrator.ServiceManager;
 import org.flexiblepower.orchestrator.UserManager;
 import org.flexiblepower.process.ProcessManager;
@@ -457,20 +458,25 @@ public class ProcessConnector {
                     .setProcessId(this.processId.toString())
                     .setIsUpdate(isUpdate);
             // Set configuration
-            for (final ProcessParameter p : configuration) {
-                builder.putConfig(p.getKey(), p.getValue());
+            if (configuration != null) {
+                for (final ProcessParameter p : configuration) {
+                    builder.putConfig(p.getKey(), p.getValue());
+                }
             }
             // Set dEF-Pi parameters
             try {
-                builder.putConfig(DefPiParams.ORCHESTRATOR_HOST.name(), InetAddress.getLocalHost().getHostName());
+                builder.putDefpiParams(DefPiParams.ORCHESTRATOR_HOST.name(), InetAddress.getLocalHost().getHostName());
             } catch (final UnknownHostException e) {
                 ProcessConnector.log.error("Could not obtain hostame", e);
             }
-            builder.putConfig(DefPiParams.ORCHESTRATOR_TOKEN.name(), process.getOrchestratorToken());
-            builder.putConfig(DefPiParams.USER_ID.name(), process.getUserId().toString());
+            builder.putDefpiParams(DefPiParams.ORCHESTRATOR_PORT.name(), Integer.toString(Main.URI_PORT));
+            builder.putDefpiParams(DefPiParams.ORCHESTRATOR_TOKEN.name(), process.getOrchestratorToken());
+            builder.putDefpiParams(DefPiParams.USER_ID.name(), process.getUserId().toString());
             final User user = UserManager.getInstance().getUser(process.getUserId());
-            builder.putConfig(DefPiParams.USERNAME.name(), user.getUsername());
-            builder.putConfig(DefPiParams.USER_EMAIL.name(), user.getEmail());
+            builder.putDefpiParams(DefPiParams.USERNAME.name(), user.getUsername());
+            if (user.getEmail() != null) {
+                builder.putDefpiParams(DefPiParams.USER_EMAIL.name(), user.getEmail());
+            }
 
             return builder.build();
         }

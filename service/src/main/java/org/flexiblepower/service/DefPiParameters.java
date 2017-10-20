@@ -15,6 +15,7 @@ package org.flexiblepower.service;
 public class DefPiParameters {
 
     private final String orchestratorHost;
+    private final int orchestratorPort;
     private final String orchestratorToken;
     private final String processId;
     private final String userId;
@@ -22,12 +23,14 @@ public class DefPiParameters {
     private final String userEmail;
 
     public DefPiParameters(final String orchestratorHost,
+            final int orchestratorPort,
             final String orchestratorToken,
             final String processId,
             final String userId,
             final String username,
             final String userEmail) {
         this.orchestratorHost = orchestratorHost;
+        this.orchestratorPort = orchestratorPort;
         this.orchestratorToken = orchestratorToken;
         this.processId = processId;
         this.userId = userId;
@@ -40,6 +43,13 @@ public class DefPiParameters {
      */
     public String getOrchestratorHost() {
         return this.orchestratorHost;
+    }
+
+    /**
+     * @return the orchestratorPort
+     */
+    public int getOrchestratorPort() {
+        return this.orchestratorPort;
     }
 
     /**
@@ -75,6 +85,19 @@ public class DefPiParameters {
      */
     public String getUserEmail() {
         return this.userEmail;
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return "DefPiParameters [orchestratorHost=" + this.orchestratorHost + ", orchestratorPort="
+                + this.orchestratorPort + ", orchestratorToken=" + this.orchestratorToken + ", processId="
+                + this.processId + ", userId=" + this.userId + ", username=" + this.username + ", userEmail="
+                + this.userEmail + "]";
     }
 
 }
