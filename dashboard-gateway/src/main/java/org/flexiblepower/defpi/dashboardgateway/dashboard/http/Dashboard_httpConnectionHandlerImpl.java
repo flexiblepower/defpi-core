@@ -148,7 +148,7 @@ public class Dashboard_httpConnectionHandlerImpl implements Dashboard_httpConnec
 		}
 		// Body
 		try {
-			StringReader reader = new StringReader(httpResponse.getBody().toString());
+			StringReader reader = new StringReader(httpResponse.getBody().toStringUtf8());
 			IOUtils.copy(reader, response.getWriter());
 			response.getWriter().close();
 		} catch (IOException e) {

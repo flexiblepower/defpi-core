@@ -9,6 +9,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,8 +25,10 @@ import org.flexiblepower.model.NodePool;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.PublicNode;
 import org.flexiblepower.model.Service;
+import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.NodeManager;
 import org.flexiblepower.orchestrator.ServiceManager;
+import org.flexiblepower.orchestrator.UserManager;
 import org.flexiblepower.process.ProcessManager;
 
 import com.spotify.docker.client.DefaultDockerClient;
@@ -35,6 +38,7 @@ import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.ContainerInfo;
 import com.spotify.docker.client.messages.Network;
 import com.spotify.docker.client.messages.NetworkConfig;
+import com.spotify.docker.client.messages.ServiceCreateResponse;
 import com.spotify.docker.client.messages.mount.Mount;
 import com.spotify.docker.client.messages.swarm.ContainerSpec;
 import com.spotify.docker.client.messages.swarm.EndpointSpec;
@@ -142,6 +146,9 @@ public class DockerConnector {
             } catch (DockerException | InterruptedException e) {
                 DockerConnector.log.error("Error while removing process: {}", e.getMessage());
             }
+        } else {
+            // Container was probably never created
+            return true;
         }
         return false;
     }
@@ -160,15 +167,19 @@ public class DockerConnector {
     }
 
     private void ensureProcessNetworkExists(final Process process) throws DockerException, InterruptedException {
-        final String networkName = DockerConnector.getNetworkFromProcess(process);
+        final String networkName = DockerConnector.getNetworkNameFromProcess(process);
         // check if it exists
         if (!this.listNetworks().values().contains(networkName)) {
             this.newNetwork(networkName);
         }
     }
 
-    private static String getNetworkFromProcess(final Process process) {
+    private static String getNetworkNameFromProcess(final Process process) {
         return "usernet-" + process.getUserId().toString();
+    }
+
+    private static String getNetworkNameFromUser(final User user) {
+        return "usernet-" + user.getId().toString();
     }
 
     /**
@@ -179,7 +190,14 @@ public class DockerConnector {
      * @throws DockerException
      */
     public void ensureProcessNetworkIsAttached(final Process process) throws DockerException, InterruptedException {
-        final String newProcessNetworkName = DockerConnector.getNetworkFromProcess(process);
+        final String newProcessNetworkName = DockerConnector.getNetworkNameFromProcess(process);
+        String networkId = null;
+        for (final Network network : this.client.listNetworks()) {
+            if (network.name().equals(newProcessNetworkName)) {
+                networkId = network.id();
+                break;
+            }
+        }
         // Connect orchestrator to network
         final String orchestratorContainerId = DockerConnector.getOrchestratorContainerId();
         final ContainerInfo orchestratorInfo = this.client.inspectContainer(orchestratorContainerId);
@@ -188,16 +206,43 @@ public class DockerConnector {
             this.client.connectToNetwork(orchestratorContainerId, newProcessNetworkName);
         }
         // Connect dashboard gateway to network
+        // TODO this doesn't work... The service needs to be updated
         final Process dashboardGateway = ProcessManager.getInstance().getDashboardGateway();
-        if ((dashboardGateway != null) && !dashboardGateway.getId().equals(process.getId())
-                && (dashboardGateway.getDockerId() != null)) {
-            final ContainerInfo dashboardInfo = this.client.inspectContainer(dashboardGateway.getDockerId());
-            if (!dashboardInfo.networkSettings().networks().containsKey(newProcessNetworkName)) {
-                DockerConnector.log.info("Connecting {} to network {}",
-                        dashboardGateway.getDockerId(),
-                        newProcessNetworkName);
-                this.client.connectToNetwork(dashboardGateway.getDockerId(), newProcessNetworkName);
+        if (dashboardGateway != null) {
+            final String dockerServiceId = dashboardGateway.getDockerId();
+            if (!dashboardGateway.getId().equals(process.getId()) && (dockerServiceId != null)) {
+                final com.spotify.docker.client.messages.swarm.Service dashboardInfo = this.client
+                        .inspectService(dockerServiceId);
+                for (final NetworkAttachmentConfig network : dashboardInfo.spec().networks()) {
+                    if (network.target().equals(networkId)) {
+                        // It is already atteched, we're done here!
+                        return;
+                    }
+                }
+                // If we're here that means that the dashboard proxy is not yet part of this network
+                this.updateDashboardGatewayService(process, dashboardGateway);
             }
+        }
+    }
+
+    private void updateDashboardGatewayService(final Process process, final Process dashboardGateway)
+            throws DockerException, InterruptedException {
+        final List<String> networks = new ArrayList<>();
+        for (final User u : UserManager.getInstance().getUsers()) {
+            networks.add(DockerConnector.getNetworkNameFromUser(u));
+        }
+        try {
+            this.client.removeService(dashboardGateway.getDockerId());
+            final ServiceCreateResponse newId = this.client
+                    .createService(DockerConnector.createServiceSpec(dashboardGateway,
+                            ServiceManager.getInstance().getService(dashboardGateway.getServiceId()),
+                            DockerConnector.determineRunningNode(process),
+                            networks));
+            dashboardGateway.setDockerId(newId.id());
+            MongoDbConnector.getInstance().save(dashboardGateway);
+        } catch (final ServiceNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
     }
 
@@ -275,6 +320,22 @@ public class DockerConnector {
      * @return
      */
     private static ServiceSpec createServiceSpec(final Process process, final Service service, final Node node) {
+        return DockerConnector.createServiceSpec(process,
+                service,
+                node,
+                Collections.singletonList(DockerConnector.getNetworkNameFromProcess(process)));
+    }
+
+    /**
+     * Internal function to translate a def-pi process definition to a docker service specification
+     *
+     * @param process
+     * @return
+     */
+    private static ServiceSpec createServiceSpec(final Process process,
+            final Service service,
+            final Node node,
+            final List<String> networks) {
 
         final Architecture architecture = node.getArchitecture();
         // Create a name for the service by removing blanks from process name
@@ -337,10 +398,11 @@ public class DockerConnector {
             containerSpec.mounts(mountList);
         }
 
-        final NetworkAttachmentConfig usernet = NetworkAttachmentConfig.builder()
-                .target(DockerConnector.getNetworkFromProcess(process))
-                .aliases(process.getId().toString())
-                .build();
+        final List<NetworkAttachmentConfig> networksConfigs = new ArrayList<>();
+        for (final String networkName : networks) {
+            networksConfigs.add(
+                    NetworkAttachmentConfig.builder().target(networkName).aliases(process.getId().toString()).build());
+        }
 
         // Add all container environment variables
         final List<String> envList = new ArrayList<>();
@@ -355,7 +417,7 @@ public class DockerConnector {
                 .labels(serviceLabels)
                 .taskTemplate(taskSpec.build())
                 .endpointSpec(endpointSpec.build())
-                .networks(usernet)
+                .networks(networksConfigs)
                 .build();
     }
 

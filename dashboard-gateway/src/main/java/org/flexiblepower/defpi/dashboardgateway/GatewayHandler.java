@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.logging.log4j.core.util.IOUtils;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.flexiblepower.defpi.dashboardgateway.dashboard.http.Dashboard_httpConnectionHandlerImpl;
 
 public class GatewayHandler extends AbstractHandler {
 
@@ -117,17 +118,16 @@ public class GatewayHandler extends AbstractHandler {
 			response.setHeader("Location", "/");
 			response.getWriter().close();
 		} else {
-			cemSelector.handleAuthenticated(userEmail, target, baseRequest, request, response);
-			// Dashboard_httpConnectionHandlerImpl handler =
-			// main.getHandlerForUserEmail(userEmail);
-			// if (handler == null) {
-			// response.setHeader("content-type", "text/html");
-			// response.getWriter().print("<h1>No dashboard found</h1><p><a
-			// href=\"/logout\">Logout</a>");
-			// response.getWriter().close();
-			// } else {
-			// handler.handle(target, baseRequest, request, response);
-			// }
+			// cemSelector.handleAuthenticated(userEmail, target, baseRequest,
+			// request, response);
+			Dashboard_httpConnectionHandlerImpl handler = main.getHandlerForUserEmail(userEmail);
+			if (handler == null) {
+				response.setHeader("content-type", "text/html");
+				response.getWriter().print("<h1>No dashboard found</h1><p><a href=\"/logout\">Logout</a>");
+				response.getWriter().close();
+			} else {
+				handler.handle(target, baseRequest, request, response);
+			}
 		}
 	}
 
