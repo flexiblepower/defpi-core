@@ -4,6 +4,7 @@ import java.io.Serializable;
 
 import javax.annotation.Generated;
 
+import org.flexiblepower.service.DefPiParameters;
 import org.flexiblepower.service.Service;
 
 /**
@@ -26,7 +27,7 @@ public class {{service.class}} implements Service<{{config.interface}}> {
 	}
 
 	@Override
-	public void init({{config.interface}} config) {
+	public void init({{config.interface}} config, DefPiParameters parameters) {
 		// TODO Auto-generated method stub
 		
 	}
