@@ -26,6 +26,7 @@ import org.flexiblepower.model.PublicNode;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.orchestrator.NodeManager;
 import org.flexiblepower.orchestrator.ServiceManager;
+import org.flexiblepower.process.ProcessManager;
 
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
@@ -110,6 +111,13 @@ public class DockerConnector {
             final ServiceSpec serviceSpec = DockerConnector.createServiceSpec(process, service, node);
             final String id = this.client.createService(serviceSpec).id();
             DockerConnector.log.info("Created process with Id {}", id);
+
+            // If this is the dashboard gateway, connect to all other processes
+            if (process.getServiceId().equals(ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID)) {
+                for (final Process otherProcess : ProcessManager.getInstance().listProcesses()) {
+                    this.ensureProcessNetworkIsAttached(otherProcess);
+                }
+            }
             return id;
         } catch (DockerException | InterruptedException e) {
             DockerConnector.log.debug("Exception while starting new process: {}", e.getMessage());
@@ -171,14 +179,26 @@ public class DockerConnector {
      * @throws DockerException
      */
     public void ensureProcessNetworkIsAttached(final Process process) throws DockerException, InterruptedException {
-        final String networkName = DockerConnector.getNetworkFromProcess(process);
-        final String containerId = DockerConnector.getMyContainerId();
-        final ContainerInfo info = this.client.inspectContainer(containerId);
-        if (!info.networkSettings().networks().containsKey(networkName)) {
-            DockerConnector.log.info("Connecting {} to network {}", containerId, networkName);
-            this.client.connectToNetwork(containerId, networkName);
+        final String newProcessNetworkName = DockerConnector.getNetworkFromProcess(process);
+        // Connect orchestrator to network
+        final String orchestratorContainerId = DockerConnector.getOrchestratorContainerId();
+        final ContainerInfo orchestratorInfo = this.client.inspectContainer(orchestratorContainerId);
+        if (!orchestratorInfo.networkSettings().networks().containsKey(newProcessNetworkName)) {
+            DockerConnector.log.info("Connecting {} to network {}", orchestratorContainerId, newProcessNetworkName);
+            this.client.connectToNetwork(orchestratorContainerId, newProcessNetworkName);
         }
-
+        // Connect dashboard gateway to network
+        final Process dashboardGateway = ProcessManager.getInstance().getDashboardGateway();
+        if ((dashboardGateway != null) && !dashboardGateway.getId().equals(process.getId())
+                && (dashboardGateway.getDockerId() != null)) {
+            final ContainerInfo dashboardInfo = this.client.inspectContainer(dashboardGateway.getDockerId());
+            if (!dashboardInfo.networkSettings().networks().containsKey(newProcessNetworkName)) {
+                DockerConnector.log.info("Connecting {} to network {}",
+                        dashboardGateway.getDockerId(),
+                        newProcessNetworkName);
+                this.client.connectToNetwork(dashboardGateway.getDockerId(), newProcessNetworkName);
+            }
+        }
     }
 
     /**
@@ -187,7 +207,7 @@ public class DockerConnector {
      * @return
      * @throws DockerException
      */
-    private static String getMyContainerId() throws DockerException {
+    private static String getOrchestratorContainerId() throws DockerException {
         try {
             return InetAddress.getLocalHost().getHostName();
         } catch (final UnknownHostException e) {
@@ -230,7 +250,7 @@ public class DockerConnector {
      */
     @SuppressWarnings("unused")
     private void removeNetwork(final String networkId) throws DockerException, InterruptedException {
-        this.client.disconnectFromNetwork(DockerConnector.getMyContainerId(), networkId);
+        this.client.disconnectFromNetwork(DockerConnector.getOrchestratorContainerId(), networkId);
         this.client.removeNetwork(networkId);
     }
 
@@ -290,6 +310,24 @@ public class DockerConnector {
                     .build());
         }
 
+        // If this is the dashboard gateway, open up the port that is configured in the environment var
+        if (process.getServiceId().equals(ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID)) {
+            int port = ProcessManager.DASHBOARD_GATEWAY_PORT_DFLT;
+            final String portFromEnv = System.getenv(ProcessManager.DASHBOARD_GATEWAY_PORT_KEY);
+            if (portFromEnv != null) {
+                try {
+                    port = Integer.parseInt(portFromEnv);
+                } catch (final NumberFormatException e) {
+                    // We keep it at the default
+                }
+            }
+            endpointSpec.addPort(PortConfig.builder()
+                    .publishedPort(port)
+                    .targetPort(8080)
+                    .publishMode(PortConfigPublishMode.HOST)
+                    .build());
+        }
+
         // Add mounts to the container
         final List<Mount> mountList = new ArrayList<>();
         if (process.getMountPoints() != null) {
@@ -298,12 +336,6 @@ public class DockerConnector {
             }
             containerSpec.mounts(mountList);
         }
-
-        // Add the network attachment to place process in user network
-        // final NetworkAttachmentConfig orchestratornet = NetworkAttachmentConfig.builder()
-        // .target(DockerConnector.ORCHESTRATOR_NETWORK_NAME)
-        // .aliases(process.getId().toString())
-        // .build();
 
         final NetworkAttachmentConfig usernet = NetworkAttachmentConfig.builder()
                 .target(DockerConnector.getNetworkFromProcess(process))
@@ -329,7 +361,7 @@ public class DockerConnector {
 
     public String getContainerInfo() {
         try {
-            final ContainerInfo info = this.client.inspectContainer(DockerConnector.getMyContainerId());
+            final ContainerInfo info = this.client.inspectContainer(DockerConnector.getOrchestratorContainerId());
             return String.format("image: %s\nbuilt: %s (by %s)\nstarted: %s\nnetworks: %s",
                     info.image(),
                     System.getenv(DockerConnector.BUILD_TIMESTAMP_KEY),

@@ -9,6 +9,7 @@ import javax.annotation.Generated;
 
 import org.eclipse.jetty.server.Server;
 import org.flexiblepower.defpi.dashboardgateway.dashboard.http.Dashboard_httpConnectionHandlerImpl;
+import org.flexiblepower.service.DefPiParameters;
 import org.flexiblepower.service.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +54,7 @@ public class DashboardGateway implements Service<DashboardGatewayConfiguration> 
 	}
 
 	@Override
-	public void init(DashboardGatewayConfiguration config) {
+	public void init(DashboardGatewayConfiguration config, DefPiParameters params) {
 		try {
 			server = new Server(8080);
 			server.setHandler(new GatewayHandler(this));

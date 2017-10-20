@@ -18,7 +18,7 @@ import org.flexiblepower.service.InterfaceInfo;
  * 
  * @author wilco
  */
-@Generated(value = "org.flexiblepower.plugin.servicegen", date = "Oct 17, 2017 3:53:41 PM")
+@Generated(value = "org.flexiblepower.plugin.servicegen", date = "Oct 20, 2017 2:07:57 PM")
 @InterfaceInfo(name = "Dashboard", version = "HTTP", 
 		receivesHash = "aafa92f5e8c919cc004f017d0c7706bf5e72594e656cf04cd67dd47b97cf7c6c", 
 		sendsHash = "c46d5961b42774f80194e8308e4a1bec450881925f8d20a08a1f764acf22ed24",
