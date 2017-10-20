@@ -7,7 +7,9 @@ package org.flexiblepower.service;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.Serializable;
+import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -93,6 +95,7 @@ public class ServiceManager<T> implements Closeable {
             while (this.keepThreadAlive) {
                 byte[] messageArray;
                 try {
+                    this.managementSocket.waitUntilConnected(0);
                     messageArray = this.managementSocket.read();
                 } catch (IOException | InterruptedException e) {
                     if (this.keepThreadAlive) {
@@ -107,10 +110,14 @@ public class ServiceManager<T> implements Closeable {
                     final Message msg = this.pbSerializer.deserialize(messageArray);
                     response = this.handleServiceMessage(msg);
                 } catch (final Exception e) {
-                    ServiceManager.log.error("Exception handling message", e);
+                    ServiceManager.log.error("Exception handling message: {}", e.getMessage());
+                    ServiceManager.log.trace(e.getMessage(), e);
+                    final StringWriter sw = new StringWriter();
+                    final PrintWriter pw = new PrintWriter(sw);
+                    e.printStackTrace(pw);
                     response = ErrorMessage.newBuilder()
                             .setProcessId(this.processId)
-                            .setDebugInformation("Error handling message: " + e.getMessage())
+                            .setDebugInformation(sw.toString())
                             .build();
                 }
 
@@ -248,7 +255,7 @@ public class ServiceManager<T> implements Closeable {
                     return null;
                 }
             });
-            this.connectionManager.close();
+            // this.connectionManager.close();
             this.keepThreadAlive = false;
 
             byte[] stateData = null;
@@ -267,7 +274,7 @@ public class ServiceManager<T> implements Closeable {
                     ServiceManager.log.error("Error while calling terminate()", t);
                 }
             });
-            this.connectionManager.close();
+            // this.connectionManager.close();
             this.keepThreadAlive = false;
             return this.createProcessStateUpdateMessage(ProcessState.TERMINATED);
         case STARTING:

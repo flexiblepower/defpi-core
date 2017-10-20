@@ -14,8 +14,11 @@ import java.net.Socket;
 import java.nio.channels.ClosedChannelException;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,7 +100,7 @@ public class TCPSocket implements Closeable {
             }
         }
 
-        if (this.clientSocket.isClosed()) {
+        if (!this.isConnected()) {
             throw new ClosedChannelException();
         }
     }
@@ -108,12 +111,16 @@ public class TCPSocket implements Closeable {
         }
     }
 
+    public byte[] read(final int timeout) throws InterruptedException, ExecutionException, TimeoutException {
+        return this.executor.submit(() -> this.read()).get(timeout, TimeUnit.MILLISECONDS);
+    }
+
     public byte[] read() throws InterruptedException, IOException {
         // TCPSocket.log.trace("Waiting to read...");
         if (this.isClosed()) {
             throw new ClosedChannelException();
         }
-        this.waitUntilConnected(0);
+        // this.waitUntilConnected(0);
         synchronized (this.inputStream) {
             // TCPSocket.log.trace("Allowed to read");
             final int len = (this.inputStream.read() * 256) + this.inputStream.read();
@@ -141,12 +148,21 @@ public class TCPSocket implements Closeable {
         }
     }
 
+    public void send(final byte[] data, final int timeout) throws InterruptedException,
+            ExecutionException,
+            TimeoutException {
+        this.executor.submit(() -> {
+            this.send(data);
+            return true;
+        }).get(timeout, TimeUnit.MILLISECONDS);
+    }
+
     public void send(final byte[] data) throws InterruptedException, IOException {
         // TCPSocket.log.trace("Waiting to send...");
         if (this.isClosed()) {
             throw new ClosedChannelException();
         }
-        this.waitUntilConnected(0);
+        // this.waitUntilConnected(0);
         synchronized (this.outputStream) {
             // TCPSocket.log.trace("Sending {} bytes", data.length);
             this.outputStream.write(data.length / 256);

@@ -143,9 +143,9 @@ public class ProcessManager {
     }
 
     public void deleteProcess(final Process process) throws ProcessNotFoundException {
-        // Start two pendingchanges. The second one has a delay of 5000ms.
         ConnectionManager.getInstance().deleteConnectionsForProcess(process);
 
+        // Start two pendingchanges. The first one has a delay of 2000ms and the second one has a delay of 5000ms.
         PendingChangeManager.getInstance().submit(new TerminateProcess.SendTerminateSignal(process));
         PendingChangeManager.getInstance().submit(new TerminateProcess.RemoveDockerService(process));
     }

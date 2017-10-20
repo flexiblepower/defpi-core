@@ -5,10 +5,11 @@
  */
 package org.flexiblepower.connectors;
 
-import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.commons.TCPSocket;
@@ -53,7 +54,7 @@ public class ProcessConnector {
 
     private static ProcessConnector instance = null;
 
-    private final Map<ObjectId, ProcessConnection> connections = new HashMap<>();
+    private final Map<ObjectId, ProcessConnection> connections = new ConcurrentHashMap<>();
 
     private ProcessConnector() {
     }
@@ -65,7 +66,8 @@ public class ProcessConnector {
         return ProcessConnector.instance;
     }
 
-    private ProcessConnection getProcessConnection(final ObjectId processId) throws ProcessNotFoundException {
+    private synchronized ProcessConnection getProcessConnection(final ObjectId processId)
+            throws ProcessNotFoundException {
         // Let's throw a message if the process is not present in DB
         ProcessManager.getInstance().getProcess(processId);
 
@@ -86,8 +88,16 @@ public class ProcessConnector {
         final Endpoint otherEndpoint = connection.getOtherEndpoint(endpoint);
         final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
 
+        if (process.getState() != ProcessState.RUNNING) {
+            ProcessConnector.log.warn("Not creating connection endpoint because process {} is not (yet) running",
+                    process.getId());
+            return false;
+        }
+
         final ProcessConnection pc = this.getProcessConnection(process.getId());
         if (pc == null) {
+            ProcessConnector.log.warn("Unable to connect to process {}, not creating connection endpoint",
+                    process.getId());
             return false;
         }
 
@@ -208,14 +218,12 @@ public class ProcessConnector {
 
     private static final class ProcessConnection {
 
-        private static final long RETRY_TIMEOUT = 1000;
-        private static final int MANAGEMENT_SOCKET_CONNECT_TIMEOUT = 10000;
+        private static final int IO_TIMEOUT = 1000;
         private static final int MANAGEMENT_PORT = 4999;
 
         private final ProtobufMessageSerializer serializer = new ProtobufMessageSerializer();
         private TCPSocket socket = null;
         private final ObjectId processId;
-        private String uri;
 
         public ProcessConnection(final ObjectId processId) {
             ProcessConnector.log.debug("Creating new ProcessConnection for process " + processId);
@@ -238,19 +246,20 @@ public class ProcessConnector {
                             "Provided ObjectId for Process " + this.processId + " does not exist");
                 }
 
-                this.socket = TCPSocket.asClient(process.getId().toString(), ProcessConnection.MANAGEMENT_PORT);
-                this.socket.waitUntilConnected(ProcessConnection.MANAGEMENT_SOCKET_CONNECT_TIMEOUT);
-                ProcessConnector.log.debug("Connected with process on address " + this.uri);
-                return true;
-            } catch (final Throwable t) {
-                ProcessConnector.log.error("Could not connect with container");
-                ProcessConnector.log.trace("Could not connect with container ", t);
-                try {
-                    Thread.sleep(ProcessConnection.RETRY_TIMEOUT);
-                } catch (final InterruptedException e) {
-                    ProcessConnector.log.error("Interrupted while retrying...");
-                    ProcessConnector.log.trace("Interrupted while retrying", e);
+                if (this.socket != null) {
+                    this.socket.close();
                 }
+                this.socket = TCPSocket.asClient(process.getId().toString(), ProcessConnection.MANAGEMENT_PORT);
+                this.socket.waitUntilConnected(ProcessConnection.IO_TIMEOUT);
+                ProcessConnector.log.debug("Connected with process on address " + process.getId());
+                return true;
+            } catch (final Exception e) {
+                if (this.socket != null) {
+                    this.socket.close();
+                }
+
+                ProcessConnector.log.warn("Could not connect with container: {}", e.getMessage());
+                ProcessConnector.log.trace(e.getMessage(), e);
                 return false;
             }
         }
@@ -431,7 +440,7 @@ public class ProcessConnector {
             if (response != null) {
                 this.updateProcessStateInDb(response.getState());
                 if (!response.getState().equals(org.flexiblepower.proto.ServiceProto.ProcessState.TERMINATED)) {
-                    ProcessConnector.log.error("Sended terminate insruction to Process " + this.processId.toString()
+                    ProcessConnector.log.error("Sent terminate instruction to Process " + this.processId.toString()
                             + ", but the process did not go to terminated state.");
                 }
             }
@@ -461,16 +470,18 @@ public class ProcessConnector {
                 }
 
                 try {
-                    this.socket.send(data);
+                    this.socket.send(data, ProcessConnection.IO_TIMEOUT);
                 } catch (final Exception e) {
-                    ProcessConnector.log.warn("Unable to send message to Process, try to resend.");
+                    ProcessConnector.log.warn("Exception while sending message to Process ({}), try to resend.",
+                            e.getMessage());
+                    this.close();
                     return null;
                 }
 
                 byte[] recv = null;
                 try {
-                    recv = this.socket.read();
-                } catch (InterruptedException | IOException e) {
+                    recv = this.socket.read(ProcessConnection.IO_TIMEOUT);
+                } catch (InterruptedException | ExecutionException | TimeoutException e) {
                     ProcessConnector.log.warn("Exception while reading from socket {}", e.getMessage());
                     ProcessConnector.log.trace(e.getMessage(), e);
                     this.close();

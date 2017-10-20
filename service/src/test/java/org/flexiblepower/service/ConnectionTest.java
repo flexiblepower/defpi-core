@@ -64,7 +64,7 @@ public class ConnectionTest {
 
     @Parameters
     public static List<Object[]> data() {
-        return Arrays.asList(new Object[30][0]);
+        return Arrays.asList(new Object[3][0]);
     }
 
     @Before
@@ -108,7 +108,7 @@ public class ConnectionTest {
 
         // Create our local socket to connect to
         this.dataSocket = TCPSocket.asClient(hostOfTestRunner, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
-
+        this.dataSocket.waitUntilConnected(0);
         this.testAck();
     }
 
