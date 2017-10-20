@@ -65,7 +65,7 @@ public class TestService implements Service<TestServiceConfiguration>, Connectio
      * @see org.flexiblepower.service.Service#init(java.util.Properties)
      */
     @Override
-    public void init(final TestServiceConfiguration props) {
+    public void init(final TestServiceConfiguration props, final DefPiParameters params) {
         TestService.log.info("Init is called with key {}!", props.getKey());
         this.state = "init";
     }

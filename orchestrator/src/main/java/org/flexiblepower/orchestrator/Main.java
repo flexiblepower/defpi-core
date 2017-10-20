@@ -25,10 +25,10 @@ import io.swagger.models.Scheme;
 public class Main {
 
     // Base URI the HTTP server will listen on
-    private static final String URI_SCHEME = Scheme.HTTP.name();
-    private static final String URI_HOST = "defpi.hesilab.nl";
-    private static final int URI_PORT = 8080;
-    private static final String URI_PATH = "";
+    public static final String URI_SCHEME = Scheme.HTTP.name();
+    public static final String URI_HOST = "defpi.hesilab.nl";
+    public static final int URI_PORT = 8080;
+    public static final String URI_PATH = "";
 
     private static final String ROOT_USER = "admin";
     private static final String ROOT_PASSWORD = "admin";
