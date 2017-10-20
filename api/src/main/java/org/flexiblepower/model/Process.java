@@ -30,10 +30,6 @@ import lombok.Value;
  * @version 0.1
  * @since Mar 30, 2017
  */
-/**
- * @author coenvl
- *
- */
 @Entity
 @Data
 @Builder
@@ -91,6 +87,8 @@ public class Process {
     private ProcessState state;
 
     private String dockerId;
+
+    private String orchestratorToken;
 
     /**
      * The node on which the process is actually running. May be null when the state

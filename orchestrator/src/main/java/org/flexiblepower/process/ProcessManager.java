@@ -6,6 +6,7 @@
 package org.flexiblepower.process;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
@@ -82,6 +83,7 @@ public class ProcessManager {
 
         // Save with starting state and save
         process.setState(ProcessState.STARTING);
+        process.setOrchestratorToken(UUID.randomUUID().toString());
         MongoDbConnector.getInstance().save(process);
 
         // Submit PendingChange to actually start it

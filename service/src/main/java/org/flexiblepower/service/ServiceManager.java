@@ -11,6 +11,7 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -19,6 +20,7 @@ import java.util.concurrent.TimeoutException;
 import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
+import org.flexiblepower.proto.DefPiParams;
 import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage;
 import org.flexiblepower.proto.ServiceProto.ProcessState;
@@ -65,6 +67,7 @@ public class ServiceManager<T> implements Closeable {
     private Service<T> managedService;
     private Class<T> configClass;
     private String processId = "unknown";
+    private DefPiParameters defPiParams = null;
     private boolean configured;
 
     private volatile boolean keepThreadAlive;
@@ -155,7 +158,7 @@ public class ServiceManager<T> implements Closeable {
 
         Class<T> clazz = null;
         for (final Method m : service.getClass().getMethods()) {
-            if (m.getName().startsWith("init") && (m.getParameterTypes().length == 1)
+            if (m.getName().startsWith("init") && (m.getParameterTypes().length == 2)
                     && (m.getParameterTypes()[0].isInterface() || m.getParameterTypes()[0].equals(Void.class))) {
                 clazz = (Class<T>) m.getParameterTypes()[0];
                 break;
@@ -228,8 +231,7 @@ public class ServiceManager<T> implements Closeable {
      * @throws ServiceInvocationException
      */
     private Message handleGoToProcessStateMessage(final GoToProcessStateMessage message)
-            throws ServiceInvocationException,
-            SerializationException {
+            throws ServiceInvocationException, SerializationException {
         ServiceManager.log.debug("Received GoToProcessStateMessage for process {} -> {}",
                 message.getProcessId(),
                 message.getTargetState());
@@ -239,7 +241,7 @@ public class ServiceManager<T> implements Closeable {
             // This is basically a "force start" with no configuration
             this.serviceExecutor.submit(() -> {
                 try {
-                    this.managedService.init(null);
+                    this.managedService.init(null, this.defPiParams);
                 } catch (final Throwable t) {
                     ServiceManager.log.error("Error while calling init() without config", t);
                 }
@@ -319,13 +321,12 @@ public class ServiceManager<T> implements Closeable {
      * @throws ExecutionException
      * @throws InterruptedException
      */
-    private Message handleSetConfigMessage(final SetConfigMessage message) throws ServiceInvocationException,
-            InterruptedException,
-            ExecutionException,
-            TimeoutException {
+    private Message handleSetConfigMessage(final SetConfigMessage message)
+            throws ServiceInvocationException, InterruptedException, ExecutionException, TimeoutException {
         ServiceManager.log.info("Received SetConfigMessage for process {}", message.getProcessId());
-        ServiceManager.log
-                .debug("Properties to set: {} (update: {})", message.getConfigMap().toString(), message.getIsUpdate());
+        ServiceManager.log.debug("Properties to set: {} (update: {})",
+                message.getConfigMap().toString(),
+                message.getIsUpdate());
 
         if (this.configured != message.getIsUpdate()) {
             ServiceManager.log.warn(
@@ -336,10 +337,11 @@ public class ServiceManager<T> implements Closeable {
 
         this.processId = message.getProcessId();
         final T config = ServiceConfig.generateConfig(this.configClass, message.getConfigMap());
+        this.defPiParams = this.generateDefPiParameters(message.getDefpiParamsMap());
 
         final Future<ProcessStateUpdateMessage> future = this.serviceExecutor.submit(() -> {
             if (!this.configured) {
-                this.managedService.init(config);
+                this.managedService.init(config, this.defPiParams);
                 this.configured = true;
             } else {
                 this.managedService.modify(config);
@@ -348,6 +350,30 @@ public class ServiceManager<T> implements Closeable {
         });
 
         return future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    }
+
+    /**
+     * @param params
+     * @return
+     */
+    private DefPiParameters generateDefPiParameters(final Map<String, String> params) {
+        int orchestratorPort = 0;
+        try {
+            orchestratorPort = params.containsKey(DefPiParams.ORCHESTRATOR_PORT.name())
+                    ? Integer.parseInt(params.get(DefPiParams.ORCHESTRATOR_PORT.name())) : 0;
+        } catch (final NumberFormatException e) {
+            // 0 is the default value
+        }
+        return new DefPiParameters(
+                params.containsKey(DefPiParams.ORCHESTRATOR_HOST.name())
+                        ? params.get(DefPiParams.ORCHESTRATOR_HOST.name()) : null,
+                orchestratorPort,
+                params.containsKey(DefPiParams.ORCHESTRATOR_TOKEN.name())
+                        ? params.get(DefPiParams.ORCHESTRATOR_TOKEN.name()) : null,
+                this.processId,
+                params.containsKey(DefPiParams.USER_ID.name()) ? params.get(DefPiParams.USER_ID.name()) : null,
+                params.containsKey(DefPiParams.USERNAME.name()) ? params.get(DefPiParams.USERNAME.name()) : null,
+                params.containsKey(DefPiParams.USER_EMAIL.name()) ? params.get(DefPiParams.USER_EMAIL.name()) : null);
     }
 
     private ProcessStateUpdateMessage createProcessStateUpdateMessage(final ProcessState processState) {
