@@ -11,7 +11,7 @@
 				{
 					"versionName": "HTTP",
 					"type": "proto",
-					"location": "HTTP.proto",
+					"location": "https://raw.githubusercontent.com/defpi/interfaces/master/defpi/HTTP.proto",
 					"sends": [
 						"HTTPRequest"
 					],

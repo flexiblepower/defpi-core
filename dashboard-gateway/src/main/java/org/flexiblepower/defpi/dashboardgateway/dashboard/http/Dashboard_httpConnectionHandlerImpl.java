@@ -3,8 +3,15 @@ package org.flexiblepower.defpi.dashboardgateway.dashboard.http;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.nio.charset.Charset;
 import java.util.Enumeration;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Generated;
@@ -21,6 +28,8 @@ import org.flexiblepower.defpi.dashboardgateway.dashboard.http.proto.Dashboard_h
 import org.flexiblepower.service.Connection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.protobuf.ByteString;
 
 /**
  * Dashboard_httpConnectionHandlerImpl
@@ -40,6 +49,7 @@ public class Dashboard_httpConnectionHandlerImpl implements Dashboard_httpConnec
 	private final Connection connection;
 	private final DashboardGateway service;
 	private final AtomicInteger requestIdGenerator = new AtomicInteger(0);
+	private final Map<Integer, CompletableFuture<HTTPResponse>> responseList = new ConcurrentHashMap<>();
 
 	/**
 	 * Auto-generated constructor for the ConnectionHandlers of the provided
@@ -51,12 +61,17 @@ public class Dashboard_httpConnectionHandlerImpl implements Dashboard_httpConnec
 	public Dashboard_httpConnectionHandlerImpl(Connection connection, DashboardGateway service) {
 		this.connection = connection;
 		this.service = service;
+		service.addDashboardConnection(this);
 	}
 
 	@Override
 	public void handleHTTPResponseMessage(HTTPResponse message) {
-		// TODO Auto-generated stub
-
+		CompletableFuture<HTTPResponse> completableFuture = this.responseList.get(message.getId());
+		if (completableFuture == null) {
+			LOG.error("Received HTTPResponse for unknown request id: " + message.getId());
+		} else {
+			completableFuture.complete(message);
+		}
 	}
 
 	@Override
@@ -85,8 +100,7 @@ public class Dashboard_httpConnectionHandlerImpl implements Dashboard_httpConnec
 
 	@Override
 	public void terminated() {
-		// TODO Auto-generated method stub
-
+		service.removeDashboardConnection(this);
 	}
 
 	public String getUserEmail() {
@@ -95,11 +109,32 @@ public class Dashboard_httpConnectionHandlerImpl implements Dashboard_httpConnec
 	}
 
 	public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
+		// Create request
 		HTTPRequest httpRequest = createHttpRequest(request);
+		CompletableFuture<HTTPResponse> future = new CompletableFuture<HTTPResponse>();
+		responseList.put(httpRequest.getId(), future);
 		this.connection.send(httpRequest);
-		// TODO wait and get response
-		HTTPResponse httpResponse = null;
+
+		// Wait and get response
+		HTTPResponse httpResponse = waitForResponse(httpRequest.getId());
 		writeHttpResponse(httpResponse, response);
+	}
+
+	private HTTPResponse waitForResponse(Integer requestId) {
+		try {
+			LOG.debug("Waiting for response");
+			HTTPResponse httpResponse = responseList.get(requestId).get(30, TimeUnit.SECONDS);
+			responseList.remove(requestId);
+			return httpResponse;
+		} catch (TimeoutException e) {
+			LOG.debug("Gateway Timeout");
+			return HTTPResponse.newBuilder().setStatus(504)
+					.setBody(ByteString.copyFrom("Gateway timeout", Charset.defaultCharset())).build();
+		} catch (InterruptedException | ExecutionException e) {
+			LOG.error("Error while waiting for respnose", e);
+			return HTTPResponse.newBuilder().setStatus(500)
+					.setBody(ByteString.copyFrom("Error", Charset.defaultCharset())).build();
+		}
 	}
 
 	private void writeHttpResponse(HTTPResponse httpResponse, HttpServletResponse response) {
@@ -115,6 +150,7 @@ public class Dashboard_httpConnectionHandlerImpl implements Dashboard_httpConnec
 		try {
 			StringReader reader = new StringReader(httpResponse.getBody().toString());
 			IOUtils.copy(reader, response.getWriter());
+			response.getWriter().close();
 		} catch (IOException e) {
 			LOG.warn("Could not write HTTP response body", e);
 		}

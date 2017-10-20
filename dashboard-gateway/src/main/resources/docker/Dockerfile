@@ -21,4 +21,4 @@ LABEL org.flexiblepower.interfaces='[ { \
   "autoConnect" : true \ 
 } ]'
 
-ENTRYPOINT /bin/sh runJava.sh
+ENTRYPOINT java -jar $JVM_ARGUMENTS /dashboard-gateway-0.0.1-jar-with-dependencies.jar

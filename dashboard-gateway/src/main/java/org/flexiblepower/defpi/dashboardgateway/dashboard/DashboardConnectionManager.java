@@ -15,7 +15,7 @@ import org.flexiblepower.service.ConnectionHandlerManager;
  * 
  * @author wilco
  */
-@Generated(value = "org.flexiblepower.plugin.servicegen", date = "Oct 9, 2017 8:45:27 PM")
+@Generated(value = "org.flexiblepower.plugin.servicegen", date = "Oct 17, 2017 3:53:41 PM")
 public interface DashboardConnectionManager extends ConnectionHandlerManager {
 
 	public Dashboard_httpConnectionHandler buildHttp(Connection connection);

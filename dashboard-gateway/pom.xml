@@ -12,10 +12,6 @@
 	<artifactId>dashboard-gateway</artifactId>
 	<version>0.0.1</version>
 
-	<properties>
-		<defpi.docker-entrypoint>/bin/sh runJava.sh</defpi.docker-entrypoint>
-	</properties>
-
 	<dependencies>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>

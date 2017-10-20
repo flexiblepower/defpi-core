@@ -32,6 +32,20 @@ public class DashboardGateway implements Service<DashboardGatewayConfiguration> 
 	private Map<String, Dashboard_httpConnectionHandlerImpl> dashboardConnections = Collections
 			.synchronizedMap(new HashMap<>());
 
+	private ServerThread serverThread;
+
+	private class ServerThread extends Thread {
+		@Override
+		public void run() {
+			try {
+				server.start();
+				server.join();
+			} catch (Exception e) {
+				LOG.error("Error while running Jetty HTTP Server", e);
+			}
+		}
+	}
+
 	@Override
 	public void resumeFrom(Serializable state) {
 		// TODO Auto-generated method stub
@@ -43,7 +57,8 @@ public class DashboardGateway implements Service<DashboardGatewayConfiguration> 
 		try {
 			server = new Server(8080);
 			server.setHandler(new GatewayHandler(this));
-			server.start();
+			serverThread = new ServerThread();
+			serverThread.start();
 		} catch (Exception e) {
 			LOG.error("Could not start DashboardGateway HTTP server", e);
 		}
@@ -75,6 +90,16 @@ public class DashboardGateway implements Service<DashboardGatewayConfiguration> 
 
 	public void removeDashboardConnection(Dashboard_httpConnectionHandlerImpl connection) {
 		this.dashboardConnections.remove(connection.getUserEmail());
+	}
+
+	public Dashboard_httpConnectionHandlerImpl getHandlerForUserEmail(String userEmail) {
+		// TODO for now we pick a handler
+		if (dashboardConnections.isEmpty()) {
+			return null;
+		} else {
+			return dashboardConnections.values().iterator().next();
+		}
+		// return this.dashboardConnections.get(userEmail);
 	}
 
 }
