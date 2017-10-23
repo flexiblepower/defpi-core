@@ -15,6 +15,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Generated;
+import javax.print.attribute.standard.MediaSize.Other;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -52,8 +53,7 @@ public class Dashboard_httpConnectionHandlerImpl implements Dashboard_httpConnec
 	private final Map<Integer, CompletableFuture<HTTPResponse>> responseList = new ConcurrentHashMap<>();
 
 	/**
-	 * Auto-generated constructor for the ConnectionHandlers of the provided
-	 * service
+	 * Auto-generated constructor for the ConnectionHandlers of the provided service
 	 *
 	 * @param service
 	 *            The service for which to handle the connections
@@ -95,7 +95,6 @@ public class Dashboard_httpConnectionHandlerImpl implements Dashboard_httpConnec
 	@Override
 	public void resumeAfterInterrupt() {
 		// TODO Auto-generated method stub
-
 	}
 
 	@Override
@@ -103,7 +102,7 @@ public class Dashboard_httpConnectionHandlerImpl implements Dashboard_httpConnec
 		service.removeDashboardConnection(this);
 	}
 
-	public String getUserEmail() {
+	public String getUsername() {
 		// TODO Auto-generated method stub
 		return null;
 	}

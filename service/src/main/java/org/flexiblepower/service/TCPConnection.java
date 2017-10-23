@@ -55,6 +55,7 @@ final class TCPConnection implements Connection, Closeable {
     protected HandShakeMonitor handShakeMonitor;
 
     private volatile ConnectionState state;
+    private final String otherProcessId;
 
     /**
      * @param listenPort
@@ -62,12 +63,17 @@ final class TCPConnection implements Connection, Closeable {
      * @throws IOException
      */
     @SuppressWarnings("unchecked")
-    TCPConnection(final String connectionId, final int port, final String targetAddress, final InterfaceInfo info) {
+    TCPConnection(final String connectionId,
+            final int port,
+            final String targetAddress,
+            final InterfaceInfo info,
+            final String otherProcessId) {
         this.state = ConnectionState.STARTING;
         this.connectionId = connectionId;
         this.port = port;
         this.targetAddress = targetAddress;
         this.info = info;
+        this.otherProcessId = otherProcessId;
 
         // Add serializer to the connection for user-defined messages
         try {
@@ -136,6 +142,16 @@ final class TCPConnection implements Connection, Closeable {
                     ConnectionState.INTERRUPTED);
             TCPConnection.log.trace(e.getMessage(), e);
         }
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see org.flexiblepower.service.Connection#otherProcessId()
+     */
+    @Override
+    public String otherProcessId() {
+        return this.otherProcessId;
     }
 
     protected void handleMessage(final byte[] msg) {

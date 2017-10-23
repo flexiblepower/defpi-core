@@ -89,7 +89,8 @@ public class ProcessConnector {
     }
 
     public boolean createConnectionEndpoint(final Connection connection, final Endpoint endpoint)
-            throws ProcessNotFoundException, ServiceNotFoundException {
+            throws ProcessNotFoundException,
+            ServiceNotFoundException {
         final Endpoint otherEndpoint = connection.getOtherEndpoint(endpoint);
         final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
 
@@ -113,13 +114,15 @@ public class ProcessConnector {
 
         // Decide if this endpoint will be server or client
         final String targetAddress = (endpoint.getProcessId().compareTo(otherEndpoint.getProcessId()) > 0
-                ? otherEndpoint.getProcessId().toString() : "");
+                ? otherEndpoint.getProcessId().toString()
+                : "");
 
         return pc.setUpConnection(connection.getId(),
                 endpoint.getListenPort(),
                 interfaceVersion.getSendsHash(),
                 targetAddress,
-                interfaceVersion.getReceivesHash());
+                interfaceVersion.getReceivesHash(),
+                otherEndpoint.getProcessId());
 
     }
 
@@ -147,7 +150,8 @@ public class ProcessConnector {
      * @throws ProcessNotFoundException
      */
     public boolean resumeConnectionEndpoint(final Connection connection, final Endpoint endpoint)
-            throws ServiceNotFoundException, ProcessNotFoundException {
+            throws ServiceNotFoundException,
+            ProcessNotFoundException {
         final Endpoint otherEndpoint = connection.getOtherEndpoint(endpoint);
         final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
 
@@ -166,7 +170,8 @@ public class ProcessConnector {
                 interfaceVersion.getSendsHash(),
                 otherEndpoint.getProcessId().toString(),
                 otherEndpoint.getListenPort(),
-                interfaceVersion.getReceivesHash());
+                interfaceVersion.getReceivesHash(),
+                otherEndpoint.getProcessId());
 
     }
 
@@ -271,7 +276,8 @@ public class ProcessConnector {
                 final int listeningPort,
                 final String sendsHash,
                 final String targetAddress,
-                final String receivesHash) {
+                final String receivesHash,
+                final ObjectId otherProcessId) {
             final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
                     .setConnectionId(connectionId.toString())
                     .setMode(ConnectionMessage.ModeType.CREATE)
@@ -279,6 +285,7 @@ public class ProcessConnector {
                     .setListenPort(listeningPort)
                     .setReceiveHash(receivesHash)
                     .setSendHash(sendsHash)
+                    .setOtherProcessId(otherProcessId.toString())
                     .build();
 
             final ConnectionHandshake response = this.send(connectionMessage, ConnectionHandshake.class);
@@ -328,7 +335,8 @@ public class ProcessConnector {
                 final String sendingHash,
                 final String receivingHost,
                 final int targetPort,
-                final String receivingHash) {
+                final String receivingHash,
+                final ObjectId otherProcessId) {
             final String targetAddress = "tcp://" + receivingHost + ":" + targetPort;
 
             final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
@@ -338,6 +346,7 @@ public class ProcessConnector {
                     .setListenPort(listeningPort)
                     .setReceiveHash(receivingHash)
                     .setSendHash(sendingHash)
+                    .setOtherProcessId(otherProcessId.toString())
                     .build();
 
             final ConnectionHandshake response = this.send(connectionMessage, ConnectionHandshake.class);
@@ -454,9 +463,8 @@ public class ProcessConnector {
         private SetConfigMessage createSetConfigMessage(final Process process,
                 final List<ProcessParameter> configuration,
                 final boolean isUpdate) {
-            final Builder builder = SetConfigMessage.newBuilder()
-                    .setProcessId(this.processId.toString())
-                    .setIsUpdate(isUpdate);
+            final Builder builder = SetConfigMessage.newBuilder().setProcessId(this.processId.toString()).setIsUpdate(
+                    isUpdate);
             // Set configuration
             if (configuration != null) {
                 for (final ProcessParameter p : configuration) {

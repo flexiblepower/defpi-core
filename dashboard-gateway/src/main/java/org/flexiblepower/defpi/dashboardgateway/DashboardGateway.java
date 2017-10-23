@@ -94,11 +94,11 @@ public class DashboardGateway implements Service<DashboardGatewayConfiguration> 
 	}
 
 	public void addDashboardConnection(Dashboard_httpConnectionHandlerImpl connection) {
-		this.dashboardConnections.put(connection.getUserEmail(), connection);
+		this.dashboardConnections.put(connection.getUsername(), connection);
 	}
 
 	public void removeDashboardConnection(Dashboard_httpConnectionHandlerImpl connection) {
-		this.dashboardConnections.remove(connection.getUserEmail());
+		this.dashboardConnections.remove(connection.getUsername());
 	}
 
 	public Dashboard_httpConnectionHandlerImpl getHandlerForUsername(String userEmail) {
@@ -131,6 +131,29 @@ public class DashboardGateway implements Service<DashboardGatewayConfiguration> 
 		} catch (IOException e) {
 			return false;
 		}
+	}
+
+	public String getUsernameForProcessId(String processId) {
+		try {
+//			URL orch = new URL("http://" + params.getOrchestratorHost() + ":" + params.getOrchestratorPort()
+//					+ "/process/" + URLEncoder.encode(processId, "UTF-8"));
+//			HttpURLConnection con = (HttpURLConnection) orch.openConnection();
+//			con.setRequestProperty("Authorization",
+//					"Basic " + new String(Base64.getEncoder().encode((username + ":" + password).getBytes())));
+//			con.setRequestMethod("GET");
+//			int code = con.getResponseCode();
+//			boolean success = code == 200;
+//			if (success) {
+//				LOG.info("Attempted login for user " + username + " was successful");
+//			} else {
+//				LOG.info("Attempted login for user " + username + " failed");
+//
+//			}
+//			return success;
+//		} catch (IOException e) {
+//			return false;
+//		}
+		return null;
 	}
 
 }

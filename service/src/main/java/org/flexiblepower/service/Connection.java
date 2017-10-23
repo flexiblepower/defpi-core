@@ -22,4 +22,6 @@ public interface Connection {
 
     public ConnectionState getState();
 
+    public String otherProcessId();
+
 }
