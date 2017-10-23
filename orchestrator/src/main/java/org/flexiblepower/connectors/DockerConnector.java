@@ -112,16 +112,21 @@ public class DockerConnector {
 
             final Service service = ServiceManager.getInstance().getService(process.getServiceId());
             final Node node = DockerConnector.determineRunningNode(process);
-            final ServiceSpec serviceSpec = DockerConnector.createServiceSpec(process, service, node);
+
+            ServiceSpec serviceSpec;
+            if (process.getServiceId().equals(ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID)) {
+                // if this is the dashboard, it should be added to all user networks
+                final List<String> networks = new ArrayList<>();
+                for (final User u : UserManager.getInstance().getUsers()) {
+                    networks.add(DockerConnector.getNetworkNameFromUser(u));
+                }
+                serviceSpec = DockerConnector.createServiceSpec(process, service, node, networks);
+            } else {
+                serviceSpec = DockerConnector.createServiceSpec(process, service, node);
+            }
             final String id = this.client.createService(serviceSpec).id();
             DockerConnector.log.info("Created process with Id {}", id);
 
-            // If this is the dashboard gateway, connect to all other processes
-            if (process.getServiceId().equals(ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID)) {
-                for (final Process otherProcess : ProcessManager.getInstance().listProcesses()) {
-                    this.ensureProcessNetworkIsAttached(otherProcess);
-                }
-            }
             return id;
         } catch (DockerException | InterruptedException e) {
             DockerConnector.log.debug("Exception while starting new process: {}", e.getMessage());
