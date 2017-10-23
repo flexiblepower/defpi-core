@@ -2,7 +2,9 @@ package org.flexiblepower.defpi.dashboardgateway;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -33,13 +35,13 @@ public class GatewayHandler extends AbstractHandler {
 	public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
 			throws IOException, ServletException {
 		try {
-			System.out.println(request.getMethod() + " " + request.getRequestURI());
-			String userEmail = getUserEmail(request);
+			DashboardGateway.LOG.debug(request.getMethod() + " " + request.getRequestURI());
+			String username = getUsername(request);
 
-			if (userEmail == null) {
+			if (username == null) {
 				handleNotAuthenticated(target, baseRequest, request, response);
 			} else {
-				handleAuthenticated(userEmail, target, baseRequest, request, response);
+				handleAuthenticated(username, target, baseRequest, request, response);
 			}
 		} catch (Exception e) {
 			e.printStackTrace(System.err);
@@ -59,7 +61,7 @@ public class GatewayHandler extends AbstractHandler {
 			// Try to login
 			Map<String, String> params = parseParams(request);
 			if (params.containsKey("username") && params.containsKey("password")
-					&& validCredentials(params.get("username"), params.get("password"))) {
+					&& main.validCredentials(params.get("username"), params.get("password"))) {
 				// Valid!
 
 				// Set cookie
@@ -88,11 +90,6 @@ public class GatewayHandler extends AbstractHandler {
 		}
 	}
 
-	private boolean validCredentials(String string, String string2) {
-		// TODO Auto-generated method stub
-		return true;
-	}
-
 	public static Map<String, String> parseParams(HttpServletRequest request) throws IOException {
 		String content = IOUtils.toString(request.getReader());
 		Map<String, String> params = new HashMap<>();
@@ -105,22 +102,30 @@ public class GatewayHandler extends AbstractHandler {
 		return params;
 	}
 
-	private void handleAuthenticated(String userEmail, String target, Request baseRequest, HttpServletRequest request,
+	private void handleAuthenticated(String username, String target, Request baseRequest, HttpServletRequest request,
 			HttpServletResponse response) throws IOException {
 		if (request.getRequestURI().equals("/logout")) {
+			DashboardGateway.LOG.debug("User with username " + username + " logged out");
+
 			// Remove session
 			Cookie cookie = new Cookie(SESSION_COOKIE_NAME, "");
 			cookie.setMaxAge(0);
 			response.addCookie(cookie);
+
+			// Remove session
+			Iterator<Entry<String, String>> it = sessions.entrySet().iterator();
+			while (it.hasNext()) {
+				if (it.next().getValue().equals(username)) {
+					it.remove();
+				}
+			}
 
 			// Redirect
 			response.setStatus(301);
 			response.setHeader("Location", "/");
 			response.getWriter().close();
 		} else {
-			// cemSelector.handleAuthenticated(userEmail, target, baseRequest,
-			// request, response);
-			Dashboard_httpConnectionHandlerImpl handler = main.getHandlerForUserEmail(userEmail);
+			Dashboard_httpConnectionHandlerImpl handler = main.getHandlerForUsername(username);
 			if (handler == null) {
 				response.setHeader("content-type", "text/html");
 				response.getWriter().print("<h1>No dashboard found</h1><p><a href=\"/logout\">Logout</a>");
@@ -131,7 +136,7 @@ public class GatewayHandler extends AbstractHandler {
 		}
 	}
 
-	private String getUserEmail(HttpServletRequest request) {
+	private String getUsername(HttpServletRequest request) {
 		Cookie[] cookies = request.getCookies();
 		if (cookies != null) {
 			for (Cookie cookie : cookies) {

@@ -61,6 +61,18 @@ public class UserRestApi extends BaseApi implements UserApi {
     }
 
     @Override
+    public User getUserByUsername(final String username) throws AuthorizationException, InvalidObjectIdException {
+        final User ret = UserManager.getInstance().getUser(username);
+        if (ret == null) {
+            this.assertUserIsAdmin();
+            throw new ApiException(Status.NOT_FOUND, UserApi.USER_NOT_FOUND_MESSAGE);
+        } else {
+            this.assertUserIsAdminOrEquals(ret.getId());
+            return ret;
+        }
+    }
+
+    @Override
     public User updateUser(final String userId, final User updatedUser) throws AuthorizationException {
         UserRestApi.log.debug("Received call to update user");
         if ((updatedUser.getId() == null) || (userId == null) || !userId.equals(updatedUser.getId().toString())) {

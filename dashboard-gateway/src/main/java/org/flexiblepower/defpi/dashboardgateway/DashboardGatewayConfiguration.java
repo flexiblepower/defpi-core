@@ -11,7 +11,7 @@ import javax.annotation.Generated;
  * 
  * @author wilco
  */
-@Generated(value = "org.flexiblepower.plugin.servicegen", date = "Oct 20, 2017 2:07:57 PM")
+@Generated(value = "org.flexiblepower.plugin.servicegen", date = "Oct 23, 2017 7:55:29 PM")
 public interface DashboardGatewayConfiguration {
 
 

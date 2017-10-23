@@ -1,6 +1,11 @@
 package org.flexiblepower.defpi.dashboardgateway;
 
+import java.io.IOException;
 import java.io.Serializable;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,6 +40,8 @@ public class DashboardGateway implements Service<DashboardGatewayConfiguration> 
 
 	private ServerThread serverThread;
 
+	private DefPiParameters params;
+
 	private class ServerThread extends Thread {
 		@Override
 		public void run() {
@@ -56,6 +63,7 @@ public class DashboardGateway implements Service<DashboardGatewayConfiguration> 
 	@Override
 	public void init(DashboardGatewayConfiguration config, DefPiParameters params) {
 		try {
+			this.params = params;
 			server = new Server(8080);
 			server.setHandler(new GatewayHandler(this));
 			serverThread = new ServerThread();
@@ -93,7 +101,7 @@ public class DashboardGateway implements Service<DashboardGatewayConfiguration> 
 		this.dashboardConnections.remove(connection.getUserEmail());
 	}
 
-	public Dashboard_httpConnectionHandlerImpl getHandlerForUserEmail(String userEmail) {
+	public Dashboard_httpConnectionHandlerImpl getHandlerForUsername(String userEmail) {
 		// TODO for now we pick a handler
 		if (dashboardConnections.isEmpty()) {
 			return null;
@@ -101,6 +109,28 @@ public class DashboardGateway implements Service<DashboardGatewayConfiguration> 
 			return dashboardConnections.values().iterator().next();
 		}
 		// return this.dashboardConnections.get(userEmail);
+	}
+
+	public boolean validCredentials(String username, String password) {
+		try {
+			URL orch = new URL("http://" + params.getOrchestratorHost() + ":" + params.getOrchestratorPort()
+					+ "/user/by_username/" + URLEncoder.encode(username, "UTF-8"));
+			HttpURLConnection con = (HttpURLConnection) orch.openConnection();
+			con.setRequestProperty("Authorization",
+					"Basic " + new String(Base64.getEncoder().encode((username + ":" + password).getBytes())));
+			con.setRequestMethod("GET");
+			int code = con.getResponseCode();
+			boolean success = code == 200;
+			if (success) {
+				LOG.info("Attempted login for user " + username + " was successful");
+			} else {
+				LOG.info("Attempted login for user " + username + " failed");
+
+			}
+			return success;
+		} catch (IOException e) {
+			return false;
+		}
 	}
 
 }
