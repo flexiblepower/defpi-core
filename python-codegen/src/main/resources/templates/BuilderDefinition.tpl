@@ -1,2 +1,3 @@
-	@abstractmethod
-	def build{{vitf.version}}(self, connection): pass
+    
+    @abstractmethod
+    def build_{{vitf.version}}(self, connection): pass

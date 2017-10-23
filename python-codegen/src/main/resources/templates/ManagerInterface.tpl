@@ -9,6 +9,5 @@ class {{itf.manager.interface}}:
         
         Template by TNO, 2017 """
         
-    __metaclass__ = ABCMeta        
-
+    __metaclass__ = ABCMeta
 {{itf.manager.definitions}}

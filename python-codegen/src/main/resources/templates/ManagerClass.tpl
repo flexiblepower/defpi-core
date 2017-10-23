@@ -12,6 +12,5 @@ class {{itf.manager.class}}({{itf.manager.interface}}):
  
     def __init__(self, service):
         """ Auto-generated constructor building the manager for the provided service """
-        self.__service = service
-        
-{{manager.implementations}}
+        self.__service = service       
+{{itf.manager.implementations}}

@@ -1,2 +1,4 @@
-	def handle{{handle.type}}Message(self, message):
-		''' Handles messages of type {{handle.type}} '''
+    
+    def handle_{{handle.type}}_message(self, message):
+        """ Handles messages of type {{handle.type}} 
+            Auto-generated method stub """

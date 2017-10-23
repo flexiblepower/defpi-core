@@ -11,4 +11,12 @@ class {{vitf.handler.interface}}:
         
     __metaclass__ = ABCMeta        
 
+    _NAME = "{{itf.name}}"
+    _VERSION = "{{vitf.version}}"
+    _RECEIVES_HASH = "{{vitf.receivesHash}}" 
+    _SENDS_HASH = "{{vitf.sendsHash}}"
+    _MANAGER = {{itf.manager.class}}
+    _SERIALIZER = {{vitf.serializer}} 
+    _RECEIVES_TYPES = [ {{vitf.receiveClasses}} ]
+    _SENDS_TYPES = [ {{vitf.sendClasses}} ]
 {{vitf.handler.definitions}}

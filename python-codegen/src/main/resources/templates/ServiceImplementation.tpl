@@ -8,19 +8,23 @@ class {{service.class}}:
      
          Template by TNO, 2017 """
          
-    def resumeFrom(self, state):
-        """ Resume this service from a previous state """
+    def resume_from(self, state):
+        """ Resume this service from a previous state 
+            Auto-generated method stub """
 
     def configure(self, config):
-        """ Configure this service with the provided config """
-    
+        """ Configure this service with the provided config 
+            Auto-generated method stub """
     
     def modify(self, config):
-        """ Modify the configuration with the provided config """
+        """ Modify the configuration with the provided config 
+            Auto-generated method stub """
     
     def suspend(self):
-        """ Suspend this service, but maintain the state """
+        """ Suspend this service, but maintain the state 
+            Auto-generated method stub """
         return state
     
     def terminate(self):
-        """ Ends this service"""
+        """ Ends this service 
+            Auto-generated method stub """
