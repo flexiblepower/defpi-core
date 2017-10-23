@@ -65,6 +65,9 @@ public class DockerConnector {
 
     private static final String BUILD_TIMESTAMP_KEY = "BUILD_TIMESTAMP";
     private static final String BUILD_USER_KEY = "BUILD_USER";
+    private static final String GIT_BRANCH = "GIT_BRANCH";
+    private static final String GIT_COMMIT = "GIT_COMMIT";
+    private static final String GIT_LOG = "GIT_LOG";
     private static final String DOCKER_HOST_KEY = "DOCKER_HOST";
 
     private static final String SERVICE_LABEL_KEY = "service.name";
@@ -231,7 +234,8 @@ public class DockerConnector {
     }
 
     private void updateDashboardGatewayService(final Process process, final Process dashboardGateway)
-            throws DockerException, InterruptedException {
+            throws DockerException,
+            InterruptedException {
         final List<String> networks = new ArrayList<>();
         for (final User u : UserManager.getInstance().getUsers()) {
             networks.add(DockerConnector.getNetworkNameFromUser(u));
@@ -429,10 +433,14 @@ public class DockerConnector {
     public String getContainerInfo() {
         try {
             final ContainerInfo info = this.client.inspectContainer(DockerConnector.getOrchestratorContainerId());
-            return String.format("image: %s\nbuilt: %s (by %s)\nstarted: %s\nnetworks: %s",
+            return String.format(
+                    "image: %s\nbuilt: %s (by %s)\non branch %s\nlast commit: %s (%s)\nstarted: %s\nnetworks: %s",
                     info.image(),
                     System.getenv(DockerConnector.BUILD_TIMESTAMP_KEY),
                     System.getenv(DockerConnector.BUILD_USER_KEY),
+                    System.getenv(DockerConnector.GIT_BRANCH),
+                    System.getenv(DockerConnector.GIT_COMMIT),
+                    System.getenv(DockerConnector.GIT_LOG),
                     info.created().toInstant(),
                     info.networkSettings().networks().keySet());
         } catch (DockerException | InterruptedException e) {
