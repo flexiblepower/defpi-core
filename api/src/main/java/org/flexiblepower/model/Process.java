@@ -103,7 +103,11 @@ public class Process {
      * than 0. Note that this can only be done when serializing a process from JSON.
      */
     private int debuggingPort;
+    
+    private long maxMemoryBytes;
 
+    private long maxNanoCPUs;
+    
     private boolean suspendOnDebug = true;
 
     /**
@@ -111,4 +115,5 @@ public class Process {
      * java process. e.g. to use a usb device from /dev/usb0
      */
     private Map<String, String> mountPoints;
+
 }

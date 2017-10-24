@@ -41,6 +41,8 @@ import com.spotify.docker.client.messages.swarm.NetworkAttachmentConfig;
 import com.spotify.docker.client.messages.swarm.Placement;
 import com.spotify.docker.client.messages.swarm.PortConfig;
 import com.spotify.docker.client.messages.swarm.PortConfig.PortConfigPublishMode;
+import com.spotify.docker.client.messages.swarm.ResourceRequirements;
+import com.spotify.docker.client.messages.swarm.Resources;
 import com.spotify.docker.client.messages.swarm.ServiceSpec;
 import com.spotify.docker.client.messages.swarm.TaskSpec;
 
@@ -302,12 +304,6 @@ public class DockerConnector {
             containerSpec.mounts(mountList);
         }
 
-        // Add the network attachment to place process in user network
-        // final NetworkAttachmentConfig orchestratornet = NetworkAttachmentConfig.builder()
-        // .target(DockerConnector.ORCHESTRATOR_NETWORK_NAME)
-        // .aliases(process.getId().toString())
-        // .build();
-
         final NetworkAttachmentConfig usernet = NetworkAttachmentConfig.builder()
                 .target(DockerConnector.getNetworkFromProcess(process))
                 .aliases(process.getId().toString())
@@ -318,9 +314,19 @@ public class DockerConnector {
         envArgs.forEach((key, value) -> envList.add(key + "=" + value));
         containerSpec.env(envList);
 
+        // Add resource limitations
+        final Resources.Builder limits = Resources.builder();
+        if (process.getMaxMemoryBytes() > 0) {
+            limits.memoryBytes(process.getMaxMemoryBytes());
+        }
+        if (process.getMaxNanoCPUs() > 0) {
+            limits.nanoCpus(process.getMaxNanoCPUs());
+        }
+        final ResourceRequirements.Builder resources = ResourceRequirements.builder().limits(limits.build());
+
         // Add the containerSpec and placement to the taskSpec
         final Placement placement = Placement.create(Arrays.asList("node.id == " + node.getDockerId()));
-        taskSpec.containerSpec(containerSpec.build()).placement(placement);
+        taskSpec.containerSpec(containerSpec.build()).resources(resources.build()).placement(placement);
         return ServiceSpec.builder()
                 .name(serviceName)
                 .labels(serviceLabels)

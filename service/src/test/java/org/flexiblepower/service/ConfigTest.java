@@ -22,6 +22,11 @@ import org.junit.Test;
 public class ConfigTest {
 
     @Test
+    public void defaultConfig() {
+        Assert.assertNull(ServiceConfig.generateConfig(Void.class, new HashMap<>()));
+    }
+
+    @Test
     public void runConfigTest() {
         final Map<String, String> valueMap = new HashMap<>();
         valueMap.put("UpdAteInteRval", "7");

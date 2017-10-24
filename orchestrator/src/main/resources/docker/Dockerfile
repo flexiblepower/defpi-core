@@ -8,6 +8,9 @@ ENV GIT_LOG ${git.commit.message.short}
 
 COPY def-pi-cacert.crt $JAVA_HOME/jre/lib/security
 
+EXPOSE 8080
+HEALTHCHECK --timeout=3s CMD wget -qO - http://localhost:8080/diag || exit 1
+
 RUN \
     cd $JAVA_HOME/jre/lib/security \
     && keytool -keystore cacerts -storepass changeit -noprompt -trustcacerts -importcert -alias defpi -file def-pi-cacert.crt
