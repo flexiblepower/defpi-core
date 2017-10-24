@@ -235,10 +235,16 @@ public class ServiceManager<T> implements Closeable {
     /**
      * @param message
      * @throws ServiceInvocationException
+     * @throws TimeoutException
+     * @throws ExecutionException
+     * @throws InterruptedException
      */
     private Message handleGoToProcessStateMessage(final GoToProcessStateMessage message)
             throws ServiceInvocationException,
-            SerializationException {
+            SerializationException,
+            InterruptedException,
+            ExecutionException,
+            TimeoutException {
         ServiceManager.log.debug("Received GoToProcessStateMessage for process {} -> {}",
                 message.getProcessId(),
                 message.getTargetState());
@@ -246,35 +252,21 @@ public class ServiceManager<T> implements Closeable {
         switch (message.getTargetState()) {
         case RUNNING:
             // This is basically a "force start" with no configuration
-            this.serviceExecutor.submit(() -> {
-                try {
-                    this.managedService.init(null, this.defPiParams);
-                } catch (final Throwable t) {
-                    ServiceManager.log.error("Error while calling init() without config", t);
-                }
+            final Future<ProcessStateUpdateMessage> startFuture = this.serviceExecutor.submit(() -> {
+                this.managedService.init(null, this.defPiParams);
+                ServiceManager.this.configured = true;
+                return ServiceManager.this.createProcessStateUpdateMessage(ProcessState.RUNNING);
             });
-            ServiceManager.this.configured = true;
-            return ServiceManager.this.createProcessStateUpdateMessage(ProcessState.RUNNING);
+
+            return startFuture.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         case SUSPENDED:
-            final Future<Serializable> future = this.serviceExecutor.submit(() -> {
-                try {
-                    return this.managedService.suspend();
-                } catch (final Throwable t) {
-                    ServiceManager.log.error("Error while calling suspend()", t);
-                    return null;
-                }
+            final Future<Serializable> suspendFuture = this.serviceExecutor.submit(() -> {
+                return this.managedService.suspend();
             });
-            // this.connectionManager.close();
+            final Serializable state = suspendFuture.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             this.keepThreadAlive = false;
 
-            byte[] stateData = null;
-            try {
-                stateData = this.javaIoSerializer
-                        .serialize(future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-            } catch (final TimeoutException | InterruptedException | ExecutionException e) {
-                ServiceManager.log.error("Calling suspend() method took too much time");
-            }
-            return this.createProcessStateUpdateMessage(ProcessState.SUSPENDED, stateData);
+            return this.createProcessStateUpdateMessage(ProcessState.SUSPENDED, this.javaIoSerializer.serialize(state));
         case TERMINATED:
             this.serviceExecutor.submit(() -> {
                 try {
@@ -348,7 +340,7 @@ public class ServiceManager<T> implements Closeable {
         final T config = ServiceConfig.generateConfig(this.configClass, message.getConfigMap());
         this.defPiParams = this.generateDefPiParameters(message.getDefpiParamsMap());
 
-        final Future<ProcessStateUpdateMessage> future = this.serviceExecutor.submit(() -> {
+        final Future<ProcessStateUpdateMessage> configFuture = this.serviceExecutor.submit(() -> {
             if (!this.configured) {
                 this.managedService.init(config, this.defPiParams);
                 this.configured = true;
@@ -358,7 +350,7 @@ public class ServiceManager<T> implements Closeable {
             return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
         });
 
-        return future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        return configFuture.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
     /**
