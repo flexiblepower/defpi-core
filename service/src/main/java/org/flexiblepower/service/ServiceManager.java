@@ -62,7 +62,7 @@ public class ServiceManager<T> implements Closeable {
     private final ConnectionManager connectionManager;
     private final JavaIOSerializer javaIoSerializer = new JavaIOSerializer();
     private final ProtobufMessageSerializer pbSerializer = new ProtobufMessageSerializer();
-    private final TCPSocket managementSocket;
+    private TCPSocket managementSocket;
 
     private Service<T> managedService;
     private Class<T> configClass;
@@ -102,7 +102,10 @@ public class ServiceManager<T> implements Closeable {
                     messageArray = this.managementSocket.read();
                 } catch (IOException | InterruptedException e) {
                     if (this.keepThreadAlive) {
-                        ServiceManager.log.warn("Socket closed while expecting instruction, stopping thread", e);
+                        ServiceManager.log.warn("Socket closed while expecting instruction, re-opening it", e);
+                        this.managementSocket.close();
+                        this.managementSocket = TCPSocket.asServer(ServiceManager.MANAGEMENT_PORT);
+                        continue;
                     }
                     break;
                 }
@@ -139,9 +142,12 @@ public class ServiceManager<T> implements Closeable {
                 } catch (final IOException | InterruptedException e) {
                     // Socket is closed, we are stopped
                     if (this.keepThreadAlive) {
-                        ServiceManager.log.warn("Socket closed while sending reply, stopping thread", e);
+                        ServiceManager.log.warn("Socket closed while sending reply, re-opening it", e);
+                        this.managementSocket.close();
+                        this.managementSocket = TCPSocket.asServer(ServiceManager.MANAGEMENT_PORT);
+                    } else {
+                        break;
                     }
-                    break;
                 }
             }
 
@@ -231,7 +237,8 @@ public class ServiceManager<T> implements Closeable {
      * @throws ServiceInvocationException
      */
     private Message handleGoToProcessStateMessage(final GoToProcessStateMessage message)
-            throws ServiceInvocationException, SerializationException {
+            throws ServiceInvocationException,
+            SerializationException {
         ServiceManager.log.debug("Received GoToProcessStateMessage for process {} -> {}",
                 message.getProcessId(),
                 message.getTargetState());
@@ -321,12 +328,13 @@ public class ServiceManager<T> implements Closeable {
      * @throws ExecutionException
      * @throws InterruptedException
      */
-    private Message handleSetConfigMessage(final SetConfigMessage message)
-            throws ServiceInvocationException, InterruptedException, ExecutionException, TimeoutException {
+    private Message handleSetConfigMessage(final SetConfigMessage message) throws ServiceInvocationException,
+            InterruptedException,
+            ExecutionException,
+            TimeoutException {
         ServiceManager.log.info("Received SetConfigMessage for process {}", message.getProcessId());
-        ServiceManager.log.debug("Properties to set: {} (update: {})",
-                message.getConfigMap().toString(),
-                message.getIsUpdate());
+        ServiceManager.log
+                .debug("Properties to set: {} (update: {})", message.getConfigMap().toString(), message.getIsUpdate());
 
         if (this.configured != message.getIsUpdate()) {
             ServiceManager.log.warn(
@@ -360,16 +368,19 @@ public class ServiceManager<T> implements Closeable {
         int orchestratorPort = 0;
         try {
             orchestratorPort = params.containsKey(DefPiParams.ORCHESTRATOR_PORT.name())
-                    ? Integer.parseInt(params.get(DefPiParams.ORCHESTRATOR_PORT.name())) : 0;
+                    ? Integer.parseInt(params.get(DefPiParams.ORCHESTRATOR_PORT.name()))
+                    : 0;
         } catch (final NumberFormatException e) {
             // 0 is the default value
         }
         return new DefPiParameters(
                 params.containsKey(DefPiParams.ORCHESTRATOR_HOST.name())
-                        ? params.get(DefPiParams.ORCHESTRATOR_HOST.name()) : null,
+                        ? params.get(DefPiParams.ORCHESTRATOR_HOST.name())
+                        : null,
                 orchestratorPort,
                 params.containsKey(DefPiParams.ORCHESTRATOR_TOKEN.name())
-                        ? params.get(DefPiParams.ORCHESTRATOR_TOKEN.name()) : null,
+                        ? params.get(DefPiParams.ORCHESTRATOR_TOKEN.name())
+                        : null,
                 this.processId,
                 params.containsKey(DefPiParams.USER_ID.name()) ? params.get(DefPiParams.USER_ID.name()) : null,
                 params.containsKey(DefPiParams.USERNAME.name()) ? params.get(DefPiParams.USERNAME.name()) : null,
