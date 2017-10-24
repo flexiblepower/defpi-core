@@ -122,7 +122,7 @@ public class ProcessConnector {
                 interfaceVersion.getSendsHash(),
                 targetAddress,
                 interfaceVersion.getReceivesHash(),
-                otherEndpoint.getProcessId());
+                otherEndpoint);
 
     }
 
@@ -171,7 +171,7 @@ public class ProcessConnector {
                 otherEndpoint.getProcessId().toString(),
                 otherEndpoint.getListenPort(),
                 interfaceVersion.getReceivesHash(),
-                otherEndpoint.getProcessId());
+                otherEndpoint);
 
     }
 
@@ -277,7 +277,15 @@ public class ProcessConnector {
                 final String sendsHash,
                 final String targetAddress,
                 final String receivesHash,
-                final ObjectId otherProcessId) {
+                final Connection.Endpoint otherEndpoint) {
+            String serviceId;
+            try {
+                final Process otherProcess = ProcessManager.getInstance().getProcess(otherEndpoint.getProcessId());
+                serviceId = otherProcess.getServiceId();
+            } catch (final ProcessNotFoundException e) {
+                serviceId = null;
+            }
+
             final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
                     .setConnectionId(connectionId.toString())
                     .setMode(ConnectionMessage.ModeType.CREATE)
@@ -285,7 +293,9 @@ public class ProcessConnector {
                     .setListenPort(listeningPort)
                     .setReceiveHash(receivesHash)
                     .setSendHash(sendsHash)
-                    .setOtherProcessId(otherProcessId.toString())
+                    .setRemoteProcessId(otherEndpoint.getProcessId().toString())
+                    .setRemoteInterfaceId(otherEndpoint.getInterfaceId())
+                    .setRemoteServiceId(serviceId)
                     .build();
 
             final ConnectionHandshake response = this.send(connectionMessage, ConnectionHandshake.class);
@@ -336,8 +346,16 @@ public class ProcessConnector {
                 final String receivingHost,
                 final int targetPort,
                 final String receivingHash,
-                final ObjectId otherProcessId) {
+                final Connection.Endpoint otherEndpoint) {
             final String targetAddress = "tcp://" + receivingHost + ":" + targetPort;
+
+            String serviceId;
+            try {
+                final Process otherProcess = ProcessManager.getInstance().getProcess(otherEndpoint.getProcessId());
+                serviceId = otherProcess.getServiceId();
+            } catch (final ProcessNotFoundException e) {
+                serviceId = null;
+            }
 
             final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
                     .setConnectionId(connectionId.toString())
@@ -346,7 +364,9 @@ public class ProcessConnector {
                     .setListenPort(listeningPort)
                     .setReceiveHash(receivingHash)
                     .setSendHash(sendingHash)
-                    .setOtherProcessId(otherProcessId.toString())
+                    .setRemoteProcessId(otherEndpoint.getProcessId().toString())
+                    .setRemoteInterfaceId(otherEndpoint.getInterfaceId())
+                    .setRemoteServiceId(serviceId)
                     .build();
 
             final ConnectionHandshake response = this.send(connectionMessage, ConnectionHandshake.class);

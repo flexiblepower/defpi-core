@@ -55,7 +55,9 @@ final class TCPConnection implements Connection, Closeable {
     protected HandShakeMonitor handShakeMonitor;
 
     private volatile ConnectionState state;
-    private final String otherProcessId;
+    private final String remoteProcessId;
+    private final String remoteServiceId;
+    private final String remoteInterfaceId;
 
     /**
      * @param listenPort
@@ -67,13 +69,17 @@ final class TCPConnection implements Connection, Closeable {
             final int port,
             final String targetAddress,
             final InterfaceInfo info,
-            final String otherProcessId) {
+            final String remoteProcessId,
+            final String remoteServiceId,
+            final String remoteInterfaceId) {
         this.state = ConnectionState.STARTING;
         this.connectionId = connectionId;
         this.port = port;
         this.targetAddress = targetAddress;
         this.info = info;
-        this.otherProcessId = otherProcessId;
+        this.remoteProcessId = remoteProcessId;
+        this.remoteServiceId = remoteServiceId;
+        this.remoteInterfaceId = remoteInterfaceId;
 
         // Add serializer to the connection for user-defined messages
         try {
@@ -150,8 +156,28 @@ final class TCPConnection implements Connection, Closeable {
      * @see org.flexiblepower.service.Connection#otherProcessId()
      */
     @Override
-    public String otherProcessId() {
-        return this.otherProcessId;
+    public String remoteProcessId() {
+        return this.remoteProcessId;
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see org.flexiblepower.service.Connection#remoteServiceId()
+     */
+    @Override
+    public String remoteServiceId() {
+        return this.remoteServiceId;
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see org.flexiblepower.service.Connection#remoteInterfaceId()
+     */
+    @Override
+    public String remoteInterfaceId() {
+        return this.remoteInterfaceId;
     }
 
     protected void handleMessage(final byte[] msg) {

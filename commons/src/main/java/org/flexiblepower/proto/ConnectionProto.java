@@ -210,52 +210,46 @@ public final class ConnectionProto {
         getSendHashBytes();
 
     /**
-     * <code>optional string otherProcessId = 7;</code>
+     * <code>optional string remoteInterfaceId = 7;</code>
      */
-    boolean hasOtherProcessId();
+    boolean hasRemoteInterfaceId();
     /**
-     * <code>optional string otherProcessId = 7;</code>
+     * <code>optional string remoteInterfaceId = 7;</code>
      */
-    java.lang.String getOtherProcessId();
+    java.lang.String getRemoteInterfaceId();
     /**
-     * <code>optional string otherProcessId = 7;</code>
+     * <code>optional string remoteInterfaceId = 7;</code>
      */
     com.google.protobuf.ByteString
-        getOtherProcessIdBytes();
+        getRemoteInterfaceIdBytes();
 
     /**
-     * <code>map&lt;string, string&gt; otherEndpointLabels = 8;</code>
+     * <code>optional string remoteProcessId = 8;</code>
      */
-    int getOtherEndpointLabelsCount();
+    boolean hasRemoteProcessId();
     /**
-     * <code>map&lt;string, string&gt; otherEndpointLabels = 8;</code>
+     * <code>optional string remoteProcessId = 8;</code>
      */
-    boolean containsOtherEndpointLabels(
-        java.lang.String key);
+    java.lang.String getRemoteProcessId();
     /**
-     * Use {@link #getOtherEndpointLabelsMap()} instead.
+     * <code>optional string remoteProcessId = 8;</code>
      */
-    @java.lang.Deprecated
-    java.util.Map<java.lang.String, java.lang.String>
-    getOtherEndpointLabels();
-    /**
-     * <code>map&lt;string, string&gt; otherEndpointLabels = 8;</code>
-     */
-    java.util.Map<java.lang.String, java.lang.String>
-    getOtherEndpointLabelsMap();
-    /**
-     * <code>map&lt;string, string&gt; otherEndpointLabels = 8;</code>
-     */
+    com.google.protobuf.ByteString
+        getRemoteProcessIdBytes();
 
-    java.lang.String getOtherEndpointLabelsOrDefault(
-        java.lang.String key,
-        java.lang.String defaultValue);
     /**
-     * <code>map&lt;string, string&gt; otherEndpointLabels = 8;</code>
+     * <code>optional string remoteServiceId = 9;</code>
      */
-
-    java.lang.String getOtherEndpointLabelsOrThrow(
-        java.lang.String key);
+    boolean hasRemoteServiceId();
+    /**
+     * <code>optional string remoteServiceId = 9;</code>
+     */
+    java.lang.String getRemoteServiceId();
+    /**
+     * <code>optional string remoteServiceId = 9;</code>
+     */
+    com.google.protobuf.ByteString
+        getRemoteServiceIdBytes();
   }
   /**
    * Protobuf type {@code connection.ConnectionMessage}
@@ -275,7 +269,9 @@ public final class ConnectionProto {
       listenPort_ = 0;
       receiveHash_ = "";
       sendHash_ = "";
-      otherProcessId_ = "";
+      remoteInterfaceId_ = "";
+      remoteProcessId_ = "";
+      remoteServiceId_ = "";
     }
 
     @java.lang.Override
@@ -349,20 +345,19 @@ public final class ConnectionProto {
             case 58: {
               com.google.protobuf.ByteString bs = input.readBytes();
               bitField0_ |= 0x00000040;
-              otherProcessId_ = bs;
+              remoteInterfaceId_ = bs;
               break;
             }
             case 66: {
-              if (!((mutable_bitField0_ & 0x00000080) == 0x00000080)) {
-                otherEndpointLabels_ = com.google.protobuf.MapField.newMapField(
-                    OtherEndpointLabelsDefaultEntryHolder.defaultEntry);
-                mutable_bitField0_ |= 0x00000080;
-              }
-              com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
-              otherEndpointLabels__ = input.readMessage(
-                  OtherEndpointLabelsDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
-              otherEndpointLabels_.getMutableMap().put(
-                  otherEndpointLabels__.getKey(), otherEndpointLabels__.getValue());
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField0_ |= 0x00000080;
+              remoteProcessId_ = bs;
+              break;
+            }
+            case 74: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField0_ |= 0x00000100;
+              remoteServiceId_ = bs;
               break;
             }
           }
@@ -382,17 +377,6 @@ public final class ConnectionProto {
       return org.flexiblepower.proto.ConnectionProto.internal_static_connection_ConnectionMessage_descriptor;
     }
 
-    @SuppressWarnings({"rawtypes"})
-    protected com.google.protobuf.MapField internalGetMapField(
-        int number) {
-      switch (number) {
-        case 8:
-          return internalGetOtherEndpointLabels();
-        default:
-          throw new RuntimeException(
-              "Invalid map field number: " + number);
-      }
-    }
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return org.flexiblepower.proto.ConnectionProto.internal_static_connection_ConnectionMessage_fieldAccessorTable
@@ -708,19 +692,19 @@ public final class ConnectionProto {
       }
     }
 
-    public static final int OTHERPROCESSID_FIELD_NUMBER = 7;
-    private volatile java.lang.Object otherProcessId_;
+    public static final int REMOTEINTERFACEID_FIELD_NUMBER = 7;
+    private volatile java.lang.Object remoteInterfaceId_;
     /**
-     * <code>optional string otherProcessId = 7;</code>
+     * <code>optional string remoteInterfaceId = 7;</code>
      */
-    public boolean hasOtherProcessId() {
+    public boolean hasRemoteInterfaceId() {
       return ((bitField0_ & 0x00000040) == 0x00000040);
     }
     /**
-     * <code>optional string otherProcessId = 7;</code>
+     * <code>optional string remoteInterfaceId = 7;</code>
      */
-    public java.lang.String getOtherProcessId() {
-      java.lang.Object ref = otherProcessId_;
+    public java.lang.String getRemoteInterfaceId() {
+      java.lang.Object ref = remoteInterfaceId_;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
@@ -728,102 +712,110 @@ public final class ConnectionProto {
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
-          otherProcessId_ = s;
+          remoteInterfaceId_ = s;
         }
         return s;
       }
     }
     /**
-     * <code>optional string otherProcessId = 7;</code>
+     * <code>optional string remoteInterfaceId = 7;</code>
      */
     public com.google.protobuf.ByteString
-        getOtherProcessIdBytes() {
-      java.lang.Object ref = otherProcessId_;
+        getRemoteInterfaceIdBytes() {
+      java.lang.Object ref = remoteInterfaceId_;
       if (ref instanceof java.lang.String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        otherProcessId_ = b;
+        remoteInterfaceId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
       }
     }
 
-    public static final int OTHERENDPOINTLABELS_FIELD_NUMBER = 8;
-    private static final class OtherEndpointLabelsDefaultEntryHolder {
-      static final com.google.protobuf.MapEntry<
-          java.lang.String, java.lang.String> defaultEntry =
-              com.google.protobuf.MapEntry
-              .<java.lang.String, java.lang.String>newDefaultInstance(
-                  org.flexiblepower.proto.ConnectionProto.internal_static_connection_ConnectionMessage_OtherEndpointLabelsEntry_descriptor, 
-                  com.google.protobuf.WireFormat.FieldType.STRING,
-                  "",
-                  com.google.protobuf.WireFormat.FieldType.STRING,
-                  "");
+    public static final int REMOTEPROCESSID_FIELD_NUMBER = 8;
+    private volatile java.lang.Object remoteProcessId_;
+    /**
+     * <code>optional string remoteProcessId = 8;</code>
+     */
+    public boolean hasRemoteProcessId() {
+      return ((bitField0_ & 0x00000080) == 0x00000080);
     }
-    private com.google.protobuf.MapField<
-        java.lang.String, java.lang.String> otherEndpointLabels_;
-    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
-    internalGetOtherEndpointLabels() {
-      if (otherEndpointLabels_ == null) {
-        return com.google.protobuf.MapField.emptyMapField(
-            OtherEndpointLabelsDefaultEntryHolder.defaultEntry);
+    /**
+     * <code>optional string remoteProcessId = 8;</code>
+     */
+    public java.lang.String getRemoteProcessId() {
+      java.lang.Object ref = remoteProcessId_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          remoteProcessId_ = s;
+        }
+        return s;
       }
-      return otherEndpointLabels_;
-    }
-
-    public int getOtherEndpointLabelsCount() {
-      return internalGetOtherEndpointLabels().getMap().size();
     }
     /**
-     * <code>map&lt;string, string&gt; otherEndpointLabels = 8;</code>
+     * <code>optional string remoteProcessId = 8;</code>
      */
-
-    public boolean containsOtherEndpointLabels(
-        java.lang.String key) {
-      if (key == null) { throw new java.lang.NullPointerException(); }
-      return internalGetOtherEndpointLabels().getMap().containsKey(key);
-    }
-    /**
-     * Use {@link #getOtherEndpointLabelsMap()} instead.
-     */
-    @java.lang.Deprecated
-    public java.util.Map<java.lang.String, java.lang.String> getOtherEndpointLabels() {
-      return getOtherEndpointLabelsMap();
-    }
-    /**
-     * <code>map&lt;string, string&gt; otherEndpointLabels = 8;</code>
-     */
-
-    public java.util.Map<java.lang.String, java.lang.String> getOtherEndpointLabelsMap() {
-      return internalGetOtherEndpointLabels().getMap();
-    }
-    /**
-     * <code>map&lt;string, string&gt; otherEndpointLabels = 8;</code>
-     */
-
-    public java.lang.String getOtherEndpointLabelsOrDefault(
-        java.lang.String key,
-        java.lang.String defaultValue) {
-      if (key == null) { throw new java.lang.NullPointerException(); }
-      java.util.Map<java.lang.String, java.lang.String> map =
-          internalGetOtherEndpointLabels().getMap();
-      return map.containsKey(key) ? map.get(key) : defaultValue;
-    }
-    /**
-     * <code>map&lt;string, string&gt; otherEndpointLabels = 8;</code>
-     */
-
-    public java.lang.String getOtherEndpointLabelsOrThrow(
-        java.lang.String key) {
-      if (key == null) { throw new java.lang.NullPointerException(); }
-      java.util.Map<java.lang.String, java.lang.String> map =
-          internalGetOtherEndpointLabels().getMap();
-      if (!map.containsKey(key)) {
-        throw new java.lang.IllegalArgumentException();
+    public com.google.protobuf.ByteString
+        getRemoteProcessIdBytes() {
+      java.lang.Object ref = remoteProcessId_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        remoteProcessId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
       }
-      return map.get(key);
+    }
+
+    public static final int REMOTESERVICEID_FIELD_NUMBER = 9;
+    private volatile java.lang.Object remoteServiceId_;
+    /**
+     * <code>optional string remoteServiceId = 9;</code>
+     */
+    public boolean hasRemoteServiceId() {
+      return ((bitField0_ & 0x00000100) == 0x00000100);
+    }
+    /**
+     * <code>optional string remoteServiceId = 9;</code>
+     */
+    public java.lang.String getRemoteServiceId() {
+      java.lang.Object ref = remoteServiceId_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          remoteServiceId_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string remoteServiceId = 9;</code>
+     */
+    public com.google.protobuf.ByteString
+        getRemoteServiceIdBytes() {
+      java.lang.Object ref = remoteServiceId_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        remoteServiceId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
     }
 
     private byte memoizedIsInitialized = -1;
@@ -865,14 +857,14 @@ public final class ConnectionProto {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 6, sendHash_);
       }
       if (((bitField0_ & 0x00000040) == 0x00000040)) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 7, otherProcessId_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 7, remoteInterfaceId_);
       }
-      com.google.protobuf.GeneratedMessageV3
-        .serializeStringMapTo(
-          output,
-          internalGetOtherEndpointLabels(),
-          OtherEndpointLabelsDefaultEntryHolder.defaultEntry,
-          8);
+      if (((bitField0_ & 0x00000080) == 0x00000080)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 8, remoteProcessId_);
+      }
+      if (((bitField0_ & 0x00000100) == 0x00000100)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 9, remoteServiceId_);
+      }
       unknownFields.writeTo(output);
     }
 
@@ -902,17 +894,13 @@ public final class ConnectionProto {
         size += com.google.protobuf.GeneratedMessageV3.computeStringSize(6, sendHash_);
       }
       if (((bitField0_ & 0x00000040) == 0x00000040)) {
-        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(7, otherProcessId_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(7, remoteInterfaceId_);
       }
-      for (java.util.Map.Entry<java.lang.String, java.lang.String> entry
-           : internalGetOtherEndpointLabels().getMap().entrySet()) {
-        com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
-        otherEndpointLabels__ = OtherEndpointLabelsDefaultEntryHolder.defaultEntry.newBuilderForType()
-            .setKey(entry.getKey())
-            .setValue(entry.getValue())
-            .build();
-        size += com.google.protobuf.CodedOutputStream
-            .computeMessageSize(8, otherEndpointLabels__);
+      if (((bitField0_ & 0x00000080) == 0x00000080)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(8, remoteProcessId_);
+      }
+      if (((bitField0_ & 0x00000100) == 0x00000100)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(9, remoteServiceId_);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -960,13 +948,21 @@ public final class ConnectionProto {
         result = result && getSendHash()
             .equals(other.getSendHash());
       }
-      result = result && (hasOtherProcessId() == other.hasOtherProcessId());
-      if (hasOtherProcessId()) {
-        result = result && getOtherProcessId()
-            .equals(other.getOtherProcessId());
+      result = result && (hasRemoteInterfaceId() == other.hasRemoteInterfaceId());
+      if (hasRemoteInterfaceId()) {
+        result = result && getRemoteInterfaceId()
+            .equals(other.getRemoteInterfaceId());
       }
-      result = result && internalGetOtherEndpointLabels().equals(
-          other.internalGetOtherEndpointLabels());
+      result = result && (hasRemoteProcessId() == other.hasRemoteProcessId());
+      if (hasRemoteProcessId()) {
+        result = result && getRemoteProcessId()
+            .equals(other.getRemoteProcessId());
+      }
+      result = result && (hasRemoteServiceId() == other.hasRemoteServiceId());
+      if (hasRemoteServiceId()) {
+        result = result && getRemoteServiceId()
+            .equals(other.getRemoteServiceId());
+      }
       result = result && unknownFields.equals(other.unknownFields);
       return result;
     }
@@ -1002,13 +998,17 @@ public final class ConnectionProto {
         hash = (37 * hash) + SENDHASH_FIELD_NUMBER;
         hash = (53 * hash) + getSendHash().hashCode();
       }
-      if (hasOtherProcessId()) {
-        hash = (37 * hash) + OTHERPROCESSID_FIELD_NUMBER;
-        hash = (53 * hash) + getOtherProcessId().hashCode();
+      if (hasRemoteInterfaceId()) {
+        hash = (37 * hash) + REMOTEINTERFACEID_FIELD_NUMBER;
+        hash = (53 * hash) + getRemoteInterfaceId().hashCode();
       }
-      if (!internalGetOtherEndpointLabels().getMap().isEmpty()) {
-        hash = (37 * hash) + OTHERENDPOINTLABELS_FIELD_NUMBER;
-        hash = (53 * hash) + internalGetOtherEndpointLabels().hashCode();
+      if (hasRemoteProcessId()) {
+        hash = (37 * hash) + REMOTEPROCESSID_FIELD_NUMBER;
+        hash = (53 * hash) + getRemoteProcessId().hashCode();
+      }
+      if (hasRemoteServiceId()) {
+        hash = (37 * hash) + REMOTESERVICEID_FIELD_NUMBER;
+        hash = (53 * hash) + getRemoteServiceId().hashCode();
       }
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
@@ -1115,28 +1115,6 @@ public final class ConnectionProto {
         return org.flexiblepower.proto.ConnectionProto.internal_static_connection_ConnectionMessage_descriptor;
       }
 
-      @SuppressWarnings({"rawtypes"})
-      protected com.google.protobuf.MapField internalGetMapField(
-          int number) {
-        switch (number) {
-          case 8:
-            return internalGetOtherEndpointLabels();
-          default:
-            throw new RuntimeException(
-                "Invalid map field number: " + number);
-        }
-      }
-      @SuppressWarnings({"rawtypes"})
-      protected com.google.protobuf.MapField internalGetMutableMapField(
-          int number) {
-        switch (number) {
-          case 8:
-            return internalGetMutableOtherEndpointLabels();
-          default:
-            throw new RuntimeException(
-                "Invalid map field number: " + number);
-        }
-      }
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return org.flexiblepower.proto.ConnectionProto.internal_static_connection_ConnectionMessage_fieldAccessorTable
@@ -1173,9 +1151,12 @@ public final class ConnectionProto {
         bitField0_ = (bitField0_ & ~0x00000010);
         sendHash_ = "";
         bitField0_ = (bitField0_ & ~0x00000020);
-        otherProcessId_ = "";
+        remoteInterfaceId_ = "";
         bitField0_ = (bitField0_ & ~0x00000040);
-        internalGetMutableOtherEndpointLabels().clear();
+        remoteProcessId_ = "";
+        bitField0_ = (bitField0_ & ~0x00000080);
+        remoteServiceId_ = "";
+        bitField0_ = (bitField0_ & ~0x00000100);
         return this;
       }
 
@@ -1227,9 +1208,15 @@ public final class ConnectionProto {
         if (((from_bitField0_ & 0x00000040) == 0x00000040)) {
           to_bitField0_ |= 0x00000040;
         }
-        result.otherProcessId_ = otherProcessId_;
-        result.otherEndpointLabels_ = internalGetOtherEndpointLabels();
-        result.otherEndpointLabels_.makeImmutable();
+        result.remoteInterfaceId_ = remoteInterfaceId_;
+        if (((from_bitField0_ & 0x00000080) == 0x00000080)) {
+          to_bitField0_ |= 0x00000080;
+        }
+        result.remoteProcessId_ = remoteProcessId_;
+        if (((from_bitField0_ & 0x00000100) == 0x00000100)) {
+          to_bitField0_ |= 0x00000100;
+        }
+        result.remoteServiceId_ = remoteServiceId_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -1298,13 +1285,21 @@ public final class ConnectionProto {
           sendHash_ = other.sendHash_;
           onChanged();
         }
-        if (other.hasOtherProcessId()) {
+        if (other.hasRemoteInterfaceId()) {
           bitField0_ |= 0x00000040;
-          otherProcessId_ = other.otherProcessId_;
+          remoteInterfaceId_ = other.remoteInterfaceId_;
           onChanged();
         }
-        internalGetMutableOtherEndpointLabels().mergeFrom(
-            other.internalGetOtherEndpointLabels());
+        if (other.hasRemoteProcessId()) {
+          bitField0_ |= 0x00000080;
+          remoteProcessId_ = other.remoteProcessId_;
+          onChanged();
+        }
+        if (other.hasRemoteServiceId()) {
+          bitField0_ |= 0x00000100;
+          remoteServiceId_ = other.remoteServiceId_;
+          onChanged();
+        }
         this.mergeUnknownFields(other.unknownFields);
         onChanged();
         return this;
@@ -1711,24 +1706,24 @@ public final class ConnectionProto {
         return this;
       }
 
-      private java.lang.Object otherProcessId_ = "";
+      private java.lang.Object remoteInterfaceId_ = "";
       /**
-       * <code>optional string otherProcessId = 7;</code>
+       * <code>optional string remoteInterfaceId = 7;</code>
        */
-      public boolean hasOtherProcessId() {
+      public boolean hasRemoteInterfaceId() {
         return ((bitField0_ & 0x00000040) == 0x00000040);
       }
       /**
-       * <code>optional string otherProcessId = 7;</code>
+       * <code>optional string remoteInterfaceId = 7;</code>
        */
-      public java.lang.String getOtherProcessId() {
-        java.lang.Object ref = otherProcessId_;
+      public java.lang.String getRemoteInterfaceId() {
+        java.lang.Object ref = remoteInterfaceId_;
         if (!(ref instanceof java.lang.String)) {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
           if (bs.isValidUtf8()) {
-            otherProcessId_ = s;
+            remoteInterfaceId_ = s;
           }
           return s;
         } else {
@@ -1736,177 +1731,206 @@ public final class ConnectionProto {
         }
       }
       /**
-       * <code>optional string otherProcessId = 7;</code>
+       * <code>optional string remoteInterfaceId = 7;</code>
        */
       public com.google.protobuf.ByteString
-          getOtherProcessIdBytes() {
-        java.lang.Object ref = otherProcessId_;
+          getRemoteInterfaceIdBytes() {
+        java.lang.Object ref = remoteInterfaceId_;
         if (ref instanceof String) {
           com.google.protobuf.ByteString b = 
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
-          otherProcessId_ = b;
+          remoteInterfaceId_ = b;
           return b;
         } else {
           return (com.google.protobuf.ByteString) ref;
         }
       }
       /**
-       * <code>optional string otherProcessId = 7;</code>
+       * <code>optional string remoteInterfaceId = 7;</code>
        */
-      public Builder setOtherProcessId(
+      public Builder setRemoteInterfaceId(
           java.lang.String value) {
         if (value == null) {
     throw new NullPointerException();
   }
   bitField0_ |= 0x00000040;
-        otherProcessId_ = value;
+        remoteInterfaceId_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>optional string otherProcessId = 7;</code>
+       * <code>optional string remoteInterfaceId = 7;</code>
        */
-      public Builder clearOtherProcessId() {
+      public Builder clearRemoteInterfaceId() {
         bitField0_ = (bitField0_ & ~0x00000040);
-        otherProcessId_ = getDefaultInstance().getOtherProcessId();
+        remoteInterfaceId_ = getDefaultInstance().getRemoteInterfaceId();
         onChanged();
         return this;
       }
       /**
-       * <code>optional string otherProcessId = 7;</code>
+       * <code>optional string remoteInterfaceId = 7;</code>
        */
-      public Builder setOtherProcessIdBytes(
+      public Builder setRemoteInterfaceIdBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
   bitField0_ |= 0x00000040;
-        otherProcessId_ = value;
+        remoteInterfaceId_ = value;
         onChanged();
         return this;
       }
 
-      private com.google.protobuf.MapField<
-          java.lang.String, java.lang.String> otherEndpointLabels_;
-      private com.google.protobuf.MapField<java.lang.String, java.lang.String>
-      internalGetOtherEndpointLabels() {
-        if (otherEndpointLabels_ == null) {
-          return com.google.protobuf.MapField.emptyMapField(
-              OtherEndpointLabelsDefaultEntryHolder.defaultEntry);
+      private java.lang.Object remoteProcessId_ = "";
+      /**
+       * <code>optional string remoteProcessId = 8;</code>
+       */
+      public boolean hasRemoteProcessId() {
+        return ((bitField0_ & 0x00000080) == 0x00000080);
+      }
+      /**
+       * <code>optional string remoteProcessId = 8;</code>
+       */
+      public java.lang.String getRemoteProcessId() {
+        java.lang.Object ref = remoteProcessId_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            remoteProcessId_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
         }
-        return otherEndpointLabels_;
       }
-      private com.google.protobuf.MapField<java.lang.String, java.lang.String>
-      internalGetMutableOtherEndpointLabels() {
-        onChanged();;
-        if (otherEndpointLabels_ == null) {
-          otherEndpointLabels_ = com.google.protobuf.MapField.newMapField(
-              OtherEndpointLabelsDefaultEntryHolder.defaultEntry);
+      /**
+       * <code>optional string remoteProcessId = 8;</code>
+       */
+      public com.google.protobuf.ByteString
+          getRemoteProcessIdBytes() {
+        java.lang.Object ref = remoteProcessId_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          remoteProcessId_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
         }
-        if (!otherEndpointLabels_.isMutable()) {
-          otherEndpointLabels_ = otherEndpointLabels_.copy();
-        }
-        return otherEndpointLabels_;
-      }
-
-      public int getOtherEndpointLabelsCount() {
-        return internalGetOtherEndpointLabels().getMap().size();
       }
       /**
-       * <code>map&lt;string, string&gt; otherEndpointLabels = 8;</code>
+       * <code>optional string remoteProcessId = 8;</code>
        */
-
-      public boolean containsOtherEndpointLabels(
-          java.lang.String key) {
-        if (key == null) { throw new java.lang.NullPointerException(); }
-        return internalGetOtherEndpointLabels().getMap().containsKey(key);
-      }
-      /**
-       * Use {@link #getOtherEndpointLabelsMap()} instead.
-       */
-      @java.lang.Deprecated
-      public java.util.Map<java.lang.String, java.lang.String> getOtherEndpointLabels() {
-        return getOtherEndpointLabelsMap();
-      }
-      /**
-       * <code>map&lt;string, string&gt; otherEndpointLabels = 8;</code>
-       */
-
-      public java.util.Map<java.lang.String, java.lang.String> getOtherEndpointLabelsMap() {
-        return internalGetOtherEndpointLabels().getMap();
-      }
-      /**
-       * <code>map&lt;string, string&gt; otherEndpointLabels = 8;</code>
-       */
-
-      public java.lang.String getOtherEndpointLabelsOrDefault(
-          java.lang.String key,
-          java.lang.String defaultValue) {
-        if (key == null) { throw new java.lang.NullPointerException(); }
-        java.util.Map<java.lang.String, java.lang.String> map =
-            internalGetOtherEndpointLabels().getMap();
-        return map.containsKey(key) ? map.get(key) : defaultValue;
-      }
-      /**
-       * <code>map&lt;string, string&gt; otherEndpointLabels = 8;</code>
-       */
-
-      public java.lang.String getOtherEndpointLabelsOrThrow(
-          java.lang.String key) {
-        if (key == null) { throw new java.lang.NullPointerException(); }
-        java.util.Map<java.lang.String, java.lang.String> map =
-            internalGetOtherEndpointLabels().getMap();
-        if (!map.containsKey(key)) {
-          throw new java.lang.IllegalArgumentException();
-        }
-        return map.get(key);
-      }
-
-      public Builder clearOtherEndpointLabels() {
-        internalGetMutableOtherEndpointLabels().getMutableMap()
-            .clear();
-        return this;
-      }
-      /**
-       * <code>map&lt;string, string&gt; otherEndpointLabels = 8;</code>
-       */
-
-      public Builder removeOtherEndpointLabels(
-          java.lang.String key) {
-        if (key == null) { throw new java.lang.NullPointerException(); }
-        internalGetMutableOtherEndpointLabels().getMutableMap()
-            .remove(key);
-        return this;
-      }
-      /**
-       * Use alternate mutation accessors instead.
-       */
-      @java.lang.Deprecated
-      public java.util.Map<java.lang.String, java.lang.String>
-      getMutableOtherEndpointLabels() {
-        return internalGetMutableOtherEndpointLabels().getMutableMap();
-      }
-      /**
-       * <code>map&lt;string, string&gt; otherEndpointLabels = 8;</code>
-       */
-      public Builder putOtherEndpointLabels(
-          java.lang.String key,
+      public Builder setRemoteProcessId(
           java.lang.String value) {
-        if (key == null) { throw new java.lang.NullPointerException(); }
-        if (value == null) { throw new java.lang.NullPointerException(); }
-        internalGetMutableOtherEndpointLabels().getMutableMap()
-            .put(key, value);
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000080;
+        remoteProcessId_ = value;
+        onChanged();
         return this;
       }
       /**
-       * <code>map&lt;string, string&gt; otherEndpointLabels = 8;</code>
+       * <code>optional string remoteProcessId = 8;</code>
        */
+      public Builder clearRemoteProcessId() {
+        bitField0_ = (bitField0_ & ~0x00000080);
+        remoteProcessId_ = getDefaultInstance().getRemoteProcessId();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string remoteProcessId = 8;</code>
+       */
+      public Builder setRemoteProcessIdBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000080;
+        remoteProcessId_ = value;
+        onChanged();
+        return this;
+      }
 
-      public Builder putAllOtherEndpointLabels(
-          java.util.Map<java.lang.String, java.lang.String> values) {
-        internalGetMutableOtherEndpointLabels().getMutableMap()
-            .putAll(values);
+      private java.lang.Object remoteServiceId_ = "";
+      /**
+       * <code>optional string remoteServiceId = 9;</code>
+       */
+      public boolean hasRemoteServiceId() {
+        return ((bitField0_ & 0x00000100) == 0x00000100);
+      }
+      /**
+       * <code>optional string remoteServiceId = 9;</code>
+       */
+      public java.lang.String getRemoteServiceId() {
+        java.lang.Object ref = remoteServiceId_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            remoteServiceId_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string remoteServiceId = 9;</code>
+       */
+      public com.google.protobuf.ByteString
+          getRemoteServiceIdBytes() {
+        java.lang.Object ref = remoteServiceId_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          remoteServiceId_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string remoteServiceId = 9;</code>
+       */
+      public Builder setRemoteServiceId(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000100;
+        remoteServiceId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string remoteServiceId = 9;</code>
+       */
+      public Builder clearRemoteServiceId() {
+        bitField0_ = (bitField0_ & ~0x00000100);
+        remoteServiceId_ = getDefaultInstance().getRemoteServiceId();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string remoteServiceId = 9;</code>
+       */
+      public Builder setRemoteServiceIdBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000100;
+        remoteServiceId_ = value;
+        onChanged();
         return this;
       }
       public final Builder setUnknownFields(
@@ -2960,11 +2984,6 @@ public final class ConnectionProto {
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_connection_ConnectionMessage_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_connection_ConnectionMessage_OtherEndpointLabelsEntry_descriptor;
-  private static final 
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_connection_ConnectionMessage_OtherEndpointLabelsEntry_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_connection_ConnectionHandshake_descriptor;
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
@@ -2978,25 +2997,22 @@ public final class ConnectionProto {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\020Connection.proto\022\nconnection\"\232\003\n\021Conne" +
+      "\n\020Connection.proto\022\nconnection\"\276\002\n\021Conne" +
       "ctionMessage\0224\n\004mode\030\001 \002(\0162&.connection." +
       "ConnectionMessage.ModeType\022\024\n\014connection" +
       "Id\030\002 \002(\t\022\025\n\rtargetAddress\030\003 \001(\t\022\022\n\nliste" +
       "nPort\030\004 \001(\005\022\023\n\013receiveHash\030\005 \001(\t\022\020\n\010send" +
-      "Hash\030\006 \001(\t\022\026\n\016otherProcessId\030\007 \001(\t\022S\n\023ot" +
-      "herEndpointLabels\030\010 \003(\01326.connection.Con" +
-      "nectionMessage.OtherEndpointLabelsEntry\032" +
-      ":\n\030OtherEndpointLabelsEntry\022\013\n\003key\030\001 \001(\t" +
-      "\022\r\n\005value\030\002 \001(\t:\0028\001\">\n\010ModeType\022\n\n\006CREAT",
-      "E\020\000\022\013\n\007SUSPEND\020\001\022\n\n\006RESUME\020\002\022\r\n\tTERMINAT" +
-      "E\020\003\"\210\001\n\023ConnectionHandshake\0224\n\017connectio" +
-      "nState\030\001 \002(\0162\033.connection.ConnectionStat" +
-      "e\022\024\n\014connectionId\030\002 \002(\t\022\023\n\013receiveHash\030\003" +
-      " \001(\t\022\020\n\010sendHash\030\004 \001(\t*^\n\017ConnectionStat" +
-      "e\022\014\n\010STARTING\020\000\022\r\n\tCONNECTED\020\001\022\r\n\tSUSPEN" +
-      "DED\020\002\022\017\n\013INTERRUPTED\020\003\022\016\n\nTERMINATED\020\004B*" +
-      "\n\027org.flexiblepower.protoB\017ConnectionPro" +
-      "to"
+      "Hash\030\006 \001(\t\022\031\n\021remoteInterfaceId\030\007 \001(\t\022\027\n" +
+      "\017remoteProcessId\030\010 \001(\t\022\027\n\017remoteServiceI" +
+      "d\030\t \001(\t\">\n\010ModeType\022\n\n\006CREATE\020\000\022\013\n\007SUSPE" +
+      "ND\020\001\022\n\n\006RESUME\020\002\022\r\n\tTERMINATE\020\003\"\210\001\n\023Conn" +
+      "ectionHandshake\0224\n\017connectionState\030\001 \002(\016",
+      "2\033.connection.ConnectionState\022\024\n\014connect" +
+      "ionId\030\002 \002(\t\022\023\n\013receiveHash\030\003 \001(\t\022\020\n\010send" +
+      "Hash\030\004 \001(\t*^\n\017ConnectionState\022\014\n\010STARTIN" +
+      "G\020\000\022\r\n\tCONNECTED\020\001\022\r\n\tSUSPENDED\020\002\022\017\n\013INT" +
+      "ERRUPTED\020\003\022\016\n\nTERMINATED\020\004B*\n\027org.flexib" +
+      "lepower.protoB\017ConnectionProto"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -3015,13 +3031,7 @@ public final class ConnectionProto {
     internal_static_connection_ConnectionMessage_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_connection_ConnectionMessage_descriptor,
-        new java.lang.String[] { "Mode", "ConnectionId", "TargetAddress", "ListenPort", "ReceiveHash", "SendHash", "OtherProcessId", "OtherEndpointLabels", });
-    internal_static_connection_ConnectionMessage_OtherEndpointLabelsEntry_descriptor =
-      internal_static_connection_ConnectionMessage_descriptor.getNestedTypes().get(0);
-    internal_static_connection_ConnectionMessage_OtherEndpointLabelsEntry_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_connection_ConnectionMessage_OtherEndpointLabelsEntry_descriptor,
-        new java.lang.String[] { "Key", "Value", });
+        new java.lang.String[] { "Mode", "ConnectionId", "TargetAddress", "ListenPort", "ReceiveHash", "SendHash", "RemoteInterfaceId", "RemoteProcessId", "RemoteServiceId", });
     internal_static_connection_ConnectionHandshake_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_connection_ConnectionHandshake_fieldAccessorTable = new

@@ -134,25 +134,27 @@ public class DashboardGateway implements Service<DashboardGatewayConfiguration> 
 	}
 
 	public String getUsernameForProcessId(String processId) {
-		try {
-//			URL orch = new URL("http://" + params.getOrchestratorHost() + ":" + params.getOrchestratorPort()
-//					+ "/process/" + URLEncoder.encode(processId, "UTF-8"));
-//			HttpURLConnection con = (HttpURLConnection) orch.openConnection();
-//			con.setRequestProperty("Authorization",
-//					"Basic " + new String(Base64.getEncoder().encode((username + ":" + password).getBytes())));
-//			con.setRequestMethod("GET");
-//			int code = con.getResponseCode();
-//			boolean success = code == 200;
-//			if (success) {
-//				LOG.info("Attempted login for user " + username + " was successful");
-//			} else {
-//				LOG.info("Attempted login for user " + username + " failed");
-//
-//			}
-//			return success;
-//		} catch (IOException e) {
-//			return false;
-//		}
+		// try {
+		// URL orch = new URL("http://" + params.getOrchestratorHost() + ":" +
+		// params.getOrchestratorPort()
+		// + "/process/" + URLEncoder.encode(processId, "UTF-8"));
+		// HttpURLConnection con = (HttpURLConnection) orch.openConnection();
+		// con.setRequestProperty("Authorization",
+		// "Basic " + new String(Base64.getEncoder().encode((username + ":" +
+		// password).getBytes())));
+		// con.setRequestMethod("GET");
+		// int code = con.getResponseCode();
+		// boolean success = code == 200;
+		// if (success) {
+		// LOG.info("Attempted login for user " + username + " was successful");
+		// } else {
+		// LOG.info("Attempted login for user " + username + " failed");
+		//
+		// }
+		// return success;
+		// } catch (IOException e) {
+		// return false;
+		// }
 		return null;
 	}
 

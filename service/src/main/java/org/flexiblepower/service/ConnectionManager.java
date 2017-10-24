@@ -109,7 +109,9 @@ public class ConnectionManager implements Closeable {
                     message.getListenPort(),
                     message.getTargetAddress(),
                     info,
-                    message.getOtherProcessId());
+                    message.getRemoteProcessId(),
+                    message.getRemoteServiceId(),
+                    message.getRemoteInterfaceId());
             this.connections.put(message.getConnectionId(), conn);
         }
         return ConnectionHandshake.newBuilder()

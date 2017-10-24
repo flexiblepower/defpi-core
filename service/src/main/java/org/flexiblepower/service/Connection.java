@@ -22,6 +22,10 @@ public interface Connection {
 
     public ConnectionState getState();
 
-    public String otherProcessId();
+    public String remoteProcessId();
+
+    public String remoteServiceId();
+
+    public String remoteInterfaceId();
 
 }

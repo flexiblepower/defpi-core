@@ -160,8 +160,8 @@ public class ConnectionIntegrationTest {
         ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandlerBuilder());
 
         try (
-                final TCPConnection mc1 = new TCPConnection("CIT", 5000, "", info);
-                final TCPConnection mc2 = new TCPConnection("CIT", 5000, "localhost", info)) {
+                final TCPConnection mc1 = new TCPConnection("CIT", 5000, "", info, "", "", "");
+                final TCPConnection mc2 = new TCPConnection("CIT", 5000, "localhost", info, "", "", "")) {
             mc2.waitUntilConnected(0);
             Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT); // Make sure at least 1 heartbeat is sent
 
@@ -185,8 +185,8 @@ public class ConnectionIntegrationTest {
         ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandlerBuilder());
 
         try (
-                final TCPConnection mc1 = new TCPConnection("CIT", 5000, "", info);
-                final TCPConnection mc2 = new TCPConnection("CIT", 5000, "localhost", info)) {
+                final TCPConnection mc1 = new TCPConnection("CIT", 5000, "", info, "", "", "");
+                final TCPConnection mc2 = new TCPConnection("CIT", 5000, "localhost", info, "", "", "")) {
 
             mc1.waitUntilConnected(0);
             Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
@@ -231,8 +231,8 @@ public class ConnectionIntegrationTest {
         final InterfaceInfo info = TestHandler.class.getAnnotation(InterfaceInfo.class);
         ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandlerBuilder());
 
-        try (final TCPConnection mc2 = new TCPConnection("CIT", 5000, "localhost", info)) {
-            try (final TCPConnection mc1 = new TCPConnection("CIT", 5000, "", info)) {
+        try (final TCPConnection mc2 = new TCPConnection("CIT", 5000, "localhost", info, "", "", "")) {
+            try (final TCPConnection mc1 = new TCPConnection("CIT", 5000, "", info, "", "", "")) {
                 mc1.waitUntilConnected(0);
                 Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
 
@@ -257,7 +257,7 @@ public class ConnectionIntegrationTest {
             Assert.assertTrue(("terminated".equals(state1) && "interrupted".equals(state2))
                     || ("terminated".equals(state2) && "interrupted".equals(state1)));
 
-            try (final TCPConnection mc3 = new TCPConnection("CIT", 5000, "", info)) {
+            try (final TCPConnection mc3 = new TCPConnection("CIT", 5000, "", info, "", "", "")) {
                 mc3.waitUntilConnected(0);
                 Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
 

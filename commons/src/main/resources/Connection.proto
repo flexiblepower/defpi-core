@@ -18,8 +18,9 @@ message ConnectionMessage {
   optional int32 listenPort = 4;
   optional string receiveHash = 5;
   optional string sendHash = 6;
-  optional string otherProcessId = 7;
-  map<string, string> otherEndpointLabels = 8;
+  optional string remoteInterfaceId = 7;
+  optional string remoteProcessId = 8;
+  optional string remoteServiceId = 9;
 }
 
 enum ConnectionState {
