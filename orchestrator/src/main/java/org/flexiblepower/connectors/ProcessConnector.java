@@ -89,7 +89,8 @@ public class ProcessConnector {
     }
 
     public boolean createConnectionEndpoint(final Connection connection, final Endpoint endpoint)
-            throws ProcessNotFoundException, ServiceNotFoundException {
+            throws ProcessNotFoundException,
+            ServiceNotFoundException {
         final Endpoint otherEndpoint = connection.getOtherEndpoint(endpoint);
         final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
 
@@ -113,7 +114,8 @@ public class ProcessConnector {
 
         // Decide if this endpoint will be server or client
         final String targetAddress = (endpoint.getProcessId().compareTo(otherEndpoint.getProcessId()) > 0
-                ? otherEndpoint.getProcessId().toString() : "");
+                ? otherEndpoint.getProcessId().toString()
+                : "");
 
         return pc.setUpConnection(connection.getId(),
                 endpoint.getListenPort(),
@@ -147,7 +149,8 @@ public class ProcessConnector {
      * @throws ProcessNotFoundException
      */
     public boolean resumeConnectionEndpoint(final Connection connection, final Endpoint endpoint)
-            throws ServiceNotFoundException, ProcessNotFoundException {
+            throws ServiceNotFoundException,
+            ProcessNotFoundException {
         final Endpoint otherEndpoint = connection.getOtherEndpoint(endpoint);
         final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
 
@@ -221,7 +224,7 @@ public class ProcessConnector {
 
     private static final class ProcessConnection {
 
-        private static final int IO_TIMEOUT = 1000;
+        private static final int IO_TIMEOUT = 10000;
         private static final int MANAGEMENT_PORT = 4999;
 
         private final ProtobufMessageSerializer serializer = new ProtobufMessageSerializer();
@@ -454,9 +457,8 @@ public class ProcessConnector {
         private SetConfigMessage createSetConfigMessage(final Process process,
                 final List<ProcessParameter> configuration,
                 final boolean isUpdate) {
-            final Builder builder = SetConfigMessage.newBuilder()
-                    .setProcessId(this.processId.toString())
-                    .setIsUpdate(isUpdate);
+            final Builder builder = SetConfigMessage.newBuilder().setProcessId(this.processId.toString()).setIsUpdate(
+                    isUpdate);
             // Set configuration
             if (configuration != null) {
                 for (final ProcessParameter p : configuration) {
