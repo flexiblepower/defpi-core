@@ -49,6 +49,9 @@ public class User {
     private String passwordHash = null;
 
     @Setter
+    private String authenticationToken = null;
+
+    @Setter
     private String email = null;
 
     @Setter

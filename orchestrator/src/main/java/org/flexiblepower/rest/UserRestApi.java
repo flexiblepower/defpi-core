@@ -2,6 +2,7 @@ package org.flexiblepower.rest;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -35,6 +36,7 @@ public class UserRestApi extends BaseApi implements UserApi {
 
         // Update the password to store it encrypted
         newUser.setPasswordHash();
+        newUser.setAuthenticationToken(UUID.randomUUID().toString());
         this.db.saveUser(newUser);
         return newUser;
     }

@@ -71,6 +71,14 @@ public class UserManager {
     }
 
     /**
+     * @param token
+     * @return
+     */
+    public User getUserByToken(final String token) {
+        return this.db.getUserByToken(token);
+    }
+
+    /**
      * This function creates a new user with the provided name and password. This is essentially a "registration"
      * function.
      *

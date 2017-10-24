@@ -88,8 +88,6 @@ public class Process {
 
     private String dockerId;
 
-    private String orchestratorToken;
-
     /**
      * The node on which the process is actually running. May be null when the state
      * is not RUNNING.

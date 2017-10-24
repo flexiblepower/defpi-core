@@ -498,7 +498,8 @@ public class ProcessConnector {
                 ProcessConnector.log.error("Could not obtain hostame", e);
             }
             builder.putDefpiParams(DefPiParams.ORCHESTRATOR_PORT.name(), Integer.toString(Main.URI_PORT));
-            builder.putDefpiParams(DefPiParams.ORCHESTRATOR_TOKEN.name(), process.getOrchestratorToken());
+            builder.putDefpiParams(DefPiParams.ORCHESTRATOR_TOKEN.name(),
+                    UserManager.getInstance().getUser(process.getUserId()).getAuthenticationToken());
             builder.putDefpiParams(DefPiParams.USER_ID.name(), process.getUserId().toString());
             final User user = UserManager.getInstance().getUser(process.getUserId());
             builder.putDefpiParams(DefPiParams.USERNAME.name(), user.getUsername());
