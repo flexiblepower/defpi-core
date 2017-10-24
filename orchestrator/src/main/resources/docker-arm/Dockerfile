@@ -8,6 +8,9 @@ ENV GIT_LOG ${git.commit.message.short}
 
 COPY def-pi-cacert.crt $JAVA_HOME/jre/lib/security
 
+EXPOSE 8080
+HEALTHCHECK --timeout=3s CMD wget -qO - http://localhost:8080/diag || exit 1
+
 # TODO this doesn't work if you are building on an x86 machine, forget it for now...
 #RUN \
 #    cd $JAVA_HOME/jre/lib/security \
