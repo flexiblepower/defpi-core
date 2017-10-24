@@ -282,18 +282,31 @@ public class DockerConnector {
         final EndpointSpec.Builder endpointSpec = EndpointSpec.builder();
         final ContainerSpec.Builder containerSpec = ContainerSpec.builder().image(dockerImage);
 
+        // Set JVM arguments for the container
+        String jvmArgs = "-XX:MaxHeapFreeRatio=10 -XX:MinHeapFreeRatio=10 ";
+
         final Map<String, String> envArgs = new HashMap<>();
         if (process.getDebuggingPort() != 0) {
-            envArgs.put("JVM_ARGUMENTS",
-                    String.format("-Xdebug -agentlib:jdwp=transport=dt_socket,server=y,suspend=%s,address=%d",
-                            process.isSuspendOnDebug() ? "y" : "n",
-                            DockerConnector.INTERNAL_DEBUGGING_PORT));
+            jvmArgs += String.format("-Xdebug -agentlib:jdwp=transport=dt_socket,server=y,suspend=%s,address=%d",
+                    process.isSuspendOnDebug() ? "y" : "n",
+                    DockerConnector.INTERNAL_DEBUGGING_PORT);
             endpointSpec.addPort(PortConfig.builder()
                     .publishedPort(process.getDebuggingPort())
                     .targetPort(DockerConnector.INTERNAL_DEBUGGING_PORT)
                     .publishMode(PortConfigPublishMode.HOST)
                     .build());
         }
+
+        // Add resource limitations
+        final Resources.Builder limits = Resources.builder();
+        if (process.getMaxMemoryBytes() > 0) {
+            limits.memoryBytes(process.getMaxMemoryBytes());
+            jvmArgs += "-Xmx" + process.getMaxMemoryBytes();
+        }
+        if (process.getMaxNanoCPUs() > 0) {
+            limits.nanoCpus(process.getMaxNanoCPUs());
+        }
+        final ResourceRequirements.Builder resources = ResourceRequirements.builder().limits(limits.build());
 
         // Add mounts to the container
         final List<Mount> mountList = new ArrayList<>();
@@ -310,19 +323,10 @@ public class DockerConnector {
                 .build();
 
         // Add all container environment variables
+        envArgs.put("JVM_ARGUMENTS", jvmArgs);
         final List<String> envList = new ArrayList<>();
         envArgs.forEach((key, value) -> envList.add(key + "=" + value));
         containerSpec.env(envList);
-
-        // Add resource limitations
-        final Resources.Builder limits = Resources.builder();
-        if (process.getMaxMemoryBytes() > 0) {
-            limits.memoryBytes(process.getMaxMemoryBytes());
-        }
-        if (process.getMaxNanoCPUs() > 0) {
-            limits.nanoCpus(process.getMaxNanoCPUs());
-        }
-        final ResourceRequirements.Builder resources = ResourceRequirements.builder().limits(limits.build());
 
         // Add the containerSpec and placement to the taskSpec
         final Placement placement = Placement.create(Arrays.asList("node.id == " + node.getDockerId()));
