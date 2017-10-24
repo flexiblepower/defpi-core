@@ -283,7 +283,8 @@ public class ServiceManager<T> implements Closeable {
                     ServiceManager.log.error("Error while calling terminate()", t);
                 }
             });
-            // this.connectionManager.close();
+
+            // Connections are closed by the manager thread
             this.keepThreadAlive = false;
             return this.createProcessStateUpdateMessage(ProcessState.TERMINATED);
         case STARTING:
