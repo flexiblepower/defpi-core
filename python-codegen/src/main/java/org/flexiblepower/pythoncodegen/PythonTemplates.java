@@ -110,40 +110,29 @@ public class PythonTemplates extends Templates {
             final Set<String> definitions = new HashSet<>();
             final Set<String> implementations = new HashSet<>();
             final Set<String> itfimports = new HashSet<>();
-            final Set<String> clsimports = new HashSet<>();
             for (final InterfaceVersionDescription vitf : itf.getInterfaceVersions()) {
                 final String interfaceClass = PythonCodegenUtils.connectionHandlerInterface(itf, vitf);
                 final String implementationClass = PythonCodegenUtils.connectionHandlerClass(itf, vitf);
+                final String interfaceVersionModule = PythonCodegenUtils.getVersion(vitf);
 
                 final Map<String, String> handlerReplace = new HashMap<>();
                 handlerReplace.put("vitf.handler.interface", interfaceClass);
                 handlerReplace.put("vitf.handler.class", implementationClass);
-                handlerReplace.put("vitf.version", PythonCodegenUtils.getVersion(vitf));
+                handlerReplace.put("vitf.version", interfaceVersionModule);
+                handlerReplace.put("vitf.version.builder", PythonCodegenUtils.builderFunctionName(itf, vitf));
 
                 definitions.add(this.replaceMap(this.getTemplate("BuilderDefinition"), handlerReplace));
                 implementations.add(this.replaceMap(this.getTemplate("BuilderImplementation"), handlerReplace));
-                // itfimports.add(String.format("import %s.%s.%s.%s;",
-                // this.servicePackage,
-                // interfacePackage,
-                // interfaceVersionPackage,
-                // interfaceClass));
-                // clsimports.add(String.format("import %s.%s.%s.%s;",
-                // this.servicePackage,
-                // interfacePackage,
-                // interfaceVersionPackage,
-                // interfaceClass));
-                // clsimports.add(String.format("import %s.%s.%s.%s;",
-                // this.servicePackage,
-                // interfacePackage,
-                // interfaceVersionPackage,
-                // implementationClass));
+
+                itfimports.add(String.format("from .%s.%s import %s",
+                        interfaceVersionModule,
+                        implementationClass,
+                        implementationClass));
             }
 
             replaceMap.put("itf.manager.definitions", String.join("\n\n", definitions));
             replaceMap.put("itf.manager.implementations", String.join("\n\n", implementations));
-
-            replaceMap.put("itf.manager.imports.interface", String.join("\n", itfimports));
-            replaceMap.put("itf.manager.imports.implementation", String.join("\n", clsimports));
+            replaceMap.put("itf.manager.imports.implementation", String.join("\n", itfimports));
         }
 
         // Build replaceMaps for the interface versions
@@ -158,13 +147,13 @@ public class PythonTemplates extends Templates {
 
             final Set<String> recvClasses = new HashSet<>();
             for (final String type : version.getReceives()) {
-                recvClasses.add(type + ".class");
+                recvClasses.add(type);
             }
             replaceMap.put("vitf.receiveClasses", String.join(", ", recvClasses));
 
             final Set<String> sendClasses = new HashSet<>();
             for (final String type : version.getSends()) {
-                sendClasses.add(type + ".class");
+                sendClasses.add(type);
             }
             replaceMap.put("vitf.sendClasses", String.join(", ", sendClasses));
 
@@ -175,6 +164,8 @@ public class PythonTemplates extends Templates {
             for (final String type : version.getReceives()) {
                 final Map<String, String> handlerReplace = new HashMap<>();
                 handlerReplace.put("handle.type", type);
+                handlerReplace.put("handler.function", PythonCodegenUtils.typeHandlerFunction(type));
+
                 definitions.add(this.replaceMap(this.getTemplate("HandlerDefinition"), handlerReplace));
                 implementations.add(this.replaceMap(this.getTemplate("HandlerImplementation"), handlerReplace));
             }
@@ -191,7 +182,7 @@ public class PythonTemplates extends Templates {
                 replaceMap.put("vitf.serializer", "ProtobufMessageSerializer");
 
                 for (final String type : messageSet) {
-                    imports.add(String.format("import %s.%s;", version.getModelPackageName(), type));
+                    imports.add(String.format("from %s import %s;", version.getModelPackageName(), type));
                 }
             } else if (version.getType().equals(Type.XSD)) {
                 replaceMap.put("vitf.serializer", "XSDMessageSerializer");

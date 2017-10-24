@@ -63,6 +63,10 @@ public class ProtoCompiler implements Compiler {
             Files.createDirectory(targetPath);
         }
 
+        if (Files.notExists(targetPath.resolve(PythonCodegen.PACKAGE_DECLARATION))) {
+            Files.createFile(targetPath.resolve(PythonCodegen.PACKAGE_DECLARATION));
+        }
+
         if (!this.compilerFile.exists()) {
             Files.createDirectories(this.compilerFile.toPath().getParent());
             PluginUtils.downloadFile(

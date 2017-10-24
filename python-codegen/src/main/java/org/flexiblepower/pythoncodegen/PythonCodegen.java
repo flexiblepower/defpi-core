@@ -31,10 +31,14 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class PythonCodegen {
 
+    /**
+     *
+     */
     private static final String DEFAULT_SERVICE_FILE = "service.json";
     public static final String RESOURCE_LOCATION = "resources";
     public static final String SOURCE_LOCATION = "service";
     public static final String PROTOBUF_VERSION = "3.3.0";
+    public static final String PACKAGE_DECLARATION = "__init__.py";
 
     // In what subfolders to put all resources
     public static final String PROTO_INPUT_LOCATION = "";
@@ -112,6 +116,9 @@ public class PythonCodegen {
 
         for (final InterfaceDescription itf : serviceDescription.getInterfaces()) {
             final Path interfacePath = Files.createDirectories(dest.resolve(itf.getName()));
+            if (Files.notExists(interfacePath.resolve(PythonCodegen.PACKAGE_DECLARATION))) {
+                Files.createFile(interfacePath.resolve(PythonCodegen.PACKAGE_DECLARATION));
+            }
             final Path manager = interfacePath.resolve(PythonCodegenUtils.managerInterface(itf) + ext);
             final Path managerImpl = interfacePath.resolve(PythonCodegenUtils.managerClass(itf) + ext);
 
@@ -126,8 +133,10 @@ public class PythonCodegen {
 
             for (final InterfaceVersionDescription version : itf.getInterfaceVersions()) {
                 final Path interfaceVersionPath = Files
-                        .createDirectories(interfacePath.resolve(version.getVersionName()));
-
+                        .createDirectories(interfacePath.resolve(PythonCodegenUtils.getVersion(version)));
+                if (Files.notExists(interfaceVersionPath.resolve(PythonCodegen.PACKAGE_DECLARATION))) {
+                    Files.createFile(interfaceVersionPath.resolve(PythonCodegen.PACKAGE_DECLARATION));
+                }
                 // Create intermediate directories
                 final Path connectionHandler = interfaceVersionPath
                         .resolve(PythonCodegenUtils.connectionHandlerInterface(itf, version) + ext);

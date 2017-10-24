@@ -11,7 +11,9 @@ import java.io.IOException;
 import org.flexiblepower.codegen.model.InterfaceDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription;
 import org.flexiblepower.codegen.model.ServiceDescription;
+import org.flexiblepower.pythoncodegen.PythonCodegenUtils;
 import org.flexiblepower.pythoncodegen.PythonTemplates;
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -46,5 +48,11 @@ public class PluginTest {
         }
         PluginTest.log.info(t.generateServiceImplementation());
         PluginTest.log.info(t.generateDockerfile("x86", descr, "run-java.sh"));
+    }
+
+    @Test
+    public void testStringMagic() {
+        Assert.assertEquals("this_is_a_test", PythonCodegenUtils.camelToSnakeCaps("thisIsATest"));
+        System.out.println(PythonCodegenUtils.camelToSnakeCaps("IAmMagicSnakeCaps"));
     }
 }

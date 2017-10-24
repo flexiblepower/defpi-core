@@ -24,13 +24,15 @@ public class PythonCodegenUtils {
     private static final String HANDLER_IMPL_SUFFIX = "ConnectionHandlerImpl";
     private static final String MANAGER_SUFFIX = "ConnectionManager";
     private static final String MANAGER_IMPL_SUFFIX = "ConnectionManagerImpl";
+    private static final String BUILDER_FUNCTION_PREFIX = "build";
+    private static final String HANDLER_FUNCTION_PREFIX = "handle";
 
     public static String getVersion(final InterfaceVersionDescription vitf) {
-        return PluginUtils.snakeCaps(vitf.getVersionName());
+        return PluginUtils.camelCaps(vitf.getVersionName());
     }
 
     public static String getVersionedName(final InterfaceDescription itf, final InterfaceVersionDescription vitf) {
-        return PluginUtils.snakeCaps(itf.getName() + "_" + vitf.getVersionName());
+        return PluginUtils.camelCaps(itf.getName() + " " + vitf.getVersionName());
     }
 
     public static String serviceImplClass(final ServiceDescription d) {
@@ -39,13 +41,13 @@ public class PythonCodegenUtils {
 
     public static String connectionHandlerInterface(final InterfaceDescription itf,
             final InterfaceVersionDescription version) {
-        return PluginUtils.camelCaps(itf.getName() + "_" + version.getVersionName())
+        return PluginUtils.camelCaps(itf.getName() + " " + version.getVersionName())
                 + PythonCodegenUtils.HANDLER_SUFFIX;
     }
 
     public static String connectionHandlerClass(final InterfaceDescription itf,
             final InterfaceVersionDescription version) {
-        return PluginUtils.camelCaps(itf.getName() + "_" + version.getVersionName())
+        return PluginUtils.camelCaps(itf.getName() + " " + version.getVersionName())
                 + PythonCodegenUtils.HANDLER_IMPL_SUFFIX;
     }
 
@@ -55,6 +57,19 @@ public class PythonCodegenUtils {
 
     public static String managerClass(final InterfaceDescription itf) {
         return PluginUtils.camelCaps(itf.getName()) + PythonCodegenUtils.MANAGER_IMPL_SUFFIX;
+    }
+
+    public static String builderFunctionName(final InterfaceDescription itf, final InterfaceVersionDescription vitf) {
+        return PythonCodegenUtils.BUILDER_FUNCTION_PREFIX + "_"
+                + PluginUtils.snakeCaps(itf.getName() + " " + vitf.getVersionName());
+    }
+
+    public static String typeHandlerFunction(final String type) {
+        return PythonCodegenUtils.HANDLER_FUNCTION_PREFIX + PythonCodegenUtils.camelToSnakeCaps(type);
+    }
+
+    public static String camelToSnakeCaps(final String type) {
+        return type.replaceAll("([A-Z])", "_$1").toLowerCase();
     }
 
 }
