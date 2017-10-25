@@ -99,6 +99,23 @@ public interface UserApi {
                     NotFoundException;
 
     @GET
+    @Path("/by_username/{username}")
+    @ApiOperation(nickname = "getUser",
+                  value = "Get user data",
+                  notes = "Get data of the user with the provided Id",
+                  authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "User data", response = User.class),
+            @ApiResponse(code = 400, message = InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE),
+            @ApiResponse(code = 404, message = UserApi.USER_NOT_FOUND_MESSAGE),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
+    public User getUserByUsername(
+            @ApiParam(value = "The usuername of the User that needs to be fetched",
+                      required = true) @PathParam("username") final String userId)
+            throws AuthorizationException,
+            InvalidObjectIdException,
+            NotFoundException;
+
+    @GET
     @ApiOperation(nickname = "listUsers",
                   value = "List users",
                   notes = "List all registered users",

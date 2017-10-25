@@ -25,7 +25,10 @@ public class ManagedConnectionTest {
                 TCPConnection conn = new TCPConnection("ConnID1234",
                         1234,
                         "tcp://localhost:5678",
-                        TestService.class.getAnnotation(InterfaceInfo.class))) {
+                        TestService.class.getAnnotation(InterfaceInfo.class),
+                        "",
+                        "",
+                        "")) {
             Assert.assertEquals(ConnectionState.STARTING, conn.getState());
             conn.goToTerminatedState();
             Assert.assertEquals(ConnectionState.TERMINATED, conn.getState());

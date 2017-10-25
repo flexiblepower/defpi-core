@@ -121,7 +121,8 @@ public class ProcessConnector {
                 endpoint.getListenPort(),
                 interfaceVersion.getSendsHash(),
                 targetAddress,
-                interfaceVersion.getReceivesHash());
+                interfaceVersion.getReceivesHash(),
+                otherEndpoint);
 
     }
 
@@ -169,7 +170,8 @@ public class ProcessConnector {
                 interfaceVersion.getSendsHash(),
                 otherEndpoint.getProcessId().toString(),
                 otherEndpoint.getListenPort(),
-                interfaceVersion.getReceivesHash());
+                interfaceVersion.getReceivesHash(),
+                otherEndpoint);
 
     }
 
@@ -274,7 +276,16 @@ public class ProcessConnector {
                 final int listeningPort,
                 final String sendsHash,
                 final String targetAddress,
-                final String receivesHash) {
+                final String receivesHash,
+                final Connection.Endpoint otherEndpoint) {
+            String serviceId;
+            try {
+                final Process otherProcess = ProcessManager.getInstance().getProcess(otherEndpoint.getProcessId());
+                serviceId = otherProcess.getServiceId();
+            } catch (final ProcessNotFoundException e) {
+                serviceId = null;
+            }
+
             final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
                     .setConnectionId(connectionId.toString())
                     .setMode(ConnectionMessage.ModeType.CREATE)
@@ -282,6 +293,9 @@ public class ProcessConnector {
                     .setListenPort(listeningPort)
                     .setReceiveHash(receivesHash)
                     .setSendHash(sendsHash)
+                    .setRemoteProcessId(otherEndpoint.getProcessId().toString())
+                    .setRemoteInterfaceId(otherEndpoint.getInterfaceId())
+                    .setRemoteServiceId(serviceId)
                     .build();
 
             final ConnectionHandshake response = this.send(connectionMessage, ConnectionHandshake.class);
@@ -331,8 +345,17 @@ public class ProcessConnector {
                 final String sendingHash,
                 final String receivingHost,
                 final int targetPort,
-                final String receivingHash) {
+                final String receivingHash,
+                final Connection.Endpoint otherEndpoint) {
             final String targetAddress = "tcp://" + receivingHost + ":" + targetPort;
+
+            String serviceId;
+            try {
+                final Process otherProcess = ProcessManager.getInstance().getProcess(otherEndpoint.getProcessId());
+                serviceId = otherProcess.getServiceId();
+            } catch (final ProcessNotFoundException e) {
+                serviceId = null;
+            }
 
             final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
                     .setConnectionId(connectionId.toString())
@@ -341,6 +364,9 @@ public class ProcessConnector {
                     .setListenPort(listeningPort)
                     .setReceiveHash(receivingHash)
                     .setSendHash(sendingHash)
+                    .setRemoteProcessId(otherEndpoint.getProcessId().toString())
+                    .setRemoteInterfaceId(otherEndpoint.getInterfaceId())
+                    .setRemoteServiceId(serviceId)
                     .build();
 
             final ConnectionHandshake response = this.send(connectionMessage, ConnectionHandshake.class);
@@ -472,7 +498,8 @@ public class ProcessConnector {
                 ProcessConnector.log.error("Could not obtain hostame", e);
             }
             builder.putDefpiParams(DefPiParams.ORCHESTRATOR_PORT.name(), Integer.toString(Main.URI_PORT));
-            builder.putDefpiParams(DefPiParams.ORCHESTRATOR_TOKEN.name(), process.getOrchestratorToken());
+            builder.putDefpiParams(DefPiParams.ORCHESTRATOR_TOKEN.name(),
+                    UserManager.getInstance().getUser(process.getUserId()).getAuthenticationToken());
             builder.putDefpiParams(DefPiParams.USER_ID.name(), process.getUserId().toString());
             final User user = UserManager.getInstance().getUser(process.getUserId());
             builder.putDefpiParams(DefPiParams.USERNAME.name(), user.getUsername());

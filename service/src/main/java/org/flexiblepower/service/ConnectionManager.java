@@ -108,7 +108,10 @@ public class ConnectionManager implements Closeable {
             final TCPConnection conn = new TCPConnection(message.getConnectionId(),
                     message.getListenPort(),
                     message.getTargetAddress(),
-                    info);
+                    info,
+                    message.getRemoteProcessId(),
+                    message.getRemoteServiceId(),
+                    message.getRemoteInterfaceId());
             this.connections.put(message.getConnectionId(), conn);
         }
         return ConnectionHandshake.newBuilder()

@@ -31,32 +31,44 @@ public abstract class BaseApi {
     protected final User sessionUser;
 
     protected BaseApi(final HttpHeaders httpHeaders) {
-
         String authString = httpHeaders.getHeaderString("Authorization");
         if ((authString == null) || !authString.startsWith(BaseApi.AUTH_PREFIX)) {
-            BaseApi.log.warn("Client is not using basic authentication, not authenticated");
-            this.sessionUser = null;
-            return;
-        }
+            // User did not provide Basic Auth info, so look for token in header
+            BaseApi.log.debug("Client is not using basic authentication! Looking for token header");
+            final String token = httpHeaders.getHeaderString("X-Auth-Token");
+            if (token == null) { // If token is also not present, user is unauthenticated!
+                BaseApi.log.debug("Client is not using token-based authentication either! Unauthenticated!");
+                this.sessionUser = null;
+                return;
+            }
+            // If token is present, try to get a user that matches the token
+            this.sessionUser = UserManager.getInstance().getUserByToken(token);
+            if (this.sessionUser == null) { // If no match found, no user found
+                BaseApi.log.debug("Unable to find user with provided token");
+                return;
+            }
+            // Success!
+            BaseApi.log.debug("User {} logged in", this.sessionUser.getUsername());
+        } else {
+            // Trim the prefix
+            authString = authString.substring(BaseApi.AUTH_PREFIX.length());
+            final String credentials = new String(Base64.getDecoder().decode(authString));
+            final int pos = credentials.indexOf(':');
+            if ((pos < 1)) {
+                BaseApi.log.debug("Unable to parse authentication string, not authenticated");
+                this.sessionUser = null;
+                return;
+            }
 
-        // Trim the prefix
-        authString = authString.substring(BaseApi.AUTH_PREFIX.length());
-        final String credentials = new String(Base64.getDecoder().decode(authString));
-        final int pos = credentials.indexOf(':');
-        if ((pos < 1)) {
-            BaseApi.log.warn("Unable to parse authentication string, not authenticated");
-            this.sessionUser = null;
-            return;
-        }
+            this.sessionUser = UserManager.getInstance().getUser(credentials.substring(0, pos),
+                    credentials.substring(pos + 1));
+            if (this.sessionUser == null) {
+                BaseApi.log.debug("Unable to find user with provided credentials");
+                return;
+            }
 
-        this.sessionUser = UserManager.getInstance().getUser(credentials.substring(0, pos),
-                credentials.substring(pos + 1));
-        if (this.sessionUser == null) {
-            BaseApi.log.warn("Unable to find user with provided credentials");
-            return;
+            BaseApi.log.debug("User {} logged in", this.sessionUser.getUsername());
         }
-
-        BaseApi.log.trace("User {} logged in", this.sessionUser.getUsername());
     }
 
     /**
