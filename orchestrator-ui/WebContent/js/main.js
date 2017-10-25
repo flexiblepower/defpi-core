@@ -258,22 +258,24 @@ myApp
 					connection.listView().fields(
 							[
 									nga.field('id'),
-									nga.field('endpoint1.processId',
-											'reference').targetEntity(process)
-											.targetField(nga.field('id'))
-											.label('Process 1'),
-									nga.field('endpoint1.interfaceId',
-											'reference').targetEntity(intface)
-											.targetField(nga.field('id'))
-											.label('Interface 1'),
-									nga.field('endpoint2.processId',
-											'reference').targetEntity(process)
-											.targetField(nga.field('id'))
-											.label('Process 2'),
-									nga.field('endpoint2.interfaceId',
-											'reference').targetEntity(intface)
-											.targetField(nga.field('id'))
-											.label('Interface 2') ]);
+									nga.field('endpoint1.processId').label(
+											'Process 1'),
+									nga.field('endpoint1.interfaceId').label(
+											'Interface 1'),
+									nga.field('endpoint2.processId').label(
+											'Process 2'),
+									nga.field('endpoint2.interfaceId').label(
+											'Interface 2') ]).filters(
+							[
+									nga.field('userId', 'reference')
+											.targetEntity(user).targetField(
+													nga.field('username'))
+											.label('User'),
+									nga.field('processId', 'reference')
+											.targetEntity(process).targetField(
+													nga.field('id')).label(
+													'Process') ]);
+
 					connection.creationView().fields(
 							[
 									nga.field('endpoint1.processId',
