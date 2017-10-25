@@ -1,10 +1,8 @@
 package org.flexiblepower.defpi.dashboardgateway;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
-import java.io.StringWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -15,7 +13,7 @@ import java.util.Map;
 
 import javax.annotation.Generated;
 
-import org.apache.logging.log4j.core.util.IOUtils;
+import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.server.Server;
 import org.flexiblepower.defpi.dashboardgateway.dashboard.http.Dashboard_httpConnectionHandlerImpl;
 import org.flexiblepower.service.DefPiParameters;

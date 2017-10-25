@@ -13,10 +13,9 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.logging.log4j.core.util.IOUtils;
+import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
-import org.eclipse.jetty.util.log.Log;
 import org.flexiblepower.defpi.dashboardgateway.dashboard.http.Dashboard_httpConnectionHandlerImpl;
 
 public class GatewayHandler extends AbstractHandler {
@@ -25,8 +24,6 @@ public class GatewayHandler extends AbstractHandler {
 
 	private DashboardGateway main;
 	private Map<String, String> sessions = new ConcurrentHashMap<>();
-
-	private CemSelector cemSelector = new CemSelector();
 
 	public GatewayHandler(DashboardGateway main) {
 		this.main = main;

@@ -18,7 +18,7 @@ import javax.annotation.Generated;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.logging.log4j.core.util.IOUtils;
+import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.server.Request;
 import org.flexiblepower.defpi.dashboardgateway.DashboardGateway;
 import org.flexiblepower.defpi.dashboardgateway.dashboard.http.proto.Dashboard_httpProto.HTTPRequest;
