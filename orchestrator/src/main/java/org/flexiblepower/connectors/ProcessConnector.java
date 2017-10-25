@@ -5,8 +5,6 @@
  */
 package org.flexiblepower.connectors;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,14 +24,10 @@ import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Process.ProcessParameter;
 import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.model.Service;
-import org.flexiblepower.model.User;
-import org.flexiblepower.orchestrator.Main;
 import org.flexiblepower.orchestrator.ServiceManager;
-import org.flexiblepower.orchestrator.UserManager;
 import org.flexiblepower.process.ProcessManager;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
-import org.flexiblepower.proto.DefPiParams;
 import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage;
 import org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage;
@@ -381,7 +375,7 @@ public class ProcessConnector {
 
         public boolean startProcess() throws ProcessNotFoundException {
             final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final SetConfigMessage msg = this.createSetConfigMessage(process, process.getConfiguration(), false);
+            final SetConfigMessage msg = this.createSetConfigMessage(process.getConfiguration(), false);
 
             ProcessConnector.log.info("Starting process " + this.processId);
 
@@ -416,8 +410,7 @@ public class ProcessConnector {
          */
         public boolean updateConfiguration(final List<ProcessParameter> newConfiguration)
                 throws ProcessNotFoundException {
-            final Process process = ProcessManager.getInstance().getProcess(this.processId);
-            final SetConfigMessage msg = this.createSetConfigMessage(process, newConfiguration, true);
+            final SetConfigMessage msg = this.createSetConfigMessage(newConfiguration, true);
 
             final ProcessStateUpdateMessage response = this.send(msg, ProcessStateUpdateMessage.class);
             if (response == null) {
@@ -480,31 +473,16 @@ public class ProcessConnector {
             ProcessConnector.getInstance().processConnectionTerminated(this.processId);
         }
 
-        private SetConfigMessage createSetConfigMessage(final Process process,
-                final List<ProcessParameter> configuration,
+        private SetConfigMessage createSetConfigMessage(final List<ProcessParameter> configuration,
                 final boolean isUpdate) {
             final Builder builder = SetConfigMessage.newBuilder().setProcessId(this.processId.toString()).setIsUpdate(
                     isUpdate);
+
             // Set configuration
             if (configuration != null) {
                 for (final ProcessParameter p : configuration) {
                     builder.putConfig(p.getKey(), p.getValue());
                 }
-            }
-            // Set dEF-Pi parameters
-            try {
-                builder.putDefpiParams(DefPiParams.ORCHESTRATOR_HOST.name(), InetAddress.getLocalHost().getHostName());
-            } catch (final UnknownHostException e) {
-                ProcessConnector.log.error("Could not obtain hostame", e);
-            }
-            builder.putDefpiParams(DefPiParams.ORCHESTRATOR_PORT.name(), Integer.toString(Main.URI_PORT));
-            builder.putDefpiParams(DefPiParams.ORCHESTRATOR_TOKEN.name(),
-                    UserManager.getInstance().getUser(process.getUserId()).getAuthenticationToken());
-            builder.putDefpiParams(DefPiParams.USER_ID.name(), process.getUserId().toString());
-            final User user = UserManager.getInstance().getUser(process.getUserId());
-            builder.putDefpiParams(DefPiParams.USERNAME.name(), user.getUsername());
-            if (user.getEmail() != null) {
-                builder.putDefpiParams(DefPiParams.USER_EMAIL.name(), user.getEmail());
             }
 
             return builder.build();

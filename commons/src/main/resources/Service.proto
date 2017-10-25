@@ -33,7 +33,6 @@ message SetConfigMessage {
   required string processId = 1;
   required bool isUpdate = 2; 
   map<string, string> config = 3;
-  map<string, string> defpiParams = 4;
 }
 
 message ErrorMessage {
