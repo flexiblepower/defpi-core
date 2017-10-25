@@ -28,7 +28,7 @@ myApp
 				'NgAdminConfigurationProvider',
 				function(nga) {
 					var admin = nga.application('EF-Pi Orchestrator')
-							.baseApiUrl('http://localhost:8080/');
+							.baseApiUrl('http://localhost:8484/');
 
 					// Entities
 					var user = nga.entity('user');
@@ -74,23 +74,47 @@ myApp
 										label : 'false'
 									} ]) ]);
 
-					process.listView().fields(
-							[
-									nga.field('id'),
-									nga.field('state'),
-									nga.field('userId', 'reference')
-											.targetEntity(user).targetField(
-													nga.field('username'))
-											.label('User'),
-									nga.field('serviceId'),
-									nga.field('nodePoolId', 'reference')
-											.targetEntity(nodepool)
-											.targetField(nga.field('name'))
-											.label('NodePool'),
-									nga.field('privateNodeId', 'reference')
-											.targetEntity(prno).targetField(
+					process
+							.listView()
+							.fields(
+									[
+											nga.field('id'),
+											nga.field('state'),
+											nga
+													.field('userId',
+															'reference')
+													.targetEntity(user)
+													.targetField(
+															nga
+																	.field('username'))
+													.label('User'),
+											nga.field('serviceId'),
+											nga
+													.field('nodePoolId',
+															'reference')
+													.targetEntity(nodepool)
+													.targetField(
+															nga.field('name'))
+													.label('NodePool'),
+											nga.field('privateNodeId',
+													'reference').targetEntity(
+													prno).targetField(
 													nga.field('dockerId'))
-											.label('PrivateNode') ]);
+													.label('PrivateNode') ])
+							.filters(
+									[
+											nga
+													.field('userId',
+															'reference')
+													.targetEntity(user)
+													.targetField(
+															nga
+																	.field('username'))
+													.label('User'),
+											nga
+													.field('hashpair')
+													.label(
+															'Hash-pair (seperate using \';\')') ]);
 
 					process
 							.creationView()
@@ -206,9 +230,7 @@ myApp
 																					'boolean') ]) ]);
 
 					intface.listView().fields(
-							[
-									nga.field('id'),
-									nga.field('name'),
+							[ nga.field('id'), nga.field('name'),
 									nga.field('serviceId') ]);
 
 					intface
@@ -244,7 +266,7 @@ myApp
 											'reference').targetEntity(intface)
 											.targetField(nga.field('id'))
 											.label('Interface 1'),
-									nga.field('endpoint1.processId',
+									nga.field('endpoint2.processId',
 											'reference').targetEntity(process)
 											.targetField(nga.field('id'))
 											.label('Process 2'),
