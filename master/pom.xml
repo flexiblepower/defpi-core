@@ -26,6 +26,7 @@
 		<module>../python-codegen</module>
 		<module>../orchestrator</module>
 		<module>../service</module>
+		<module>../dashboard-gateway</module>
 	</modules>
 
 	<!-- Where to push the maven compiled jars -->
