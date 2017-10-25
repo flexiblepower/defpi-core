@@ -1,7 +1,10 @@
 package org.flexiblepower.defpi.dashboardgateway;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Serializable;
+import java.io.StringWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -12,10 +15,12 @@ import java.util.Map;
 
 import javax.annotation.Generated;
 
+import org.apache.logging.log4j.core.util.IOUtils;
 import org.eclipse.jetty.server.Server;
 import org.flexiblepower.defpi.dashboardgateway.dashboard.http.Dashboard_httpConnectionHandlerImpl;
 import org.flexiblepower.service.DefPiParameters;
 import org.flexiblepower.service.Service;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,14 +106,8 @@ public class DashboardGateway implements Service<DashboardGatewayConfiguration> 
 		this.dashboardConnections.remove(connection.getUsername());
 	}
 
-	public Dashboard_httpConnectionHandlerImpl getHandlerForUsername(String userEmail) {
-		// TODO for now we pick a handler
-		if (dashboardConnections.isEmpty()) {
-			return null;
-		} else {
-			return dashboardConnections.values().iterator().next();
-		}
-		// return this.dashboardConnections.get(userEmail);
+	public Dashboard_httpConnectionHandlerImpl getHandlerForUsername(String username) {
+		return this.dashboardConnections.get(username);
 	}
 
 	public boolean validCredentials(String username, String password) {
@@ -134,28 +133,44 @@ public class DashboardGateway implements Service<DashboardGatewayConfiguration> 
 	}
 
 	public String getUsernameForProcessId(String processId) {
-		// try {
-		// URL orch = new URL("http://" + params.getOrchestratorHost() + ":" +
-		// params.getOrchestratorPort()
-		// + "/process/" + URLEncoder.encode(processId, "UTF-8"));
-		// HttpURLConnection con = (HttpURLConnection) orch.openConnection();
-		// con.setRequestProperty("Authorization",
-		// "Basic " + new String(Base64.getEncoder().encode((username + ":" +
-		// password).getBytes())));
-		// con.setRequestMethod("GET");
-		// int code = con.getResponseCode();
-		// boolean success = code == 200;
-		// if (success) {
-		// LOG.info("Attempted login for user " + username + " was successful");
-		// } else {
-		// LOG.info("Attempted login for user " + username + " failed");
-		//
-		// }
-		// return success;
-		// } catch (IOException e) {
-		// return false;
-		// }
-		return null;
+		try {
+			// Retrieve the userId
+			URL orch = new URL("http://" + params.getOrchestratorHost() + ":" + params.getOrchestratorPort()
+					+ "/process/" + URLEncoder.encode(processId, "UTF-8"));
+			HttpURLConnection con = (HttpURLConnection) orch.openConnection();
+			con.setRequestMethod("GET");
+			con.setRequestProperty("X-Auth-Token", params.getOrchestratorToken());
+			int code = con.getResponseCode();
+			LOG.debug("GET to " + orch.toString() + " returned : " + code);
+
+			String responseBody = IOUtils.toString(new InputStreamReader(con.getInputStream()));
+
+			JSONObject obj = new JSONObject(responseBody);
+			String userId = obj.getString("userId");
+
+			if (userId == null) {
+				LOG.error("Got an invalid response from " + orch.toString() + ", received " + responseBody);
+				return null;
+			}
+
+			// Retrieve the username
+			orch = new URL("http://" + params.getOrchestratorHost() + ":" + params.getOrchestratorPort() + "/user/"
+					+ URLEncoder.encode(userId, "UTF-8"));
+			con = (HttpURLConnection) orch.openConnection();
+			con.setRequestMethod("GET");
+			con.setRequestProperty("X-Auth-Token", params.getOrchestratorToken());
+			code = con.getResponseCode();
+			LOG.debug("GET to " + orch.toString() + " returned : " + code);
+
+			responseBody = IOUtils.toString(new InputStreamReader(con.getInputStream()));
+
+			obj = new JSONObject(responseBody);
+			return obj.getString("username");
+
+		} catch (IOException e) {
+			LOG.error("Could not determine the owner of process " + processId, e);
+			return null;
+		}
 	}
 
 }

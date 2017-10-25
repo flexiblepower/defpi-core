@@ -50,6 +50,7 @@ public class Dashboard_httpConnectionHandlerImpl implements Dashboard_httpConnec
 	private final DashboardGateway service;
 	private final AtomicInteger requestIdGenerator = new AtomicInteger(0);
 	private final Map<Integer, CompletableFuture<HTTPResponse>> responseList = new ConcurrentHashMap<>();
+	private String username = null;
 
 	/**
 	 * Auto-generated constructor for the ConnectionHandlers of the provided service
@@ -102,8 +103,12 @@ public class Dashboard_httpConnectionHandlerImpl implements Dashboard_httpConnec
 	}
 
 	public String getUsername() {
-		// TODO Auto-generated method stub
-		return null;
+		if (username == null) {
+			String processId = connection.remoteProcessId();
+			username = service.getUsernameForProcessId(processId);
+			LOG.debug("Process " + processId + " belongs to user " + username);
+		}
+		return username;
 	}
 
 	public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {

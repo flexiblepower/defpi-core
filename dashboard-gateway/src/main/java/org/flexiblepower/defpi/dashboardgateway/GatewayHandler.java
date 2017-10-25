@@ -16,6 +16,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.logging.log4j.core.util.IOUtils;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.eclipse.jetty.util.log.Log;
 import org.flexiblepower.defpi.dashboardgateway.dashboard.http.Dashboard_httpConnectionHandlerImpl;
 
 public class GatewayHandler extends AbstractHandler {
@@ -34,17 +35,13 @@ public class GatewayHandler extends AbstractHandler {
 	@Override
 	public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
 			throws IOException, ServletException {
-		try {
-			DashboardGateway.LOG.debug(request.getMethod() + " " + request.getRequestURI());
-			String username = getUsername(request);
+		DashboardGateway.LOG.debug(request.getMethod() + " " + request.getRequestURI());
+		String username = getUsername(request);
 
-			if (username == null) {
-				handleNotAuthenticated(target, baseRequest, request, response);
-			} else {
-				handleAuthenticated(username, target, baseRequest, request, response);
-			}
-		} catch (Exception e) {
-			e.printStackTrace(System.err);
+		if (username == null) {
+			handleNotAuthenticated(target, baseRequest, request, response);
+		} else {
+			handleAuthenticated(username, target, baseRequest, request, response);
 		}
 	}
 
@@ -127,6 +124,8 @@ public class GatewayHandler extends AbstractHandler {
 		} else {
 			Dashboard_httpConnectionHandlerImpl handler = main.getHandlerForUsername(username);
 			if (handler == null) {
+				DashboardGateway.LOG
+						.warn("User " + username + " logged in, but there is no dashboard found for this user");
 				response.setHeader("content-type", "text/html");
 				response.getWriter().print("<h1>No dashboard found</h1><p><a href=\"/logout\">Logout</a></p>");
 				response.getWriter().close();

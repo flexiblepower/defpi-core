@@ -93,7 +93,7 @@ public class UserRestApi extends BaseApi implements UserApi {
         }
 
         if ((updatedUser.getPassword() != null) && !updatedUser.getPassword().isEmpty()) {
-            updatedUser.setPassword(updatedUser.getPassword());
+            ret.setPassword(updatedUser.getPassword());
         }
 
         ret.setAdmin(updatedUser.isAdmin());
