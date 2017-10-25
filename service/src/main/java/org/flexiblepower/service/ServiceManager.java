@@ -352,7 +352,14 @@ public class ServiceManager<T> implements Closeable {
         return configFuture.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
-    private String getSysEnvVar(final String key, final String dflt) {
+    /**
+     * Get the value of a given system environment variable. If the variable is not set, use the given default value
+     *
+     * @param key
+     * @param dflt
+     * @return
+     */
+    private static String getSysEnvVar(final String key, final String dflt) {
         final String val = System.getenv(key);
         if (val == null) {
             return dflt;
@@ -368,17 +375,17 @@ public class ServiceManager<T> implements Closeable {
     private DefPiParameters generateDefPiParameters() {
         int orchestratorPort = 0;
         try {
-            orchestratorPort = Integer.parseInt(this.getSysEnvVar(DefPiParams.ORCHESTRATOR_PORT.name(), "0"));
+            orchestratorPort = Integer.parseInt(ServiceManager.getSysEnvVar(DefPiParams.ORCHESTRATOR_PORT.name(), "0"));
         } catch (final NumberFormatException e) {
             // 0 is the default value
         }
-        return new DefPiParameters(this.getSysEnvVar(DefPiParams.ORCHESTRATOR_HOST.name(), null),
+        return new DefPiParameters(ServiceManager.getSysEnvVar(DefPiParams.ORCHESTRATOR_HOST.name(), null),
                 orchestratorPort,
-                this.getSysEnvVar(DefPiParams.ORCHESTRATOR_TOKEN.name(), null),
+                ServiceManager.getSysEnvVar(DefPiParams.ORCHESTRATOR_TOKEN.name(), null),
                 this.processId,
-                this.getSysEnvVar(DefPiParams.USER_ID.name(), null),
-                this.getSysEnvVar(DefPiParams.USERNAME.name(), null),
-                this.getSysEnvVar(DefPiParams.USER_EMAIL.name(), null));
+                ServiceManager.getSysEnvVar(DefPiParams.USER_ID.name(), null),
+                ServiceManager.getSysEnvVar(DefPiParams.USERNAME.name(), null),
+                ServiceManager.getSysEnvVar(DefPiParams.USER_EMAIL.name(), null));
     }
 
     private ProcessStateUpdateMessage createProcessStateUpdateMessage(final ProcessState processState) {
