@@ -28,6 +28,9 @@ public class ServiceConfig {
 
     @SuppressWarnings("unchecked")
     static <T> T generateConfig(final Class<T> clazz, final Map<String, String> rawValues) {
+        if (clazz.equals(Void.class)) {
+            return null;
+        }
         return (T) Proxy
                 .newProxyInstance(clazz.getClassLoader(), new Class[] {clazz}, new GeneratedConfigHandler(rawValues));
     }

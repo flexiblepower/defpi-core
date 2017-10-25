@@ -226,7 +226,7 @@ public class ProcessConnector {
 
     private static final class ProcessConnection {
 
-        private static final int IO_TIMEOUT = 1000;
+        private static final int IO_TIMEOUT = 10000;
         private static final int MANAGEMENT_PORT = 4999;
 
         private final ProtobufMessageSerializer serializer = new ProtobufMessageSerializer();

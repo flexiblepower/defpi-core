@@ -46,6 +46,8 @@ import com.spotify.docker.client.messages.swarm.NetworkAttachmentConfig;
 import com.spotify.docker.client.messages.swarm.Placement;
 import com.spotify.docker.client.messages.swarm.PortConfig;
 import com.spotify.docker.client.messages.swarm.PortConfig.PortConfigPublishMode;
+import com.spotify.docker.client.messages.swarm.ResourceRequirements;
+import com.spotify.docker.client.messages.swarm.Resources;
 import com.spotify.docker.client.messages.swarm.ServiceSpec;
 import com.spotify.docker.client.messages.swarm.TaskSpec;
 
@@ -375,12 +377,14 @@ public class DockerConnector {
         final EndpointSpec.Builder endpointSpec = EndpointSpec.builder();
         final ContainerSpec.Builder containerSpec = ContainerSpec.builder().image(dockerImage);
 
+        // Set JVM arguments for the container
+        String jvmArgs = "-XX:MaxHeapFreeRatio=10 -XX:MinHeapFreeRatio=10 ";
+
         final Map<String, String> envArgs = new HashMap<>();
         if (process.getDebuggingPort() != 0) {
-            envArgs.put("JVM_ARGUMENTS",
-                    String.format("-Xdebug -agentlib:jdwp=transport=dt_socket,server=y,suspend=%s,address=%d",
-                            process.isSuspendOnDebug() ? "y" : "n",
-                            DockerConnector.INTERNAL_DEBUGGING_PORT));
+            jvmArgs += String.format("-Xdebug -agentlib:jdwp=transport=dt_socket,server=y,suspend=%s,address=%d",
+                    process.isSuspendOnDebug() ? "y" : "n",
+                    DockerConnector.INTERNAL_DEBUGGING_PORT);
             endpointSpec.addPort(PortConfig.builder()
                     .publishedPort(process.getDebuggingPort())
                     .targetPort(DockerConnector.INTERNAL_DEBUGGING_PORT)
@@ -406,6 +410,17 @@ public class DockerConnector {
                     .build());
         }
 
+        // Add resource limitations
+        final Resources.Builder limits = Resources.builder();
+        if (process.getMaxMemoryBytes() > 0) {
+            limits.memoryBytes(process.getMaxMemoryBytes());
+            jvmArgs += "-Xmx" + process.getMaxMemoryBytes();
+        }
+        if (process.getMaxNanoCPUs() > 0) {
+            limits.nanoCpus(process.getMaxNanoCPUs());
+        }
+        final ResourceRequirements.Builder resources = ResourceRequirements.builder().limits(limits.build());
+
         // Add mounts to the container
         final List<Mount> mountList = new ArrayList<>();
         if (process.getMountPoints() != null) {
@@ -422,13 +437,14 @@ public class DockerConnector {
         }
 
         // Add all container environment variables
+        envArgs.put("JVM_ARGUMENTS", jvmArgs);
         final List<String> envList = new ArrayList<>();
         envArgs.forEach((key, value) -> envList.add(key + "=" + value));
         containerSpec.env(envList);
 
         // Add the containerSpec and placement to the taskSpec
         final Placement placement = Placement.create(Arrays.asList("node.id == " + node.getDockerId()));
-        taskSpec.containerSpec(containerSpec.build()).placement(placement);
+        taskSpec.containerSpec(containerSpec.build()).resources(resources.build()).placement(placement);
         return ServiceSpec.builder()
                 .name(serviceName)
                 .labels(serviceLabels)
