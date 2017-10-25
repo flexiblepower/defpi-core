@@ -26,10 +26,12 @@ import org.flexiblepower.model.Process;
 import org.flexiblepower.model.PublicNode;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.model.User;
+import org.flexiblepower.orchestrator.Main;
 import org.flexiblepower.orchestrator.NodeManager;
 import org.flexiblepower.orchestrator.ServiceManager;
 import org.flexiblepower.orchestrator.UserManager;
 import org.flexiblepower.process.ProcessManager;
+import org.flexiblepower.proto.DefPiParams;
 
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
@@ -434,6 +436,22 @@ public class DockerConnector {
         for (final String networkName : networks) {
             networksConfigs.add(
                     NetworkAttachmentConfig.builder().target(networkName).aliases(process.getId().toString()).build());
+        }
+
+        // Set dEF-Pi parameters
+        try {
+            envArgs.put(DefPiParams.ORCHESTRATOR_HOST.name(), DockerConnector.getOrchestratorContainerId());
+        } catch (final DockerException e) {
+            ProcessConnector.log.error("Could not obtain hostame", e);
+        }
+        envArgs.put(DefPiParams.ORCHESTRATOR_PORT.name(), Integer.toString(Main.URI_PORT));
+        envArgs.put(DefPiParams.ORCHESTRATOR_TOKEN.name(),
+                UserManager.getInstance().getUser(process.getUserId()).getAuthenticationToken());
+        envArgs.put(DefPiParams.USER_ID.name(), process.getUserId().toString());
+        final User user = UserManager.getInstance().getUser(process.getUserId());
+        envArgs.put(DefPiParams.USERNAME.name(), user.getUsername());
+        if (user.getEmail() != null) {
+            envArgs.put(DefPiParams.USER_EMAIL.name(), user.getEmail());
         }
 
         // Add all container environment variables

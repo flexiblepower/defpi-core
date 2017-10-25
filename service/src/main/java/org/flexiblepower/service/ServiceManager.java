@@ -11,7 +11,6 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -338,7 +337,7 @@ public class ServiceManager<T> implements Closeable {
 
         this.processId = message.getProcessId();
         final T config = ServiceConfig.generateConfig(this.configClass, message.getConfigMap());
-        this.defPiParams = this.generateDefPiParameters(message.getDefpiParamsMap());
+        this.defPiParams = this.generateDefPiParameters();
 
         final Future<ProcessStateUpdateMessage> configFuture = this.serviceExecutor.submit(() -> {
             if (!this.configured) {
@@ -354,30 +353,39 @@ public class ServiceManager<T> implements Closeable {
     }
 
     /**
+     * Get the value of a given system environment variable. If the variable is not set, use the given default value
+     *
+     * @param key
+     * @param dflt
+     * @return
+     */
+    private static String getSysEnvVar(final String key, final String dflt) {
+        final String val = System.getenv(key);
+        if (val == null) {
+            return dflt;
+        } else {
+            return val;
+        }
+    }
+
+    /**
      * @param params
      * @return
      */
-    private DefPiParameters generateDefPiParameters(final Map<String, String> params) {
+    private DefPiParameters generateDefPiParameters() {
         int orchestratorPort = 0;
         try {
-            orchestratorPort = params.containsKey(DefPiParams.ORCHESTRATOR_PORT.name())
-                    ? Integer.parseInt(params.get(DefPiParams.ORCHESTRATOR_PORT.name()))
-                    : 0;
+            orchestratorPort = Integer.parseInt(ServiceManager.getSysEnvVar(DefPiParams.ORCHESTRATOR_PORT.name(), "0"));
         } catch (final NumberFormatException e) {
             // 0 is the default value
         }
-        return new DefPiParameters(
-                params.containsKey(DefPiParams.ORCHESTRATOR_HOST.name())
-                        ? params.get(DefPiParams.ORCHESTRATOR_HOST.name())
-                        : null,
+        return new DefPiParameters(ServiceManager.getSysEnvVar(DefPiParams.ORCHESTRATOR_HOST.name(), null),
                 orchestratorPort,
-                params.containsKey(DefPiParams.ORCHESTRATOR_TOKEN.name())
-                        ? params.get(DefPiParams.ORCHESTRATOR_TOKEN.name())
-                        : null,
+                ServiceManager.getSysEnvVar(DefPiParams.ORCHESTRATOR_TOKEN.name(), null),
                 this.processId,
-                params.containsKey(DefPiParams.USER_ID.name()) ? params.get(DefPiParams.USER_ID.name()) : null,
-                params.containsKey(DefPiParams.USERNAME.name()) ? params.get(DefPiParams.USERNAME.name()) : null,
-                params.containsKey(DefPiParams.USER_EMAIL.name()) ? params.get(DefPiParams.USER_EMAIL.name()) : null);
+                ServiceManager.getSysEnvVar(DefPiParams.USER_ID.name(), null),
+                ServiceManager.getSysEnvVar(DefPiParams.USERNAME.name(), null),
+                ServiceManager.getSysEnvVar(DefPiParams.USER_EMAIL.name(), null));
     }
 
     private ProcessStateUpdateMessage createProcessStateUpdateMessage(final ProcessState processState) {

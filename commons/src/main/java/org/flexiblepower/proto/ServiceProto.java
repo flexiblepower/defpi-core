@@ -2272,40 +2272,6 @@ public final class ServiceProto {
 
     java.lang.String getConfigOrThrow(
         java.lang.String key);
-
-    /**
-     * <code>map&lt;string, string&gt; defpiParams = 4;</code>
-     */
-    int getDefpiParamsCount();
-    /**
-     * <code>map&lt;string, string&gt; defpiParams = 4;</code>
-     */
-    boolean containsDefpiParams(
-        java.lang.String key);
-    /**
-     * Use {@link #getDefpiParamsMap()} instead.
-     */
-    @java.lang.Deprecated
-    java.util.Map<java.lang.String, java.lang.String>
-    getDefpiParams();
-    /**
-     * <code>map&lt;string, string&gt; defpiParams = 4;</code>
-     */
-    java.util.Map<java.lang.String, java.lang.String>
-    getDefpiParamsMap();
-    /**
-     * <code>map&lt;string, string&gt; defpiParams = 4;</code>
-     */
-
-    java.lang.String getDefpiParamsOrDefault(
-        java.lang.String key,
-        java.lang.String defaultValue);
-    /**
-     * <code>map&lt;string, string&gt; defpiParams = 4;</code>
-     */
-
-    java.lang.String getDefpiParamsOrThrow(
-        java.lang.String key);
   }
   /**
    * Protobuf type {@code process.SetConfigMessage}
@@ -2375,19 +2341,6 @@ public final class ServiceProto {
                   config__.getKey(), config__.getValue());
               break;
             }
-            case 34: {
-              if (!((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
-                defpiParams_ = com.google.protobuf.MapField.newMapField(
-                    DefpiParamsDefaultEntryHolder.defaultEntry);
-                mutable_bitField0_ |= 0x00000008;
-              }
-              com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
-              defpiParams__ = input.readMessage(
-                  DefpiParamsDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
-              defpiParams_.getMutableMap().put(
-                  defpiParams__.getKey(), defpiParams__.getValue());
-              break;
-            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
@@ -2411,8 +2364,6 @@ public final class ServiceProto {
       switch (number) {
         case 3:
           return internalGetConfig();
-        case 4:
-          return internalGetDefpiParams();
         default:
           throw new RuntimeException(
               "Invalid map field number: " + number);
@@ -2559,82 +2510,6 @@ public final class ServiceProto {
       return map.get(key);
     }
 
-    public static final int DEFPIPARAMS_FIELD_NUMBER = 4;
-    private static final class DefpiParamsDefaultEntryHolder {
-      static final com.google.protobuf.MapEntry<
-          java.lang.String, java.lang.String> defaultEntry =
-              com.google.protobuf.MapEntry
-              .<java.lang.String, java.lang.String>newDefaultInstance(
-                  org.flexiblepower.proto.ServiceProto.internal_static_process_SetConfigMessage_DefpiParamsEntry_descriptor, 
-                  com.google.protobuf.WireFormat.FieldType.STRING,
-                  "",
-                  com.google.protobuf.WireFormat.FieldType.STRING,
-                  "");
-    }
-    private com.google.protobuf.MapField<
-        java.lang.String, java.lang.String> defpiParams_;
-    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
-    internalGetDefpiParams() {
-      if (defpiParams_ == null) {
-        return com.google.protobuf.MapField.emptyMapField(
-            DefpiParamsDefaultEntryHolder.defaultEntry);
-      }
-      return defpiParams_;
-    }
-
-    public int getDefpiParamsCount() {
-      return internalGetDefpiParams().getMap().size();
-    }
-    /**
-     * <code>map&lt;string, string&gt; defpiParams = 4;</code>
-     */
-
-    public boolean containsDefpiParams(
-        java.lang.String key) {
-      if (key == null) { throw new java.lang.NullPointerException(); }
-      return internalGetDefpiParams().getMap().containsKey(key);
-    }
-    /**
-     * Use {@link #getDefpiParamsMap()} instead.
-     */
-    @java.lang.Deprecated
-    public java.util.Map<java.lang.String, java.lang.String> getDefpiParams() {
-      return getDefpiParamsMap();
-    }
-    /**
-     * <code>map&lt;string, string&gt; defpiParams = 4;</code>
-     */
-
-    public java.util.Map<java.lang.String, java.lang.String> getDefpiParamsMap() {
-      return internalGetDefpiParams().getMap();
-    }
-    /**
-     * <code>map&lt;string, string&gt; defpiParams = 4;</code>
-     */
-
-    public java.lang.String getDefpiParamsOrDefault(
-        java.lang.String key,
-        java.lang.String defaultValue) {
-      if (key == null) { throw new java.lang.NullPointerException(); }
-      java.util.Map<java.lang.String, java.lang.String> map =
-          internalGetDefpiParams().getMap();
-      return map.containsKey(key) ? map.get(key) : defaultValue;
-    }
-    /**
-     * <code>map&lt;string, string&gt; defpiParams = 4;</code>
-     */
-
-    public java.lang.String getDefpiParamsOrThrow(
-        java.lang.String key) {
-      if (key == null) { throw new java.lang.NullPointerException(); }
-      java.util.Map<java.lang.String, java.lang.String> map =
-          internalGetDefpiParams().getMap();
-      if (!map.containsKey(key)) {
-        throw new java.lang.IllegalArgumentException();
-      }
-      return map.get(key);
-    }
-
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -2667,12 +2542,6 @@ public final class ServiceProto {
           internalGetConfig(),
           ConfigDefaultEntryHolder.defaultEntry,
           3);
-      com.google.protobuf.GeneratedMessageV3
-        .serializeStringMapTo(
-          output,
-          internalGetDefpiParams(),
-          DefpiParamsDefaultEntryHolder.defaultEntry,
-          4);
       unknownFields.writeTo(output);
     }
 
@@ -2697,16 +2566,6 @@ public final class ServiceProto {
             .build();
         size += com.google.protobuf.CodedOutputStream
             .computeMessageSize(3, config__);
-      }
-      for (java.util.Map.Entry<java.lang.String, java.lang.String> entry
-           : internalGetDefpiParams().getMap().entrySet()) {
-        com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
-        defpiParams__ = DefpiParamsDefaultEntryHolder.defaultEntry.newBuilderForType()
-            .setKey(entry.getKey())
-            .setValue(entry.getValue())
-            .build();
-        size += com.google.protobuf.CodedOutputStream
-            .computeMessageSize(4, defpiParams__);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -2737,8 +2596,6 @@ public final class ServiceProto {
       }
       result = result && internalGetConfig().equals(
           other.internalGetConfig());
-      result = result && internalGetDefpiParams().equals(
-          other.internalGetDefpiParams());
       result = result && unknownFields.equals(other.unknownFields);
       return result;
     }
@@ -2762,10 +2619,6 @@ public final class ServiceProto {
       if (!internalGetConfig().getMap().isEmpty()) {
         hash = (37 * hash) + CONFIG_FIELD_NUMBER;
         hash = (53 * hash) + internalGetConfig().hashCode();
-      }
-      if (!internalGetDefpiParams().getMap().isEmpty()) {
-        hash = (37 * hash) + DEFPIPARAMS_FIELD_NUMBER;
-        hash = (53 * hash) + internalGetDefpiParams().hashCode();
       }
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
@@ -2878,8 +2731,6 @@ public final class ServiceProto {
         switch (number) {
           case 3:
             return internalGetConfig();
-          case 4:
-            return internalGetDefpiParams();
           default:
             throw new RuntimeException(
                 "Invalid map field number: " + number);
@@ -2891,8 +2742,6 @@ public final class ServiceProto {
         switch (number) {
           case 3:
             return internalGetMutableConfig();
-          case 4:
-            return internalGetMutableDefpiParams();
           default:
             throw new RuntimeException(
                 "Invalid map field number: " + number);
@@ -2927,7 +2776,6 @@ public final class ServiceProto {
         isUpdate_ = false;
         bitField0_ = (bitField0_ & ~0x00000002);
         internalGetMutableConfig().clear();
-        internalGetMutableDefpiParams().clear();
         return this;
       }
 
@@ -2962,8 +2810,6 @@ public final class ServiceProto {
         result.isUpdate_ = isUpdate_;
         result.config_ = internalGetConfig();
         result.config_.makeImmutable();
-        result.defpiParams_ = internalGetDefpiParams();
-        result.defpiParams_.makeImmutable();
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -3016,8 +2862,6 @@ public final class ServiceProto {
         }
         internalGetMutableConfig().mergeFrom(
             other.internalGetConfig());
-        internalGetMutableDefpiParams().mergeFrom(
-            other.internalGetDefpiParams());
         this.mergeUnknownFields(other.unknownFields);
         onChanged();
         return this;
@@ -3279,129 +3123,6 @@ public final class ServiceProto {
       public Builder putAllConfig(
           java.util.Map<java.lang.String, java.lang.String> values) {
         internalGetMutableConfig().getMutableMap()
-            .putAll(values);
-        return this;
-      }
-
-      private com.google.protobuf.MapField<
-          java.lang.String, java.lang.String> defpiParams_;
-      private com.google.protobuf.MapField<java.lang.String, java.lang.String>
-      internalGetDefpiParams() {
-        if (defpiParams_ == null) {
-          return com.google.protobuf.MapField.emptyMapField(
-              DefpiParamsDefaultEntryHolder.defaultEntry);
-        }
-        return defpiParams_;
-      }
-      private com.google.protobuf.MapField<java.lang.String, java.lang.String>
-      internalGetMutableDefpiParams() {
-        onChanged();;
-        if (defpiParams_ == null) {
-          defpiParams_ = com.google.protobuf.MapField.newMapField(
-              DefpiParamsDefaultEntryHolder.defaultEntry);
-        }
-        if (!defpiParams_.isMutable()) {
-          defpiParams_ = defpiParams_.copy();
-        }
-        return defpiParams_;
-      }
-
-      public int getDefpiParamsCount() {
-        return internalGetDefpiParams().getMap().size();
-      }
-      /**
-       * <code>map&lt;string, string&gt; defpiParams = 4;</code>
-       */
-
-      public boolean containsDefpiParams(
-          java.lang.String key) {
-        if (key == null) { throw new java.lang.NullPointerException(); }
-        return internalGetDefpiParams().getMap().containsKey(key);
-      }
-      /**
-       * Use {@link #getDefpiParamsMap()} instead.
-       */
-      @java.lang.Deprecated
-      public java.util.Map<java.lang.String, java.lang.String> getDefpiParams() {
-        return getDefpiParamsMap();
-      }
-      /**
-       * <code>map&lt;string, string&gt; defpiParams = 4;</code>
-       */
-
-      public java.util.Map<java.lang.String, java.lang.String> getDefpiParamsMap() {
-        return internalGetDefpiParams().getMap();
-      }
-      /**
-       * <code>map&lt;string, string&gt; defpiParams = 4;</code>
-       */
-
-      public java.lang.String getDefpiParamsOrDefault(
-          java.lang.String key,
-          java.lang.String defaultValue) {
-        if (key == null) { throw new java.lang.NullPointerException(); }
-        java.util.Map<java.lang.String, java.lang.String> map =
-            internalGetDefpiParams().getMap();
-        return map.containsKey(key) ? map.get(key) : defaultValue;
-      }
-      /**
-       * <code>map&lt;string, string&gt; defpiParams = 4;</code>
-       */
-
-      public java.lang.String getDefpiParamsOrThrow(
-          java.lang.String key) {
-        if (key == null) { throw new java.lang.NullPointerException(); }
-        java.util.Map<java.lang.String, java.lang.String> map =
-            internalGetDefpiParams().getMap();
-        if (!map.containsKey(key)) {
-          throw new java.lang.IllegalArgumentException();
-        }
-        return map.get(key);
-      }
-
-      public Builder clearDefpiParams() {
-        internalGetMutableDefpiParams().getMutableMap()
-            .clear();
-        return this;
-      }
-      /**
-       * <code>map&lt;string, string&gt; defpiParams = 4;</code>
-       */
-
-      public Builder removeDefpiParams(
-          java.lang.String key) {
-        if (key == null) { throw new java.lang.NullPointerException(); }
-        internalGetMutableDefpiParams().getMutableMap()
-            .remove(key);
-        return this;
-      }
-      /**
-       * Use alternate mutation accessors instead.
-       */
-      @java.lang.Deprecated
-      public java.util.Map<java.lang.String, java.lang.String>
-      getMutableDefpiParams() {
-        return internalGetMutableDefpiParams().getMutableMap();
-      }
-      /**
-       * <code>map&lt;string, string&gt; defpiParams = 4;</code>
-       */
-      public Builder putDefpiParams(
-          java.lang.String key,
-          java.lang.String value) {
-        if (key == null) { throw new java.lang.NullPointerException(); }
-        if (value == null) { throw new java.lang.NullPointerException(); }
-        internalGetMutableDefpiParams().getMutableMap()
-            .put(key, value);
-        return this;
-      }
-      /**
-       * <code>map&lt;string, string&gt; defpiParams = 4;</code>
-       */
-
-      public Builder putAllDefpiParams(
-          java.util.Map<java.lang.String, java.lang.String> values) {
-        internalGetMutableDefpiParams().getMutableMap()
             .putAll(values);
         return this;
       }
@@ -4214,11 +3935,6 @@ public final class ServiceProto {
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_process_SetConfigMessage_ConfigEntry_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_process_SetConfigMessage_DefpiParamsEntry_descriptor;
-  private static final 
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_process_SetConfigMessage_DefpiParamsEntry_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_process_ErrorMessage_descriptor;
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
@@ -4239,18 +3955,15 @@ public final class ServiceProto {
       "\tstateData\030\002 \002(\014\"g\n\031ProcessStateUpdateMe" +
       "ssage\022\021\n\tprocessId\030\001 \002(\t\022$\n\005state\030\002 \002(\0162" +
       "\025.process.ProcessState\022\021\n\tstateData\030\003 \001(" +
-      "\014\"\222\002\n\020SetConfigMessage\022\021\n\tprocessId\030\001 \002(" +
+      "\014\"\235\001\n\020SetConfigMessage\022\021\n\tprocessId\030\001 \002(" +
       "\t\022\020\n\010isUpdate\030\002 \002(\010\0225\n\006config\030\003 \003(\0132%.pr" +
-      "ocess.SetConfigMessage.ConfigEntry\022?\n\013de",
-      "fpiParams\030\004 \003(\0132*.process.SetConfigMessa" +
-      "ge.DefpiParamsEntry\032-\n\013ConfigEntry\022\013\n\003ke" +
-      "y\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001\0322\n\020DefpiParam" +
-      "sEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001\";" +
-      "\n\014ErrorMessage\022\021\n\tprocessId\030\001 \002(\t\022\030\n\020deb" +
-      "ugInformation\030\002 \002(\t*Z\n\014ProcessState\022\014\n\010S" +
-      "TARTING\020\000\022\020\n\014INITIALIZING\020\001\022\013\n\007RUNNING\020\002" +
-      "\022\r\n\tSUSPENDED\020\003\022\016\n\nTERMINATED\020\004B\'\n\027org.f" +
-      "lexiblepower.protoB\014ServiceProto"
+      "ocess.SetConfigMessage.ConfigEntry\032-\n\013Co",
+      "nfigEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028" +
+      "\001\";\n\014ErrorMessage\022\021\n\tprocessId\030\001 \002(\t\022\030\n\020" +
+      "debugInformation\030\002 \002(\t*Z\n\014ProcessState\022\014" +
+      "\n\010STARTING\020\000\022\020\n\014INITIALIZING\020\001\022\013\n\007RUNNIN" +
+      "G\020\002\022\r\n\tSUSPENDED\020\003\022\016\n\nTERMINATED\020\004B\'\n\027or" +
+      "g.flexiblepower.protoB\014ServiceProto"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -4287,18 +4000,12 @@ public final class ServiceProto {
     internal_static_process_SetConfigMessage_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_process_SetConfigMessage_descriptor,
-        new java.lang.String[] { "ProcessId", "IsUpdate", "Config", "DefpiParams", });
+        new java.lang.String[] { "ProcessId", "IsUpdate", "Config", });
     internal_static_process_SetConfigMessage_ConfigEntry_descriptor =
       internal_static_process_SetConfigMessage_descriptor.getNestedTypes().get(0);
     internal_static_process_SetConfigMessage_ConfigEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_process_SetConfigMessage_ConfigEntry_descriptor,
-        new java.lang.String[] { "Key", "Value", });
-    internal_static_process_SetConfigMessage_DefpiParamsEntry_descriptor =
-      internal_static_process_SetConfigMessage_descriptor.getNestedTypes().get(1);
-    internal_static_process_SetConfigMessage_DefpiParamsEntry_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_process_SetConfigMessage_DefpiParamsEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
     internal_static_process_ErrorMessage_descriptor =
       getDescriptor().getMessageTypes().get(4);
