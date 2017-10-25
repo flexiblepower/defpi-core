@@ -121,6 +121,7 @@ public class DockerConnector {
                 // if this is the dashboard, it should be added to all user networks
                 final List<String> networks = new ArrayList<>();
                 for (final User u : UserManager.getInstance().getUsers()) {
+                    this.ensureUserNetworkExists(u);
                     networks.add(DockerConnector.getNetworkNameFromUser(u));
                 }
                 serviceSpec = DockerConnector.createServiceSpec(process, service, node, networks);
@@ -182,6 +183,14 @@ public class DockerConnector {
         }
     }
 
+    private void ensureUserNetworkExists(final User user) throws DockerException, InterruptedException {
+        final String networkName = DockerConnector.getNetworkNameFromUser(user);
+        // check if it exists
+        if (!this.listNetworks().values().contains(networkName)) {
+            this.newNetwork(networkName);
+        }
+    }
+
     private static String getNetworkNameFromProcess(final Process process) {
         return "usernet-" + process.getUserId().toString();
     }
@@ -214,7 +223,6 @@ public class DockerConnector {
             this.client.connectToNetwork(orchestratorContainerId, newProcessNetworkName);
         }
         // Connect dashboard gateway to network
-        // TODO this doesn't work... The service needs to be updated
         final Process dashboardGateway = ProcessManager.getInstance().getDashboardGateway();
         if (dashboardGateway != null) {
             final String dockerServiceId = dashboardGateway.getDockerId();

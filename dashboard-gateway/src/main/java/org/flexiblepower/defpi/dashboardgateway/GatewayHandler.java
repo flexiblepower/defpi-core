@@ -128,7 +128,7 @@ public class GatewayHandler extends AbstractHandler {
 			Dashboard_httpConnectionHandlerImpl handler = main.getHandlerForUsername(username);
 			if (handler == null) {
 				response.setHeader("content-type", "text/html");
-				response.getWriter().print("<h1>No dashboard found</h1><p><a href=\"/logout\">Logout</a>");
+				response.getWriter().print("<h1>No dashboard found</h1><p><a href=\"/logout\">Logout</a></p>");
 				response.getWriter().close();
 			} else {
 				handler.handle(target, baseRequest, request, response);
