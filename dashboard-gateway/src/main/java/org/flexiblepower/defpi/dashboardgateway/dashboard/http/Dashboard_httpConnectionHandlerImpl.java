@@ -131,11 +131,11 @@ public class Dashboard_httpConnectionHandlerImpl implements Dashboard_httpConnec
 			return httpResponse;
 		} catch (TimeoutException e) {
 			LOG.debug("Gateway Timeout");
-			return HTTPResponse.newBuilder().setStatus(504)
+			return HTTPResponse.newBuilder().setId(requestId).setStatus(504)
 					.setBody(ByteString.copyFrom("Gateway timeout", Charset.defaultCharset())).build();
 		} catch (InterruptedException | ExecutionException e) {
-			LOG.error("Error while waiting for respnose", e);
-			return HTTPResponse.newBuilder().setStatus(500)
+			LOG.error("Error while waiting for response", e);
+			return HTTPResponse.newBuilder().setId(requestId).setStatus(500)
 					.setBody(ByteString.copyFrom("Error", Charset.defaultCharset())).build();
 		}
 	}
