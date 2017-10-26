@@ -39,6 +39,7 @@ public class FullWidgetManager implements HttpHandler {
 			String template = IOUtils.toString(new FileInputStream(new File("/dynamic/index.html")),
 					Charset.defaultCharset());
 
+			// Menu
 			StringBuilder sb = new StringBuilder();
 			sb.append("<div class=\"center\"><nav><ul>");
 			for (Widget reg : widgets) {
@@ -56,6 +57,7 @@ public class FullWidgetManager implements HttpHandler {
 
 			String body = template.replace("$menu$", sb);
 
+			// Content of page
 			body = body.replace("$content$", activeWidget
 					.handle(HTTPRequest.newBuilder().setMethod(Method.GET).setId(0).setUri("/index.html").build())
 					.getBody().toStringUtf8());
