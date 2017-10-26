@@ -26,21 +26,21 @@ public class HttpStaticContentHandler implements HttpHandler {
 		String filename = "/static/" + uri;
 		File file = new File(filename);
 		if (!file.exists() || !file.isFile()) {
-			return HttpUtil.notFound(request);
+			return HttpUtils.notFound(request);
 		}
 		try {
 			if (!request.getMethod().equals(Method.GET)) {
-				return HttpUtil.badRequest(request,
+				return HttpUtils.badRequest(request,
 						"Method" + request.getMethod().toString() + " not allowed on this location");
 			}
 			FileInputStream inputStream = new FileInputStream(file);
 			ByteString body = ByteString.copyFrom(IOUtils.toByteArray(inputStream));
 			inputStream.close();
 			return HTTPResponse.newBuilder().setId(request.getId()).setStatus(200)
-					.putHeaders(HttpUtil.CONTENT_TYPE, HttpUtil.getContentType(filename)).setBody(body).build();
+					.putHeaders(HttpUtils.CONTENT_TYPE, HttpUtils.getContentType(filename)).setBody(body).build();
 		} catch (IOException e) {
 			LOG.error("Could not serve static content " + request.getUri(), e);
-			return HttpUtil.internalError(request);
+			return HttpUtils.internalError(request);
 		}
 	}
 

@@ -20,7 +20,8 @@ import org.flexiblepower.service.Service;
 @Generated(value = "org.flexiblepower.plugin.servicegen", date = "Oct 26, 2017 12:58:33 PM")
 public class Dashboard implements Service<DashboardConfiguration> {
 
-	private HttpRouter requestRouter = new HttpRouter();
+	private HttpRouter requestRouter;
+	private FullWidgetManager fullWidgetManager = new FullWidgetManager();
 
 	@Override
 	public void resumeFrom(Serializable state) {
@@ -30,8 +31,8 @@ public class Dashboard implements Service<DashboardConfiguration> {
 
 	@Override
 	public void init(DashboardConfiguration config, DefPiParameters parameters) {
-		// TODO Auto-generated method stub
-
+		requestRouter = new HttpRouter(fullWidgetManager);
+		fullWidgetManager.registerFullWidget(new DashboardFullWidget());
 	}
 
 	@Override

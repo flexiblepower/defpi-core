@@ -5,10 +5,13 @@ import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HT
 
 import com.google.protobuf.ByteString;
 
-public class HttpUtil {
+public class HttpUtils {
 
 	public static final String CONTENT_TYPE = "Content-Type";
+	public static final String APPLICATION_JAVASCRIPT = "application/javascript";
 	public static final String TEXT_PLAIN = "text/plain";
+	public static final String NO_CACHE_KEY = "Cache-Control";
+	public static final String NO_CACHE_VALUE = "no-cache, no-store, must-revalidate";
 
 	public static HTTPResponse notFound(HTTPRequest request) {
 		return HTTPResponse.newBuilder().setId(request.getId()).setStatus(404).putHeaders(CONTENT_TYPE, TEXT_PLAIN)
@@ -32,6 +35,14 @@ public class HttpUtil {
 				.setBody(ByteString.copyFromUtf8("400: Bad request\n" + reason)).build();
 	}
 
+	public static HTTPResponse.Builder setNoCache(HTTPResponse.Builder builder) {
+		return builder.putHeaders(NO_CACHE_KEY, NO_CACHE_VALUE);
+	}
+
+	public static HTTPRequest rewriteUri(HTTPRequest request, String uri) {
+		return HTTPRequest.newBuilder(request).setUri(uri).build();
+	}
+
 	public static String getContentType(String filename) {
 		String[] uri = filename.split("\\.");
 
@@ -53,7 +64,7 @@ public class HttpUtil {
 			contentType = "image/gif";
 			break;
 		case "js":
-			contentType = "application/javascript";
+			contentType = APPLICATION_JAVASCRIPT;
 			break;
 		case "css":
 			contentType = "text/css";
