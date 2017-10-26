@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -123,7 +124,9 @@ public class TCPSocket implements Closeable {
         // this.waitUntilConnected(0);
         synchronized (this.inputStream) {
             // TCPSocket.log.trace("Allowed to read");
-            final int len = (this.inputStream.read() * 256) + this.inputStream.read();
+            // Apparently this is the only way you can be sure that you read 4 bytes...
+            final int len = ByteBuffer.wrap(new byte[] {(byte) this.inputStream.read(), (byte) this.inputStream.read(),
+                    (byte) this.inputStream.read(), (byte) this.inputStream.read()}).getInt();
             if (len < 0) {
                 throw new IOException("Reached end of stream");
             }
@@ -165,8 +168,7 @@ public class TCPSocket implements Closeable {
         // this.waitUntilConnected(0);
         synchronized (this.outputStream) {
             // TCPSocket.log.trace("Sending {} bytes", data.length);
-            this.outputStream.write(data.length / 256);
-            this.outputStream.write(data.length % 256);
+            this.outputStream.write(ByteBuffer.allocate(4).putInt(data.length).array());
             this.outputStream.write(data);
             this.outputStream.write(TCPSocket.EOM);
             this.outputStream.flush();
