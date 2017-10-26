@@ -19,7 +19,11 @@ public class HttpStaticContentHandler implements HttpHandler {
 
 	@Override
 	public HTTPResponse handle(HTTPRequest request) {
-		String filename = "/static/" + request.getUri();
+		String uri = request.getUri();
+		if (uri.equals("/")) {
+			uri = "/index.html";
+		}
+		String filename = "/static/" + uri;
 		File file = new File(filename);
 		if (!file.exists() || !file.isFile()) {
 			return HttpUtil.notFound(request);
