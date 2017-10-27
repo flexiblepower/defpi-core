@@ -37,8 +37,6 @@ import org.flexiblepower.codegen.model.InterfaceDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription.Type;
 import org.flexiblepower.codegen.model.ServiceDescription;
-import org.flexiblepower.plugin.servicegen.compiler.ProtoCompiler;
-import org.flexiblepower.plugin.servicegen.compiler.XjcCompiler;
 
 /**
  * CreateComponentMojo
@@ -120,14 +118,8 @@ public class CreateComponentMojo extends AbstractMojo {
     /**
      * Folder where the XSD resources should be put
      */
-    @Parameter(property = "xsd.resource.directory", defaultValue = "${project.basedir}/src/main/resources/xsd")
+    @Parameter(property = "xsd.output.directory", defaultValue = "${project.build.directory}/xsd")
     private String xsdOutputLocation;
-
-    /**
-     * Folder where the XSD definitions should be copied to
-     */
-    @Parameter(property = "xsd.output.package", defaultValue = "xml")
-    private String xsdOutputPackage;
 
     @Parameter(property = "defpi.docker-entrypoint",
                defaultValue = "java -jar $JVM_ARGUMENTS /${project.artifactId}-${project.version}-jar-with-dependencies.jar")
@@ -149,9 +141,6 @@ public class CreateComponentMojo extends AbstractMojo {
     private final String dockerArmLocation = "docker-arm";
 
     private final Map<String, InterfaceVersionDescription> hashes = new HashMap<>();
-
-    private ProtoCompiler protoCompiler;
-    private XjcCompiler xjcCompiler;
 
     private Path resourcePath;
     private JavaTemplates templates;
@@ -290,10 +279,7 @@ public class CreateComponentMojo extends AbstractMojo {
      * @throws IOException
      */
     private void compileDescriptors(final ServiceDescription service) throws IOException {
-        this.getLog().debug("Compiling descriptors definitions to java code");
-
-        this.protoCompiler = new ProtoCompiler(this.protobufVersion);
-        this.xjcCompiler = new XjcCompiler();
+        this.getLog().debug("Identifying and installing protocol descriptors");
 
         for (final InterfaceDescription iface : service.getInterfaces()) {
             for (final InterfaceVersionDescription versionDescription : iface.getInterfaceVersions()) {
@@ -323,14 +309,7 @@ public class CreateComponentMojo extends AbstractMojo {
         final String interfaceHash = PluginUtils.SHA256(xsdSourceFilePath);
         vitf.setHash(interfaceHash);
 
-        if (this.hashes.containsKey(interfaceHash)) {
-            vitf.setModelPackageName(this.hashes.get(interfaceHash).getModelPackageName());
-            return;
-        }
-
         // Get the package name and add the hash
-        vitf.setModelPackageName(
-                this.servicePackage + "." + JavaPluginUtils.getPackageName(itf, vitf) + "." + this.xsdOutputPackage);
         this.hashes.put(interfaceHash, vitf);
 
         // Append additional compilation info to the proto file and compile the java code
@@ -340,9 +319,6 @@ public class CreateComponentMojo extends AbstractMojo {
 
         // Copy the descriptor and start compilation
         Files.copy(xsdSourceFilePath, xsdDestFilePath, StandardCopyOption.REPLACE_EXISTING);
-
-        this.xjcCompiler.setBasePackageName(vitf.getModelPackageName());
-        this.xjcCompiler.compile(xsdDestFilePath, Paths.get(this.sourceLocation));
     }
 
     /**
@@ -359,12 +335,6 @@ public class CreateComponentMojo extends AbstractMojo {
         final String interfaceHash = PluginUtils.SHA256(protoSourceFilePath);
         vitf.setHash(interfaceHash);
 
-        if (this.hashes.containsKey(interfaceHash)) {
-            // If we already have it, just copy the package name
-            vitf.setModelPackageName(this.hashes.get(interfaceHash).getModelPackageName());
-            return;
-        }
-
         // Get the package name and add the hash
         final String versionedName = JavaPluginUtils.getVersionedName(itf, vitf);
         String protoPackageName = this.servicePackage + "." + JavaPluginUtils.getPackageName(itf, vitf);
@@ -372,10 +342,7 @@ public class CreateComponentMojo extends AbstractMojo {
             protoPackageName = protoPackageName + "." + this.protobufOutputPackage;
         }
 
-        final String protoClassName = protoPackageName + "." + versionedName + "Proto";
-
         // Store for later reference
-        vitf.setModelPackageName(protoClassName);
         this.hashes.put(interfaceHash, vitf);
 
         // Append additional compilation info to the proto file and compile the java code
@@ -390,9 +357,6 @@ public class CreateComponentMojo extends AbstractMojo {
                             + "option java_outer_classname = \"" + versionedName + "Proto\";\n\n" + "package "
                             + protoPackageName + ";\n" + scanner.useDelimiter("\\A").next()).getBytes());
         }
-
-        this.protoCompiler.compile(protoDestFilePath, Paths.get(this.sourceLocation));
-
     }
 
 }

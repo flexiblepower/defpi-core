@@ -12,8 +12,8 @@ import org.flexiblepower.codegen.PluginUtils;
 import org.flexiblepower.codegen.Templates;
 import org.flexiblepower.codegen.model.InterfaceDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription;
-import org.flexiblepower.codegen.model.ServiceDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription.Type;
+import org.flexiblepower.codegen.model.ServiceDescription;
 import org.flexiblepower.model.Parameter;
 
 /**
@@ -232,11 +232,11 @@ public class JavaTemplates extends Templates {
                 replaceMap.put("vitf.serializer", "ProtobufMessageSerializer");
 
                 for (final String type : messageSet) {
-                    imports.add(String.format("import %s.%s;", version.getModelPackageName(), type));
+                    imports.add(String.format("import %s.%s;", version.getVersionName(), type));
                 }
             } else if (version.getType().equals(Type.XSD)) {
                 replaceMap.put("vitf.serializer", "XSDMessageSerializer");
-                imports.add(String.format("import %s.*;", version.getModelPackageName()));
+                imports.add(String.format("import %s.*;", version.getVersionName()));
             }
 
             replaceMap.put("vitf.handler.imports", String.join("\n", imports));
