@@ -1,5 +1,6 @@
 package org.flexiblepower.codegen;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -106,6 +107,9 @@ public abstract class Templates {
     protected String getTemplate(final String name) throws IOException {
         String result = "";
         final URL url = this.getClass().getClassLoader().getResource("templates/" + name + ".tpl");
+        if (url == null) {
+            throw new FileNotFoundException("templates/" + name + ".tpl");
+        }
         try (final Scanner scanner = new Scanner(url.openStream())) {
             result = scanner.useDelimiter("\\A").next();
         }

@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
  * @author wilco
  */
 @Generated(value = "org.flexiblepower.plugin.servicegen", date = "Oct 9, 2017 8:45:27 PM")
-public class DashboardGateway implements Service<DashboardGatewayConfiguration> {
+public class DashboardGateway implements Service<Void> {
 
 	public static final Logger LOG = LoggerFactory.getLogger(DashboardGateway.class);
 
@@ -64,7 +64,7 @@ public class DashboardGateway implements Service<DashboardGatewayConfiguration> 
 	}
 
 	@Override
-	public void init(DashboardGatewayConfiguration config, DefPiParameters params) {
+	public void init(Void config, DefPiParameters params) {
 		try {
 			this.params = params;
 			server = new Server(8080);
@@ -77,7 +77,7 @@ public class DashboardGateway implements Service<DashboardGatewayConfiguration> 
 	}
 
 	@Override
-	public void modify(DashboardGatewayConfiguration config) {
+	public void modify(Void config) {
 		// TODO Auto-generated method stub
 	}
 

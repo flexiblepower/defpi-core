@@ -1,7 +1,6 @@
 {
 	"name": "Dashboard Gateway",
 	"version": "1",
-	"parameters": [],
 	"interfaces": [
 		{
 			"name": "Dashboard",
