@@ -1,16 +1,3 @@
-package org.flexiblepower.plugin.servicegen;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
-
 /*
  * Copyright 2001-2005 The Apache Software Foundation.
  *
@@ -26,6 +13,18 @@ import java.util.Scanner;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.flexiblepower.plugin.servicegen;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Scanner;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -192,13 +191,12 @@ public class CreateComponentMojo extends AbstractMojo {
     public void execute() throws MojoFailureException, MojoExecutionException {
         try {
             final File serviceDescriptionFile = Paths.get(this.inputResources).resolve(this.serviceFilename).toFile();
-            if ((this.buildContext != null) && !this.buildContext.hasDelta(serviceDescriptionFile)) {
+            if (!this.buildContextUpdated(serviceDescriptionFile)) {
                 this.getLog().info("No change for service definition, not running code generator");
                 return;
             }
 
             this.validateServiceDefinition(serviceDescriptionFile);
-
             if (!this.servicePackage.matches("[a-z][a-z0-9_.]+")) {
                 this.getLog().warn("Invalid java package name " + this.servicePackage);
                 this.servicePackage = this.servicePackage.replaceAll("[^a-zA-Z0-9_.]", "").toLowerCase();
@@ -227,18 +225,46 @@ public class CreateComponentMojo extends AbstractMojo {
                 this.buildContext.refresh(new File(this.mainSourceLocation));
             }
         } catch (final ProcessingException | IOException e) {
-            this.getLog().debug(e);
+            this.getLog().error(e.getMessage() + ": " + e.getStackTrace()[0], e);
             throw new MojoFailureException(e.getMessage(), e);
         } catch (final Exception e) {
-            e.printStackTrace();
-            this.getLog().error(e.getMessage() + e.getStackTrace()[0], e);
-            throw new MojoExecutionException(e.getMessage() + e.getStackTrace()[0].getLineNumber(), e);
+            this.getLog().error(e.getMessage() + ": " + e.getStackTrace()[0], e);
+            throw new MojoExecutionException(e.getMessage(), e);
         }
     }
 
+    private boolean buildContextUpdated(final File serviceDescriptionFile) throws IOException {
+        // If the buildcontext is null we are not in eclipse, make sure we run any way
+        if ((this.buildContext == null) || this.buildContext.hasDelta(serviceDescriptionFile)) {
+            return true;
+        }
+
+        final File[] protosourceFiles = Paths.get(this.inputResources)
+                .resolve(this.protobufInputLocation)
+                .toFile()
+                .listFiles();
+        for (final File proto : protosourceFiles) {
+            if (this.buildContext.hasDelta(proto)) {
+                return true;
+            }
+        }
+
+        final File[] xsdsourceFiles = Paths.get(this.inputResources)
+                .resolve(this.xsdInputLocation)
+                .toFile()
+                .listFiles();
+        for (final File xsd : xsdsourceFiles) {
+            if (this.buildContext.hasDelta(xsd)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
-     * @throws MojoExecutionException
-     *
+     * @param serviceDefinition
+     * @throws ProcessingException
+     * @throws IOException
      */
     private void validateServiceDefinition(final File serviceDefinition) throws ProcessingException, IOException {
         this.buildContext.removeMessages(serviceDefinition);
@@ -264,13 +290,10 @@ public class CreateComponentMojo extends AbstractMojo {
     }
 
     /**
-     * Create stubs for the service implementation. By using the templates in
-     * the Template object.
+     * Create stubs for the service implementation. By using the templates in the JavaTemplates object.
      *
-     * @param interfaces
-     *            List of interfaces for which stubs should be created.
+     * @param serviceDescription
      * @throws IOException
-     * @throws HashComputeException
      */
     private void createJavaFiles(final ServiceDescription serviceDescription) throws IOException {
         this.getLog().debug("Creating stubs");
@@ -342,12 +365,11 @@ public class CreateComponentMojo extends AbstractMojo {
     }
 
     /**
-     * Create the Dockerfile
+     * Create the Dockerfiles
      *
      * @param service
      *            The current ServiceDescription object
      * @throws IOException
-     * @throws HashComputeException
      */
     private void createDockerfiles(final ServiceDescription service) throws IOException {
         this.getLog().debug("Creating Dockerfiles");
@@ -388,7 +410,7 @@ public class CreateComponentMojo extends AbstractMojo {
 
     /**
      * @param itf
-     * @param versionDescription
+     * @param vitf
      * @throws IOException
      */
     private void compileXSDDescriptor(final InterfaceDescription itf, final InterfaceVersionDescription vitf)
