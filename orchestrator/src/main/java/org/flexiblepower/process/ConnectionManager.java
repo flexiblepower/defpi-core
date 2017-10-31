@@ -113,7 +113,7 @@ public class ConnectionManager {
         if (!intface.isAllowMultiple()) {
             // Is there already a connection for this interface?
             for (final Connection c : ConnectionManager.getInstance().getConnectionsForProcess(process)) {
-                if (c.getEndpointForProcess(process.getId()).getInterfaceId().equals(intface.getId())) {
+                if (c.getEndpointForProcess(process).getInterfaceId().equals(intface.getId())) {
                     throw new ConnectionException("Connot create new connection for process " + process.getId()
                             + " for interface " + intface.getId()
                             + ". The process does not allow multiple connections of the same type.");

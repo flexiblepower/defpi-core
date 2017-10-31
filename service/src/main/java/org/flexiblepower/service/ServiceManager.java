@@ -11,11 +11,16 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
@@ -61,12 +66,12 @@ public class ServiceManager<T> implements Closeable {
     private final ConnectionManager connectionManager;
     private final JavaIOSerializer javaIoSerializer = new JavaIOSerializer();
     private final ProtobufMessageSerializer pbSerializer = new ProtobufMessageSerializer();
-    private TCPSocket managementSocket;
+    private final DefPiParameters defPiParams;
 
+    private TCPSocket managementSocket;
     private Service<T> managedService;
     private Class<T> configClass;
     private String processId = "unknown";
-    private DefPiParameters defPiParams = null;
     private boolean configured;
 
     private volatile boolean keepThreadAlive;
@@ -82,6 +87,8 @@ public class ServiceManager<T> implements Closeable {
         this.connectionManager = new ConnectionManager();
         ServiceManager.log.info("Start listening thread on {}", ServiceManager.MANAGEMENT_PORT);
         this.managementSocket = TCPSocket.asServer(ServiceManager.MANAGEMENT_PORT);
+
+        this.defPiParams = this.generateDefPiParameters();
 
         // Initializer the ProtoBufe message serializer
         this.pbSerializer.addMessageClass(GoToProcessStateMessage.class);
@@ -157,6 +164,33 @@ public class ServiceManager<T> implements Closeable {
         this.managerThread.start();
     }
 
+    /**
+     * @throws ServiceInvocationException
+     *
+     */
+    private void requestConfig() throws ServiceInvocationException {
+        try {
+            final URI uri = new URI("http",
+                    null,
+                    this.defPiParams.getOrchestratorHost(),
+                    this.defPiParams.getOrchestratorPort(),
+                    "triggerProcess/" + this.defPiParams.getProcessId(),
+                    null,
+                    null);
+            @SuppressWarnings("resource")
+            final HttpClient client = HttpClientBuilder.create().build();
+
+            // Create http request with token in header
+            final HttpGet request = new HttpGet(uri);
+            request.addHeader("X-Auth-Token", this.defPiParams.getOrchestratorToken());
+            client.execute(request);
+        } catch (final URISyntaxException | IOException e) {
+            throw new ServiceInvocationException(
+                    "Futile to start servie without triggering process config at orchestrator.",
+                    e);
+        }
+    }
+
     @SuppressWarnings("unchecked")
     public void start(final Service<T> service) throws ServiceInvocationException {
         this.managedService = service;
@@ -173,6 +207,9 @@ public class ServiceManager<T> implements Closeable {
             throw new ServiceInvocationException("Unable to find init() method for configuration");
         }
         this.configClass = clazz;
+
+        // Send a request to the orchestrator that we are waiting for him
+        this.requestConfig();
     }
 
     /**
@@ -337,7 +374,6 @@ public class ServiceManager<T> implements Closeable {
 
         this.processId = message.getProcessId();
         final T config = ServiceConfig.generateConfig(this.configClass, message.getConfigMap());
-        this.defPiParams = this.generateDefPiParameters();
 
         final Future<ProcessStateUpdateMessage> configFuture = this.serviceExecutor.submit(() -> {
             if (!this.configured) {
@@ -360,12 +396,7 @@ public class ServiceManager<T> implements Closeable {
      * @return
      */
     private static String getSysEnvVar(final String key, final String dflt) {
-        final String val = System.getenv(key);
-        if (val == null) {
-            return dflt;
-        } else {
-            return val;
-        }
+        return System.getenv().getOrDefault(key, dflt);
     }
 
     /**

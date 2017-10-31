@@ -76,10 +76,10 @@ public class Connection {
         }
     }
 
-    public Endpoint getEndpointForProcess(final ObjectId processId) {
-        if (processId.equals(this.endpoint1.getProcessId())) {
+    public Endpoint getEndpointForProcess(final Process process) {
+        if (process.getId().equals(this.endpoint1.getProcessId())) {
             return this.endpoint1;
-        } else if (processId.equals(this.endpoint2.getProcessId())) {
+        } else if (process.getId().equals(this.endpoint2.getProcessId())) {
             return this.endpoint2;
         } else {
             throw new IllegalArgumentException("The provided processId is not part of this connection");

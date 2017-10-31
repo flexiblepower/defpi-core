@@ -245,4 +245,16 @@ public class ProcessManager {
         PendingChangeManager.getInstance().submit(pendingChange);
     }
 
+    /**
+     * @param currentProcess
+     */
+    public void triggerConfig(final Process process) {
+        final PendingChangeManager pcm = PendingChangeManager.getInstance();
+        pcm.submit(new CreateProcess.SendConfiguration(process));
+
+        for (final Connection c : ConnectionManager.getInstance().getConnectionsForProcess(process)) {
+            pcm.submit(new CreateConnectionEndpoint(process.getUserId(), c, c.getEndpointForProcess(process)));
+        }
+    }
+
 }
