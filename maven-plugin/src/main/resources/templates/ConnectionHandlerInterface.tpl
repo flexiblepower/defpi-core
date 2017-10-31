@@ -3,7 +3,7 @@ package {{service.package}}.{{vitf.package}};
 import javax.annotation.Generated;
 
 import {{service.package}}.{{itf.package}}.{{itf.manager.class}};
-{{vitf.handler.imports}}
+{{vitf.handler.interface.imports}}
 import org.flexiblepower.serializers.{{vitf.serializer}};
 import org.flexiblepower.service.ConnectionHandler;
 import org.flexiblepower.service.InterfaceInfo;

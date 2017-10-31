@@ -72,15 +72,8 @@ public class PluginUtils {
      * @throws ProcessingException
      */
     public static boolean validateServiceDefinition(final File inputFile) throws ProcessingException {
-        final JsonSchemaFactory factory = JsonSchemaFactory.byDefault();
-        final URL schemaURL = PluginUtils.class.getClassLoader().getResource("schema.json");
-
         try {
-            final JsonNode schemaNode = JsonLoader.fromURL(schemaURL);
-            final JsonNode data = JsonLoader.fromFile(inputFile);
-
-            final JsonSchema schema = factory.getJsonSchema(schemaNode);
-            final ProcessingReport report = schema.validate(data);
+            final ProcessingReport report = PluginUtils.processServiceDefinition(inputFile);
 
             if (report.isSuccess()) {
                 return true;
@@ -97,6 +90,18 @@ public class PluginUtils {
         }
 
         return false;
+    }
+
+    public static ProcessingReport processServiceDefinition(final File inputFile) throws IOException,
+            ProcessingException {
+        final JsonSchemaFactory factory = JsonSchemaFactory.byDefault();
+        final URL schemaURL = PluginUtils.class.getClassLoader().getResource("schema.json");
+
+        final JsonNode schemaNode = JsonLoader.fromURL(schemaURL);
+        final JsonNode data = JsonLoader.fromFile(inputFile);
+
+        final JsonSchema schema = factory.getJsonSchema(schemaNode);
+        return schema.validate(data);
     }
 
     /**

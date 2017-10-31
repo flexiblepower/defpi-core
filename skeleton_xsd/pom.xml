@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>service-parent</artifactId>
-		<version>0.2.6-SNAPSHOT</version>
+		<version>0.2.7-SNAPSHOT</version>
 		<relativePath>../master/service-parent/pom.xml</relativePath>
 	</parent>
 
@@ -13,10 +13,11 @@
 	<version>0.0.1</version>
 
 	<properties>
-		<xsd.input.directory>${project.resourcedir}</xsd.input.directory>
-		<xsd.resource.directory>${project.resourcedir}/xsds</xsd.resource.directory>
-		<xsd.output.package>bookmodel</xsd.output.package>
-		<defpi.docker-entrypoint>/bin/sh runJava.sh</defpi.docker-entrypoint>
+		<defpi.dockerfolder.x86>docker1</defpi.dockerfolder.x86>
+		<defpi.dockerfolder.arm>docker2</defpi.dockerfolder.arm>
+		<defpi.service.resources>service-rscs</defpi.service.resources>
+		<defpi.xsd.outputFolder>schemas</defpi.xsd.outputFolder>
+		<defpi.xsd.package>xsd_schema</defpi.xsd.package>
 	</properties>
 
 </project>
