@@ -128,18 +128,6 @@ public class ConnectionIntegrationTest {
 
     }
 
-    // @Test
-    // public void runTests() throws Exception {
-    // for (int i = 0; i < 100; i++) {
-    // this.reset();
-    // this.testNormalConnection();
-    // this.reset();
-    // this.testInterruptDetectionAndResume();
-    // this.reset();
-    // this.testSuspendAndResume();
-    // }
-    // }
-
     @After
     @SuppressWarnings("static-method")
     public void reset() throws InterruptedException {

@@ -41,7 +41,6 @@ import com.google.protobuf.Message;
  * @version 0.1
  * @since May 12, 2017
  */
-// @Ignore // TODO These tests run fine from Eclipse, but not from maven.
 @RunWith(Parameterized.class)
 public class ConnectionTest {
 
