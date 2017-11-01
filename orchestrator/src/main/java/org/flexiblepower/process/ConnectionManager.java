@@ -85,7 +85,7 @@ public class ConnectionManager {
         ConnectionManager.validateConnection(connection);
         ConnectionManager.validateMultipleConnect(connection);
 
-        ConnectionManager.setPorts(connection);
+        ConnectionManager.setPort(connection);
         ConnectionManager.setInterfaceNames(connection);
 
         final Process process1 = ProcessManager.getInstance().getProcess(connection.getEndpoint1().getProcessId());
@@ -144,11 +144,8 @@ public class ConnectionManager {
         connection.getEndpoint2().setInterfaceVersionName(best2);
     }
 
-    private static void setPorts(final Connection connection) {
-        // TODO implement better strategy
-        final int port = 5000 + new Random().nextInt(5000);
-        connection.getEndpoint1().setListenPort(port);
-        connection.getEndpoint2().setListenPort(port);
+    private static void setPort(final Connection connection) {
+        connection.setPort(5000 + new Random().nextInt(5000));
     }
 
     private static void validateConnection(final Connection c) {

@@ -9,14 +9,11 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Value;
 
-@Value
+@Data
 @Entity
-@AllArgsConstructor
 @NoArgsConstructor(force = true)
 public class Connection {
 
@@ -42,15 +39,9 @@ public class Connection {
          */
         private String interfaceVersionName;
 
-        /**
-         * The port that the process will listen for incoming connections on.
-         * The value is set by the ConnectionManager.
-         */
-        private int listenPort;
-
         @Override
         public String toString() {
-            return String.format("Endpoint [processId=%s, listenPort=%s]", this.processId, this.listenPort);
+            return String.format("Endpoint [processId=%s, interface=%s]", this.processId, this.interfaceId);
         }
 
     }
@@ -60,12 +51,23 @@ public class Connection {
     @JsonDeserialize(using = ObjectIdDeserializer.class)
     private ObjectId id;
 
+    /**
+     * The port where one endpoint will listen, and the other will target
+     */
+    private int port;
+    
     @Embedded
-    private Endpoint endpoint1;
+    private final Endpoint endpoint1;
 
     @Embedded
-    private Endpoint endpoint2;
+    private final Endpoint endpoint2;
 
+    public Connection(final ObjectId oid, Endpoint ep1, Endpoint ep2) {
+        this.id = oid;
+        this.endpoint1 = ep1;
+        this.endpoint2 = ep2;
+    }
+    
     public Endpoint getOtherEndpoint(final Endpoint e) {
         if (e.equals(this.endpoint1)) {
             return this.endpoint2;
