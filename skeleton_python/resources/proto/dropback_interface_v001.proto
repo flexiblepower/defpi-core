@@ -1,7 +1,0 @@
-syntax = "proto2";
-
-package dropback_interface_v001;
-message Msg {
-  required string str = 1;
-  required int32 counter = 2;
-}
