@@ -18,6 +18,7 @@ import org.flexiblepower.serializers.JavaIOSerializer;
 import org.flexiblepower.serializers.MessageSerializer;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.flexiblepower.service.TestService.TestServiceConfiguration;
+import org.flexiblepower.service.exceptions.ServiceInvocationException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -47,7 +48,12 @@ public class ServiceTest {
 
     @Before
     public void init() throws Exception {
-        this.manager = new ServiceManager<>(this.testService);
+        this.manager = new ServiceManager<>();
+        try {
+            this.manager.start(this.testService);
+        } catch (final ServiceInvocationException e) {
+            Assert.assertTrue(e.getMessage().startsWith("Futile"));
+        }
 
         this.managementSocket = TCPSocket.asClient(ServiceTest.TEST_HOST, ServiceManager.MANAGEMENT_PORT);
         this.managementSocket.waitUntilConnected(0);

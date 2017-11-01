@@ -18,8 +18,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.exceptions.SerializationException;
@@ -71,15 +72,9 @@ public class ServiceManager<T> implements Closeable {
     private TCPSocket managementSocket;
     private Service<T> managedService;
     private Class<T> configClass;
-    private String processId = "unknown";
     private boolean configured;
 
     private volatile boolean keepThreadAlive;
-
-    public ServiceManager(final Service<T> service) throws ServiceInvocationException {
-        this();
-        this.start(service);
-    }
 
     public ServiceManager() {
         this.serviceExecutor = ServiceExecutor.getInstance();
@@ -88,7 +83,7 @@ public class ServiceManager<T> implements Closeable {
         ServiceManager.log.info("Start listening thread on {}", ServiceManager.MANAGEMENT_PORT);
         this.managementSocket = TCPSocket.asServer(ServiceManager.MANAGEMENT_PORT);
 
-        this.defPiParams = this.generateDefPiParameters();
+        this.defPiParams = ServiceManager.generateDefPiParameters();
 
         // Initializer the ProtoBufe message serializer
         this.pbSerializer.addMessageClass(GoToProcessStateMessage.class);
@@ -128,7 +123,7 @@ public class ServiceManager<T> implements Closeable {
                     final PrintWriter pw = new PrintWriter(sw);
                     e.printStackTrace(pw);
                     response = ErrorMessage.newBuilder()
-                            .setProcessId(this.processId)
+                            .setProcessId(this.defPiParams.getProcessId())
                             .setDebugInformation(sw.toString())
                             .build();
                 }
@@ -164,33 +159,6 @@ public class ServiceManager<T> implements Closeable {
         this.managerThread.start();
     }
 
-    /**
-     * @throws ServiceInvocationException
-     *
-     */
-    private void requestConfig() throws ServiceInvocationException {
-        try {
-            final URI uri = new URI("http",
-                    null,
-                    this.defPiParams.getOrchestratorHost(),
-                    this.defPiParams.getOrchestratorPort(),
-                    "triggerProcess/" + this.defPiParams.getProcessId(),
-                    null,
-                    null);
-            @SuppressWarnings("resource")
-            final HttpClient client = HttpClientBuilder.create().build();
-
-            // Create http request with token in header
-            final HttpGet request = new HttpGet(uri);
-            request.addHeader("X-Auth-Token", this.defPiParams.getOrchestratorToken());
-            client.execute(request);
-        } catch (final URISyntaxException | IOException e) {
-            throw new ServiceInvocationException(
-                    "Futile to start servie without triggering process config at orchestrator.",
-                    e);
-        }
-    }
-
     @SuppressWarnings("unchecked")
     public void start(final Service<T> service) throws ServiceInvocationException {
         this.managedService = service;
@@ -213,9 +181,42 @@ public class ServiceManager<T> implements Closeable {
     }
 
     /**
+     * @throws ServiceInvocationException
+     *
+     */
+    @SuppressWarnings("resource")
+    private void requestConfig() throws ServiceInvocationException {
+        try {
+            final URI uri = new URI("http",
+                    null,
+                    this.defPiParams.getOrchestratorHost(),
+                    this.defPiParams.getOrchestratorPort(),
+                    "/process/trigger/" + this.defPiParams.getProcessId(),
+                    null,
+                    null);
+            ServiceManager.log.info("Requesting config message from orchestrator at {}", uri);
+
+            final HttpClient client = HttpClientBuilder.create().build();
+
+            // Create http request with token in header
+            final HttpPut request = new HttpPut(uri);
+            request.addHeader("X-Auth-Token", this.defPiParams.getOrchestratorToken());
+
+            final HttpResponse response = client.execute(request);
+            if (response.getStatusLine().getStatusCode() != 204) {
+                throw new ServiceInvocationException(
+                        "Unable to request config: " + response.getStatusLine().getReasonPhrase());
+            }
+        } catch (final URISyntaxException | IOException e) {
+            throw new ServiceInvocationException(
+                    "Futile to start service without triggering process config at orchestrator.",
+                    e);
+        }
+    }
+
+    /**
      * Wait for the service management thread to stop. This function is called when we want to have the main thread wait
-     * for the message handler thread to finish. i.e.
-     * wait until a nice terminate message has arrived.
+     * for the message handler thread to finish. i.e. wait until a nice terminate message has arrived.
      */
     void join() {
         try {
@@ -231,8 +232,13 @@ public class ServiceManager<T> implements Closeable {
     @Override
     public void close() {
         this.keepThreadAlive = false;
-        this.managementSocket.close();
+
+        if (this.managementSocket != null) {
+            this.managementSocket.close();
+        }
+
         this.connectionManager.close();
+        this.serviceExecutor.shutDown();
     }
 
     /**
@@ -337,7 +343,9 @@ public class ServiceManager<T> implements Closeable {
             ExecutionException,
             TimeoutException {
         ServiceManager.log.info("Received ResumeProcessMessage for process {}", msg.getProcessId());
-        this.processId = msg.getProcessId();
+        if (!msg.getProcessId().equals(this.defPiParams.getProcessId())) {
+            throw new ServiceInvocationException("Received message for unexpected process id " + msg.getProcessId());
+        }
 
         final Serializable state = msg.getStateData().isEmpty() ? null
                 : this.javaIoSerializer.deserialize(msg.getStateData().toByteArray());
@@ -362,6 +370,12 @@ public class ServiceManager<T> implements Closeable {
             ExecutionException,
             TimeoutException {
         ServiceManager.log.info("Received SetConfigMessage for process {}", message.getProcessId());
+
+        if (!message.getProcessId().equals(this.defPiParams.getProcessId())) {
+            throw new ServiceInvocationException(
+                    "Received message for unexpected process id " + message.getProcessId());
+        }
+
         ServiceManager.log
                 .debug("Properties to set: {} (update: {})", message.getConfigMap().toString(), message.getIsUpdate());
 
@@ -372,7 +386,6 @@ public class ServiceManager<T> implements Closeable {
                     this.configured);
         }
 
-        this.processId = message.getProcessId();
         final T config = ServiceConfig.generateConfig(this.configClass, message.getConfigMap());
 
         final Future<ProcessStateUpdateMessage> configFuture = this.serviceExecutor.submit(() -> {
@@ -389,34 +402,24 @@ public class ServiceManager<T> implements Closeable {
     }
 
     /**
-     * Get the value of a given system environment variable. If the variable is not set, use the given default value
-     *
-     * @param key
-     * @param dflt
-     * @return
-     */
-    private static String getSysEnvVar(final String key, final String dflt) {
-        return System.getenv().getOrDefault(key, dflt);
-    }
-
-    /**
      * @param params
      * @return
      */
-    private DefPiParameters generateDefPiParameters() {
+    private static DefPiParameters generateDefPiParameters() {
         int orchestratorPort = 0;
         try {
-            orchestratorPort = Integer.parseInt(ServiceManager.getSysEnvVar(DefPiParams.ORCHESTRATOR_PORT.name(), "0"));
+            orchestratorPort = Integer
+                    .parseInt(System.getenv().getOrDefault(DefPiParams.ORCHESTRATOR_PORT.name(), "0"));
         } catch (final NumberFormatException e) {
             // 0 is the default value
         }
-        return new DefPiParameters(ServiceManager.getSysEnvVar(DefPiParams.ORCHESTRATOR_HOST.name(), null),
+        return new DefPiParameters(System.getenv().getOrDefault(DefPiParams.ORCHESTRATOR_HOST.name(), null),
                 orchestratorPort,
-                ServiceManager.getSysEnvVar(DefPiParams.ORCHESTRATOR_TOKEN.name(), null),
-                this.processId,
-                ServiceManager.getSysEnvVar(DefPiParams.USER_ID.name(), null),
-                ServiceManager.getSysEnvVar(DefPiParams.USERNAME.name(), null),
-                ServiceManager.getSysEnvVar(DefPiParams.USER_EMAIL.name(), null));
+                System.getenv().getOrDefault(DefPiParams.ORCHESTRATOR_TOKEN.name(), null),
+                System.getenv().getOrDefault(DefPiParams.PROCESS_ID.name(), null),
+                System.getenv().getOrDefault(DefPiParams.USER_ID.name(), null),
+                System.getenv().getOrDefault(DefPiParams.USER_NAME.name(), null),
+                System.getenv().getOrDefault(DefPiParams.USER_EMAIL.name(), null));
     }
 
     private ProcessStateUpdateMessage createProcessStateUpdateMessage(final ProcessState processState) {
@@ -432,7 +435,7 @@ public class ServiceManager<T> implements Closeable {
             byteString = ByteString.copyFrom(data);
         }
         return ProcessStateUpdateMessage.newBuilder()
-                .setProcessId(this.processId)
+                .setProcessId(this.defPiParams.getProcessId())
                 .setState(processState)
                 .setStateData(byteString)
                 .build();

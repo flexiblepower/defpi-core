@@ -1,0 +1,13 @@
+syntax = "proto2";
+
+package dropback_interface_v002;
+message Msg {
+  required string str = 1;
+  required int64 counter = 2;
+}
+
+message Reply {
+  required string str = 1;
+  required int64 answerTo = 2;
+  optional int32 code = 3;
+}

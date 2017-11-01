@@ -71,7 +71,12 @@ public class ConnectionTest {
     public void initConnection() throws Exception {
         ConnectionTest.logger.info("*** Start of test ***");
         this.testService = new TestService();
-        this.manager = new ServiceManager<>(this.testService);
+        this.manager = new ServiceManager<>();
+        try {
+            this.manager.start(this.testService);
+        } catch (final ServiceInvocationException e) {
+            Assert.assertTrue(e.getMessage().startsWith("Futile"));
+        }
 
         ConnectionManager.registerConnectionHandlerFactory(TestService.class, this.testService);
 
