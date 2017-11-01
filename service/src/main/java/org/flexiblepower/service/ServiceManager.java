@@ -123,7 +123,7 @@ public class ServiceManager<T> implements Closeable {
                     final PrintWriter pw = new PrintWriter(sw);
                     e.printStackTrace(pw);
                     response = ErrorMessage.newBuilder()
-                            .setProcessId(this.defPiParams.getProcessId())
+                            .setProcessId(this.getProcessId())
                             .setDebugInformation(sw.toString())
                             .build();
                 }
@@ -157,6 +157,14 @@ public class ServiceManager<T> implements Closeable {
             this.managementSocket.close();
         }, "dEF-Pi srvManThread-" + ServiceManager.threadCount++);
         this.managerThread.start();
+    }
+
+    /**
+     * @return
+     */
+    private String getProcessId() {
+        final String processId = this.defPiParams.getProcessId();
+        return processId != null ? processId : "null";
     }
 
     @SuppressWarnings("unchecked")
@@ -287,6 +295,12 @@ public class ServiceManager<T> implements Closeable {
             InterruptedException,
             ExecutionException,
             TimeoutException {
+        if ((this.defPiParams.getProcessId() != null)
+                && !message.getProcessId().equals(this.defPiParams.getProcessId())) {
+            throw new ServiceInvocationException(
+                    "Received message for unexpected process id " + message.getProcessId());
+        }
+
         ServiceManager.log.debug("Received GoToProcessStateMessage for process {} -> {}",
                 message.getProcessId(),
                 message.getTargetState());
@@ -343,7 +357,7 @@ public class ServiceManager<T> implements Closeable {
             ExecutionException,
             TimeoutException {
         ServiceManager.log.info("Received ResumeProcessMessage for process {}", msg.getProcessId());
-        if (!msg.getProcessId().equals(this.defPiParams.getProcessId())) {
+        if ((this.defPiParams.getProcessId() != null) && !msg.getProcessId().equals(this.defPiParams.getProcessId())) {
             throw new ServiceInvocationException("Received message for unexpected process id " + msg.getProcessId());
         }
 
@@ -371,7 +385,8 @@ public class ServiceManager<T> implements Closeable {
             TimeoutException {
         ServiceManager.log.info("Received SetConfigMessage for process {}", message.getProcessId());
 
-        if (!message.getProcessId().equals(this.defPiParams.getProcessId())) {
+        if ((this.defPiParams.getProcessId() != null)
+                && !message.getProcessId().equals(this.defPiParams.getProcessId())) {
             throw new ServiceInvocationException(
                     "Received message for unexpected process id " + message.getProcessId());
         }
@@ -435,7 +450,7 @@ public class ServiceManager<T> implements Closeable {
             byteString = ByteString.copyFrom(data);
         }
         return ProcessStateUpdateMessage.newBuilder()
-                .setProcessId(this.defPiParams.getProcessId())
+                .setProcessId(this.getProcessId())
                 .setState(processState)
                 .setStateData(byteString)
                 .build();

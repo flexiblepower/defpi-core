@@ -37,7 +37,7 @@ public class ServiceTest {
 
     // private static final String TEST_HOST = "172.17.0.2";
     private static final String TEST_HOST = "localhost";
-    private static final String PROCESS_ID = "processID";
+    private static final String PROCESS_ID = "null";
 
     private final TestService testService = new TestService();
     private final MessageSerializer<Serializable> serializer = new JavaIOSerializer();
