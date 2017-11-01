@@ -129,4 +129,14 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
         ProcessRestApi.log.info("Removing process {}", process);
         ProcessManager.getInstance().deleteProcess(process);
     }
+
+    @Override
+    public void triggerProcessConfig(final String id) throws ProcessNotFoundException,
+            InvalidObjectIdException,
+            AuthorizationException {
+        // Immediately do all relevant checks...
+        final Process currentProcess = this.getProcess(id);
+
+        ProcessManager.getInstance().triggerConfig(currentProcess);
+    }
 }

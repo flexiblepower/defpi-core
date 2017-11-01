@@ -135,8 +135,8 @@ public class MoveProcess {
 
                 if (this.getCount() > 3) {
                     // Ok, this guy doesn't really want to suspend. Too bad, but we have to move on.
-                    PendingChangeManager.getInstance().submit(
-                            new RemoveDockerService(this.process, this.nodePoolId, this.privateNodeId, suspendProcess));
+                    PendingChangeManager.getInstance()
+                            .submit(new RemoveDockerService(this.process, this.nodePoolId, this.privateNodeId));
                     return Result.FAILED_PERMANENTLY;
                 }
 
@@ -150,8 +150,8 @@ public class MoveProcess {
                 MongoDbConnector.getInstance().save(this.process);
 
                 // start next
-                PendingChangeManager.getInstance().submit(
-                        new RemoveDockerService(this.process, this.nodePoolId, this.privateNodeId, suspendProcess));
+                PendingChangeManager.getInstance()
+                        .submit(new RemoveDockerService(this.process, this.nodePoolId, this.privateNodeId));
 
                 return Result.SUCCESS;
             }
@@ -164,23 +164,14 @@ public class MoveProcess {
     public static class RemoveDockerService extends PendingChange {
 
         private Process process;
-        private ObjectId nodePoolId;
-        private ObjectId privateNodeId;
-        private byte[] suspendState;
 
         public RemoveDockerService() {
             super();
         }
 
-        public RemoveDockerService(final Process process,
-                final ObjectId nodePoolId,
-                final ObjectId privateNodeId,
-                final byte[] suspendProcess) {
+        public RemoveDockerService(final Process process, final ObjectId nodePoolId, final ObjectId privateNodeId) {
             super(process.getUserId());
             this.process = process;
-            this.nodePoolId = nodePoolId;
-            this.privateNodeId = privateNodeId;
-            this.suspendState = suspendProcess;
             if ((nodePoolId != null) && (privateNodeId != null)) {
                 throw new IllegalArgumentException("Either nodePoolId or privateNodeId should be null");
             }

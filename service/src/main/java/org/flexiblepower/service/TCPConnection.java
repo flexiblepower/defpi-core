@@ -103,8 +103,8 @@ final class TCPConnection implements Connection, Closeable {
 
     @Override
     public boolean isConnected() {
-        return (this.handShakeMonitor != null) && this.handShakeMonitor.ready()
-                && (this.state == ConnectionState.CONNECTED);
+        return (this.state == ConnectionState.CONNECTED) && (this.handShakeMonitor != null)
+                && this.handShakeMonitor.ready();
     }
 
     @Override
@@ -319,7 +319,12 @@ final class TCPConnection implements Connection, Closeable {
 
         this.state = ConnectionState.INTERRUPTED;
         if (this.serviceHandler != null) {
-            this.serviceExecutor.submit(() -> this.serviceHandler.onInterrupt());
+            this.serviceExecutor.submit(() -> {
+                // It could be that in the meantime we were terminated, which means do NOT call interrupt
+                if (this.state != ConnectionState.TERMINATED) {
+                    this.serviceHandler.onInterrupt();
+                }
+            });
         }
     }
 
@@ -329,9 +334,9 @@ final class TCPConnection implements Connection, Closeable {
 
     @Override
     public synchronized void close() {
+        // Update the state
         this.socketReader.stop();
 
-        // Update the state
         if (!this.state.equals(ConnectionState.TERMINATED)) {
             this.state = ConnectionState.TERMINATED;
 

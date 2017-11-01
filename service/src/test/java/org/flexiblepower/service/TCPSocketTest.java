@@ -15,6 +15,7 @@ import org.junit.Test;
  * @version 0.1
  * @since May 12, 2017
  */
+@SuppressWarnings("static-method")
 public class TCPSocketTest {
 
     @Test
