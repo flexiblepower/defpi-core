@@ -68,9 +68,9 @@ public class InterfaceVersionDescription {
     @JsonIgnore
     private String hash = null;
 
-    @Setter
-    @JsonIgnore
-    private String modelPackageName = null;
+    // @Setter
+    // @JsonIgnore
+    // private String modelPackageName = null;
 
     public enum Type {
 

@@ -2,6 +2,7 @@ package org.flexiblepower.rest;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -35,6 +36,7 @@ public class UserRestApi extends BaseApi implements UserApi {
 
         // Update the password to store it encrypted
         newUser.setPasswordHash();
+        newUser.setAuthenticationToken(UUID.randomUUID().toString());
         this.db.saveUser(newUser);
         return newUser;
     }
@@ -61,6 +63,18 @@ public class UserRestApi extends BaseApi implements UserApi {
     }
 
     @Override
+    public User getUserByUsername(final String username) throws AuthorizationException, InvalidObjectIdException {
+        final User ret = UserManager.getInstance().getUser(username);
+        if (ret == null) {
+            this.assertUserIsAdmin();
+            throw new ApiException(Status.NOT_FOUND, UserApi.USER_NOT_FOUND_MESSAGE);
+        } else {
+            this.assertUserIsAdminOrEquals(ret.getId());
+            return ret;
+        }
+    }
+
+    @Override
     public User updateUser(final String userId, final User updatedUser) throws AuthorizationException {
         UserRestApi.log.debug("Received call to update user");
         if ((updatedUser.getId() == null) || (userId == null) || !userId.equals(updatedUser.getId().toString())) {
@@ -79,7 +93,7 @@ public class UserRestApi extends BaseApi implements UserApi {
         }
 
         if ((updatedUser.getPassword() != null) && !updatedUser.getPassword().isEmpty()) {
-            updatedUser.setPassword(updatedUser.getPassword());
+            ret.setPassword(updatedUser.getPassword());
         }
 
         ret.setAdmin(updatedUser.isAdmin());

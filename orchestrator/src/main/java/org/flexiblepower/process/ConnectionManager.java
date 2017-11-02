@@ -185,6 +185,16 @@ public class ConnectionManager {
                         + " does not contain the interface " + c.getEndpoint2().getInterfaceId());
             }
 
+            if (!process1.getUserId().equals(process2.getUserId())) {
+                if (!(process1.getServiceId().equals(ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID)
+                        || process2.getServiceId().equals(ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID))) {
+                    // Dashboard-gateway is teh only exception to the rule that processes can only connect if they are
+                    // owned by the same user
+                    throw new IllegalArgumentException("The two processes are not owned by the same user");
+                }
+
+            }
+
             if (!if1.isCompatibleWith(if2)) {
                 throw new IllegalArgumentException("Interface " + c.getEndpoint1().getInterfaceId() + " and interface "
                         + c.getEndpoint2().getInterfaceId() + " are not compatible with each other");
@@ -252,7 +262,16 @@ public class ConnectionManager {
         for (final Interface intface : service.getInterfaces()) {
             if (intface.isAutoConnect()) {
                 // search for other processes with that interface
-                for (final Process otherProcess : ProcessManager.getInstance().listProcesses(user)) {
+                final Process dashboardGateway = ProcessManager.getInstance().getDashboardGateway();
+                List<Process> processesToConnectWith = ProcessManager.getInstance().listProcesses(user);
+                if (dashboardGateway != null) {
+                    // If there is a dashboard-gateway, that is also a process that could be connected
+                    final List<Process> newList = new ArrayList<>();
+                    newList.addAll(processesToConnectWith);
+                    newList.add(dashboardGateway);
+                    processesToConnectWith = newList;
+                }
+                for (final Process otherProcess : processesToConnectWith) {
                     if (process.getId().equals(otherProcess.getId())) {
                         // It should not connect with itself
                         continue;

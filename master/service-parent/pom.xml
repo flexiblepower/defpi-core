@@ -5,7 +5,7 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>service-parent</artifactId>
-	<version>0.2.6-SNAPSHOT</version>
+	<version>0.2.7-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<properties>
@@ -14,7 +14,7 @@
 		<java.source>1.8</java.source>
 		<java.target>1.8</java.target>
 
-		<defpi.version>0.2.6-SNAPSHOT</defpi.version>
+		<defpi.version>0.2.7-SNAPSHOT</defpi.version>
 		<protobuf.version>3.3.0</protobuf.version>
 
 		<!-- Main class for any service should be the main from the library -->
@@ -24,7 +24,7 @@
 		<docker.imageName>${docker.registry}/services/${project.artifactId}</docker.imageName>
 	</properties>
 
-	<!-- Where to push the service parent itself, should not be used by children-->
+	<!-- Where to push the service parent itself, should not be used by children -->
 	<distributionManagement>
 		<repository>
 			<id>def-pi-artifactory</id>
@@ -91,14 +91,6 @@
 
 	<build>
 		<plugins>
-			<!-- Use the plugin, note it is not activated by default. Use mvn defpi:generate 
-				to generate code based on the service.json -->
-			<plugin>
-				<groupId>org.flexiblepower.defpi</groupId>
-				<artifactId>defpi-maven-plugin</artifactId>
-				<version>${defpi.version}</version>
-			</plugin>
-
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -116,14 +108,79 @@
 		<profile>
 			<!-- This profile is only activated when there exists a Dockerfile. This 
 				is one of the reasons we hardcode the dockerfile location -->
-			<id>docker-image</id>
+			<id>defpi-service</id>
 			<activation>
 				<file>
-					<exists>src/main/resources/docker/Dockerfile</exists>
+					<exists>${basedir}/src/main/resources/service.json</exists>
 				</file>
 			</activation>
 			<build>
 				<plugins>
+					<plugin>
+						<groupId>org.flexiblepower.defpi</groupId>
+						<artifactId>defpi-maven-plugin</artifactId>
+						<version>${defpi.version}</version>
+						<executions>
+							<execution>
+								<id>generate</id>
+								<goals>
+									<goal>generate</goal>
+								</goals>
+								<phase>generate-sources</phase>
+							</execution>
+						</executions>
+					</plugin>
+
+					<plugin>
+						<groupId>org.xolstice.maven.plugins</groupId>
+						<artifactId>protobuf-maven-plugin</artifactId>
+						<version>0.5.1</version>
+						<configuration>
+							<protoSourceRoot>${project.build.directory}/proto</protoSourceRoot>
+						</configuration>
+						<executions>
+							<execution>
+								<id>protoc</id>
+								<goals>
+									<goal>compile-javanano</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+
+					<plugin>
+						<groupId>org.jvnet.jaxb2.maven2</groupId>
+						<artifactId>maven-jaxb2-plugin</artifactId>
+						<version>0.13.2</version>
+						<executions>
+							<execution>
+								<id>xjc</id>
+								<goals>
+									<goal>generate</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+						    <generatePackage>${project.groupId}.${project.artifactId}.xml</generatePackage>
+						    <markGenerated>true</markGenerated>
+						    <readOnly>true</readOnly>
+						    <schemaDirectory>${project.build.directory}/xsd</schemaDirectory>
+						    <cleanPackageDirectories>false</cleanPackageDirectories>
+						    
+							<extension>true</extension>
+							<args>
+								<arg>-Xfluent-api</arg>
+							</args>
+							<plugins>
+								<plugin>
+									<groupId>org.jvnet.jaxb2_commons</groupId>
+									<artifactId>jaxb2-fluent-api</artifactId>
+									<version>3.0</version>
+								</plugin>
+							</plugins>
+						</configuration>
+					</plugin>
+
 					<!-- Surefire executes JUnits tests during testing -->
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>

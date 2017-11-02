@@ -55,6 +55,10 @@ public class UserManager {
         return this.db.get(User.class, userId);
     }
 
+    public User getUser(final String username) {
+        return this.db.getUserByUsername(username);
+    }
+
     /**
      * This is essentially a "login" action, in which the user obtains from the database his user information.
      *
@@ -64,6 +68,14 @@ public class UserManager {
      */
     public User getUser(final String username, final String password) {
         return this.db.getUser(username, password);
+    }
+
+    /**
+     * @param token
+     * @return
+     */
+    public User getUserByToken(final String token) {
+        return this.db.getUserByToken(token);
     }
 
     /**

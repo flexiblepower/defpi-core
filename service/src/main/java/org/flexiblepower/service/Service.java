@@ -35,8 +35,9 @@ public interface Service<T> {
      *
      * @see #modify(Properties props)
      * @param config
+     * @param parameters
      */
-    public void init(T config);
+    public void init(T config, DefPiParameters parameters);
 
     /**
      * This function is called when the configuration changes during runtime. It may be called multiple times.

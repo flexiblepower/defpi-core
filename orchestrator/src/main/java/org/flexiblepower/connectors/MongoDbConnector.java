@@ -233,6 +233,18 @@ public final class MongoDbConnector {
         return query.get();
     }
 
+    public User getUserByUsername(final String username) {
+        final Query<User> q = this.datastore.find(User.class);
+        q.criteria("username").equal(username);
+        return q.get();
+    }
+
+    public User getUserByToken(final String token) {
+        final Query<User> q = this.datastore.find(User.class);
+        q.criteria("authenticationToken").equal(token);
+        return q.get();
+    }
+
     public UnidentifiedNode getUnidentifiedNodeByDockerId(final String dockerId) {
         final Query<UnidentifiedNode> q = this.datastore.find(UnidentifiedNode.class);
         q.criteria("dockerId").equal(dockerId);

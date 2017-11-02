@@ -3,6 +3,7 @@ package org.flexiblepower.orchestrator;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
+import java.util.UUID;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.flexiblepower.connectors.MongoDbConnector;
@@ -25,10 +26,10 @@ import io.swagger.models.Scheme;
 public class Main {
 
     // Base URI the HTTP server will listen on
-    private static final String URI_SCHEME = Scheme.HTTP.name();
-    private static final String URI_HOST = "defpi.hesilab.nl";
-    private static final int URI_PORT = 8080;
-    private static final String URI_PATH = "";
+    public static final String URI_SCHEME = Scheme.HTTP.name();
+    public static final String URI_HOST = "defpi.hesilab.nl";
+    public static final int URI_PORT = 8080;
+    public static final String URI_PATH = "";
 
     private static final String ROOT_USER = "admin";
     private static final String ROOT_PASSWORD = "admin";
@@ -58,6 +59,7 @@ public class Main {
         final MongoDbConnector db = MongoDbConnector.getInstance();
         if (db.getUser(Main.ROOT_USER, Main.ROOT_PASSWORD) == null) {
             final User root = new User(Main.ROOT_USER, Main.ROOT_PASSWORD);
+            root.setAuthenticationToken(UUID.randomUUID().toString());
             root.setPasswordHash();
             root.setAdmin(true);
 
@@ -73,8 +75,8 @@ public class Main {
      * @throws URISyntaxException
      * @throws UnknownHostException
      */
-    public static void main(final String[] args)
-            throws AuthorizationException, UnknownHostException, URISyntaxException {
+    public static void
+            main(final String[] args) throws AuthorizationException, UnknownHostException, URISyntaxException {
         Main.ensureAdminUserExists();
         Main.startServer();
         PendingChangeManager.getInstance(); // make sure it starts

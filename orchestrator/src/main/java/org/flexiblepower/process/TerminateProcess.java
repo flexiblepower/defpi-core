@@ -114,8 +114,10 @@ public class TerminateProcess {
             boolean removeDbRecord;
             try {
                 removeDbRecord = DockerConnector.getInstance().removeProcess(this.process);
-                RemoveDockerService.log
-                        .debug("Removing Docker service for process " + this.process.getId() + " was successful");
+                if (removeDbRecord) {
+                    RemoveDockerService.log
+                            .debug("Removing Docker service for process " + this.process.getId() + " was successful");
+                }
                 // Delete record from MongoDB
             } catch (final ProcessNotFoundException e) {
                 RemoveDockerService.log.warn("Trying to remove Docker Service, but is already gone...");

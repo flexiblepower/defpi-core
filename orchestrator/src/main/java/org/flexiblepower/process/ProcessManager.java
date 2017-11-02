@@ -33,6 +33,13 @@ import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
 @SuppressWarnings("static-method")
 public class ProcessManager {
 
+    /**
+     *
+     */
+    public static final String DASHBOARD_GATEWAY_SERVICE_ID = "dashboard-gateway";
+    public static final String DASHBOARD_GATEWAY_PORT_KEY = "DASHBOARD_GATEWAY_PORT";
+    public static final int DASHBOARD_GATEWAY_PORT_DFLT = 8080;
+
     private static ProcessManager instance = null;
 
     private final MongoDbConnector mongoDbConnector = MongoDbConnector.getInstance();
@@ -90,6 +97,19 @@ public class ProcessManager {
         return process;
     }
 
+    public boolean dashboardGatewayExists() {
+        return this.getDashboardGateway() != null;
+    }
+
+    public Process getDashboardGateway() {
+        for (final Process p : this.listProcesses()) {
+            if (p.getServiceId().equals(ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID)) {
+                return p;
+            }
+        }
+        return null;
+    }
+
     /**
      * @param process
      * @throws
@@ -139,6 +159,16 @@ public class ProcessManager {
             }
         } else if ((process.getPrivateNodeId() == null) && (process.getNodePoolId() == null)) {
             throw new IllegalArgumentException("Either the nodepool or the privatenode should be set");
+        }
+
+        // Is there a duplicate dashboard gateway?
+        if (process.getServiceId().equals(ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID)) {
+            if (this.dashboardGatewayExists()) {
+                throw new IllegalArgumentException("There can only be one Dashboard Gateway in the system");
+            }
+            if (!this.userManager.getUser(process.getUserId()).isAdmin()) {
+                throw new IllegalArgumentException("Only administrators can instantiate the dashboard gateway");
+            }
         }
     }
 

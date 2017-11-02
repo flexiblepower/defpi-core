@@ -19,6 +19,7 @@ import java.util.concurrent.TimeoutException;
 import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
+import org.flexiblepower.proto.DefPiParams;
 import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage;
 import org.flexiblepower.proto.ServiceProto.ProcessState;
@@ -60,11 +61,12 @@ public class ServiceManager<T> implements Closeable {
     private final ConnectionManager connectionManager;
     private final JavaIOSerializer javaIoSerializer = new JavaIOSerializer();
     private final ProtobufMessageSerializer pbSerializer = new ProtobufMessageSerializer();
-    private final TCPSocket managementSocket;
+    private TCPSocket managementSocket;
 
     private Service<T> managedService;
     private Class<T> configClass;
     private String processId = "unknown";
+    private DefPiParameters defPiParams = null;
     private boolean configured;
 
     private volatile boolean keepThreadAlive;
@@ -99,7 +101,10 @@ public class ServiceManager<T> implements Closeable {
                     messageArray = this.managementSocket.read();
                 } catch (IOException | InterruptedException e) {
                     if (this.keepThreadAlive) {
-                        ServiceManager.log.warn("Socket closed while expecting instruction, stopping thread", e);
+                        ServiceManager.log.warn("Socket closed while expecting instruction, re-opening it", e);
+                        this.managementSocket.close();
+                        this.managementSocket = TCPSocket.asServer(ServiceManager.MANAGEMENT_PORT);
+                        continue;
                     }
                     break;
                 }
@@ -136,9 +141,12 @@ public class ServiceManager<T> implements Closeable {
                 } catch (final IOException | InterruptedException e) {
                     // Socket is closed, we are stopped
                     if (this.keepThreadAlive) {
-                        ServiceManager.log.warn("Socket closed while sending reply, stopping thread", e);
+                        ServiceManager.log.warn("Socket closed while sending reply, re-opening it", e);
+                        this.managementSocket.close();
+                        this.managementSocket = TCPSocket.asServer(ServiceManager.MANAGEMENT_PORT);
+                    } else {
+                        break;
                     }
-                    break;
                 }
             }
 
@@ -155,7 +163,7 @@ public class ServiceManager<T> implements Closeable {
 
         Class<T> clazz = null;
         for (final Method m : service.getClass().getMethods()) {
-            if (m.getName().startsWith("init") && (m.getParameterTypes().length == 1)
+            if (m.getName().startsWith("init") && (m.getParameterTypes().length == 2)
                     && (m.getParameterTypes()[0].isInterface() || m.getParameterTypes()[0].equals(Void.class))) {
                 clazz = (Class<T>) m.getParameterTypes()[0];
                 break;
@@ -226,10 +234,16 @@ public class ServiceManager<T> implements Closeable {
     /**
      * @param message
      * @throws ServiceInvocationException
+     * @throws TimeoutException
+     * @throws ExecutionException
+     * @throws InterruptedException
      */
     private Message handleGoToProcessStateMessage(final GoToProcessStateMessage message)
             throws ServiceInvocationException,
-            SerializationException {
+            SerializationException,
+            InterruptedException,
+            ExecutionException,
+            TimeoutException {
         ServiceManager.log.debug("Received GoToProcessStateMessage for process {} -> {}",
                 message.getProcessId(),
                 message.getTargetState());
@@ -237,35 +251,21 @@ public class ServiceManager<T> implements Closeable {
         switch (message.getTargetState()) {
         case RUNNING:
             // This is basically a "force start" with no configuration
-            this.serviceExecutor.submit(() -> {
-                try {
-                    this.managedService.init(null);
-                } catch (final Throwable t) {
-                    ServiceManager.log.error("Error while calling init() without config", t);
-                }
+            final Future<ProcessStateUpdateMessage> startFuture = this.serviceExecutor.submit(() -> {
+                this.managedService.init(null, this.defPiParams);
+                ServiceManager.this.configured = true;
+                return ServiceManager.this.createProcessStateUpdateMessage(ProcessState.RUNNING);
             });
-            ServiceManager.this.configured = true;
-            return ServiceManager.this.createProcessStateUpdateMessage(ProcessState.RUNNING);
+
+            return startFuture.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         case SUSPENDED:
-            final Future<Serializable> future = this.serviceExecutor.submit(() -> {
-                try {
-                    return this.managedService.suspend();
-                } catch (final Throwable t) {
-                    ServiceManager.log.error("Error while calling suspend()", t);
-                    return null;
-                }
+            final Future<Serializable> suspendFuture = this.serviceExecutor.submit(() -> {
+                return this.managedService.suspend();
             });
-            // this.connectionManager.close();
+            final Serializable state = suspendFuture.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             this.keepThreadAlive = false;
 
-            byte[] stateData = null;
-            try {
-                stateData = this.javaIoSerializer
-                        .serialize(future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-            } catch (final TimeoutException | InterruptedException | ExecutionException e) {
-                ServiceManager.log.error("Calling suspend() method took too much time");
-            }
-            return this.createProcessStateUpdateMessage(ProcessState.SUSPENDED, stateData);
+            return this.createProcessStateUpdateMessage(ProcessState.SUSPENDED, this.javaIoSerializer.serialize(state));
         case TERMINATED:
             this.serviceExecutor.submit(() -> {
                 try {
@@ -274,7 +274,8 @@ public class ServiceManager<T> implements Closeable {
                     ServiceManager.log.error("Error while calling terminate()", t);
                 }
             });
-            // this.connectionManager.close();
+
+            // Connections are closed by the manager thread
             this.keepThreadAlive = false;
             return this.createProcessStateUpdateMessage(ProcessState.TERMINATED);
         case STARTING:
@@ -336,10 +337,11 @@ public class ServiceManager<T> implements Closeable {
 
         this.processId = message.getProcessId();
         final T config = ServiceConfig.generateConfig(this.configClass, message.getConfigMap());
+        this.defPiParams = this.generateDefPiParameters();
 
-        final Future<ProcessStateUpdateMessage> future = this.serviceExecutor.submit(() -> {
+        final Future<ProcessStateUpdateMessage> configFuture = this.serviceExecutor.submit(() -> {
             if (!this.configured) {
-                this.managedService.init(config);
+                this.managedService.init(config, this.defPiParams);
                 this.configured = true;
             } else {
                 this.managedService.modify(config);
@@ -347,7 +349,43 @@ public class ServiceManager<T> implements Closeable {
             return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
         });
 
-        return future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        return configFuture.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Get the value of a given system environment variable. If the variable is not set, use the given default value
+     *
+     * @param key
+     * @param dflt
+     * @return
+     */
+    private static String getSysEnvVar(final String key, final String dflt) {
+        final String val = System.getenv(key);
+        if (val == null) {
+            return dflt;
+        } else {
+            return val;
+        }
+    }
+
+    /**
+     * @param params
+     * @return
+     */
+    private DefPiParameters generateDefPiParameters() {
+        int orchestratorPort = 0;
+        try {
+            orchestratorPort = Integer.parseInt(ServiceManager.getSysEnvVar(DefPiParams.ORCHESTRATOR_PORT.name(), "0"));
+        } catch (final NumberFormatException e) {
+            // 0 is the default value
+        }
+        return new DefPiParameters(ServiceManager.getSysEnvVar(DefPiParams.ORCHESTRATOR_HOST.name(), null),
+                orchestratorPort,
+                ServiceManager.getSysEnvVar(DefPiParams.ORCHESTRATOR_TOKEN.name(), null),
+                this.processId,
+                ServiceManager.getSysEnvVar(DefPiParams.USER_ID.name(), null),
+                ServiceManager.getSysEnvVar(DefPiParams.USERNAME.name(), null),
+                ServiceManager.getSysEnvVar(DefPiParams.USER_EMAIL.name(), null));
     }
 
     private ProcessStateUpdateMessage createProcessStateUpdateMessage(final ProcessState processState) {

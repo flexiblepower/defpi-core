@@ -10,6 +10,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.flexiblepower.exceptions.AuthorizationException;
@@ -43,7 +44,8 @@ public interface ProcessApi {
                          response = Process.class,
                          responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public List<org.flexiblepower.model.Process> listProcesses() throws AuthorizationException;
+    public List<org.flexiblepower.model.Process> listProcesses(@QueryParam("_filters") String filters)
+            throws AuthorizationException;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)

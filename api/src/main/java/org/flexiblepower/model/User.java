@@ -37,6 +37,7 @@ public class User {
     @Id
     @JsonProperty("id")
     @JsonSerialize(using = ToStringSerializer.class)
+    // @JsonDeserialize(using = ObjectIdDeserializer.class)
     private ObjectId id = null;
 
     @Getter
@@ -44,9 +45,15 @@ public class User {
     @Indexed(options = @IndexOptions(unique = true))
     private String username = null;
 
+    // @JsonIgnore
     private String password = null;
 
+    // @JsonIgnore
     private String passwordHash = null;
+
+    @Setter
+    // @JsonIgnore
+    private String authenticationToken = null;
 
     @Setter
     private String email = null;

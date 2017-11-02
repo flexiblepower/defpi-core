@@ -66,7 +66,7 @@ public abstract class Templates {
         if (parameters == null) {
             replace.put("parameters", "null");
         } else {
-            replace.put("parameters", writer.writeValueAsString(parameters).replaceAll("\n", " \\\\ \n"));
+            replace.put("parameters", writer.writeValueAsString(parameters).replaceAll("\n", " \\\\\n"));
         }
 
         final Set<InterfaceDescription> input = service.getInterfaces();
