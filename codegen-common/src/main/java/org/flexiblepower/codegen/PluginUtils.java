@@ -18,6 +18,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.flexiblepower.codegen.model.InterfaceVersionDescription;
 import org.flexiblepower.codegen.model.ServiceDescription;
@@ -120,6 +122,16 @@ public class PluginUtils {
 
         // Return a cleaned-up string
         return ret.toString().replaceAll("[^a-zA-Z0-9_]", "");
+    }
+
+    /**
+     * @param i
+     * @return
+     */
+    public static String snakeCaps(final String str) {
+        return Stream.of(str.split(" ")).map(String::toLowerCase).collect(Collectors.joining("_")).replaceAll(
+                "[^a-zA-Z0-9_]",
+                "");
     }
 
     public static String getHash(final InterfaceVersionDescription vitf, final Set<String> messageSet) {
