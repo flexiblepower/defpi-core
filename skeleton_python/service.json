@@ -1,0 +1,57 @@
+{
+  "name": "Echo Service",
+  "version": "0.0.1-SNAPSHOT",
+  "parameters": [
+  	{
+  	  "id": "interval",
+  	  "name": "interval",
+  	  "type": "integer",
+  	  "values": ["1", "2", "more"],
+  	  "default": "2"
+  	}
+  ],
+  "interfaces": [
+    {
+      "name": "Echo Interface",
+      "autoConnect": false,
+      "allowMultiple": false,
+      "interfaceVersions": [
+        {
+          "versionName": "v0.0.1",
+          "type": "xsd",
+          "location": "books.xsd",
+          "sends": ["BooksForm"],
+          "receives": ["BooksForm"]
+        }
+      ]
+    },
+    {
+      "name": "Dropback Interface",
+      "autoConnect": false,
+      "allowMultiple": true,
+      "interfaceVersions": [
+        {
+          "versionName": "v0.0.1",
+          "type": "proto",
+          "location": "https://pastebin.com/raw/FyBHi5KA",
+          "sends": [],
+          "receives": ["Msg"]
+        },
+        {
+          "versionName": "v0.0.2",
+          "type": "proto",
+          "location": "echoProtocol2.proto",
+          "sends": ["Msg", "Reply"],
+          "receives": ["Msg", "Reply"]
+        },
+        {
+          "versionName": "send-only",
+          "type": "proto",
+          "location": "echoProtocol2.proto",
+          "sends": ["Msg", "Reply"],
+          "receives": [ ]
+        }
+      ]
+    }
+  ]
+}

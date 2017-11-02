@@ -39,7 +39,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>${mainClass}</mainClass>
+							<mainClass>org.flexiblepower.pythoncodegen.Main</mainClass>
 						</manifest>
 					</archive>
 					<descriptorRefs>
