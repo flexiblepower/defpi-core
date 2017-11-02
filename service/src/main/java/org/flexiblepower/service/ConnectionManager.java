@@ -61,6 +61,10 @@ public class ConnectionManager implements Closeable {
                 return this.createConnection(message);
             } else {
                 ConnectionManager.log.info("Ignore create-message for already existing connection {}", connectionId);
+                return ConnectionHandshake.newBuilder()
+                        .setConnectionId(connectionId)
+                        .setConnectionState(ConnectionState.CONNECTED)
+                        .build();
             }
         case RESUME:
             if (!this.connections.containsKey(connectionId)) {
