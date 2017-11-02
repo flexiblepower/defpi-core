@@ -57,10 +57,14 @@ public class ConnectionManager implements Closeable {
 
         switch (message.getMode()) {
         case CREATE:
-            return this.createConnection(connectionId, message);
+            if (!this.connections.containsKey(connectionId)) {
+                return this.createConnection(message);
+            } else {
+                ConnectionManager.log.info("Ignore create-message for already existing connection {}", connectionId);
+            }
         case RESUME:
             if (!this.connections.containsKey(connectionId)) {
-                this.createConnection(connectionId, message);
+                this.createConnection(message);
             }
             this.connections.get(connectionId).goToResumedState(message.getListenPort(), message.getTargetAddress());
             return ConnectionHandshake.newBuilder()
@@ -89,8 +93,7 @@ public class ConnectionManager implements Closeable {
      * @throws ConnectionModificationException
      * @throws IOException
      */
-    private Message createConnection(final String connectionId, final ConnectionMessage message)
-            throws ConnectionModificationException,
+    private Message createConnection(final ConnectionMessage message) throws ConnectionModificationException,
             IOException {
         // First find the correct handler to attach to the connection
         final String key = ConnectionManager.handlerKey(message.getReceiveHash(), message.getSendHash());
@@ -115,7 +118,7 @@ public class ConnectionManager implements Closeable {
             this.connections.put(message.getConnectionId(), conn);
         }
         return ConnectionHandshake.newBuilder()
-                .setConnectionId(connectionId)
+                .setConnectionId(message.getConnectionId())
                 .setConnectionState(ConnectionState.STARTING)
                 .build();
 
