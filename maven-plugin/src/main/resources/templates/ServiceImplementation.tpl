@@ -19,30 +19,66 @@ import org.flexiblepower.service.Service;
  */
 @Generated(value = "{{generator}}", date = "{{date}}")
 public class {{service.class}} implements Service<{{config.interface}}> {
-		
+
+   /**
+     * This function is only called if this instance is the resumed version of an old process. It is called with the
+     * serialized process state, which was returned from the {@link #suspend()} function. This function is called
+     * *before* the {@link #init(T, DefPiParameters)}) function, if it is a resumed instance of an earlier process.
+     *
+	 * @see org.flexiblepower.service.Service#resumeFrom(Serializable)
+     * @param state
+     */
 	@Override
 	public void resumeFrom(Serializable state) {
 		// TODO Auto-generated method stub
 
 	}
 
+    /**
+     * This function is called after the constructor (or immediately after the {@link #resumeFrom(Serializable)} if
+     * applicable), when the configuration is first available. This method is only called once, and after it, the
+     * service is considered to be "running".
+     *
+	 * @see org.flexiblepower.service.Service#init(Object, DefPiParameters)
+     * @see #modify(T)
+     * @param config
+     * @param parameters
+     */
 	@Override
 	public void init({{config.interface}} config, DefPiParameters parameters) {
 		// TODO Auto-generated method stub
 		
 	}
 
+    /**
+     * This function is called when the configuration changes during runtime. It may be called multiple times.
+     *
+	 * @see org.flexiblepower.service.Service#modify(Object)
+     * @see #init(T, DefPiParameters)
+     * @param config
+     */
 	@Override
 	public void modify({{config.interface}} config) {
 		// TODO Auto-generated method stub
 	}
 
+    /**
+     * Marks that this process is about to be suspended. This means the object *will* be destroyed, and may be
+     * subsequently created in another iteration. Any data has to be stored now.
+     *
+	 * @see org.flexiblepower.service.Service#suspend()
+     * @return serialised state of the service
+     */
 	@Override
 	public Serializable suspend() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
+    /**
+     * Marks that this process is about to be terminated. This means the object *will* be destroyed.
+	 * @see org.flexiblepower.service.Service#terminate()
+     */
 	@Override
 	public void terminate() {
 		// TODO Auto-generated method stub

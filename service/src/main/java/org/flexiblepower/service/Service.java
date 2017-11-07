@@ -22,7 +22,7 @@ public interface Service<T> {
     /**
      * This function is only called if this instance is the resumed version of an old process. It is called with the
      * serialized process state, which was returned from the {@link #suspend()} function. This function is called
-     * *before* the {@link #init(Properties)}) function, if it is a resumed instance of an earlier process.
+     * *before* the {@link #init(T, DefPiParameters)}) function, if it is a resumed instance of an earlier process.
      *
      * @param state
      */
@@ -33,7 +33,7 @@ public interface Service<T> {
      * applicable), when the configuration is first available. This method is only called once, and after it, the
      * service is considered to be "running".
      *
-     * @see #modify(Properties props)
+     * @see #modify(T)
      * @param config
      * @param parameters
      */
@@ -42,7 +42,7 @@ public interface Service<T> {
     /**
      * This function is called when the configuration changes during runtime. It may be called multiple times.
      *
-     * @see #init(Properties props)
+     * @see #init(T, DefPiParameters)
      * @param config
      */
     public void modify(T config);
@@ -50,6 +50,8 @@ public interface Service<T> {
     /**
      * Marks that this process is about to be suspended. This means the object *will* be destroyed, and may be
      * subsequently created in another iteration. Any data has to be stored now.
+     *
+     * @return serialised state of the service
      */
     public Serializable suspend();
 

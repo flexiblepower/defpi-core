@@ -6,7 +6,8 @@
 package org.flexiblepower.service;
 
 /**
- * ConnectionHandlerManager
+ * Interface to be used by connection handler managers, will contain the methods handling the message types of the
+ * interface.
  *
  * @author coenvl
  * @version 0.1
