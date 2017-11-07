@@ -1,7 +1,7 @@
 /**
  * File TCPSocket.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.commons;
 
@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 /**
  * TCPSocket
  *
- * @author coenvl
  * @version 0.1
  * @since Oct 11, 2017
  */
@@ -204,7 +203,6 @@ public class TCPSocket implements Closeable {
     /**
      * SocketRunner makes sure the socket intialized
      *
-     * @author coenvl
      * @version 0.1
      * @since Oct 11, 2017
      */

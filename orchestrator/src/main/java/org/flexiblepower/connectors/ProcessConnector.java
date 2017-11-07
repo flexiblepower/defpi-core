@@ -1,7 +1,7 @@
 /**
  * File ConnectionManager.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.connectors;
 
@@ -46,7 +46,6 @@ import com.google.protobuf.Message;
 /**
  * ConnectionManager
  *
- * @author coenvl
  * @version 0.1
  * @since Apr 19, 2017
  */

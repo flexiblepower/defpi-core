@@ -1,7 +1,7 @@
 /**
  * File ApiException.java
  *
- * Copyright 2016 TNO
+ * Copyright 2016 FAN
  */
 package org.flexiblepower.exceptions;
 
@@ -17,7 +17,6 @@ import javax.ws.rs.core.Response.Status;
  * This exception is thrown by the API. When the API is accessed from a browser, it makes sure a user-friendly page is
  * displayed.
  *
- * @author leeuwencjv
  * @version 0.1
  * @since 9 dec. 2016
  */

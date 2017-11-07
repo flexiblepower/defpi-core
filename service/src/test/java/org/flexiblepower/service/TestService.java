@@ -1,7 +1,7 @@
 /**
  * File TestService.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.service;
 
@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 /**
  * TestService
  *
- * @author coenvl
  * @version 0.1
  * @since May 22, 2017
  */
@@ -32,7 +31,6 @@ public class TestService implements Service<TestServiceConfiguration>, Connectio
     /**
      * TestServiceConfiguration
      *
-     * @author coenvl
      * @version 0.1
      * @since Aug 28, 2017
      */

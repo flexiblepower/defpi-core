@@ -1,7 +1,7 @@
 /**
  * File ProtoCompiler.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.plugin.servicegen.compiler;
 
@@ -18,7 +18,6 @@ import org.flexiblepower.codegen.compiler.Compiler;
 /**
  * ProtoCompiler
  *
- * @author coenvl
  * @version 0.1
  * @since Jun 27, 2017
  */

@@ -1,7 +1,7 @@
 /**
  * File Parameter.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.model;
 
@@ -17,7 +17,6 @@ import lombok.ToString;
 /**
  * Parameter
  *
- * @author coenvl
  * @version 0.1
  * @since Apr 24, 2017
  */

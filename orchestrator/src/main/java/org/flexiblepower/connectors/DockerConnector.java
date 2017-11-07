@@ -1,7 +1,7 @@
 /**
  * File DockerConnector.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.connectors;
 
@@ -58,7 +58,6 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * DockerConnector
  *
- * @author leeuwencjv
  * @version 0.1
  * @since 20 mrt. 2017
  */

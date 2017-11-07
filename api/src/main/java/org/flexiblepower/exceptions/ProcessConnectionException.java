@@ -1,14 +1,13 @@
 /**
  * File ProcessConnectionException.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.exceptions;
 
 /**
  * ProcessConnectionException
  *
- * @author coenvl
  * @version 0.1
  * @since Aug 7, 2017
  */

@@ -1,14 +1,13 @@
 /**
  * File InvalidObjectIdException.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.exceptions;
 
 /**
  * InvalidObjectIdException
  *
- * @author coenvl
  * @version 0.1
  * @since Apr 6, 2017
  */

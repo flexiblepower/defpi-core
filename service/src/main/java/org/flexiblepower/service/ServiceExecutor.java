@@ -1,7 +1,7 @@
 /**
  * File ServiceExecutor.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.service;
 
@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 /**
  * ServiceExecutor
  *
- * @author coenvl
  * @version 0.1
  * @since Sep 27, 2017
  */

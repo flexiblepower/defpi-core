@@ -30,7 +30,6 @@ import lombok.extern.slf4j.Slf4j;
  *
  * The MongoDBConnector takes care of writing and reading objects from and to the mongo database.
  *
- * @author coenvl
  * @version 0.1
  * @since Mar 29, 2017
  */

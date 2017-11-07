@@ -22,7 +22,6 @@ import lombok.Setter;
 /**
  * User
  *
- * @author leeuwencjv
  * @version 0.1
  * @since 20 mrt. 2017
  */

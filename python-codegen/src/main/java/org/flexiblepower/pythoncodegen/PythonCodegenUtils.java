@@ -1,7 +1,7 @@
 /**
  * File PluginUtils.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.pythoncodegen;
 
@@ -13,7 +13,6 @@ import org.flexiblepower.codegen.model.ServiceDescription;
 /**
  * PluginUtils
  *
- * @author coenvl
  * @version 0.1
  * @since Jun 8, 2017
  */

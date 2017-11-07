@@ -1,7 +1,7 @@
 /**
  * File Node.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.model;
 
@@ -24,7 +24,6 @@ import lombok.ToString;
 /**
  * Node
  *
- * @author leeuwencjv
  * @version 0.1
  * @since 20 mrt. 2017
  */

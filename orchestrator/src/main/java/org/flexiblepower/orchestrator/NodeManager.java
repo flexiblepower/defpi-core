@@ -1,7 +1,7 @@
 /**
  * File NodeManager.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.orchestrator;
 
@@ -27,7 +27,6 @@ import com.spotify.docker.client.messages.swarm.Node;
 /**
  * NodeManager
  *
- * @author wilco
  * @version 0.1
  * @since May 1, 2017
  */

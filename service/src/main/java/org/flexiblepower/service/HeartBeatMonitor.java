@@ -1,7 +1,7 @@
 /**
  * File HeartBeatMonitor.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.service;
 
@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 /**
  * HeartBeatMonitor
  *
- * @author coenvl
  * @version 0.1
  * @since Aug 23, 2017
  */

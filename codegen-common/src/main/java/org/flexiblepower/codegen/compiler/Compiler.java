@@ -1,7 +1,7 @@
 /**
  * File Compiler.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.codegen.compiler;
 
@@ -11,7 +11,6 @@ import java.nio.file.Path;
 /**
  * Compiler
  *
- * @author coenvl
  * @version 0.1
  * @since Jun 28, 2017
  */

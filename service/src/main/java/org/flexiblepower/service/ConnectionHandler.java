@@ -1,7 +1,7 @@
 /**
  * File ConnectionHandler.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.service;
 
@@ -12,7 +12,6 @@ package org.flexiblepower.service;
  * connection. Reflection is used to determine any added functions to this interface, and will be called when object are
  * received, if the type of incoming message matches the interface method parameter type.
  *
- * @author coenvl
  * @version 0.1
  * @since Apr 24, 2017
  */

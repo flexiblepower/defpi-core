@@ -1,7 +1,7 @@
 /**
  * File ConnectionHandlerManager.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.service;
 
@@ -9,7 +9,6 @@ package org.flexiblepower.service;
  * Interface to be used by connection handler managers, will contain the methods handling the message types of the
  * interface.
  *
- * @author coenvl
  * @version 0.1
  * @since Aug 22, 2017
  */

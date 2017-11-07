@@ -1,7 +1,7 @@
 /**
  * File CreateProcess.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.process;
 
@@ -20,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * CreateProcess
  *
- * @author wilco
  * @version 0.1
  * @since Aug 9, 2017
  */

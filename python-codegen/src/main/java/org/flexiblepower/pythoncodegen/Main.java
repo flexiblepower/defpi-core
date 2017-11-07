@@ -1,7 +1,7 @@
 /**
  * File Main.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.pythoncodegen;
 
@@ -10,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Main
  *
- * @author coenvl
  * @version 0.1
  * @since Oct 23, 2017
  */

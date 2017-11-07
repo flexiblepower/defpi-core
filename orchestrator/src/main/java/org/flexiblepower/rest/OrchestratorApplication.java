@@ -1,7 +1,7 @@
 /**
  * File OrchestratorApplication.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.rest;
 
@@ -29,7 +29,6 @@ import io.swagger.jaxrs.listing.SwaggerSerializers;
 /**
  * OrchestratorApplication
  *
- * @author leeuwencjv
  * @version 0.1
  * @since 20 mrt. 2017
  */

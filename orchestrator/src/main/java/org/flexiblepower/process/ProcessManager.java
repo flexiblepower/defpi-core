@@ -1,7 +1,7 @@
 /**
  * File ProcessManager.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.process;
 
@@ -26,7 +26,6 @@ import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
 /**
  * ProcessManager
  *
- * @author wilco
  * @version 0.1
  * @since May 29, 2017
  */

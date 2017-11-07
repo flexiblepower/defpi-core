@@ -1,7 +1,7 @@
 /// **
 // * File XjcCompiler.java
 // *
-// * Copyright 2017 TNO
+// * Copyright 2017 FAN
 // */
 // package org.flexiblepower.plugin.servicegen.compiler;
 //
@@ -21,8 +21,7 @@
 /// **
 // * XjcCompiler
 // *
-// * @author coenvl
-// * @version 0.1
+//// * @version 0.1
 // * @since Jun 28, 2017
 // */
 // public class XjcCompiler implements Compiler {

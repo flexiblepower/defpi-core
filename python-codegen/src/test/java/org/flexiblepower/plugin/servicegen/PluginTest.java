@@ -1,7 +1,7 @@
 /**
  * File PluginTest.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.plugin.servicegen;
 
@@ -25,7 +25,6 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * PluginTest
  *
- * @author coenvl
  * @version 0.1
  * @since Jun 8, 2017
  */

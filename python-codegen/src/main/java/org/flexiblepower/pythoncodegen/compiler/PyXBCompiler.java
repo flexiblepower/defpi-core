@@ -1,7 +1,7 @@
 /**
  * File PyXBCompiler.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.pythoncodegen.compiler;
 
@@ -15,7 +15,6 @@ import org.flexiblepower.codegen.compiler.Compiler;
 /**
  * PyXBCompiler
  *
- * @author coenvl
  * @version 0.1
  * @since Jun 28, 2017
  */

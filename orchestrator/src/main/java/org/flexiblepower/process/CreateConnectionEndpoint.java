@@ -1,7 +1,7 @@
 /**
  * File CreateConnection.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.process;
 
@@ -19,7 +19,6 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * CreateConnection
  *
- * @author wilco
  * @version 0.1
  * @since Aug 14, 2017
  */

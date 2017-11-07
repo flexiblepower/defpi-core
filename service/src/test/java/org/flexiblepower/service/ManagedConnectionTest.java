@@ -1,7 +1,7 @@
 /**
  * File ManagedConnectionTest.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.service;
 
@@ -12,7 +12,6 @@ import org.junit.Test;
 /**
  * ManagedConnectionTest
  *
- * @author coenvl
  * @version 0.1
  * @since May 29, 2017
  */

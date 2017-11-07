@@ -1,7 +1,7 @@
 /**
  * File CodegenTest.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.plugin.servicegen;
 
@@ -35,7 +35,6 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * CodegenTest
  *
- * @author coenvl
  * @version 0.1
  * @since Oct 4, 2017
  */

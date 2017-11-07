@@ -1,7 +1,7 @@
 /**
  * File ServiceMain.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.service;
 
@@ -16,14 +16,6 @@ import org.slf4j.LoggerFactory;
 /**
  * ServiceMain
  *
- * @author coenvl
- * @version 0.1
- * @since May 10, 2017
- */
-/**
- * ServiceMain
- *
- * @author coenvl
  * @version 0.1
  * @since Jul 24, 2017
  */

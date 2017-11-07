@@ -51,7 +51,6 @@ import com.github.fge.jsonschema.core.report.ProcessingReport;
 /**
  * CreateComponentMojo
  *
- * @author coenvl
  * @version 0.1
  * @since Jun 28, 2017
  */

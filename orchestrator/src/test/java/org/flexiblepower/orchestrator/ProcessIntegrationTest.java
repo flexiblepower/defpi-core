@@ -1,7 +1,7 @@
 /**
  * File ProcessIntegrationTest.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.orchestrator;
 
@@ -33,7 +33,6 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * ProcessIntegrationTest
  *
- * @author coenvl
  * @version 0.1
  * @since Apr 24, 2017
  */

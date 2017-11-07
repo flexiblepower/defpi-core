@@ -1,14 +1,13 @@
 /**
  * File OrchestrationException.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.exceptions;
 
 /**
  * OrchestrationException
  *
- * @author coenvl
  * @version 0.1
  * @since May 1, 2017
  */

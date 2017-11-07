@@ -1,7 +1,7 @@
 /**
  * File OrchestrationException.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.exceptions;
 
@@ -10,7 +10,6 @@ import javax.ws.rs.core.Response.Status;
 /**
  * OrchestrationException
  *
- * @author coenvl
  * @version 0.1
  * @since May 1, 2017
  */

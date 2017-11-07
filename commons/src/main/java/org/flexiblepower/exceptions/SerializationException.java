@@ -1,14 +1,13 @@
 /**
  * File SerializationException.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.exceptions;
 
 /**
  * SerializationException
  *
- * @author coenvl
  * @version 0.1
  * @since May 12, 2017
  */

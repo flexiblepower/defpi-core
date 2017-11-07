@@ -1,7 +1,7 @@
 /**
  * File ServiceConfig.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.service;
 
@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory;
 /**
  * ServiceConfig
  *
- * @author leeuwencjv
  * @version 0.1
  * @since 24 aug. 2017
  */
@@ -38,7 +37,6 @@ public class ServiceConfig {
     /**
      * GeneratedConfigHandler
      *
-     * @author leeuwencjv
      * @version 0.1
      * @since 24 aug. 2017
      */

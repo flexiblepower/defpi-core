@@ -1,7 +1,7 @@
 /**
  * File Proces.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.model;
 
@@ -27,7 +27,6 @@ import lombok.Value;
 /**
  * Process
  *
- * @author coenvl
  * @version 0.1
  * @since Mar 30, 2017
  */

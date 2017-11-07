@@ -1,7 +1,7 @@
 /**
  * File UserManager.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.orchestrator;
 
@@ -17,7 +17,6 @@ import org.flexiblepower.model.User;
 /**
  * UserManager
  *
- * @author coenvl
  * @version 0.1
  * @since Jul 24, 2017
  */

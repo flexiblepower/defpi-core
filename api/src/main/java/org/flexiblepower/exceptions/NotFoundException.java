@@ -1,14 +1,13 @@
 /**
  * File NotFoundException.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.exceptions;
 
 /**
  * NotFoundException
  *
- * @author coenvl
  * @version 0.1
  * @since Apr 12, 2017
  */

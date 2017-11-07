@@ -1,7 +1,7 @@
 /**
  * File ConnectionTest.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.service;
 
@@ -39,7 +39,6 @@ public class ConnectionIntegrationTest {
     /**
      * TestHandlerBuilder
      *
-     * @author coenvl
      * @version 0.1
      * @since Aug 22, 2017
      */

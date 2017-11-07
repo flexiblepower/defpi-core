@@ -19,7 +19,6 @@ import org.flexiblepower.model.Parameter;
 /**
  * Templates
  *
- * @author coenvl
  * @version 0.1
  * @since Jun 8, 2017
  */

@@ -1,7 +1,7 @@
 /**
  * File Connection.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.service;
 
@@ -10,7 +10,6 @@ import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 /**
  * Connection
  *
- * @author coenvl
  * @version 0.1
  * @since Apr 24, 2017
  */

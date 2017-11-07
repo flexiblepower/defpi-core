@@ -1,14 +1,13 @@
 /**
  * File InterfaceVersionDescription.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.codegen.model;
 
 /**
  * InterfaceVersionDescription
  *
- * @author coenvl
  * @version 0.1
  * @since May 8, 2017
  */

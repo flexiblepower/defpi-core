@@ -1,7 +1,7 @@
 /**
  * File PendingChangeRestApi.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.rest;
 
@@ -28,7 +28,6 @@ import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
 /**
  * PendingChangeRestApi
  *
- * @author wilco
  * @version 0.1
  * @since Aug 21, 2017
  */

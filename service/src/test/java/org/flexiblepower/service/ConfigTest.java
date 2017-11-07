@@ -1,7 +1,7 @@
 /**
  * File ConfigTest.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.service;
 
@@ -14,7 +14,6 @@ import org.junit.Test;
 /**
  * ConfigTest
  *
- * @author leeuwencjv
  * @version 0.1
  * @since 24 aug. 2017
  */

@@ -1,7 +1,7 @@
 /**
  * File ObjectIdDeserializer.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
  */
 package org.flexiblepower.model;
 
@@ -17,7 +17,6 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 /**
  * ObjectIdDeserializer
  *
- * @author wilco
  * @version 0.1
  * @since May 5, 2017
  */
