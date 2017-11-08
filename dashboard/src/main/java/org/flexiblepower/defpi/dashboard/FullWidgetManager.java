@@ -21,7 +21,7 @@ public class FullWidgetManager implements HttpHandler {
 	public HTTPResponse handle(HTTPRequest request) {
 		String uri = request.getUri();
 		for (Widget widget : widgets) {
-			String prefix = "/" + widget.getName();
+			String prefix = "/" + widget.getFullWidgetId();
 			if (uri.startsWith(prefix + "/")) {
 				String relativeUri = uri.substring(prefix.length(), uri.length());
 				if (HttpUtils.path(relativeUri).equals("/index.html")) {
@@ -48,8 +48,8 @@ public class FullWidgetManager implements HttpHandler {
 				} else {
 					sb.append("<li>");
 				}
-				sb.append("<a href=\"/").append(reg.getName()).append("/index.html\">");
-				sb.append("<image src=\"/").append(reg.getName()).append("/menu.png\" />");
+				sb.append("<a href=\"/").append(reg.getFullWidgetId()).append("/index.html\">");
+				sb.append("<image src=\"/").append(reg.getFullWidgetId()).append("/menu.png\" />");
 				sb.append("<span>").append(reg.getTitle()).append("</span>");
 				sb.append("</a></li>");
 			}

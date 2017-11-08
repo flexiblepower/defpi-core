@@ -72,7 +72,7 @@ public class DashboardFullWidget implements Widget {
 	}
 
 	@Override
-	public String getName() {
+	public String getFullWidgetId() {
 		return "dashboard";
 	}
 

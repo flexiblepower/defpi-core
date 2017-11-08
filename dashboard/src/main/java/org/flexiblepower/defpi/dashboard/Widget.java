@@ -6,7 +6,12 @@ public interface Widget extends HttpHandler {
 		FULL, SMALL
 	}
 
-	String getName();
+	/**
+	 * Name which can be used in the URL.
+	 * 
+	 * @return
+	 */
+	String getFullWidgetId();
 
 	String getTitle();
 
