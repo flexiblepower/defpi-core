@@ -13,6 +13,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.commons.TCPSocket;
+import org.flexiblepower.exceptions.NotFoundException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
@@ -28,6 +29,7 @@ import org.flexiblepower.orchestrator.ServiceManager;
 import org.flexiblepower.process.ProcessManager;
 import org.flexiblepower.proto.ConnectionProto.ConnectionHandshake;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
+import org.flexiblepower.proto.ConnectionProto.ConnectionMessage.ModeType;
 import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.proto.ServiceProto.GoToProcessStateMessage;
 import org.flexiblepower.proto.ServiceProto.ProcessStateUpdateMessage;
@@ -66,6 +68,13 @@ public class ProcessConnector {
         return ProcessConnector.instance;
     }
 
+    /**
+     * Returns a process connection to the process, or null if it is unable to connect.
+     *
+     * @param processId
+     * @return
+     * @throws ProcessNotFoundException
+     */
     private synchronized ProcessConnection getProcessConnection(final ObjectId processId)
             throws ProcessNotFoundException {
         // Let's throw a message if the process is not present in DB
@@ -85,7 +94,6 @@ public class ProcessConnector {
     public boolean createConnectionEndpoint(final Connection connection, final Endpoint endpoint)
             throws ProcessNotFoundException,
             ServiceNotFoundException {
-        final Endpoint otherEndpoint = connection.getOtherEndpoint(endpoint);
         final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
 
         if (process.getState() != ProcessState.RUNNING) {
@@ -95,35 +103,12 @@ public class ProcessConnector {
         }
 
         final ProcessConnection pc = this.getProcessConnection(process.getId());
-        if (pc == null) {
-            ProcessConnector.log.warn("Unable to connect to process {}, not creating connection endpoint",
-                    process.getId());
-            return false;
-        }
-
-        final Service service = ServiceManager.getInstance().getService(process.getServiceId());
-
-        final Interface intface = service.getInterface(endpoint.getInterfaceId());
-        final InterfaceVersion interfaceVersion = intface.getInterfaceVersionByName(endpoint.getInterfaceVersionName());
-
-        // Decide if this endpoint will be server or client
-        final String targetAddress = (endpoint.getProcessId().compareTo(otherEndpoint.getProcessId()) > 0
-                ? otherEndpoint.getProcessId().toString()
-                : "");
-
-        return pc.setUpConnection(connection.getId(),
-                endpoint.getListenPort(),
-                interfaceVersion.getSendsHash(),
-                targetAddress,
-                interfaceVersion.getReceivesHash(),
-                otherEndpoint);
-
+        return pc == null ? false : pc.setupConnectionEndpoint(connection, endpoint);
     }
 
     public boolean terminateConnectionEndpoint(final Connection connection, final Endpoint endpoint)
             throws ProcessNotFoundException {
-        final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
-        final ProcessConnection pc = this.getProcessConnection(process.getId());
+        final ProcessConnection pc = this.getProcessConnection(endpoint.getProcessId());
         return pc == null ? false : pc.tearDownConnection(connection.getId());
     }
 
@@ -133,8 +118,7 @@ public class ProcessConnector {
      */
     public boolean suspendConnectionEndpoint(final Connection connection, final Endpoint endpoint)
             throws ProcessNotFoundException {
-        final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
-        final ProcessConnection pc = this.getProcessConnection(process.getId());
+        final ProcessConnection pc = this.getProcessConnection(endpoint.getProcessId());
         return pc == null ? false : pc.suspendConnection(connection.getId());
     }
 
@@ -146,27 +130,8 @@ public class ProcessConnector {
     public boolean resumeConnectionEndpoint(final Connection connection, final Endpoint endpoint)
             throws ServiceNotFoundException,
             ProcessNotFoundException {
-        final Endpoint otherEndpoint = connection.getOtherEndpoint(endpoint);
-        final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
-
-        final ProcessConnection pc = this.getProcessConnection(process.getId());
-        if (pc == null) {
-            return false;
-        }
-
-        final Service service = ServiceManager.getInstance().getService(process.getServiceId());
-
-        final Interface intface = service.getInterface(connection.getEndpoint1().getInterfaceId());
-        final InterfaceVersion interfaceVersion = intface.getInterfaceVersionByName(endpoint.getInterfaceVersionName());
-
-        return pc.resumeConnection(connection.getId(),
-                endpoint.getListenPort(),
-                interfaceVersion.getSendsHash(),
-                otherEndpoint.getProcessId().toString(),
-                otherEndpoint.getListenPort(),
-                interfaceVersion.getReceivesHash(),
-                otherEndpoint);
-
+        final ProcessConnection pc = this.getProcessConnection(endpoint.getProcessId());
+        return pc == null ? false : pc.resumeConnectionEndpoint(connection, endpoint);
     }
 
     public void processConnectionTerminated(final ObjectId processId) {
@@ -266,36 +231,57 @@ public class ProcessConnector {
             }
         }
 
-        public boolean setUpConnection(final ObjectId connectionId,
-                final int listeningPort,
-                final String sendsHash,
-                final String targetAddress,
-                final String receivesHash,
-                final Connection.Endpoint otherEndpoint) {
-            String serviceId;
+        public boolean setupConnectionEndpoint(final Connection connection, final Endpoint endpoint) {
+            return this.sendConnectionMessage(connection, endpoint, ModeType.CREATE);
+        }
+
+        public boolean resumeConnectionEndpoint(final Connection connection, final Endpoint endpoint) {
+            return this.sendConnectionMessage(connection, endpoint, ModeType.RESUME);
+        }
+
+        private boolean
+                sendConnectionMessage(final Connection connection, final Endpoint endpoint, final ModeType type) {
+            final Endpoint otherEndpoint = connection.getOtherEndpoint(endpoint);
+            String remoteServiceId;
             try {
                 final Process otherProcess = ProcessManager.getInstance().getProcess(otherEndpoint.getProcessId());
-                serviceId = otherProcess.getServiceId();
+                remoteServiceId = otherProcess.getServiceId();
             } catch (final ProcessNotFoundException e) {
-                serviceId = null;
+                remoteServiceId = null;
             }
 
+            InterfaceVersion interfaceVersion;
+            try {
+                final Process process = ProcessManager.getInstance().getProcess(this.processId);
+                final Service service = ServiceManager.getInstance().getService(process.getServiceId());
+                final Interface intface = service.getInterface(endpoint.getInterfaceId());
+                interfaceVersion = intface.getInterfaceVersionByName(endpoint.getInterfaceVersionName());
+            } catch (final NotFoundException e) {
+                ProcessConnector.log.debug("Exception while preparing connection message: {}", e.getMessage());
+                return false;
+            }
+
+            // Decide if this endpoint will be server or client
+            final String targetAddress = (endpoint.getProcessId().compareTo(otherEndpoint.getProcessId()) > 0
+                    ? otherEndpoint.getProcessId().toString()
+                    : "");
+
             final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
-                    .setConnectionId(connectionId.toString())
-                    .setMode(ConnectionMessage.ModeType.CREATE)
+                    .setConnectionId(connection.getId().toString())
+                    .setMode(type)
                     .setTargetAddress(targetAddress)
-                    .setListenPort(listeningPort)
-                    .setReceiveHash(receivesHash)
-                    .setSendHash(sendsHash)
+                    .setListenPort(connection.getPort())
+                    .setReceiveHash(interfaceVersion.getReceivesHash())
+                    .setSendHash(interfaceVersion.getSendsHash())
                     .setRemoteProcessId(otherEndpoint.getProcessId().toString())
                     .setRemoteInterfaceId(otherEndpoint.getInterfaceId())
-                    .setRemoteServiceId(serviceId)
+                    .setRemoteServiceId(remoteServiceId)
                     .build();
 
             final ConnectionHandshake response = this.send(connectionMessage, ConnectionHandshake.class);
             if (response != null) {
                 ProcessConnector.log
-                        .debug("Connection " + connectionId + " status: " + response.getConnectionState().name());
+                        .debug("Connection " + connection.getId() + " status: " + response.getConnectionState().name());
                 return true;
             } else {
                 return false;
@@ -322,45 +308,6 @@ public class ProcessConnector {
             final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
                     .setConnectionId(connectionId.toString())
                     .setMode(ConnectionMessage.ModeType.SUSPEND)
-                    .build();
-
-            final ConnectionHandshake response = this.send(connectionMessage, ConnectionHandshake.class);
-            if (response != null) {
-                ProcessConnector.log
-                        .debug("Connection " + connectionId + " status: " + response.getConnectionState().name());
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-        public boolean resumeConnection(final ObjectId connectionId,
-                final int listeningPort,
-                final String sendingHash,
-                final String receivingHost,
-                final int targetPort,
-                final String receivingHash,
-                final Connection.Endpoint otherEndpoint) {
-            final String targetAddress = "tcp://" + receivingHost + ":" + targetPort;
-
-            String serviceId;
-            try {
-                final Process otherProcess = ProcessManager.getInstance().getProcess(otherEndpoint.getProcessId());
-                serviceId = otherProcess.getServiceId();
-            } catch (final ProcessNotFoundException e) {
-                serviceId = null;
-            }
-
-            final ConnectionMessage connectionMessage = ConnectionMessage.newBuilder()
-                    .setConnectionId(connectionId.toString())
-                    .setMode(ConnectionMessage.ModeType.RESUME)
-                    .setTargetAddress(targetAddress)
-                    .setListenPort(listeningPort)
-                    .setReceiveHash(receivingHash)
-                    .setSendHash(sendingHash)
-                    .setRemoteProcessId(otherEndpoint.getProcessId().toString())
-                    .setRemoteInterfaceId(otherEndpoint.getInterfaceId())
-                    .setRemoteServiceId(serviceId)
                     .build();
 
             final ConnectionHandshake response = this.send(connectionMessage, ConnectionHandshake.class);

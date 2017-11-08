@@ -1,2 +1,2 @@
-	@abstractmethod
-	def handle{{handle.type}}Message(self, message):
+    @abstractmethod
+    def {{handler.function}}_message(self, message): pass

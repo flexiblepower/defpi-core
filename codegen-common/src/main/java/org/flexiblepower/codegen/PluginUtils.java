@@ -18,6 +18,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.flexiblepower.codegen.model.InterfaceVersionDescription;
 import org.flexiblepower.codegen.model.ServiceDescription;
@@ -72,15 +74,8 @@ public class PluginUtils {
      * @throws ProcessingException
      */
     public static boolean validateServiceDefinition(final File inputFile) throws ProcessingException {
-        final JsonSchemaFactory factory = JsonSchemaFactory.byDefault();
-        final URL schemaURL = PluginUtils.class.getClassLoader().getResource("schema.json");
-
         try {
-            final JsonNode schemaNode = JsonLoader.fromURL(schemaURL);
-            final JsonNode data = JsonLoader.fromFile(inputFile);
-
-            final JsonSchema schema = factory.getJsonSchema(schemaNode);
-            final ProcessingReport report = schema.validate(data);
+            final ProcessingReport report = PluginUtils.processServiceDefinition(inputFile);
 
             if (report.isSuccess()) {
                 return true;
@@ -99,6 +94,18 @@ public class PluginUtils {
         return false;
     }
 
+    public static ProcessingReport processServiceDefinition(final File inputFile) throws IOException,
+            ProcessingException {
+        final JsonSchemaFactory factory = JsonSchemaFactory.byDefault();
+        final URL schemaURL = PluginUtils.class.getClassLoader().getResource("schema.json");
+
+        final JsonNode schemaNode = JsonLoader.fromURL(schemaURL);
+        final JsonNode data = JsonLoader.fromFile(inputFile);
+
+        final JsonSchema schema = factory.getJsonSchema(schemaNode);
+        return schema.validate(data);
+    }
+
     /**
      * @param i
      * @return
@@ -115,6 +122,16 @@ public class PluginUtils {
 
         // Return a cleaned-up string
         return ret.toString().replaceAll("[^a-zA-Z0-9_]", "");
+    }
+
+    /**
+     * @param i
+     * @return
+     */
+    public static String snakeCaps(final String str) {
+        return Stream.of(str.split(" ")).map(String::toLowerCase).collect(Collectors.joining("_")).replaceAll(
+                "[^a-zA-Z0-9_]",
+                "");
     }
 
     public static String getHash(final InterfaceVersionDescription vitf, final Set<String> messageSet) {

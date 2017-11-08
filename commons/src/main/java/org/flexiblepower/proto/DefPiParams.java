@@ -8,8 +8,9 @@ public enum DefPiParams {
     ORCHESTRATOR_HOST,
     ORCHESTRATOR_PORT,
     ORCHESTRATOR_TOKEN,
+    PROCESS_ID,
     USER_ID,
-    USERNAME,
+    USER_NAME,
     USER_EMAIL;
 
 }

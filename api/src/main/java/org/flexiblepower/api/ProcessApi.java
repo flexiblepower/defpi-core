@@ -126,4 +126,23 @@ public interface ProcessApi {
             NotFoundException,
             InvalidObjectIdException;
 
+    @PUT
+    @Path("trigger/{processId}")
+    @ApiOperation(nickname = "triggerProcessUpdate",
+                  value = "Trigger the process to update",
+                  notes = "Will send the specified process its configuration and connections",
+                  authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Process with the specified Id", response = Process.class),
+            @ApiResponse(code = 400, message = InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE),
+            @ApiResponse(code = 404, message = ProcessApi.PROCESS_NOT_FOUND_MESSAGE),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
+    public void triggerProcessConfig(
+            @ApiParam(name = "processId",
+                      value = "The id of process to trigger",
+                      required = true) @PathParam("processId") String processId)
+            throws ProcessNotFoundException,
+            InvalidObjectIdException,
+            AuthorizationException;
+
 }

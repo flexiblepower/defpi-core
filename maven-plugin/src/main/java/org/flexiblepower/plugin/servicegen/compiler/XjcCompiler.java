@@ -39,7 +39,7 @@ public class XjcCompiler implements Compiler {
     public void compile(final Path filePath, final Path targetPath) throws IOException {
         // Delay making the target folder to this point so it won't be made unnessecarily
         if (!targetPath.toFile().exists()) {
-            Files.createDirectory(targetPath);
+            Files.createDirectories(targetPath);
         }
 
         // Build and execute the command

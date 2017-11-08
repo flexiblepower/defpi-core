@@ -5,16 +5,23 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>service-parent</artifactId>
-	<version>0.2.6-SNAPSHOT</version>
+	<version>0.2.7-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<properties>
-		<project.resourcedir>${project.basedir}/src/main/resources</project.resourcedir>
+		<project.resources.directory>${project.basedir}/src/main/resources</project.resources.directory>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.source>1.8</java.source>
 		<java.target>1.8</java.target>
 
-		<defpi.version>0.2.6-SNAPSHOT</defpi.version>
+		<defpi.version>0.2.7-SNAPSHOT</defpi.version>
+		
+		<defpi.sources.generated>${project.build.directory}/generated-sources/java</defpi.sources.generated>
+		<defpi.resources.generated>${project.build.directory}/generated-resources/defpi</defpi.resources.generated>
+		<defpi.service.resources>defpi-resources</defpi.service.resources>
+		<defpi.dockerfolder.x86>docker</defpi.dockerfolder.x86>
+		<defpi.dockerfolder.arm>docker-arm</defpi.dockerfolder.arm>
+		
 		<protobuf.version>3.3.0</protobuf.version>
 
 		<!-- Main class for any service should be the main from the library -->
@@ -24,7 +31,7 @@
 		<docker.imageName>${docker.registry}/services/${project.artifactId}</docker.imageName>
 	</properties>
 
-	<!-- Where to push the service parent itself, should not be used by children-->
+	<!-- Where to push the service parent itself, should not be used by children -->
 	<distributionManagement>
 		<repository>
 			<id>def-pi-artifactory</id>
@@ -91,14 +98,6 @@
 
 	<build>
 		<plugins>
-			<!-- Use the plugin, note it is not activated by default. Use mvn defpi:generate 
-				to generate code based on the service.json -->
-			<plugin>
-				<groupId>org.flexiblepower.defpi</groupId>
-				<artifactId>defpi-maven-plugin</artifactId>
-				<version>${defpi.version}</version>
-			</plugin>
-
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -111,7 +110,6 @@
 		</plugins>
 	</build>
 
-
 	<profiles>
 		<profile>
 			<!-- This profile is only activated when there exists a Dockerfile. This 
@@ -119,11 +117,46 @@
 			<id>docker-image</id>
 			<activation>
 				<file>
-					<exists>src/main/resources/docker/Dockerfile</exists>
+					<missing>.noservice</missing>
 				</file>
 			</activation>
 			<build>
 				<plugins>
+					<plugin>
+						<groupId>org.flexiblepower.defpi</groupId>
+						<artifactId>defpi-maven-plugin</artifactId>
+						<version>${defpi.version}</version>
+						<executions>
+							<execution>
+								<id>generate-service</id>
+								<phase>generate-sources</phase>
+								<goals>
+									<goal>generate</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>build-helper-maven-plugin</artifactId>
+						<version>3.0.0</version>
+						<executions>
+							<execution>
+								<id>add-source</id>
+								<phase>generate-sources</phase>
+								<goals>
+									<goal>add-source</goal>
+								</goals>
+								<configuration>
+									<sources>
+										<source>${defpi.sources.generated}</source>
+									</sources>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+
 					<!-- Surefire executes JUnits tests during testing -->
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -146,23 +179,23 @@
 						<configuration>
 							<resources>
 								<resource>
-									<directory>${project.resourcedir}/docker</directory>
+									<directory>${defpi.resources.generated}/${defpi.dockerfolder.x86}</directory>
 									<targetPath>${project.build.directory}/docker</targetPath>
 									<include>Dockerfile</include>
 									<filtering>true</filtering>
 								</resource>
 								<resource>
-									<directory>${project.resourcedir}/defpi-resources</directory>
-									<targetPath>${project.build.directory}/docker/defpi-resources</targetPath>
-								</resource>
-								<resource>
-									<directory>${project.resourcedir}/docker-arm</directory>
+									<directory>${defpi.resources.generated}/${defpi.dockerfolder.arm}</directory>
 									<targetPath>${project.build.directory}/docker-arm</targetPath>
 									<include>Dockerfile</include>
 									<filtering>true</filtering>
 								</resource>
 								<resource>
-									<directory>${project.resourcedir}</directory>
+									<directory>${project.resources.directory}/${defpi.service.resources}</directory>
+									<targetPath>${project.build.directory}/docker/defpi-resources</targetPath>
+								</resource>
+								<resource>
+									<directory>${project.resources.directory}</directory>
 									<include>log4j2.xml</include>
 								</resource>
 							</resources>

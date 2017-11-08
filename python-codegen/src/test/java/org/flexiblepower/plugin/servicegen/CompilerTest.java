@@ -8,7 +8,7 @@ package org.flexiblepower.plugin.servicegen;
 import java.io.IOException;
 import java.nio.file.Paths;
 
-import org.flexiblepower.plugin.servicegen.compiler.ProtoCompiler;
+import org.flexiblepower.pythoncodegen.compiler.ProtoCompiler;
 import org.junit.Test;
 
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +32,7 @@ public class CompilerTest {
 
     // @Test
     // public void testXjcCompiler() throws IOException {
-    // final XjcCompiler compiler = new XjcCompiler();
+    // final PyXBCompiler compiler = new PyXBCompiler();
     // compiler.setBasePackageName("org.flexiblepower.test.xml");
     // compiler.compile(Paths.get("src/test/resources/books.xsd"), Paths.get("target/xjc-test-results"));
     // }

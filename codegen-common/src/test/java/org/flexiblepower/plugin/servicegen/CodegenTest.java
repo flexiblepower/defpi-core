@@ -16,6 +16,7 @@ import org.flexiblepower.codegen.PluginUtils;
 import org.flexiblepower.codegen.model.InterfaceDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription;
 import org.flexiblepower.codegen.model.ServiceDescription;
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -72,5 +73,11 @@ public class CodegenTest {
                 CodegenTest.log.info(PluginUtils.getHash(v, Collections.emptySet()));
             }
         }
+    }
+
+    @Test
+    public void capsTest() {
+        Assert.assertEquals("this_is_a_test", PluginUtils.snakeCaps("This is a Test"));
+        Assert.assertEquals("ThisIsATest", PluginUtils.camelCaps("This is a Test"));
     }
 }

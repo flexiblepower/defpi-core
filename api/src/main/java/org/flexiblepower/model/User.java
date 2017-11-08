@@ -10,11 +10,11 @@ import org.mongodb.morphia.annotations.Id;
 import org.mongodb.morphia.annotations.IndexOptions;
 import org.mongodb.morphia.annotations.Indexed;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -29,31 +29,28 @@ import lombok.Setter;
 @Getter
 @Entity
 @NoArgsConstructor
-@AllArgsConstructor
 public class User {
 
     private static final String SALT = "$salt@\"[3.c*%t<RBYA?,N\"2%[})X";
 
     @Id
-    @JsonProperty("id")
     @JsonSerialize(using = ToStringSerializer.class)
-    // @JsonDeserialize(using = ObjectIdDeserializer.class)
-    private ObjectId id = null;
+    @JsonDeserialize(using = ObjectIdDeserializer.class)
+    private ObjectId id;
 
     @Getter
-    @JsonProperty("username")
     @Indexed(options = @IndexOptions(unique = true))
-    private String username = null;
+    private String username;
 
-    // @JsonIgnore
-    private String password = null;
+    @JsonIgnore
+    private String password;
 
-    // @JsonIgnore
-    private String passwordHash = null;
+    @JsonIgnore
+    private String passwordHash;
 
     @Setter
-    // @JsonIgnore
-    private String authenticationToken = null;
+    @JsonIgnore
+    private String authenticationToken;
 
     @Setter
     private String email = null;

@@ -41,7 +41,6 @@ import com.google.protobuf.Message;
  * @version 0.1
  * @since May 12, 2017
  */
-// @Ignore // TODO These tests run fine from Eclipse, but not from maven.
 @RunWith(Parameterized.class)
 public class ConnectionTest {
 
@@ -71,7 +70,12 @@ public class ConnectionTest {
     public void initConnection() throws Exception {
         ConnectionTest.logger.info("*** Start of test ***");
         this.testService = new TestService();
-        this.manager = new ServiceManager<>(this.testService);
+        this.manager = new ServiceManager<>();
+        try {
+            this.manager.start(this.testService);
+        } catch (final ServiceInvocationException e) {
+            Assert.assertTrue(e.getMessage().startsWith("Futile"));
+        }
 
         ConnectionManager.registerConnectionHandlerFactory(TestService.class, this.testService);
 

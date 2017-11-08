@@ -13,7 +13,6 @@ import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange;
-import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
 import org.mongodb.morphia.annotations.Entity;
 
 import lombok.extern.slf4j.Slf4j;
@@ -62,7 +61,8 @@ public class CreateProcess {
                 MongoDbConnector.getInstance().save(this.process);
 
                 // Start next PendingChange
-                PendingChangeManager.getInstance().submit(new SendConfiguration(this.process));
+                // NO! let the service query the orchestrator for a trigger. This way it will also work after it crashed
+                // PendingChangeManager.getInstance().submit(new SendConfiguration(this.process));
 
                 // Report
                 return Result.SUCCESS;

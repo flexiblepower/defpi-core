@@ -447,9 +447,10 @@ public class DockerConnector {
         envArgs.put(DefPiParams.ORCHESTRATOR_PORT.name(), Integer.toString(Main.URI_PORT));
         envArgs.put(DefPiParams.ORCHESTRATOR_TOKEN.name(),
                 UserManager.getInstance().getUser(process.getUserId()).getAuthenticationToken());
+        envArgs.put(DefPiParams.PROCESS_ID.name(), process.getId().toString());
         envArgs.put(DefPiParams.USER_ID.name(), process.getUserId().toString());
         final User user = UserManager.getInstance().getUser(process.getUserId());
-        envArgs.put(DefPiParams.USERNAME.name(), user.getUsername());
+        envArgs.put(DefPiParams.USER_NAME.name(), user.getUsername());
         if (user.getEmail() != null) {
             envArgs.put(DefPiParams.USER_EMAIL.name(), user.getEmail());
         }
