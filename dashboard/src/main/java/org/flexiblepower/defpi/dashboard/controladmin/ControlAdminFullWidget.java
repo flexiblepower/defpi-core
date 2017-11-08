@@ -229,14 +229,14 @@ public class ControlAdminFullWidget implements Widget {
 				rmProcessMap = getProcessConnectionMap(service.getConfig().getRmHashPair());
 
 				String cemPage = new TableModel(cemProcessMap, rmProcessMap,
-						"http/dynamic/widgets/ControlAdminFullWidget/sample_cem_table.html").getHTMLTable("radio");
+						"/dynamic/widgets/ControlAdminFullWidget/sample_cem_table.html").getHTMLTable("radio");
 				return sendResponse(message.getId(), 200, cemPage);
 			} else if ("observables".equals(uri)) {
 				obsConProcessMap = getProcessConnectionMap(service.getConfig().getObsConsumerHashPair());
 				obsPubProcessMap = getProcessConnectionMap(service.getConfig().getObsPublisherHashPair());
 
 				String obsPage = new TableModel(obsConProcessMap, obsPubProcessMap,
-						"http/dynamic/widgets/ControlAdminFullWidget/sample_obs_table.html").getHTMLTable("checkbox");
+						"/dynamic/widgets/ControlAdminFullWidget/sample_obs_table.html").getHTMLTable("checkbox");
 				return sendResponse(message.getId(), 200, obsPage);
 			}
 		} else if (method.equals(Method.POST)) {
