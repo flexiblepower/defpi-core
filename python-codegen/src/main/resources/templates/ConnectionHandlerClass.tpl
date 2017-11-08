@@ -1,4 +1,5 @@
 from . import {{vitf.handler.interface}}
+{{vitf.handler.imports}}
 
 
 class {{vitf.handler.class}}({{vitf.handler.interface}}):

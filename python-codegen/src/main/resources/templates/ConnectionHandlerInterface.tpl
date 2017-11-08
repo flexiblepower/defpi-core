@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from .. import {{itf.manager.class}}
+{{vitf.handler.interface.imports}}
 
 
 class {{vitf.handler.interface}}:

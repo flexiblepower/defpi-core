@@ -223,10 +223,10 @@ public class PythonCodegen {
 
         // Get the package name and add the hash
         final String versionedName = PythonCodegenUtils.getVersionedName(itf, vitf);
-        final String protoClassName = versionedName + "XSD";
 
         // Store for later reference
-        vitf.setModelPackageName(protoClassName);
+        vitf.setModelPackageName(PythonCodegen.SOURCE_LOCATION + "." + PythonCodegen.MODEL_SOURCE_LOCATION + "."
+                + versionedName + ".xsd");
         this.hashes.put(interfaceHash, vitf);
 
         // Append additional compilation info to the proto file and compile the java code
@@ -262,11 +262,14 @@ public class PythonCodegen {
         }
 
         // Get the package name and add the hash
+        final String packagePath = Paths.get(PythonCodegen.SOURCE_LOCATION)
+                .resolve(PythonCodegen.MODEL_SOURCE_LOCATION)
+                .toString();
         final String versionedName = PythonCodegenUtils.getVersionedName(itf, vitf);
-        final String protoClassName = versionedName + "Proto";
+        final String protoClassName = versionedName + "_pb2";
 
         // Store for later reference
-        vitf.setModelPackageName(protoClassName);
+        vitf.setModelPackageName(packagePath + "." + protoClassName);
         this.hashes.put(interfaceHash, vitf);
 
         // Append additional compilation info to the proto file and compile the java code
