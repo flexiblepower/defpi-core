@@ -114,7 +114,7 @@
 		<profile>
 			<!-- This profile is only activated when there exists a Dockerfile. This 
 				is one of the reasons we hardcode the dockerfile location -->
-			<id>defpi-service</id>
+			<id>docker-image</id>
 			<activation>
 				<file>
 					<missing>.noservice</missing>

@@ -151,6 +151,8 @@ public class CreateComponentMojo extends AbstractMojo {
     /**
      * Entrypoint for the Docker image, that is the command to execute when the service is started
      */
+    @Parameter(property = "defpi.docker-entrypoint",
+               defaultValue = "java -jar $JVM_ARGUMENTS /${project.artifactId}-${project.version}-jar-with-dependencies.jar")
     private String dockerEntryPoint;
 
     /**
@@ -388,7 +390,10 @@ public class CreateComponentMojo extends AbstractMojo {
      * @throws IOException
      */
     private void compileDescriptors(final ServiceDescription service) throws IOException {
-        this.getLog().debug("Identifying and installing protocol descriptors");
+        this.getLog().debug("Compiling descriptors definitions to java code");
+
+        this.protoCompiler = new ProtoCompiler(this.protobufVersion);
+        this.xjcCompiler = new XjcCompiler();
 
         for (final InterfaceDescription iface : service.getInterfaces()) {
             for (final InterfaceVersionDescription versionDescription : iface.getInterfaceVersions()) {
@@ -418,7 +423,14 @@ public class CreateComponentMojo extends AbstractMojo {
         final String interfaceHash = PluginUtils.SHA256(xsdSourceFilePath);
         vitf.setHash(interfaceHash);
 
+        if (this.hashes.containsKey(interfaceHash)) {
+            vitf.setModelPackageName(this.hashes.get(interfaceHash).getModelPackageName());
+            return;
+        }
+
         // Get the package name and add the hash
+        vitf.setModelPackageName(
+                this.servicePackage + "." + JavaPluginUtils.getPackageName(itf, vitf) + "." + this.xsdOutputPackage);
         this.hashes.put(interfaceHash, vitf);
 
         // Append additional compilation info to the proto file and compile the java code
@@ -446,6 +458,12 @@ public class CreateComponentMojo extends AbstractMojo {
         final String interfaceHash = PluginUtils.SHA256(protoSourceFilePath);
         vitf.setHash(interfaceHash);
 
+        if (this.hashes.containsKey(interfaceHash)) {
+            // If we already have it, just copy the package name
+            vitf.setModelPackageName(this.hashes.get(interfaceHash).getModelPackageName());
+            return;
+        }
+
         // Get the package name and add the hash
         final String versionedName = JavaPluginUtils.getVersionedName(itf, vitf);
         String protoPackageName = this.servicePackage + "." + JavaPluginUtils.getPackageName(itf, vitf);
@@ -453,7 +471,10 @@ public class CreateComponentMojo extends AbstractMojo {
             protoPackageName = protoPackageName + "." + this.protobufOutputPackage;
         }
 
+        final String protoClassName = protoPackageName + "." + versionedName + "Proto";
+
         // Store for later reference
+        vitf.setModelPackageName(protoClassName);
         this.hashes.put(interfaceHash, vitf);
 
         // Append additional compilation info to the proto file and compile the java code
