@@ -4,6 +4,7 @@ import java.io.Serializable;
 
 import javax.annotation.Generated;
 
+import org.flexiblepower.defpi.dashboard.controladmin.ControlAdminFullWidget;
 import org.flexiblepower.service.DefPiParameters;
 import org.flexiblepower.service.Service;
 
@@ -23,6 +24,9 @@ public class Dashboard implements Service<DashboardConfiguration> {
 	private HttpRouter requestRouter;
 	private FullWidgetManager fullWidgetManager = new FullWidgetManager();
 	private DashboardFullWidget dashboardFullWidget;
+	private DashboardConfiguration config;
+	private DefPiParameters parameters;
+	private ControlAdminFullWidget controlAdminFullWidget;
 
 	@Override
 	public void resumeFrom(Serializable state) {
@@ -32,9 +36,13 @@ public class Dashboard implements Service<DashboardConfiguration> {
 
 	@Override
 	public void init(DashboardConfiguration config, DefPiParameters parameters) {
+		this.parameters = parameters;
+		this.config = config;
 		requestRouter = new HttpRouter(fullWidgetManager);
 		dashboardFullWidget = new DashboardFullWidget();
+		controlAdminFullWidget = new ControlAdminFullWidget(this);
 		fullWidgetManager.registerFullWidget(dashboardFullWidget);
+		fullWidgetManager.registerFullWidget(controlAdminFullWidget);
 	}
 
 	@Override
@@ -81,6 +89,14 @@ public class Dashboard implements Service<DashboardConfiguration> {
 
 	public HttpRouter getRequestRouter() {
 		return requestRouter;
+	}
+
+	public DashboardConfiguration getConfig() {
+		return config;
+	}
+
+	public DefPiParameters getParameters() {
+		return this.parameters;
 	}
 
 }
