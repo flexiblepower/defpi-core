@@ -40,6 +40,6 @@ public @interface InterfaceInfo {
     @SuppressWarnings("rawtypes")
     public Class<? extends MessageSerializer> serializer();
 
-    public Class<? extends ConnectionHandlerManager> manager();
+    // public Class<? extends ConnectionHandlerManager> manager();
 
 }

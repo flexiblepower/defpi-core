@@ -8,6 +8,7 @@ package org.flexiblepower.service;
 import java.util.Arrays;
 import java.util.List;
 
+import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.service.TestHandler.TestHandlerBuilder;
 import org.junit.After;
 import org.junit.Assert;
@@ -29,7 +30,7 @@ public class MultipleFailureTest {
 
     @Parameters
     public static List<Object[]> data() {
-        return Arrays.asList(new Object[30][0]);
+        return Arrays.asList(new Object[3][0]);
     }
 
     private static final int WAIT_AFTER_CONNECT = 200;
@@ -39,10 +40,10 @@ public class MultipleFailureTest {
         TestHandler.handlerMap.clear();
         ConnectionIntegrationTest.counter = 1;
         ServiceExecutor.getInstance().shutDown();
-        // System.gc();
-        // Thread.sleep(MultipleFailureTest.WAIT_AFTER_CONNECT);
-        // TCPSocket.destroyLingeringSockets();
-        // Thread.sleep(MultipleFailureTest.WAIT_AFTER_CONNECT);
+        System.gc();
+        Thread.sleep(MultipleFailureTest.WAIT_AFTER_CONNECT);
+        TCPSocket.destroyLingeringSockets();
+        Thread.sleep(MultipleFailureTest.WAIT_AFTER_CONNECT);
         System.out.println("Alles weer schoon!");
     }
 

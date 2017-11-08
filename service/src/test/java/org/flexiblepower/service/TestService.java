@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
                serializer = JavaIOSerializer.class,
                receivesHash = "eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252",
                receiveTypes = {Object.class},
-               manager = TestService.class,
+               // manager = TestService.class,
                sendsHash = "eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252",
                sendTypes = {Object.class})
 public class TestService implements Service<TestServiceConfiguration>, ConnectionHandlerManager, ConnectionHandler {
