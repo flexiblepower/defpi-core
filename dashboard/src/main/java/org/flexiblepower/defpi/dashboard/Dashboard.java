@@ -22,6 +22,7 @@ public class Dashboard implements Service<DashboardConfiguration> {
 
 	private HttpRouter requestRouter;
 	private FullWidgetManager fullWidgetManager = new FullWidgetManager();
+	private DashboardFullWidget dashboardFullWidget;
 
 	@Override
 	public void resumeFrom(Serializable state) {
@@ -32,7 +33,8 @@ public class Dashboard implements Service<DashboardConfiguration> {
 	@Override
 	public void init(DashboardConfiguration config, DefPiParameters parameters) {
 		requestRouter = new HttpRouter(fullWidgetManager);
-		fullWidgetManager.registerFullWidget(new DashboardFullWidget());
+		dashboardFullWidget = new DashboardFullWidget();
+		fullWidgetManager.registerFullWidget(dashboardFullWidget);
 	}
 
 	@Override
@@ -49,6 +51,32 @@ public class Dashboard implements Service<DashboardConfiguration> {
 	@Override
 	public void terminate() {
 		// TODO Auto-generated method stub
+	}
+
+	public void registerWidget(Widget widget) {
+		switch (widget.getType()) {
+		case FULL:
+			fullWidgetManager.registerFullWidget(widget);
+			break;
+		case SMALL:
+			dashboardFullWidget.registerSmallWidget(widget);
+			break;
+		default:
+			break;
+		}
+	}
+
+	public void unregisterWidget(Widget widget) {
+		switch (widget.getType()) {
+		case FULL:
+			fullWidgetManager.unregisterFullWidget(widget);
+			break;
+		case SMALL:
+			dashboardFullWidget.unregisterSmallWidget(widget);
+			break;
+		default:
+			break;
+		}
 	}
 
 	public HttpRouter getRequestRouter() {

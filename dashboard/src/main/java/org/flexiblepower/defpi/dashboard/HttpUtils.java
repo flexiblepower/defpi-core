@@ -1,5 +1,7 @@
 package org.flexiblepower.defpi.dashboard;
 
+import java.net.URI;
+
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPResponse;
 
@@ -35,8 +37,8 @@ public class HttpUtils {
 				.setBody(ByteString.copyFromUtf8("400: Bad request\n" + reason)).build();
 	}
 
-	public static HTTPResponse.Builder setNoCache(HTTPResponse.Builder builder) {
-		return builder.putHeaders(NO_CACHE_KEY, NO_CACHE_VALUE);
+	public static HTTPResponse setNoCache(HTTPResponse response) {
+		return HTTPResponse.newBuilder(response).putHeaders(NO_CACHE_KEY, NO_CACHE_VALUE).build();
 	}
 
 	public static HTTPRequest rewriteUri(HTTPRequest request, String uri) {
@@ -73,6 +75,18 @@ public class HttpUtils {
 			contentType = TEXT_PLAIN;
 		}
 		return contentType;
+	}
+
+	public static String path(String uri) {
+		return URI.create(uri).getPath();
+	}
+
+	public static String fragment(String uri) {
+		return URI.create(uri).getFragment();
+	}
+
+	public static String query(String uri) {
+		return URI.create(uri).getQuery();
 	}
 
 }

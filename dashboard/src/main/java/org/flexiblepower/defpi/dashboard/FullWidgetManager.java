@@ -24,7 +24,7 @@ public class FullWidgetManager implements HttpHandler {
 			String prefix = "/" + widget.getName();
 			if (uri.startsWith(prefix + "/")) {
 				String relativeUri = uri.substring(prefix.length(), uri.length());
-				if (relativeUri.startsWith("/index.html")) {
+				if (HttpUtils.path(relativeUri).equals("/index.html")) {
 					return handleIndex(widget, request);
 				} else {
 					return widget.handle(HttpUtils.rewriteUri(request, relativeUri));

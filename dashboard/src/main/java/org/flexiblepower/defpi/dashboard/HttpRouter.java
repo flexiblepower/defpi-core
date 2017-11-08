@@ -21,12 +21,16 @@ public class HttpRouter implements HttpHandler {
 	public HTTPResponse handle(HTTPRequest request) {
 		LOG.info(request.getMethod() + ": " + request.getUri());
 
-		if (request.getUri().equals("/")) {
+		// Rewrite?
+		if (HttpUtils.path(request.getUri()).equals("/")) {
 			return HTTPResponse.newBuilder().setId(request.getId()).putHeaders("Location", "/dashboard/index.html")
 					.setStatus(301).build();
 		}
 
+		// Dynamic?
 		HTTPResponse response = fullWidgetManager.handle(request);
+
+		// Static?
 		if (response.getStatus() == 404) {
 			return staticContentHandler.handle(request);
 		} else {

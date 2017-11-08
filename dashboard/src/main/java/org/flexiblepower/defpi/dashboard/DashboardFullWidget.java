@@ -34,13 +34,14 @@ public class DashboardFullWidget implements Widget {
 				return e.getValue().handle(HttpUtils.rewriteUri(request, relativeUri));
 			}
 		}
-		if (request.getMethod().equals(Method.GET) && uri.startsWith("/index.html")) {
+		String path = HttpUtils.path(uri);
+		if (request.getMethod().equals(Method.GET) && path.equals("/index.html")) {
 			return serveStaticFile(request, "/dynamic/widgets/DashboardFullWidget/index.html");
-		} else if (request.getMethod().equals(Method.GET) && uri.startsWith("/menu.png")) {
+		} else if (request.getMethod().equals(Method.GET) && path.equals("/menu.png")) {
 			return serveStaticFile(request, "/dynamic/widgets/DashboardFullWidget/menu.png");
-		} else if (request.getMethod().equals(Method.GET) && uri.startsWith("/script.js")) {
+		} else if (request.getMethod().equals(Method.GET) && path.equals("/script.js")) {
 			return serveStaticFile(request, "/dynamic/widgets/DashboardFullWidget/script.js");
-		} else if (request.getMethod().equals(Method.POST) && uri.startsWith("/getWidgets")) {
+		} else if (request.getMethod().equals(Method.POST) && path.equals("/getWidgets")) {
 			return getWidgets(request);
 		} else {
 			LOG.warn("Got request for " + request.getUri()
