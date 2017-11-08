@@ -35,8 +35,10 @@ public class PyXBCompiler implements Compiler {
                     throw new RuntimeException("Unable to determine PyXB version, please make sure it is installed.");
                 }
             }
-        } catch (final InterruptedException | IOException e) {
+        } catch (final InterruptedException e) {
             throw new RuntimeException("Exception while initializing PyXB compiler: " + e.getMessage(), e);
+        } catch (final IOException e) {
+            throw new RuntimeException("Unable to determine PyXB version, please make sure it is installed.");
         }
     }
 
