@@ -14,7 +14,6 @@ import lombok.Setter;
 /**
  * ServiceDescription
  *
- * @author coenvl
  * @version 0.1
  * @since Apr 13, 2017
  */

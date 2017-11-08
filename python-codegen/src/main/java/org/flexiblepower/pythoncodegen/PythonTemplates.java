@@ -18,7 +18,6 @@ import org.flexiblepower.codegen.model.ServiceDescription;
 /**
  * Templates
  *
- * @author coenvl
  * @version 0.1
  * @since Jun 8, 2017
  */

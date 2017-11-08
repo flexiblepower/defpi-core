@@ -10,7 +10,7 @@ class {{itf.manager.class}}({{itf.manager.interface}}):
         NOTE: This file is generated as a stub, and has to be implemented by the user. Re-running the codegen plugin 
         will not change the contents of this file.
 
-        Template by TNO, 2017 """
+        Template by FAN, 2017 """
 
     def __init__(self, service):
         """ Auto-generated constructor building the manager for the provided service """

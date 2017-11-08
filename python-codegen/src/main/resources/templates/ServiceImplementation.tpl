@@ -6,7 +6,7 @@ class {{service.class}}:
         NOTE: This file is generated as a stub, and has to be implemented by the user. Re-running the codegen plugin 
         will not change the contents of this file.
      
-        Template by TNO, 2017 """
+        Template by FAN, 2017 """
          
     def resume_from(self, state):
         """ Resume this service from a previous state 

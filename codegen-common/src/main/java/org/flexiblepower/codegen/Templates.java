@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 /**
  * Templates
  *
- * @author coenvl
  * @version 0.1
  * @since Oct 4, 2017
  */

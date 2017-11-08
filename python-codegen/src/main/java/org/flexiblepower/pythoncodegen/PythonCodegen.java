@@ -24,7 +24,6 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * CreateComponentMojo
  *
- * @author coenvl
  * @version 0.1
  * @since Jun 28, 2017
  */

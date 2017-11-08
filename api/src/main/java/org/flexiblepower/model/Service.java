@@ -12,7 +12,6 @@ import lombok.Value;
 /**
  * Service
  *
- * @author coenvl
  * @version 0.1
  * @since Mar 30, 2017
  */
