@@ -1,5 +1,5 @@
 /**
- * File ConnectionManager.java
+ * File ProcessConnector.java
  *
  * Copyright 2017 FAN
  *

@@ -1,5 +1,5 @@
 /**
- * File ConnectionTest.java
+ * File ConnectionIntegrationTest.java
  *
  * Copyright 2017 FAN
  *

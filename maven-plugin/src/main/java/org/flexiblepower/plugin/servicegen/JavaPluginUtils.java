@@ -1,5 +1,5 @@
 /**
- * File PluginUtils.java
+ * File JavaPluginUtils.java
  *
  * Copyright 2017 FAN
  *

@@ -1,5 +1,5 @@
 /**
- * File CreateConnection.java
+ * File TerminateConnection.java
  *
  * Copyright 2017 FAN
  *

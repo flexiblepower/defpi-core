@@ -1,5 +1,5 @@
 /**
- * File DockerConnectorTest.java
+ * File MongoConnectorTest.java
  *
  * Copyright 2017 FAN
  *

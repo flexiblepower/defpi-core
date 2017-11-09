@@ -1,5 +1,5 @@
 /**
- * File ConnectionMonitor.java
+ * File HandShakeMonitor.java
  *
  * Copyright 2017 FAN
  *

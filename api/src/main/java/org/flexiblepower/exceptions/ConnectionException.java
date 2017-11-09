@@ -1,5 +1,5 @@
 /**
- * File OrchestrationException.java
+ * File ConnectionException.java
  *
  * Copyright 2017 FAN
  *
