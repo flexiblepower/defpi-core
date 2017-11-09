@@ -60,7 +60,7 @@ public class HandShakeMonitor {
                 .setConnectionId(this.connectionId)
                 .setConnectionState(currentState)
                 .build();
-        HandShakeMonitor.log.trace("Sending handshake {}", currentState);
+        HandShakeMonitor.log.trace("[{}] - Sending handshake {}", this.connectionId, currentState);
         try {
             this.socket.send(this.serializer.serialize(initHandshakeMessage));
         } catch (final SerializationException e) {
@@ -91,10 +91,12 @@ public class HandShakeMonitor {
                 // This is the handshake that will make the other guy READY
                 this.sendHandshake(ConnectionState.CONNECTED);
             } else {
-                HandShakeMonitor.log.info("Not responding to handshake");
+                HandShakeMonitor.log.info("[{}] - Not responding to handshake", this.connectionId);
             }
 
             if (handShakeMessage.getConnectionState().equals(ConnectionState.CONNECTED)) {
+                HandShakeMonitor.log.info("[{}] - Received connection confirmation, we are ready and release waitLock",
+                        this.connectionId);
                 this.ready = true;
                 this.releaseWaitLock();
             }

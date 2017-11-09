@@ -18,6 +18,7 @@
 package org.flexiblepower.service;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.util.Set;
 
 import org.flexiblepower.service.exceptions.ServiceInvocationException;
@@ -63,63 +64,80 @@ public final class ServiceMain {
      * @param service
      */
     private static void registerMessageHandlers(final Service<?> service) {
-        final Set<Class<? extends ConnectionHandler>> set = ServiceMain.reflections
-                .getSubTypesOf(ConnectionHandler.class);
+        final Set<Class<? extends ConnectionHandlerManager>> managers = ServiceMain.reflections
+                .getSubTypesOf(ConnectionHandlerManager.class);
 
-        if (set.isEmpty()) {
-            ServiceMain.log
-                    .warn("No connection handlers have been found, service will not be able to respond to messages");
-        }
+        for (final Class<? extends ConnectionHandlerManager> managerClass : managers) {
+            if (managerClass.isInterface()) {
+                // We found the generated interface, but we want the implementation
+                continue;
+            }
 
-        ServiceMain.log.info("Found {} message handlers: {}", set.size(), set);
-        for (final Class<? extends ConnectionHandler> handlerClass : set) {
-            if (!handlerClass.isInterface()) {
-                // Only look for implementations
+            final ConnectionHandlerManager manager = ServiceMain.instantiateManagerWithService(managerClass, service);
+            if (manager == null) {
+                // We failed to build a manager for this interface...
                 continue;
             }
 
             try {
-                final InterfaceInfo info = handlerClass.getAnnotation(InterfaceInfo.class);
-                if (info == null) {
-                    ServiceMain.log.warn("Missing @InterfaceInfo annotation on {}, skipping", handlerClass);
-                    continue;
-                }
-
-                final Class<? extends ConnectionHandlerManager> managerClass = info.manager();
-
-                ConnectionHandlerManager manager = null;
-                // It should have a constructor with service as argument
-                for (final Constructor<?> c : managerClass.getConstructors()) {
-                    if ((c.getParameterCount() == 1) && Service.class.isAssignableFrom(c.getParameterTypes()[0])) {
-                        try {
-                            manager = (ConnectionHandlerManager) c.newInstance(service);
-                            break;
-                        } catch (final Exception e) {
-                            // Try next constructor maybe?
-                            ServiceMain.log
-                                    .warn("Exception while creating instance of {}: {}", managerClass, e.getMessage());
-                            ServiceMain.log.trace(e.getMessage(), e);
-                        }
+                for (final Method method : managerClass.getMethods()) {
+                    if (method.getName().startsWith("build")
+                            && ConnectionHandler.class.isAssignableFrom(method.getReturnType())
+                            && (method.getParameterCount() == 1)
+                            && Connection.class.isAssignableFrom(method.getParameterTypes()[0])) {
+                        // We found a builder
+                        @SuppressWarnings("unchecked")
+                        final Class<? extends ConnectionHandler> handlerClass = (Class<? extends ConnectionHandler>) method
+                                .getReturnType();
+                        ConnectionManager.registerConnectionHandlerFactory(handlerClass, manager);
                     }
                 }
-
-                if (manager == null) {
-                    // Try the empty constructor if it fails
-                    ServiceMain.log.debug("Attempting fallback empty constructor for {}", managerClass);
-                    manager = managerClass.newInstance();
-                }
-
-                ConnectionManager.registerConnectionHandlerFactory(handlerClass, manager);
-
-            } catch (InstantiationException | IllegalAccessException e) {
+            } catch (final Exception e) {
                 // Try and continue with the next interface
-                ServiceMain.log.warn("Unable to instantiate manager for type {} of service {}: {}",
-                        handlerClass,
+                ServiceMain.log.warn("Unable to instantiate manager type {} of service {}: {}",
+                        managerClass,
                         service,
                         e.getMessage());
                 ServiceMain.log.trace(e.getMessage(), e);
                 continue;
             }
+        }
+    }
+
+    /**
+     * @param managerClass
+     * @param service
+     * @return
+     * @throws IllegalAccessException
+     * @throws InstantiationException
+     */
+    private static ConnectionHandlerManager instantiateManagerWithService(
+            final Class<? extends ConnectionHandlerManager> managerClass,
+            final Service<?> service) {
+        // It should have a constructor with service as argument
+        for (final Constructor<?> c : managerClass.getConstructors()) {
+            if ((c.getParameterCount() == 1) && Service.class.isAssignableFrom(c.getParameterTypes()[0])) {
+                try {
+                    return (ConnectionHandlerManager) c.newInstance(service);
+                } catch (final Exception e) {
+                    // Try next constructor if it exists...
+                    ServiceMain.log.warn("Exception while creating instance of {}: {}", managerClass, e.getMessage());
+                    ServiceMain.log.trace(e.getMessage(), e);
+                }
+            }
+        }
+
+        // Try the empty constructor if it fails
+        ServiceMain.log.debug("Attempting fallback empty constructor for {}", managerClass);
+        try {
+            return managerClass.newInstance();
+        } catch (final Exception e) {
+            ServiceMain.log.warn("Unable to instantiate manager type {} of service {}: {}",
+                    managerClass,
+                    service,
+                    e.getMessage());
+            ServiceMain.log.trace(e.getMessage(), e);
+            return null;
         }
     }
 

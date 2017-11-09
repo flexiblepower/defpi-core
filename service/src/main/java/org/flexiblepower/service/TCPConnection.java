@@ -52,7 +52,7 @@ final class TCPConnection implements Connection, Closeable {
     private final MessageSerializer<Object> userMessageSerializer;
     private final InterfaceInfo info;
 
-    protected final ExecutorService connectionExecutor = Executors.newFixedThreadPool(4,
+    protected final ExecutorService connectionExecutor = Executors.newFixedThreadPool(3,
             r -> new Thread(r, "dEF-Pi connThread" + TCPConnection.threadCounter++));
     protected final MessageQueue messageQueue = new MessageQueue();
     protected final Object connectionLock = new Object();
@@ -372,7 +372,7 @@ final class TCPConnection implements Connection, Closeable {
         try {
             this.connectionExecutor.awaitTermination(3, TimeUnit.SECONDS);
         } catch (final InterruptedException e) {
-            TCPConnection.log.error("Interrupted while awaiting termination");
+            TCPConnection.log.error("[{}] - Interrupted while awaiting termination", TCPConnection.this.connectionId);
         }
 
         this.releaseWaitLock();
@@ -393,11 +393,19 @@ final class TCPConnection implements Connection, Closeable {
         public void run() {
             while (this.keepRunning) {
                 if (TCPConnection.this.socket != null) {
-                    TCPConnection.log.info("Closing old socket");
+                    TCPConnection.log.debug("[{}] - Closing old socket", TCPConnection.this.connectionId);
                     TCPConnection.this.socket.close();
+
+                    if (TCPConnection.this.handShakeMonitor != null) {
+                        TCPConnection.this.handShakeMonitor.close();
+                    }
+
+                    if (TCPConnection.this.heartBeatMonitor != null) {
+                        TCPConnection.this.heartBeatMonitor.close();
+                    }
                 }
 
-                TCPConnection.log.info("Building TCPConnection");
+                TCPConnection.log.info("[{}] - Building TCPConnection", TCPConnection.this.connectionId);
                 if (TCPConnection.this.targetAddress.isEmpty()) {
                     TCPConnection.this.socket = TCPSocket.asServer(TCPConnection.this.port);
                 } else {
@@ -409,7 +417,8 @@ final class TCPConnection implements Connection, Closeable {
                     TCPConnection.this.socket.waitUntilConnected(0);
                 } catch (final Exception e) {
                     if (this.keepRunning) {
-                        TCPConnection.log.warn("Interrupted while waiting for connection to establish");
+                        TCPConnection.log.warn("[{}] - Interrupted while waiting for connection to establish",
+                                TCPConnection.this.connectionId);
                         continue;
                     } else {
                         break;
@@ -417,6 +426,7 @@ final class TCPConnection implements Connection, Closeable {
                 }
 
                 // Create the monitors
+                TCPConnection.log.debug("[{}] - Creating connection monitors", TCPConnection.this.connectionId);
                 TCPConnection.this.handShakeMonitor = new HandShakeMonitor(TCPConnection.this.socket,
                         TCPConnection.this.connectionId);
                 TCPConnection.this.heartBeatMonitor = new HeartBeatMonitor(TCPConnection.this.socket,
@@ -425,13 +435,17 @@ final class TCPConnection implements Connection, Closeable {
                 // Now we have a functioning socket, make sure that as soon as there is a handshake, go connected
                 TCPConnection.this.connectionExecutor.submit(() -> {
                     try {
+                        TCPConnection.log.debug("[{}] - Initiating handshake", TCPConnection.this.connectionId);
                         TCPConnection.this.handShakeMonitor.sendHandshake(TCPConnection.this.getState());
                         TCPConnection.this.handShakeMonitor.waitUntilFinished(0);
+                        TCPConnection.log.debug("[{}] - Handshake confirmed, starting heartbeat",
+                                TCPConnection.this.connectionId);
                         TCPConnection.this.heartBeatMonitor.start();
                         TCPConnection.this.goToConnectedState();
                     } catch (final InterruptedException e) {
                         if (this.keepRunning) {
-                            TCPConnection.log.warn("Interrupted while waiting for TCP socket to initialize");
+                            TCPConnection.log.warn("[{}] - Interrupted while waiting for TCP socket to initialize",
+                                    TCPConnection.this.connectionId);
                         }
                     }
                 });
@@ -451,7 +465,9 @@ final class TCPConnection implements Connection, Closeable {
                     } catch (final IOException | InterruptedException e) {
                         // See if this was on purpose
                         if (TCPConnection.this.isConnected() && this.keepRunning) {
-                            TCPConnection.log.warn("IOException while reading from socket: {}", e.getMessage());
+                            TCPConnection.log.warn("[{}] - IOException while reading from socket: {}",
+                                    TCPConnection.this.connectionId,
+                                    e.getMessage());
                             TCPConnection.log.trace(e.getMessage(), e);
                             TCPConnection.this.goToInterruptedState();
                         }
@@ -492,7 +508,8 @@ final class TCPConnection implements Connection, Closeable {
             try {
                 this.internalQueue.put(msg);
             } catch (final InterruptedException e) {
-                TCPConnection.log.warn("Interrupted while adding message to queue");
+                TCPConnection.log.warn("[{}] - Interrupted while adding message to queue",
+                        TCPConnection.this.connectionId);
             }
         }
 
@@ -505,7 +522,8 @@ final class TCPConnection implements Connection, Closeable {
                         TCPConnection.this.handleMessage(message);
                     }
                 } catch (final InterruptedException e) {
-                    TCPConnection.log.trace("Message handler interrupted, stopping thread");
+                    TCPConnection.log.trace("[{}] - Message handler interrupted, stopping thread",
+                            TCPConnection.this.connectionId);
                     break;
                 }
             }
