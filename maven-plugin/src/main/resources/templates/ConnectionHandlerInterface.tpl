@@ -21,7 +21,6 @@ import org.flexiblepower.service.InterfaceInfo;
 @InterfaceInfo(name = "{{itf.name}}", version = "{{vitf.version}}", 
 		receivesHash = "{{vitf.receivesHash}}", 
 		sendsHash = "{{vitf.sendsHash}}",
-		manager = {{itf.manager.class}}.class,
 		serializer = {{vitf.serializer}}.class, 
 		receiveTypes = { {{vitf.receiveClasses}} }, sendTypes = { {{vitf.sendClasses}} })
 public interface {{vitf.handler.interface}} extends ConnectionHandler {

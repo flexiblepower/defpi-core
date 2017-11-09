@@ -171,24 +171,26 @@ public class PythonTemplates extends Templates {
             replaceMap.put("vitf.handler.definitions", String.join("\n\n", definitions));
             replaceMap.put("vitf.handler.implementations", String.join("\n\n", implementations));
 
-            // Add imports for the handlers
-            final Set<String> imports = new HashSet<>();
-            final Set<String> messageSet = new HashSet<>();
-            messageSet.addAll(version.getReceives());
-            messageSet.addAll(version.getSends());
-
             if (version.getType().equals(Type.PROTO)) {
                 replaceMap.put("vitf.serializer", "ProtobufMessageSerializer");
-
-                for (final String type : messageSet) {
-                    imports.add(String.format("from %s import %s;", version.getModelPackageName(), type));
-                }
             } else if (version.getType().equals(Type.XSD)) {
                 replaceMap.put("vitf.serializer", "XSDMessageSerializer");
-                imports.add(String.format("import %s.*;", version.getModelPackageName()));
             }
 
-            replaceMap.put("vitf.handler.imports", String.join("\n", imports));
+            // Add imports for the handlers
+            final Set<String> handlerImports = new HashSet<>();
+            final Set<String> interfaceImports = new HashSet<>();
+            final String versionPackage = version.getModelPackageName().replaceAll("/", ".");
+            for (final String type : version.getReceives()) {
+                handlerImports.add(String.format("from %s import %s", versionPackage, type));
+                interfaceImports.add(String.format("from %s import %s", versionPackage, type));
+            }
+            for (final String type : version.getSends()) {
+                interfaceImports.add(String.format("from %s import %s", versionPackage, type));
+            }
+
+            replaceMap.put("vitf.handler.imports", String.join("\n", handlerImports));
+            replaceMap.put("vitf.handler.interface.imports", String.join("\n", interfaceImports));
         }
 
         return this.replaceMap(template, replaceMap);

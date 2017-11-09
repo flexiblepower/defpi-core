@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.nio.file.Paths;
 
 import org.flexiblepower.pythoncodegen.compiler.ProtoCompiler;
+import org.flexiblepower.pythoncodegen.compiler.PyXBCompiler;
+import org.junit.Assume;
 import org.junit.Test;
 
 import lombok.extern.slf4j.Slf4j;
@@ -41,12 +43,15 @@ public class CompilerTest {
         CompilerTest.log.info("Detected architecture: {}", ProtoCompiler.getArchitecture());
     }
 
-    // @Test
-    // public void testXjcCompiler() throws IOException {
-    // final PyXBCompiler compiler = new PyXBCompiler();
-    // compiler.setBasePackageName("org.flexiblepower.test.xml");
-    // compiler.compile(Paths.get("src/test/resources/books.xsd"), Paths.get("target/xjc-test-results"));
-    // }
+    @Test
+    public void testXjcCompiler() throws IOException {
+        try {
+            final PyXBCompiler compiler = new PyXBCompiler();
+            compiler.compile(Paths.get("src/test/resources/books.xsd"), Paths.get("target/xjc-test-results"));
+        } catch (final RuntimeException e) {
+            Assume.assumeNoException(e);
+        }
+    }
 
     @Test
     public void testProtoCompiler() throws IOException {
