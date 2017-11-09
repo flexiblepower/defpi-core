@@ -1,5 +1,5 @@
 /**
- * File Node.java
+ * File PrivateNode.java
  *
  * Copyright 2017 FAN
  *

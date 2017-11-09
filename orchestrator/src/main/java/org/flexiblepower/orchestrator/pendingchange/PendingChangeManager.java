@@ -1,5 +1,5 @@
 /**
- * File ChangeManager.java
+ * File PendingChangeManager.java
  *
  * Copyright 2017 FAN
  *

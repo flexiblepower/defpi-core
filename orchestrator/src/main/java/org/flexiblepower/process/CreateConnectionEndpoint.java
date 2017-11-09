@@ -1,5 +1,5 @@
 /**
- * File CreateConnection.java
+ * File CreateConnectionEndpoint.java
  *
  * Copyright 2017 FAN
  *

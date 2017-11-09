@@ -1,5 +1,5 @@
 /**
- * File ConnectionTest.java
+ * File TCPSocketTest.java
  *
  * Copyright 2017 FAN
  *
