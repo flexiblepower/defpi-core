@@ -23,7 +23,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.text.ParseException;
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -32,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -67,8 +70,8 @@ public class RegistryConnector {
      */
     public static final String REGISTRY_URL_KEY = "REGISTRY_URL";
     private static final String REGISTRY_URL_DFLT = "defpi.hesilab.nl:5000";
-    private static final long MAX_CACHE_AGE_MS = 90000;
-    private static final long MAX_CACHE_REFRESH_TIME = 30000;
+    private static final long MAX_CACHE_AGE_MS = Duration.ofMinutes(2).toMillis();
+    private static final long MAX_CACHE_REFRESH_TIME = Duration.ofSeconds(5).toMillis();
     private static final int MAX_THREADS = 10;
 
     private static RegistryConnector instance = null;
@@ -80,11 +83,11 @@ public class RegistryConnector {
 
     private final Set<Interface> interfaceCache = new HashSet<>();
 
-    private List<Service> serviceCache = new ArrayList<>();
+    private final Map<String, Service> serviceCache = new ConcurrentHashMap<>();
     private long serviceCacheLastUpdate = 0;
     private final Object serviceCacheLock = new Object();
 
-    private List<Service> allServiceCache = new ArrayList<>();
+    private final Map<String, Service> allServiceCache = new ConcurrentHashMap<>();
     private long allServiceCacheLastUpdate = 0;
     private final Object allServiceCacheLock = new Object();
 
@@ -100,28 +103,6 @@ public class RegistryConnector {
         }
         return RegistryConnector.instance;
     }
-
-    /*
-     * public List<String> listRepositories() {
-     * RegistryConnector.log.info("Listing all repositories");
-     * final Set<String> ret = new HashSet<>();
-     * try {
-     * final String textResponse = RegistryConnector.queryRegistry(this.buildUrl("_catalog"));
-     * final List<String> allServices = this.gson.fromJson(textResponse, Catalog.class).getRepositories();
-     *
-     * for (final String service : allServices) {
-     * final int p = service.indexOf("/");
-     * if (p > 0) {
-     * ret.add(service.substring(0, p));
-     * }
-     * }
-     * } catch (final ServiceNotFoundException e) {
-     * // Error obtaining list from registry, no worries, return empty list
-     * }
-     *
-     * return new ArrayList<>(ret);
-     * }
-     */
 
     private List<String> listServiceNames(final String repository) throws RepositoryNotFoundException {
         try {
@@ -149,13 +130,21 @@ public class RegistryConnector {
         }
     }
 
-    public List<Service> listAllServiceVersions(final String repository) throws RepositoryNotFoundException {
+    /**
+     * This implementation will cause bug where a REMOVED service will stay in the cache until the orchestrator is
+     * restarted...
+     *
+     * @param repository
+     * @return
+     * @throws RepositoryNotFoundException
+     */
+    public Collection<Service> getAllServiceVersions(final String repository) throws RepositoryNotFoundException {
         synchronized (this.allServiceCacheLock) {
             final long cacheAge = System.currentTimeMillis() - this.allServiceCacheLastUpdate;
             if (cacheAge > RegistryConnector.MAX_CACHE_AGE_MS) {
                 // Cache too old, refresh data
-                final List<Service> services = new ArrayList<>();
 
+                // Create one pool to list all tags, and a second pool to get the actual services
                 final ExecutorService pool1 = Executors.newFixedThreadPool(RegistryConnector.MAX_THREADS);
                 final ExecutorService pool2 = Executors.newFixedThreadPool(RegistryConnector.MAX_THREADS);
 
@@ -169,7 +158,11 @@ public class RegistryConnector {
                                     final String version = e.getKey();
                                     final Map<Architecture, String> tagsMap = RegistryConnector
                                             .tagsToArchitectureMap(e.getValue());
-                                    services.add(this.getServiceFromRegistry(repository, sn, version, tagsMap));
+                                    final Service service = this
+                                            .getServiceFromRegistry(repository, sn, version, tagsMap);
+                                    final String key = service.getId() + ":" + service.getVersion();
+
+                                    this.allServiceCache.put(key, service);
                                 } catch (final ServiceNotFoundException ex) {
                                     RegistryConnector.log.error("Could not find service {}: {}", sn, ex.getMessage());
                                     RegistryConnector.log.trace(ex.getMessage(), ex);
@@ -181,43 +174,55 @@ public class RegistryConnector {
 
                 try {
                     pool1.shutdown();
-                    pool1.awaitTermination(RegistryConnector.MAX_CACHE_REFRESH_TIME, TimeUnit.MILLISECONDS);
+                    if (!pool1.awaitTermination(1, TimeUnit.SECONDS)) {
+                        RegistryConnector.log
+                                .warn("It is taking a long time to list all service tags! Results will be incomplete");
+                    }
                     // By now all get serviceFromRegistry calls are scheduled
                     pool2.shutdown();
-                    pool2.awaitTermination(RegistryConnector.MAX_CACHE_REFRESH_TIME, TimeUnit.MILLISECONDS);
+                    if (!pool2.awaitTermination(RegistryConnector.MAX_CACHE_REFRESH_TIME, TimeUnit.MILLISECONDS)) {
+                        RegistryConnector.log
+                                .warn("It is taking a long time to get all services! Results may be incomplete");
+                    }
                 } catch (final InterruptedException e) {
                     RegistryConnector.log.warn("Interrupted while fetching Services");
                 }
 
-                this.allServiceCache = services;
                 this.allServiceCacheLastUpdate = System.currentTimeMillis();
             }
         }
-        return this.allServiceCache;
+        return this.allServiceCache.values();
     }
 
-    public List<Service> listServices(final String repository) throws RepositoryNotFoundException {
+    public Collection<Service> getServices(final String repository) throws RepositoryNotFoundException {
         synchronized (this.serviceCacheLock) {
             final long cacheAge = System.currentTimeMillis() - this.serviceCacheLastUpdate;
             if (cacheAge > RegistryConnector.MAX_CACHE_AGE_MS) {
                 // Cache too old, refresh data
-                final List<Service> services = new ArrayList<>();
 
+                // Create one pool to list all tags, and a second pool to get the actual services
                 final ExecutorService pool1 = Executors.newFixedThreadPool(RegistryConnector.MAX_THREADS);
                 final ExecutorService pool2 = Executors.newFixedThreadPool(RegistryConnector.MAX_THREADS);
 
-                for (final String sn : this.listServiceNames(repository)) {
+                for (final String serviceName : this.listServiceNames(repository)) {
                     pool1.submit(() -> {
-                        final List<String> tagsList = this.listTags(repository, sn);
+                        final List<String> tagsList = this.listTags(repository, serviceName);
                         Collections.sort(tagsList);
                         final String version = (tagsList.contains("latest") ? "latest" : tagsList.get(0));
                         pool2.submit(() -> {
                             try {
                                 final Map<Architecture, String> tagsMap = RegistryConnector
                                         .tagsToArchitectureMap(tagsList);
-                                services.add(this.getServiceFromRegistry(repository, sn, version, tagsMap));
+
+                                final Service service = this
+                                        .getServiceFromRegistry(repository, serviceName, version, tagsMap);
+                                final String key = service.getId() + ":" + service.getVersion();
+
+                                this.serviceCache.put(key,
+                                        this.getServiceFromRegistry(repository, serviceName, version, tagsMap));
                             } catch (final ServiceNotFoundException ex) {
-                                RegistryConnector.log.error("Could not find service {}: {}", sn, ex.getMessage());
+                                RegistryConnector.log
+                                        .error("Could not find service {}: {}", serviceName, ex.getMessage());
                                 RegistryConnector.log.trace(ex.getMessage(), ex);
                             }
                         });
@@ -226,19 +231,24 @@ public class RegistryConnector {
 
                 try {
                     pool1.shutdown();
-                    pool1.awaitTermination(RegistryConnector.MAX_CACHE_REFRESH_TIME, TimeUnit.MILLISECONDS);
+                    if (!pool1.awaitTermination(1, TimeUnit.SECONDS)) {
+                        RegistryConnector.log
+                                .warn("It is taking a long time to list all service tags! Results will be incomplete");
+                    }
                     // By now all get serviceFromRegistry calls are scheduled
                     pool2.shutdown();
-                    pool2.awaitTermination(RegistryConnector.MAX_CACHE_REFRESH_TIME, TimeUnit.MILLISECONDS);
+                    if (!pool2.awaitTermination(RegistryConnector.MAX_CACHE_REFRESH_TIME, TimeUnit.MILLISECONDS)) {
+                        RegistryConnector.log
+                                .warn("It is taking a long time to get all services! Results may be incomplete");
+                    }
                 } catch (final InterruptedException e) {
                     RegistryConnector.log.warn("Interrupted while fetching Services");
                 }
 
-                this.serviceCache = services;
                 this.serviceCacheLastUpdate = System.currentTimeMillis();
             }
         }
-        return this.serviceCache;
+        return this.serviceCache.values();
     }
 
     /**
@@ -294,7 +304,7 @@ public class RegistryConnector {
 
     public Service getService(final String repository, final String id) throws ServiceNotFoundException {
         try {
-            for (final Service service : this.listServices(repository)) {
+            for (final Service service : this.getServices(repository)) {
                 if (service.getId().equals(id)) {
                     return service;
                 }
@@ -335,30 +345,11 @@ public class RegistryConnector {
             serviceBuilder.name(labels.getString("org.flexiblepower.serviceName"));
 
             try {
-                // final Set<Interface> interfaces = new LinkedHashSet<>();
                 final Set<Interface> interfaces = this.om.readValue(labels.getString("org.flexiblepower.interfaces"),
                         new TypeReference<Set<Interface>>() {
                             // A list of services
                         });
-                // final Set<Object> set = this.gson.fromJson(labels.getString("org.flexiblepower.interfaces"),
-                // Set.class);
-
-                // for (final Object obj : set) {
-                // // final Interface intf = this.gson.fromJson(this.gson.toJson(obj), Interface.class);
-                // final Interface intf = this.om.readValue(obj, Interface.class);
-                // final String interfaceId = serviceId + "/" + intf.getName().toLowerCase().replace(" ", "-");
-                // interfaces.add(new Interface(interfaceId,
-                // intf.getName(),
-                // serviceId,
-                // intf.getInterfaceVersions(),
-                // intf.isAllowMultiple(),
-                // intf.isAutoConnect()));
-                // }
                 serviceBuilder.interfaces(interfaces);
-
-                // final Set<String> mappings = this.gson.fromJson(labels.getString("org.flexiblepower.mappings"),
-                // Set.class);
-                // final Set<String> ports = this.gson.fromJson(labels.getString("org.flexiblepower.ports"), Set.class);
 
                 // Add interfaces to the cache
                 this.interfaceCache.addAll(interfaces);
@@ -369,21 +360,7 @@ public class RegistryConnector {
             }
         }
 
-        serviceBuilder.tags(tags).registry(this.registryName).version(version);
-
-        return serviceBuilder.build();
-
-        //
-        // final Service service = new Service();
-        // service.setName(labels.getString("org.flexiblepower.serviceName"));
-        // service.setRegistry(RegistryConnector.REGISTRY_URL_DFLT);
-        // service.setImage(jsonResponse.getString("name"));
-        // service.setTag(jsonResponse.getString("tag"));
-        // service.setInterfaces(interfaces);
-        // service.setCreated(created);
-        // service.setMappings(mappings);
-        // service.setPorts(ports);
-        // return service;
+        return serviceBuilder.tags(tags).registry(this.registryName).version(version).build();
     }
 
     private URI buildUrl(final String... pathParams) {
@@ -394,6 +371,7 @@ public class RegistryConnector {
                 pathBuilder.append(URLEncoder.encode(p, "UTF-8")).append('/');
             }
             url += pathBuilder.toString();
+            url = url.substring(0, url.length() - 1);
         } catch (final UnsupportedEncodingException e) {
             RegistryConnector.log.warn("Unable to encode URL, assuming it is well-formed");
             url += String.join("/", pathParams);
