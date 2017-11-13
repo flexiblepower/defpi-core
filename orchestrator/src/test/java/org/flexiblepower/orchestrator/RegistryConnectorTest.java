@@ -17,9 +17,12 @@
  */
 package org.flexiblepower.orchestrator;
 
+import java.util.Collection;
+
 import org.flexiblepower.connectors.RegistryConnector;
 import org.flexiblepower.exceptions.RepositoryNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
+import org.flexiblepower.model.Service;
 import org.junit.Test;
 
 /**
@@ -34,18 +37,23 @@ public class RegistryConnectorTest {
 
     private final RegistryConnector connector = RegistryConnector.getInstance();
 
-    @Test
-    public void testListServices() throws RepositoryNotFoundException, ServiceNotFoundException {
-        System.out.println(this.connector.listServices(this.repository));
-        System.out.println(this.connector.listServices(this.repository).get(0).getInterfaces());
+    @Test // (timeout = 10000)
+    public void testListServices() throws RepositoryNotFoundException, ServiceNotFoundException, InterruptedException {
+        final Collection<Service> services = this.connector.getServices(this.repository);
+        System.out.format("Found %d services", services.size());
+        System.out.println(services.iterator().next().getInterfaces());
+
+        Thread.sleep(5000);
+        final Collection<Service> services2 = this.connector.getServices(this.repository);
+        System.out.format("Found %d services", services2.size());
     }
 
-    @Test
+    // @Test
     public void testListServiceVersions() throws RepositoryNotFoundException, ServiceNotFoundException {
-        System.out.println(this.connector.listAllServiceVersions(this.repository));
+        System.out.println(this.connector.getAllServiceVersions(this.repository));
     }
 
-    @Test
+    // @Test
     public void testGetService() throws RepositoryNotFoundException, ServiceNotFoundException {
         System.out.println(this.connector.getService(this.repository, "observations"));
     }
