@@ -1,7 +1,0 @@
-.project
-.classpath
-.settings
-*.java
-src/main/resources
-!src/main/resources/books.xsd
-!src/main/resources/service.json
