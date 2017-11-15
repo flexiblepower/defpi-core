@@ -156,14 +156,19 @@ myApp
 																	nga
 																			.field('value') ]),
 											nga
-													.field('debuggingPoint')
+													.field('debuggingPort')
 													.label(
 															'Debugging Port (0 = disabled)')
 													.defaultValue(0),
-													nga
+											nga
 													.field('maxMemoryBytes')
 													.label(
-													'Maxi memory usage in bytes (0 = disabled)')
+															'Max memory usage (bytes, 0 = disabled)')
+													.defaultValue(0),
+											nga
+													.field('maxNanoCPUs')
+													.label(
+															'Max nano CPUs (0 = disabled)')
 													.defaultValue(0),
 											nga
 													.field('mountPoints',
@@ -218,7 +223,36 @@ myApp
 																	nga
 																			.field('key'),
 																	nga
-																			.field('value') ]) ]);
+																			.field('value') ]),
+											nga
+													.field('debuggingPort')
+													.label(
+															'Debugging Port (0 = disabled)')
+													.defaultValue(0).editable(
+															false),
+											nga
+													.field('maxMemoryBytes')
+													.label(
+															'Max memory usage (bytes, 0 = disabled)')
+													.defaultValue(0).editable(
+															false),
+											nga
+													.field('maxNanoCPUs')
+													.label(
+															'Max nano CPUs (0 = disabled)')
+													.defaultValue(0).editable(
+															false),
+											nga
+													.field('mountPoints',
+															'embedded_list')
+													.editable(false)
+													.label('Mount Points')
+													.targetFields(
+															[
+																	nga
+																			.field('source'),
+																	nga
+																			.field('target') ]) ]);
 
 					service.listView().fields(
 							[ nga.field('id').isDetailLink(true),
