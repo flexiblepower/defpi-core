@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<artifactId>codegen-common</artifactId>
-	<name>Service codegen-common</name>
+	<name>dEF-Pi service codegen-common</name>
 
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>

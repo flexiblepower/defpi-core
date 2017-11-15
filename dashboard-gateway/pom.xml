@@ -10,7 +10,28 @@
 	</parent>
 
 	<artifactId>dashboard-gateway</artifactId>
-	<version>0.0.1</version>
+
+	<name>dEF-Pi dashboard gateway</name>
+	<url>https://flexible-energy.eu/defpi</url>
+	<inceptionYear>2017</inceptionYear>
+	<organization>
+		<name>Flexible Power Alliance Network</name>
+		<url>http://flexible-energy.eu</url>
+	</organization>
+
+	<developers>
+		<developer>
+			<name>Wilco Wijbrandi</name>
+			<organization>TNO</organization>
+			<organizationUrl>https://tno.nl</organizationUrl>
+		</developer>
+	
+		<developer>
+			<name>Arun Subramanian</name>
+			<organization>TNO</organization>
+			<organizationUrl>https://tno.nl</organizationUrl>
+		</developer>
+	</developers>
 
 	<dependencies>
 		<dependency>

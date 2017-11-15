@@ -4,7 +4,7 @@
 
 	<artifactId>defpi-maven-plugin</artifactId>
 	<packaging>maven-plugin</packaging>
-	<name>Service creation Maven Plugin</name>
+	<name>dEF-Pi service creation maven plugin</name>
 
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>

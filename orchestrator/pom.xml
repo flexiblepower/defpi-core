@@ -1,11 +1,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-
 	<modelVersion>4.0.0</modelVersion>
 
 	<artifactId>orchestrator</artifactId>
-	<packaging>jar</packaging>
-	<name>REST Orchestrator</name>
+	<name>dEF-Pi REST Orchestrator</name>
 
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
@@ -55,7 +53,7 @@
 			<groupId>io.swagger</groupId>
 			<artifactId>swagger-jersey2-jaxrs</artifactId>
 			<version>1.5.16</version>
-		</dependency>	
+		</dependency>
 
 		<dependency>
 			<groupId>com.fasterxml.jackson.datatype</groupId>
@@ -79,12 +77,6 @@
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
 			<version>20160212</version>
-		</dependency>
-
-		<dependency>
-			<groupId>com.google.code.gson</groupId>
-			<artifactId>gson</artifactId>
-			<version>2.6.2</version>
 		</dependency>
 
 		<dependency>
@@ -114,6 +106,21 @@
 	<build>
 		<plugins>
 			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>license-maven-plugin</artifactId>
+				<version>1.14</version>
+				<executions>
+					<execution>
+					<id>add-third-party</id>
+					<goals>
+						<goal>add-third-party</goal>
+						</goals>
+					<phase>generate-sources</phase>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
 				<groupId>pl.project13.maven</groupId>
 				<artifactId>git-commit-id-plugin</artifactId>
 				<version>2.2.3</version>
@@ -142,7 +149,6 @@
 						<resource>
 							<directory>${project.resourcedir}</directory>
 							<targetPath>${project.build.directory}/docker</targetPath>
-							<include>def-pi-cacert.crt</include>
 						</resource>
 						<resource>
 							<directory>${project.resourcedir}</directory>
@@ -151,8 +157,6 @@
 					</resources>
 				</configuration>
 			</plugin>
-
-
 
 			<!-- The assembly plugin puts all java code in one jar -->
 			<plugin>
