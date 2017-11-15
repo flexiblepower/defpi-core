@@ -9,5 +9,6 @@ COPY ${project.artifactId}-${project.version}-jar-with-dependencies.jar defpi-re
 LABEL org.flexiblepower.serviceName="{{service.name}}" 
 LABEL org.flexiblepower.parameters='{{parameters}}'
 LABEL org.flexiblepower.interfaces='{{interfaces}}'
+LABEL org.flexiblepower.defpi_api_version='1'
 
 ENTRYPOINT {{entrypoint}}
