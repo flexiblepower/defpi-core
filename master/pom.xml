@@ -4,10 +4,11 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>master</artifactId>
-	<version>0.2.7-SNAPSHOT</version>
+	<version>17.11</version>
 	<packaging>pom</packaging>
 
 	<name>dEF-Pi master POM</name>
+	<description>Distributed Electricity Flexibility Platform and Interface</description>
 	<url>https://flexible-energy.eu/defpi</url>
 	<inceptionYear>2017</inceptionYear>
 	<organization>
@@ -21,25 +22,31 @@
 			<organization>TNO</organization>
 			<organizationUrl>https://tno.nl</organizationUrl>
 		</developer>
-	
+
 		<developer>
 			<name>Wilco Wijbrandi</name>
 			<organization>TNO</organization>
 			<organizationUrl>https://tno.nl</organizationUrl>
 		</developer>
-	
+
 		<developer>
 			<name>Arun Subramanian</name>
 			<organization>TNO</organization>
 			<organizationUrl>https://tno.nl</organizationUrl>
 		</developer>
-	
+
 		<developer>
 			<name>Coen van Leeuwen</name>
 			<organization>TNO</organization>
 			<organizationUrl>https://tno.nl</organizationUrl>
 		</developer>
 	</developers>
+
+	<scm>
+		<connection>scm:git:git://github.com/flexiblepower/defpi-core.git</connection>
+		<developerConnection>scm:git:ssh://github.com:flexiblepower/defpi-core.git</developerConnection>
+		<url>http://github.com/flexiblepower/defpi-core</url>
+	</scm>
 
 	<licenses>
 		<license>
@@ -68,7 +75,6 @@
 		<module>../python-codegen</module>
 		<module>../orchestrator</module>
 		<module>../service</module>
-		<module>../dashboard-gateway</module>
 	</modules>
 
 	<!-- Where to push the maven compiled jars -->
@@ -227,6 +233,35 @@
 						<id>attach-sources</id>
 						<goals>
 							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>2.9.1</version>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-gpg-plugin</artifactId>
+				<version>1.5</version>
+				<executions>
+					<execution>
+						<id>sign-artifacts</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>sign</goal>
 						</goals>
 					</execution>
 				</executions>

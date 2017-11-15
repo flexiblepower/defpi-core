@@ -5,10 +5,11 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>service-parent</artifactId>
-	<version>0.2.7-SNAPSHOT</version>
+	<version>17.11</version>
 	<packaging>pom</packaging>
 
 	<name>dEF-Pi service parent POM</name>
+	<description>Parent POM for dEF-Pi services, includes plugins to automate building and publishing services</description>
 	<url>https://flexible-energy.eu/defpi</url>
 	<inceptionYear>2017</inceptionYear>
 	<organization>
@@ -16,13 +17,53 @@
 		<url>http://flexible-energy.eu</url>
 	</organization>
 
+	<scm>
+		<connection>scm:git:git://github.com/flexiblepower/defpi-core.git</connection>
+		<developerConnection>scm:git:ssh://github.com:flexiblepower/defpi-core.git</developerConnection>
+		<url>http://github.com/flexiblepower/defpi-core</url>
+	</scm>
+	
+	<licenses>
+		<license>
+			<name>Apache License, Version 2.0</name>
+			<url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<developers>
+		<developer>
+			<name>Maarten Kollenstart</name>
+			<organization>TNO</organization>
+			<organizationUrl>https://tno.nl</organizationUrl>
+		</developer>
+
+		<developer>
+			<name>Wilco Wijbrandi</name>
+			<organization>TNO</organization>
+			<organizationUrl>https://tno.nl</organizationUrl>
+		</developer>
+
+		<developer>
+			<name>Arun Subramanian</name>
+			<organization>TNO</organization>
+			<organizationUrl>https://tno.nl</organizationUrl>
+		</developer>
+	
+		<developer>
+			<name>Coen van Leeuwen</name>
+			<organization>TNO</organization>
+			<organizationUrl>https://tno.nl</organizationUrl>
+		</developer>
+	</developers>
+
 	<properties>
 		<project.resources.directory>${project.basedir}/src/main/resources</project.resources.directory>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.source>1.8</java.source>
 		<java.target>1.8</java.target>
 
-		<defpi.version>0.2.7-SNAPSHOT</defpi.version>
+		<defpi.version>17.11</defpi.version>
 
 		<defpi.sources.generated>${project.build.directory}/generated-sources/java</defpi.sources.generated>
 		<defpi.resources.generated>${project.build.directory}/generated-resources/defpi</defpi.resources.generated>
@@ -38,6 +79,10 @@
 		<docker.registry>defpi.hesilab.nl:5000</docker.registry>
 		<docker.imageName>${docker.registry}/services/${project.artifactId}</docker.imageName>
 	</properties>
+
+	<modules>
+		<module>../../dashboard-gateway</module>
+	</modules>
 
 	<!-- Where to push the service parent itself, should not be used by children -->
 	<distributionManagement>
@@ -96,6 +141,21 @@
 					<source>${java.source}</source>
 					<target>${java.target}</target>
 				</configuration>
+			</plugin>
+			
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-gpg-plugin</artifactId>
+				<version>1.5</version>
+				<executions>
+					<execution>
+						<id>sign-artifacts</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>sign</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
