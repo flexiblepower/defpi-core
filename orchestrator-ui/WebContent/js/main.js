@@ -154,7 +154,27 @@ myApp
 																	nga
 																			.field('key'),
 																	nga
-																			.field('value') ]) ]);
+																			.field('value') ]),
+											nga
+													.field('debuggingPoint')
+													.label(
+															'Debugging Port (0 = disabled)')
+													.defaultValue(0),
+													nga
+													.field('maxMemoryBytes')
+													.label(
+													'Maxi memory usage in bytes (0 = disabled)')
+													.defaultValue(0),
+											nga
+													.field('mountPoints',
+															'embedded_list')
+													.label('Mount Points')
+													.targetFields(
+															[
+																	nga
+																			.field('source'),
+																	nga
+																			.field('target') ]) ]);
 					process
 							.editionView()
 							.fields(
