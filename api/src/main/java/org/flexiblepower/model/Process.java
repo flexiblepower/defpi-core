@@ -67,6 +67,15 @@ public class Process {
         private String value;
     }
 
+    @Value
+    @AllArgsConstructor
+    @NoArgsConstructor(force = true)
+    public static class MountPoint {
+
+        private String source;
+        private String target;
+    }
+
     @Id
     @JsonSerialize(using = ToStringSerializer.class)
     @JsonDeserialize(using = ObjectIdDeserializer.class)
@@ -113,17 +122,17 @@ public class Process {
      * than 0. Note that this can only be done when serializing a process from JSON.
      */
     private int debuggingPort;
-    
+
     private long maxMemoryBytes;
 
     private long maxNanoCPUs;
-    
+
     private boolean suspendOnDebug = true;
 
     /**
      * Mount points can be added in order to allow physical devices be used from the
      * java process. e.g. to use a usb device from /dev/usb0
      */
-    private Map<String, String> mountPoints;
+    private List<MountPoint> mountPoints;
 
 }
