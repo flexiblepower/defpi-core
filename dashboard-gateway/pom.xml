@@ -5,12 +5,33 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>service-parent</artifactId>
-		<version>0.2.7-SNAPSHOT</version>
+		<version>17.11</version>
 		<relativePath>../master/service-parent/pom.xml</relativePath>
 	</parent>
 
 	<artifactId>dashboard-gateway</artifactId>
-	<version>0.0.1</version>
+
+	<name>dEF-Pi dashboard gateway</name>
+	<url>https://flexible-energy.eu/defpi</url>
+	<inceptionYear>2017</inceptionYear>
+	<organization>
+		<name>Flexible Power Alliance Network</name>
+		<url>http://flexible-energy.eu</url>
+	</organization>
+
+	<developers>
+		<developer>
+			<name>Wilco Wijbrandi</name>
+			<organization>TNO</organization>
+			<organizationUrl>https://tno.nl</organizationUrl>
+		</developer>
+
+		<developer>
+			<name>Arun Subramanian</name>
+			<organization>TNO</organization>
+			<organizationUrl>https://tno.nl</organizationUrl>
+		</developer>
+	</developers>
 
 	<dependencies>
 		<dependency>
@@ -30,5 +51,37 @@
 		</dependency>
 
 	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>3.0.1</version>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>2.9.1</version>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
 
 </project>

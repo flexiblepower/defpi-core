@@ -11,6 +11,7 @@ RemoteSystemsTempFiles
 Servers/
 .project
 .classpath
+sandbox
 pom.xml.versionsBackup
 
 # Keep the maven plugin settings to ignore missing m2e plugins

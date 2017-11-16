@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Random;
 
 import org.flexiblepower.exceptions.ApiException;
@@ -35,6 +34,7 @@ import org.flexiblepower.model.Architecture;
 import org.flexiblepower.model.Node;
 import org.flexiblepower.model.NodePool;
 import org.flexiblepower.model.Process;
+import org.flexiblepower.model.Process.MountPoint;
 import org.flexiblepower.model.PublicNode;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.model.User;
@@ -437,8 +437,8 @@ public class DockerConnector {
         // Add mounts to the container
         final List<Mount> mountList = new ArrayList<>();
         if (process.getMountPoints() != null) {
-            for (final Entry<String, String> mount : process.getMountPoints().entrySet()) {
-                mountList.add(Mount.builder().source(mount.getKey()).target(mount.getValue()).build());
+            for (final MountPoint mount : process.getMountPoints()) {
+                mountList.add(Mount.builder().source(mount.getSource()).target(mount.getTarget()).build());
             }
             containerSpec.mounts(mountList);
         }
