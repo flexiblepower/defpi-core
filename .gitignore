@@ -11,12 +11,13 @@ RemoteSystemsTempFiles
 Servers/
 .project
 .classpath
+sandbox
 pom.xml.versionsBackup
 
 # Keep the maven plugin settings to ignore missing m2e plugins
 # !.metadata/.plugins/org.eclipse.m2e.core/lifecycle-mapping-metadata.xml
 
-# Remove CI files
+# Continuous integration files
 .gitlab-ci.yml
 skeleton*
 docker-compose*

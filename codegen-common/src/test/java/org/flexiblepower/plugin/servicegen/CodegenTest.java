@@ -51,6 +51,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since Oct 4, 2017
  */
 @Slf4j
+@SuppressWarnings("static-method")
 public class CodegenTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -58,7 +59,7 @@ public class CodegenTest {
     @Test
     public void testSchemaValidation() throws ProcessingException, IOException {
         final File inputFile = new File("src/test/resources/service.json");
-        final URL schemaURL = this.getClass().getClassLoader().getResource("schema.json");
+        final URL schemaURL = PluginUtils.class.getClassLoader().getResource("schema.json");
 
         final JsonNode schemaNode = JsonLoader.fromURL(schemaURL);
         final JsonNode data = JsonLoader.fromFile(inputFile);

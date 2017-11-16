@@ -31,14 +31,14 @@ public class SerializationException extends Exception {
     private static final long serialVersionUID = -6842988453232951453L;
 
     /**
-     * @param e
+     * @param cause
      */
     public SerializationException(final Throwable cause) {
         super("Error serializing message", cause);
     }
 
     /**
-     * @param string
+     * @param msg
      */
     public SerializationException(final String msg) {
         super(msg);
