@@ -91,11 +91,6 @@
 			<name>Sonatype snapshot repository</name>
 			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
 		</snapshotRepository>
-		<repository>
-			<id>ossrh</id>
-			<name>Sonatype deployment repository</name>
-			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-		</repository>
 	</distributionManagement>
 
 	<!-- Where to find dependencies -->
@@ -392,6 +387,15 @@
 
 		<profile>
 			<id>release</id>
+			
+			<distributionManagement>
+				<repository>
+					<id>ossrh</id>
+					<name>Sonatype deployment repository</name>
+					<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+				</repository>
+			</distributionManagement>
+
 			<build>
 				<plugins>
 					<plugin>
