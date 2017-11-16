@@ -39,13 +39,12 @@ ui-compile:
       # *** TEST JOBS *** #
 
 # Run Junit tests with maven; not on master where we will deploy
-# Going to install will ensure the creation of the docker images, and entering artifacts in cache
 java-test:
   stage: test
   except:
     - master
   script:
-    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install'
+    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml package'
 
 # Plugin template, how test the plugins with the code generator; on master we deploy
 .plugin_template: &plugin
