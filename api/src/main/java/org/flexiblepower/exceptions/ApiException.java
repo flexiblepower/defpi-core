@@ -43,6 +43,7 @@ public class ApiException extends WebApplicationException {
      * Creates an Exception for the API containing a response which is a user friendly HTML showing the error message
      * and optionally the stacktrace of the causing exception.
      *
+     * @param status The response status (i.e. FORBIDDEN, UNAUTHORIZED etc...)
      * @param title The title of the page to display. If {@code null}, the default title will be used
      * @param message The message to display on the page. If {@code null}, a default message will be used
      * @param cause The cause of the exception, if {@code null} nothing will be displayed
@@ -54,34 +55,85 @@ public class ApiException extends WebApplicationException {
                 .build());
     }
 
+    /**
+     * Throw an API exception causing a friendly error page with the provided message
+     *
+     * @param message the message to show the user
+     */
     public ApiException(final String message) {
         this(ApiException.DEFAULT_STATUS, ApiException.DEFAULT_TITLE, message, null);
     }
 
-    public ApiException(final String message, final Throwable t) {
-        this(ApiException.DEFAULT_STATUS, ApiException.DEFAULT_TITLE, message, t);
+    /**
+     * Throw an API exception causing a friendly error page with the provided message and a detailed cause
+     *
+     * @param message the message to show the user
+     * @param cause the underlying causing exception
+     */
+    public ApiException(final String message, final Throwable cause) {
+        this(ApiException.DEFAULT_STATUS, ApiException.DEFAULT_TITLE, message, cause);
     }
 
-    public ApiException(final Throwable t) {
-        this(ApiException.DEFAULT_STATUS, ApiException.DEFAULT_TITLE, ApiException.DEFAULT_MESSAGE, t);
+    /**
+     * Throw an API exception causing a friendly error page with the provided message and a detailed cause
+     *
+     * @param cause the underlying causing exception
+     */
+    public ApiException(final Throwable cause) {
+        this(ApiException.DEFAULT_STATUS, ApiException.DEFAULT_TITLE, ApiException.DEFAULT_MESSAGE, cause);
     }
 
+    /**
+     * Throw an API exception with the provided Response status (i.e. FORBIDDEN, UNAUTHORIZED etc...)
+     *
+     * @param status the status to show in the error page
+     */
     public ApiException(final Status status) {
         this(status, "");
     }
 
-    public ApiException(final Status status, final Throwable t) {
-        this(status, String.format("%s (%d)", status.getReasonPhrase(), status.getStatusCode()), "", t);
+    /**
+     * Throw an API exception with the provided Response status (i.e. FORBIDDEN, UNAUTHORIZED etc...) and a detailed
+     * cause
+     *
+     * @param status the status to show in the error page
+     * @param cause the underlying causing exception
+     */
+    public ApiException(final Status status, final Throwable cause) {
+        this(status, String.format("%s (%d)", status.getReasonPhrase(), status.getStatusCode()), "", cause);
     }
 
+    /**
+     * Throw an API exception with the provided Response status (i.e. FORBIDDEN, UNAUTHORIZED etc...) and a detailed
+     * cause
+     *
+     * @param status the status to show in the error page
+     * @param message the message to show the user
+     */
     public ApiException(final Status status, final String message) {
         this(status, String.format("%s (%d)", status.getReasonPhrase(), status.getStatusCode()), message, null);
     }
 
+    /**
+     * Throw an API exception with the provided Response status (i.e. FORBIDDEN, UNAUTHORIZED etc...) and a detailed
+     * cause
+     *
+     * @param status the status to show in the error page
+     * @param message the message to show the user
+     */
     public ApiException(final int status, final String message) {
         this(Status.fromStatusCode(status), message);
     }
 
+    /**
+     * Build an HTML page showing the error message and optionally the stacktrace of the causing exception.
+     *
+     * @param title The title of the page to display.
+     * @param message The message to display on the page.
+     * @param cause The cause of the exception.
+     *
+     * @return An HTML formatted error page
+     */
     public static String createErrorPage(final String title, final String message, final Throwable cause) {
         final StringBuilder sb = new StringBuilder();
 
