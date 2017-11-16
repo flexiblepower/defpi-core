@@ -22,7 +22,7 @@
 		<developerConnection>scm:git:ssh://github.com:flexiblepower/defpi-core.git</developerConnection>
 		<url>http://github.com/flexiblepower/defpi-core</url>
 	</scm>
-	
+
 	<licenses>
 		<license>
 			<name>Apache License, Version 2.0</name>
@@ -49,7 +49,7 @@
 			<organization>TNO</organization>
 			<organizationUrl>https://tno.nl</organizationUrl>
 		</developer>
-	
+
 		<developer>
 			<name>Coen van Leeuwen</name>
 			<organization>TNO</organization>
@@ -141,21 +141,6 @@
 					<source>${java.source}</source>
 					<target>${java.target}</target>
 				</configuration>
-			</plugin>
-			
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-gpg-plugin</artifactId>
-				<version>1.5</version>
-				<executions>
-					<execution>
-						<id>sign-artifacts</id>
-						<phase>verify</phase>
-						<goals>
-							<goal>sign</goal>
-						</goals>
-					</execution>
-				</executions>
 			</plugin>
 		</plugins>
 	</build>
@@ -404,5 +389,28 @@
 				</plugins>
 			</build>
 		</profile>
+
+		<profile>
+			<id>release</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>1.5</version>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
 	</profiles>
 </project>
