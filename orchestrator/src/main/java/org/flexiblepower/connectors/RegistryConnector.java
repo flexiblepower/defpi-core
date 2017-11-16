@@ -70,6 +70,10 @@ public class RegistryConnector {
      */
     public static final String REGISTRY_URL_KEY = "REGISTRY_URL";
     private static final String REGISTRY_URL_DFLT = "defpi.hesilab.nl:5000";
+
+    public static final String SECURE_REGISTRY_KEY = "USE_SECURE_REGISTRY";
+    private static final boolean SECURE_REGISTRY_DFLT = true;
+
     private static final long MAX_CACHE_AGE_MS = Duration.ofMinutes(2).toMillis();
     private static final long MAX_CACHE_REFRESH_TIME = Duration.ofSeconds(5).toMillis();
     private static final int MAX_THREADS = 10;
@@ -94,7 +98,11 @@ public class RegistryConnector {
     private RegistryConnector() {
         final String registryNameFromEnv = System.getenv(RegistryConnector.REGISTRY_URL_KEY);
         this.registryName = (registryNameFromEnv != null ? registryNameFromEnv : RegistryConnector.REGISTRY_URL_DFLT);
-        this.registryApiLink = "https://" + this.registryName + "/v2/";
+
+        final String secureRegistryFromEnv = System.getenv(RegistryConnector.SECURE_REGISTRY_KEY);
+        final boolean secureRegistry = (secureRegistryFromEnv != null ? Boolean.parseBoolean(secureRegistryFromEnv)
+                : RegistryConnector.SECURE_REGISTRY_DFLT);
+        this.registryApiLink = (secureRegistry ? "https://" : "http://") + this.registryName + "/v2/";
     }
 
     public synchronized static RegistryConnector getInstance() {

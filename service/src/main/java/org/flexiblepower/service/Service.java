@@ -18,7 +18,6 @@
 package org.flexiblepower.service;
 
 import java.io.Serializable;
-import java.util.Properties;
 
 /**
  * Service

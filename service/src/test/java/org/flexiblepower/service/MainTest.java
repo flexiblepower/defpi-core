@@ -178,6 +178,7 @@ public class MainTest {
 
     };
 
+    @SuppressWarnings("static-method")
     public static class TestManager implements ConnectionHandlerManager {
 
         static int manager_creation_counter = 0;
