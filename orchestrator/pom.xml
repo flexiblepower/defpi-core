@@ -8,7 +8,7 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>17.11</version>
+		<version>17.11.1</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
@@ -16,7 +16,7 @@
 		<project.resourcedir>${project.basedir}/src/main/resources</project.resourcedir>
 		<mainClass>org.flexiblepower.orchestrator.Main</mainClass>
 
-		<docker.registry>defpi.hesilab.nl:5000</docker.registry>
+		<docker.registry>localhost:5000</docker.registry>
 		<docker.imageName>${docker.registry}/defpi/${project.artifactId}</docker.imageName>
 	</properties>
 
