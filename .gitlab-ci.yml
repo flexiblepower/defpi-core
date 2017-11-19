@@ -95,7 +95,7 @@ java-integrate:
     - defpici
   stage: integrate
   script:
-    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy'
+    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy -Ddocker.registry=defpi.hesilab.nl:5000'
 
 # Deploy UI to registry
 ui-integrate:
@@ -121,7 +121,7 @@ ui-integrate:
     # In this stage the plugin should be available from artifactory
     - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml defpi:generate'
   script:
-    - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml clean deploy'
+    - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml clean deploy -Ddocker.registry=defpi.hesilab.nl:5000'
 
 # Deploy the proto skeleton
 integrate:skeleton_proto:
