@@ -1,6 +1,9 @@
 # dEF-Pi
 This project contains the Java implementation of the Distributed Energy Flexibility Platform and Interface.
 
+Current build status:
+[![build status](https://ci.tno.nl/gitlab/FAN/def-pi/badges/master/build.svg)](https://ci.tno.nl/gitlab/FAN/def-pi/commits/master)
+
 We use maven to integrate all projects, and as such, the following command can be used to compile the projects:
 
 ```
