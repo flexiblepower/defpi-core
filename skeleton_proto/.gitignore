@@ -1,0 +1,7 @@
+.project
+.classpath
+.settings
+*.java
+src/main/resources/docker
+src/main/resources/docker-arm
+src/main/resources/protos
