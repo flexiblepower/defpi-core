@@ -35,7 +35,6 @@ import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.MavenProject;
 import org.flexiblepower.codegen.PluginUtils;
 import org.flexiblepower.codegen.model.InterfaceDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription;
@@ -62,8 +61,8 @@ public class CreateComponentMojo extends AbstractMojo {
     @Component
     private BuildContext buildContext;
 
-    @Parameter(defaultValue = "${project}", readonly = true)
-    private MavenProject project;
+    @Parameter(property = "project.artifactId", required = true, readonly = true)
+    private String artifactId;
 
     /**
      * Version of protobuf to use
@@ -205,7 +204,7 @@ public class CreateComponentMojo extends AbstractMojo {
             }
 
             final ServiceDescription service = PluginUtils.readServiceDefinition(serviceDescriptionFile);
-            service.setId(this.project.getArtifactId());
+            service.setId(this.artifactId);
 
             // Add descriptors and related hashes
             this.compileDescriptors(service);
