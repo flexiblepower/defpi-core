@@ -79,6 +79,11 @@
 
 	<!-- Where to push the maven compiled jars -->
 	<distributionManagement>
+		<repository>
+			<id>ossrh</id>
+			<name>Sonatype snapshot repository</name>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+		</repository>
 		<snapshotRepository>
 			<id>ossrh</id>
 			<name>Sonatype snapshot repository</name>
