@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
+import org.flexiblepower.connectors.RegistryConnector;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Service;
@@ -76,6 +77,12 @@ public class ProcessIntegrationTest {
         } catch (final Exception e) {
             ProcessIntegrationTest.log.warn("Exception while connecting to MongoDb: {}", e.getMessage());
             Assume.assumeNoException("Skipping tests because there is no Mongo service", e);
+        }
+
+        try {
+            RegistryConnector.getInstance().getServices("services");
+        } catch (final Exception e) {
+            Assume.assumeNoException("Skipping tests because there is no registry", e);
         }
     }
 

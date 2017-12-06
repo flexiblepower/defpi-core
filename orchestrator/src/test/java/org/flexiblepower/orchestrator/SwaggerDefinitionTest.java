@@ -48,7 +48,7 @@ public class SwaggerDefinitionTest {
                 null,
                 InetAddress.getLocalHost().getHostName(),
                 Main.URI_PORT,
-                "/swagger.json",
+                Main.URI_PATH + "/swagger.json",
                 null,
                 null);
 
