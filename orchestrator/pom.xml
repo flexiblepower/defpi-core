@@ -8,7 +8,7 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>17.11.1-SNAPSHOT</version>
+		<version>17.11.2-SNAPSHOT</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
@@ -20,38 +20,16 @@
 		<docker.imageName>${docker.registry}/defpi/${project.artifactId}</docker.imageName>
 	</properties>
 
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>org.glassfish.jersey</groupId>
-				<artifactId>jersey-bom</artifactId>
-				<version>2.25.1</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
-
 	<dependencies>
-		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>20.0</version>
-		</dependency>
-
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>
 			<artifactId>jersey-container-jetty-http</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.glassfish.jersey.containers</groupId>
-			<artifactId>jersey-container-servlet-core</artifactId>
+			<version>2.25.1</version>
 		</dependency>
 
 		<dependency>
 			<groupId>io.swagger</groupId>
-			<artifactId>swagger-jersey2-jaxrs</artifactId>
+			<artifactId>swagger-jaxrs</artifactId>
 			<version>1.5.16</version>
 		</dependency>
 
@@ -111,11 +89,11 @@
 				<version>1.14</version>
 				<executions>
 					<execution>
-					<id>add-third-party</id>
-					<goals>
-						<goal>add-third-party</goal>
+						<id>add-third-party</id>
+						<goals>
+							<goal>add-third-party</goal>
 						</goals>
-					<phase>generate-sources</phase>
+						<phase>generate-sources</phase>
 					</execution>
 				</executions>
 			</plugin>
@@ -237,5 +215,14 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<profile>
+			<id>release</id>
+			<properties>
+				<docker.imageName>flexiblepower:defpi-orchestrator</docker.imageName>
+			</properties>
+		</profile>
+	</profiles>
 
 </project>

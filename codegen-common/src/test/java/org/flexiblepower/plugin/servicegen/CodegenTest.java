@@ -20,6 +20,8 @@ package org.flexiblepower.plugin.servicegen;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -85,6 +87,16 @@ public class CodegenTest {
                 CodegenTest.log.info(PluginUtils.getHash(v, Collections.emptySet()));
             }
         }
+
+    }
+
+    @Test
+    public void testDownload() throws IOException {
+        final Path dst = Files.createTempFile("http", "proto");
+        PluginUtils.downloadFile("https://raw.githubusercontent.com/defpi/interfaces/17.11/defpi/HTTP.proto",
+                dst.toFile());
+        Assert.assertEquals("e00da70ae21e257e79e23df20461e28edb5c6e4c16f6675b8dc4c40e574ebc06",
+                PluginUtils.SHA256(dst));
     }
 
     @Test
