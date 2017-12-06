@@ -44,13 +44,32 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 
+/**
+ * This is the interface of the orchestrator Connections API.
+ *
+ * @version 0.1
+ * @since Dec 6, 2017
+ */
 @Api("Connection")
 @Path("connection")
 public interface ConnectionApi {
 
+    /**
+     * Error message to display if the connection is not found
+     */
     static final String CONNECTION_NOT_FOUND_MESSAGE = "Connection not found";
+    /**
+     * Error message to display if the interface is not found
+     */
     static final String INTERFACE_NOT_FOUND_MESSAGE = "Interface to bind to was not found";
 
+    /**
+     * List all existing connections
+     *
+     * @param filters (may be null)
+     * @return a list of connections that belong to the current user
+     * @throws AuthorizationException if the user is not authenticated at all
+     */
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "listConnections",
@@ -65,6 +84,15 @@ public interface ConnectionApi {
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public List<Connection> listConnections(@QueryParam("_filters") String filters) throws AuthorizationException;
 
+    /**
+     * Get the connection with the specified Id
+     *
+     * @param id The id of the connection to look up
+     * @return Connection with the specified Id
+     * @throws AuthorizationException if the user is not authenticated at all
+     * @throws ProcessNotFoundException
+     * @throws InvalidObjectIdException
+     */
     @GET
     @Path("{connectionId}")
     @ApiOperation(nickname = "getConnection",
@@ -84,6 +112,15 @@ public interface ConnectionApi {
             ProcessNotFoundException,
             InvalidObjectIdException;
 
+    /**
+     * Creates a new connection between two processes
+     *
+     * @param connection The new connection to insert
+     * @return The id of the new connection
+     * @throws AuthorizationException if the user is not authenticated at all
+     * @throws NotFoundException
+     * @throws ConnectionException
+     */
     @POST
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -103,6 +140,14 @@ public interface ConnectionApi {
             NotFoundException,
             ConnectionException;
 
+    /**
+     * Removes an existing connection between two processes
+     *
+     * @param connectionId The id of the connection to remove
+     * @throws AuthorizationException if the user is not authenticated at all
+     * @throws InvalidObjectIdException
+     * @throws NotFoundException
+     */
     @DELETE
     @Path("{connectionId}")
     @ApiOperation(nickname = "deleteConnection",
@@ -117,7 +162,7 @@ public interface ConnectionApi {
     public void deleteConnection(
             @ApiParam(name = "connectionId",
                       value = "The id of the connection to remove",
-                      required = true) @PathParam("connectionId") final String id)
+                      required = true) @PathParam("connectionId") final String connectionId)
             throws AuthorizationException,
             InvalidObjectIdException,
             NotFoundException;

@@ -37,12 +37,27 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 
+/**
+ * This is the interface of the orchestrator Interface API.
+ *
+ * @version 0.1
+ * @since Dec 6, 2017
+ */
 @Api("Interface")
 @Path("interface")
 public interface InterfaceApi {
 
+    /**
+     * Error message to display if the interface is not found
+     */
     public static final String INTERFACE_NOT_FOUND_MESSAGE = "Interface not found";
 
+    /**
+     * List all interfaces that are available
+     *
+     * @return A list of all interfaces
+     * @throws AuthorizationException if the user is not authenticated at all
+     */
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "listInterfaces",
@@ -57,6 +72,14 @@ public interface InterfaceApi {
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public List<Interface> listInterfaces() throws AuthorizationException;
 
+    /**
+     * Gets the interface with the provided id
+     *
+     * @param id The id of the interface
+     * @return The interface with the provided id
+     * @throws NotFoundException
+     * @throws AuthorizationException if the user is not authenticated at all
+     */
     @GET
     @Path("{id}")
     @Produces(MediaType.APPLICATION_JSON)

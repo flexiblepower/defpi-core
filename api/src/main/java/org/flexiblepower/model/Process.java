@@ -18,7 +18,6 @@
 package org.flexiblepower.model;
 
 import java.util.List;
-import java.util.Map;
 
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.annotations.Entity;
@@ -50,14 +49,43 @@ import lombok.Value;
 @EqualsAndHashCode(exclude = {"runningDockerNodeId", "dockerId"})
 public class Process {
 
+    /**
+     * The ProcessState describes the status of the process
+     *
+     * @version 0.1
+     * @since Dec 6, 2017
+     */
     public static enum ProcessState {
+        /**
+         * The process is starting, meaning its specification exists somewhere in memory, but the docker container
+         * hasn't started
+         */
         STARTING,
+        /**
+         * The docker container in which the process will run is running, but the process is still waiting for a
+         * configuration
+         */
         INITIALIZING,
+        /**
+         * The process is operational and running
+         */
         RUNNING,
+        /**
+         * The process is suspended, meaning the docker service is removed, but its state still exists in suspended mode
+         */
         SUSPENDED,
+        /**
+         * The process is terminated and will not be resumed, it is ready to be completely deleted from memory
+         */
         TERMINATED
     }
 
+    /**
+     * A ProcessParameter is a configuration parameter that has a key and a value.
+     *
+     * @version 0.1
+     * @since Dec 6, 2017
+     */
     @Value
     @AllArgsConstructor
     @NoArgsConstructor(force = true)
@@ -67,6 +95,13 @@ public class Process {
         private String value;
     }
 
+    /**
+     * A mountpoint specifies what volume to mount to a container. This is especially helpful if certain drivers expect
+     * e.g. a serial or USB device to be connected to the hardware it is running on.
+     *
+     * @version 0.1
+     * @since Dec 6, 2017
+     */
     @Value
     @AllArgsConstructor
     @NoArgsConstructor(force = true)
