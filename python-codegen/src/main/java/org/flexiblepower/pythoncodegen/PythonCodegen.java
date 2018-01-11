@@ -1,3 +1,21 @@
+/**
+ * File PythonCodegen.java
+ *
+ * Copyright 2017 FAN
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.flexiblepower.pythoncodegen;
 
 import java.io.File;
@@ -24,7 +42,6 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * CreateComponentMojo
  *
- * @author coenvl
  * @version 0.1
  * @since Jun 28, 2017
  */
@@ -223,10 +240,10 @@ public class PythonCodegen {
 
         // Get the package name and add the hash
         final String versionedName = PythonCodegenUtils.getVersionedName(itf, vitf);
-        final String protoClassName = versionedName + "XSD";
 
         // Store for later reference
-        vitf.setModelPackageName(protoClassName);
+        vitf.setModelPackageName(PythonCodegen.SOURCE_LOCATION + "." + PythonCodegen.MODEL_SOURCE_LOCATION + "."
+                + versionedName + ".xsd");
         this.hashes.put(interfaceHash, vitf);
 
         // Append additional compilation info to the proto file and compile the java code
@@ -262,11 +279,14 @@ public class PythonCodegen {
         }
 
         // Get the package name and add the hash
+        final String packagePath = Paths.get(PythonCodegen.SOURCE_LOCATION)
+                .resolve(PythonCodegen.MODEL_SOURCE_LOCATION)
+                .toString();
         final String versionedName = PythonCodegenUtils.getVersionedName(itf, vitf);
-        final String protoClassName = versionedName + "Proto";
+        final String protoClassName = versionedName + "_pb2";
 
         // Store for later reference
-        vitf.setModelPackageName(protoClassName);
+        vitf.setModelPackageName(packagePath + "." + protoClassName);
         this.hashes.put(interfaceHash, vitf);
 
         // Append additional compilation info to the proto file and compile the java code

@@ -3,12 +3,12 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<artifactId>python-codegen</artifactId>
-	<name>Python service creation jar</name>
+	<name>dEF-Pi python service creation</name>
 
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>0.2.7-SNAPSHOT</version>
+		<version>17.11.1</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 

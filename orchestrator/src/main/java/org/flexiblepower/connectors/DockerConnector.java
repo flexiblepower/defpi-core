@@ -1,7 +1,19 @@
 /**
  * File DockerConnector.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.flexiblepower.connectors;
 
@@ -13,7 +25,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Random;
 
 import org.flexiblepower.exceptions.ApiException;
@@ -23,6 +34,7 @@ import org.flexiblepower.model.Architecture;
 import org.flexiblepower.model.Node;
 import org.flexiblepower.model.NodePool;
 import org.flexiblepower.model.Process;
+import org.flexiblepower.model.Process.MountPoint;
 import org.flexiblepower.model.PublicNode;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.model.User;
@@ -58,7 +70,6 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * DockerConnector
  *
- * @author leeuwencjv
  * @version 0.1
  * @since 20 mrt. 2017
  */
@@ -426,8 +437,8 @@ public class DockerConnector {
         // Add mounts to the container
         final List<Mount> mountList = new ArrayList<>();
         if (process.getMountPoints() != null) {
-            for (final Entry<String, String> mount : process.getMountPoints().entrySet()) {
-                mountList.add(Mount.builder().source(mount.getKey()).target(mount.getValue()).build());
+            for (final MountPoint mount : process.getMountPoints()) {
+                mountList.add(Mount.builder().source(mount.getSource()).target(mount.getTarget()).build());
             }
             containerSpec.mounts(mountList);
         }

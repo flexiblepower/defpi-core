@@ -1,3 +1,21 @@
+/**
+ * File PythonTemplates.java
+ *
+ * Copyright 2017 FAN
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.flexiblepower.pythoncodegen;
 
 import java.io.IOException;
@@ -18,7 +36,6 @@ import org.flexiblepower.codegen.model.ServiceDescription;
 /**
  * Templates
  *
- * @author coenvl
  * @version 0.1
  * @since Jun 8, 2017
  */
@@ -172,24 +189,26 @@ public class PythonTemplates extends Templates {
             replaceMap.put("vitf.handler.definitions", String.join("\n\n", definitions));
             replaceMap.put("vitf.handler.implementations", String.join("\n\n", implementations));
 
-            // Add imports for the handlers
-            final Set<String> imports = new HashSet<>();
-            final Set<String> messageSet = new HashSet<>();
-            messageSet.addAll(version.getReceives());
-            messageSet.addAll(version.getSends());
-
             if (version.getType().equals(Type.PROTO)) {
                 replaceMap.put("vitf.serializer", "ProtobufMessageSerializer");
-
-                for (final String type : messageSet) {
-                    imports.add(String.format("from %s import %s;", version.getModelPackageName(), type));
-                }
             } else if (version.getType().equals(Type.XSD)) {
                 replaceMap.put("vitf.serializer", "XSDMessageSerializer");
-                imports.add(String.format("import %s.*;", version.getModelPackageName()));
             }
 
-            replaceMap.put("vitf.handler.imports", String.join("\n", imports));
+            // Add imports for the handlers
+            final Set<String> handlerImports = new HashSet<>();
+            final Set<String> interfaceImports = new HashSet<>();
+            final String versionPackage = version.getModelPackageName().replaceAll("/", ".");
+            for (final String type : version.getReceives()) {
+                handlerImports.add(String.format("from %s import %s", versionPackage, type));
+                interfaceImports.add(String.format("from %s import %s", versionPackage, type));
+            }
+            for (final String type : version.getSends()) {
+                interfaceImports.add(String.format("from %s import %s", versionPackage, type));
+            }
+
+            replaceMap.put("vitf.handler.imports", String.join("\n", handlerImports));
+            replaceMap.put("vitf.handler.interface.imports", String.join("\n", interfaceImports));
         }
 
         return this.replaceMap(template, replaceMap);

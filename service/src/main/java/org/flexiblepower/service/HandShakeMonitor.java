@@ -1,7 +1,19 @@
 /**
- * File ConnectionMonitor.java
+ * File HandShakeMonitor.java
  *
- * Copyright 2017 TNO
+ * Copyright 2017 FAN
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.flexiblepower.service;
 
@@ -18,7 +30,6 @@ import org.slf4j.LoggerFactory;
 /**
  * ConnectionMonitor
  *
- * @author coenvl
  * @version 0.1
  * @since Aug 23, 2017
  */
@@ -49,7 +60,7 @@ public class HandShakeMonitor {
                 .setConnectionId(this.connectionId)
                 .setConnectionState(currentState)
                 .build();
-        HandShakeMonitor.log.trace("Sending handshake {}", currentState);
+        HandShakeMonitor.log.trace("[{}] - Sending handshake {}", this.connectionId, currentState);
         try {
             this.socket.send(this.serializer.serialize(initHandshakeMessage));
         } catch (final SerializationException e) {
@@ -80,10 +91,12 @@ public class HandShakeMonitor {
                 // This is the handshake that will make the other guy READY
                 this.sendHandshake(ConnectionState.CONNECTED);
             } else {
-                HandShakeMonitor.log.info("Not responding to handshake");
+                HandShakeMonitor.log.info("[{}] - Not responding to handshake", this.connectionId);
             }
 
             if (handShakeMessage.getConnectionState().equals(ConnectionState.CONNECTED)) {
+                HandShakeMonitor.log.info("[{}] - Received connection confirmation, we are ready and release waitLock",
+                        this.connectionId);
                 this.ready = true;
                 this.releaseWaitLock();
             }

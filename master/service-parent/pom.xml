@@ -5,8 +5,57 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>service-parent</artifactId>
-	<version>0.2.7-SNAPSHOT</version>
+	<version>17.11.1</version>
 	<packaging>pom</packaging>
+
+	<name>dEF-Pi service parent POM</name>
+	<description>Parent POM for dEF-Pi services, includes plugins to automate building and publishing services</description>
+	<url>https://flexible-energy.eu/defpi</url>
+	<inceptionYear>2017</inceptionYear>
+	<organization>
+		<name>Flexible Power Alliance Network</name>
+		<url>http://flexible-energy.eu</url>
+	</organization>
+
+	<scm>
+		<connection>scm:git:git://github.com/flexiblepower/defpi-core.git</connection>
+		<developerConnection>scm:git:ssh://github.com:flexiblepower/defpi-core.git</developerConnection>
+		<url>http://github.com/flexiblepower/defpi-core</url>
+	</scm>
+
+	<licenses>
+		<license>
+			<name>Apache License, Version 2.0</name>
+			<url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<developers>
+		<developer>
+			<name>Maarten Kollenstart</name>
+			<organization>TNO</organization>
+			<organizationUrl>https://tno.nl</organizationUrl>
+		</developer>
+
+		<developer>
+			<name>Wilco Wijbrandi</name>
+			<organization>TNO</organization>
+			<organizationUrl>https://tno.nl</organizationUrl>
+		</developer>
+
+		<developer>
+			<name>Arun Subramanian</name>
+			<organization>TNO</organization>
+			<organizationUrl>https://tno.nl</organizationUrl>
+		</developer>
+
+		<developer>
+			<name>Coen van Leeuwen</name>
+			<organization>TNO</organization>
+			<organizationUrl>https://tno.nl</organizationUrl>
+		</developer>
+	</developers>
 
 	<properties>
 		<project.resources.directory>${project.basedir}/src/main/resources</project.resources.directory>
@@ -14,52 +63,42 @@
 		<java.source>1.8</java.source>
 		<java.target>1.8</java.target>
 
-		<defpi.version>0.2.7-SNAPSHOT</defpi.version>
-		
+		<defpi.version>17.11.1</defpi.version>
+
 		<defpi.sources.generated>${project.build.directory}/generated-sources/java</defpi.sources.generated>
 		<defpi.resources.generated>${project.build.directory}/generated-resources/defpi</defpi.resources.generated>
 		<defpi.service.resources>defpi-resources</defpi.service.resources>
 		<defpi.dockerfolder.x86>docker</defpi.dockerfolder.x86>
 		<defpi.dockerfolder.arm>docker-arm</defpi.dockerfolder.arm>
-		
+
 		<protobuf.version>3.3.0</protobuf.version>
 
 		<!-- Main class for any service should be the main from the library -->
 		<mainClass>org.flexiblepower.service.ServiceMain</mainClass>
 
-		<docker.registry>defpi.hesilab.nl:5000</docker.registry>
+		<docker.registry>localhost:5000</docker.registry>
 		<docker.imageName>${docker.registry}/services/${project.artifactId}</docker.imageName>
 	</properties>
 
+	<modules>
+		<module>../../dashboard-gateway</module>
+	</modules>
+
 	<!-- Where to push the service parent itself, should not be used by children -->
 	<distributionManagement>
-		<repository>
-			<id>def-pi-artifactory</id>
-			<name>def-pi release repository</name>
-			<url>http://defpi.hesilab.nl:8081/artifactory/libs-release-local</url>
-		</repository>
 		<snapshotRepository>
-			<id>def-pi-artifactory</id>
-			<name>def-pi snapshot repository</name>
-			<url>http://defpi.hesilab.nl:8081/artifactory/libs-snapshot-local</url>
+			<id>ossrh</id>
+			<name>Sonatype snapshot repository</name>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
 		</snapshotRepository>
 	</distributionManagement>
 
 	<!-- Where to find dependencies -->
 	<repositories>
 		<repository>
-			<id>def-pi-release</id>
-			<name>def-pi release repository</name>
-			<url>http://defpi.hesilab.nl:8081/artifactory/libs-release</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-
-		<repository>
-			<id>def-pi-snapshot</id>
-			<name>def-pi snapshot repository</name>
-			<url>http://defpi.hesilab.nl:8081/artifactory/libs-snapshot</url>
+			<id>sonatype-snapshot</id>
+			<name>Sonatype snapshot repository</name>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
@@ -69,18 +108,9 @@
 	<!-- Where to find plugins -->
 	<pluginRepositories>
 		<pluginRepository>
-			<id>def-pi-release</id>
-			<name>def-pi release repository</name>
-			<url>http://defpi.hesilab.nl:8081/artifactory/libs-release</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</pluginRepository>
-
-		<pluginRepository>
-			<id>def-pi-snapshot</id>
-			<name>def-pi snapshot repository</name>
-			<url>http://defpi.hesilab.nl:8081/artifactory/libs-snapshot</url>
+			<id>sonatype-snapshot</id>
+			<name>Sonatype snapshot repository</name>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
@@ -133,6 +163,21 @@
 								<goals>
 									<goal>generate</goal>
 								</goals>
+							</execution>
+						</executions>
+					</plugin>
+
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>license-maven-plugin</artifactId>
+						<version>1.14</version>
+						<executions>
+							<execution>
+								<id>add-third-party</id>
+								<goals>
+									<goal>add-third-party</goal>
+								</goals>
+								<phase>generate-sources</phase>
 							</execution>
 						</executions>
 					</plugin>
@@ -198,6 +243,10 @@
 									<directory>${project.resources.directory}</directory>
 									<include>log4j2.xml</include>
 								</resource>
+								<resources>
+									<directory>${project.build.directory}/generated-sources/license</directory>
+									<include>THIRD-PARTY.txt</include>
+								</resources>
 							</resources>
 						</configuration>
 					</plugin>
@@ -335,5 +384,37 @@
 				</plugins>
 			</build>
 		</profile>
+
+		<profile>
+			<id>release</id>
+			
+			<distributionManagement>
+				<repository>
+					<id>ossrh</id>
+					<name>Sonatype deployment repository</name>
+					<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+				</repository>
+			</distributionManagement>
+
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>1.5</version>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
 	</profiles>
 </project>

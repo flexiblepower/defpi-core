@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from .. import {{itf.manager.class}}
+{{vitf.handler.interface.imports}}
 
 
 class {{vitf.handler.interface}}:
@@ -9,7 +10,7 @@ class {{vitf.handler.interface}}:
 
         NOTE: This file will be overwritten when the code generator is re-run; any user-made changes will be removed.
 
-        Template by TNO, 2017 """
+        Template by FAN, 2017 """
 
     __metaclass__ = ABCMeta
 

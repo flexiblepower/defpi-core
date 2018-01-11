@@ -1,5 +1,7 @@
-/*
- * Copyright 2001-2005 The Apache Software Foundation.
+/**
+ * File CreateComponentMojo.java
+ *
+ * Copyright 2017 FAN
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,7 +53,6 @@ import com.github.fge.jsonschema.core.report.ProcessingReport;
 /**
  * CreateComponentMojo
  *
- * @author coenvl
  * @version 0.1
  * @since Jun 28, 2017
  */
