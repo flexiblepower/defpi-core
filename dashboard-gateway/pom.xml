@@ -33,6 +33,10 @@
 		</developer>
 	</developers>
 
+	<properties>
+		<docker.registry>defpi.hesilab.nl:5000</docker.registry>
+	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
