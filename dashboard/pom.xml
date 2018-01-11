@@ -32,7 +32,7 @@
 		<dependency>
 			<groupId>org.flexiblepower.defpi</groupId>
 			<artifactId>api</artifactId>
-			<version>0.2.6-SNAPSHOT</version>
+			<version>17.11.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.jaxrs/jackson-jaxrs-json-provider -->
 		<dependency>
