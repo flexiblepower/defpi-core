@@ -265,9 +265,9 @@
 				</repository>
 			</distributionManagement>
 		 
-	        <build>
-	            <plugins>
-	                <plugin>
+			<build>
+				<plugins>
+					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>
 						<version>1.5</version>
@@ -281,8 +281,8 @@
 							</execution>
 						</executions>
 					</plugin>
-	            </plugins>
-	        </build>
+				</plugins>
+			</build>
 		</profile>
 	</profiles>
 
