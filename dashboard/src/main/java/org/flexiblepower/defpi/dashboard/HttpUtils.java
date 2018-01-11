@@ -1,7 +1,10 @@
 package org.flexiblepower.defpi.dashboard;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.net.URI;
 
+import org.apache.commons.io.IOUtils;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPResponse;
 
@@ -87,6 +90,16 @@ public class HttpUtils {
 
 	public static String query(String uri) {
 		return URI.create(uri).getQuery();
+	}
+
+	public static HTTPResponse serveStaticFile(HTTPRequest request, String filename) {
+		try {
+			return HTTPResponse.newBuilder().setId(request.getId()).setStatus(200)
+					.putHeaders(HttpUtils.CONTENT_TYPE, HttpUtils.getContentType(filename))
+					.setBody(ByteString.copyFrom(IOUtils.toByteArray(new FileInputStream(new File(filename))))).build();
+		} catch (Exception e) {
+			return HttpUtils.internalError(request);
+		}
 	}
 
 }

@@ -1,14 +1,11 @@
 package org.flexiblepower.defpi.dashboard;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.io.IOUtils;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest.Method;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPResponse;
@@ -36,11 +33,11 @@ public class DashboardFullWidget implements Widget {
 		}
 		String path = HttpUtils.path(uri);
 		if (request.getMethod().equals(Method.GET) && path.equals("/index.html")) {
-			return serveStaticFile(request, "/dynamic/widgets/DashboardFullWidget/index.html");
+			return HttpUtils.serveStaticFile(request, "/dynamic/widgets/DashboardFullWidget/index.html");
 		} else if (request.getMethod().equals(Method.GET) && path.equals("/menu.png")) {
-			return serveStaticFile(request, "/dynamic/widgets/DashboardFullWidget/menu.png");
+			return HttpUtils.serveStaticFile(request, "/dynamic/widgets/DashboardFullWidget/menu.png");
 		} else if (request.getMethod().equals(Method.GET) && path.equals("/script.js")) {
-			return serveStaticFile(request, "/dynamic/widgets/DashboardFullWidget/script.js");
+			return HttpUtils.serveStaticFile(request, "/dynamic/widgets/DashboardFullWidget/script.js");
 		} else if (request.getMethod().equals(Method.POST) && path.equals("/getWidgets")) {
 			return getWidgets(request);
 		} else {
@@ -59,16 +56,6 @@ public class DashboardFullWidget implements Widget {
 				.putHeaders(HttpUtils.NO_CACHE_KEY, HttpUtils.NO_CACHE_VALUE)
 				.putHeaders(HttpUtils.CONTENT_TYPE, HttpUtils.APPLICATION_JAVASCRIPT)
 				.setBody(ByteString.copyFromUtf8(map.toString())).build();
-	}
-
-	private HTTPResponse serveStaticFile(HTTPRequest request, String filename) {
-		try {
-			return HTTPResponse.newBuilder().setId(request.getId()).setStatus(200)
-					.putHeaders(HttpUtils.CONTENT_TYPE, HttpUtils.getContentType(filename))
-					.setBody(ByteString.copyFrom(IOUtils.toByteArray(new FileInputStream(new File(filename))))).build();
-		} catch (Exception e) {
-			return HttpUtils.internalError(request);
-		}
 	}
 
 	@Override

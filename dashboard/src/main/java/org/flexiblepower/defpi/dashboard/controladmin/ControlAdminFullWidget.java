@@ -12,6 +12,7 @@ import org.flexiblepower.api.ConnectionApi;
 import org.flexiblepower.api.ProcessApi;
 import org.flexiblepower.api.ServiceApi;
 import org.flexiblepower.defpi.dashboard.Dashboard;
+import org.flexiblepower.defpi.dashboard.HttpUtils;
 import org.flexiblepower.defpi.dashboard.Widget;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest.Method;
@@ -238,6 +239,8 @@ public class ControlAdminFullWidget implements Widget {
 				String obsPage = new TableModel(obsConProcessMap, obsPubProcessMap,
 						"/dynamic/widgets/ControlAdminFullWidget/sample_obs_table.html").getHTMLTable("checkbox");
 				return sendResponse(message.getId(), 200, obsPage);
+			} else if ("menu.png".equals(uri)) {
+				return HttpUtils.serveStaticFile(message, "/dynamic/widgets/ControlAdminFullWidget/menu.png");
 			}
 		} else if (method.equals(Method.POST)) {
 			if ("index.html".equals(uri)) {
