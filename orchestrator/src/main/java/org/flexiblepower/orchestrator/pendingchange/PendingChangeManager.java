@@ -121,8 +121,8 @@ public class PendingChangeManager {
     /**
      * @param pendingChangeId
      */
-    public void deletePendingChange(final ObjectId pendingChangeId) {
-        MongoDbConnector.getInstance().delete(PendingChange.class, pendingChangeId);
+    public void deletePendingChange(final PendingChange pendingChange) {
+        MongoDbConnector.getInstance().delete(pendingChange);
     }
 
     private class PendingChangeRunner implements Runnable {

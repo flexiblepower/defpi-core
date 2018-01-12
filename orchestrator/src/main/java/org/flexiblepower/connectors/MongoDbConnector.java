@@ -61,7 +61,7 @@ public final class MongoDbConnector {
     public final static String MONGO_PORT_DFLT = "27017";
     private final static String MONGO_DATABASE_KEY = "MONGO_DATABASE";
     private final static String MONGO_DATABASE_DFLT = "def-pi";
-    private static final long PENDING_CHANGE_TIMEOUT_MS = 5 * 60 * 1000;
+    // private static final long PENDING_CHANGE_TIMEOUT_MS = 5 * 60 * 1000;
 
     private static MongoDbConnector instance = null;
 
@@ -131,11 +131,11 @@ public final class MongoDbConnector {
      *
      * @param processId
      */
-    public void deleteConnectionsForProcess(final Process process) {
-        final Query<Connection> q = this.datastore.find(Connection.class);
-        q.or(q.criteria("container1").equal(process.getId()), q.criteria("container2").equal(process.getId()));
-        this.datastore.delete(q);
-    }
+    // public void deleteConnectionsForProcess(final Process process) {
+    // final Query<Connection> q = this.datastore.find(Connection.class);
+    // q.or(q.criteria("container1").equal(process.getId()), q.criteria("container2").equal(process.getId()));
+    // this.datastore.delete(q);
+    // }
 
     public <T> List<T> list(final Class<T> type,
             final int page,
@@ -161,9 +161,9 @@ public final class MongoDbConnector {
         return this.datastore.get(type, id);
     }
 
-    public <T> T get(final Class<T> type, final String id) throws InvalidObjectIdException {
-        return this.datastore.get(type, MongoDbConnector.stringToObjectId(id));
-    }
+    // public <T> T get(final Class<T> type, final String id) throws InvalidObjectIdException {
+    // return this.datastore.get(type, MongoDbConnector.stringToObjectId(id));
+    // }
 
     public <T> int totalCount(final Class<T> type, final Map<String, Object> filter) {
         final Query<T> query = this.datastore.createQuery(type);
@@ -208,13 +208,13 @@ public final class MongoDbConnector {
         this.datastore.delete(entity);
     }
 
-    public void delete(final Class<?> type, final ObjectId id) {
-        this.datastore.delete(type, id);
-    }
+    // public void delete(final Class<?> type, final ObjectId id) {
+    // this.datastore.delete(type, id);
+    // }
 
-    public void delete(final Class<?> type, final String id) throws InvalidObjectIdException {
-        this.delete(type, MongoDbConnector.stringToObjectId(id));
-    }
+    // public void delete(final Class<?> type, final String id) throws InvalidObjectIdException {
+    // this.delete(type, MongoDbConnector.stringToObjectId(id));
+    // }
 
     /**
      * Private function that throws an exception if the string is not a valid ObjectId, and returns the corresponding
@@ -292,10 +292,10 @@ public final class MongoDbConnector {
         return this.datastore.findAndModify(query, update);
     }
 
-    public PendingChange getAbendonedPendingChanges() {
-        return this.datastore.createQuery(PendingChange.class)
-                .filter("obtainedAt <",
-                        new Date(System.currentTimeMillis() - MongoDbConnector.PENDING_CHANGE_TIMEOUT_MS))
-                .get();
-    }
+    // public PendingChange getAbendonedPendingChanges() {
+    // return this.datastore.createQuery(PendingChange.class)
+    // .filter("obtainedAt <",
+    // new Date(System.currentTimeMillis() - MongoDbConnector.PENDING_CHANGE_TIMEOUT_MS))
+    // .get();
+    // }
 }

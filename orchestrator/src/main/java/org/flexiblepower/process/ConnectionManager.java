@@ -77,8 +77,19 @@ public class ConnectionManager {
      * @return the connection that has the provided id, or null
      * @throws InvalidObjectIdException
      */
-    public Connection getConnection(final ObjectId connectionId) throws InvalidObjectIdException {
+    public Connection getConnection(final ObjectId connectionId) {
         return MongoDbConnector.getInstance().get(Connection.class, connectionId);
+    }
+
+    /**
+     * Removes the connection that is stored in the database with the provided id
+     *
+     * @param connectionId
+     * @return the connection that has the provided id, or null
+     * @throws InvalidObjectIdException
+     */
+    public void deleteConnection(final Connection connection) {
+        MongoDbConnector.getInstance().delete(connection);
     }
 
     /**
@@ -258,7 +269,7 @@ public class ConnectionManager {
      * @param process
      * @throws ProcessNotFoundException
      */
-    public void deleteConnectionsForProcess(final Process process) throws ProcessNotFoundException {
+    public synchronized void deleteConnectionsForProcess(final Process process) throws ProcessNotFoundException {
         for (final Connection connection : this.getConnectionsForProcess(process)) {
             this.terminateConnection(connection);
         }

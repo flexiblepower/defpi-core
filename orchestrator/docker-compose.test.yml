@@ -4,7 +4,7 @@ networks:
     driver: overlay
 services:
   orchestrator:
-    image: defpi.hesilab.nl:5000/defpi/orchestrator:latest
+    image: localhost:5000/defpi/orchestrator:latest
     ports:
       - 8484:8080
       - 9999:9999

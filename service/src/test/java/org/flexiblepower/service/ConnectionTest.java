@@ -173,7 +173,7 @@ public class ConnectionTest {
         Assert.assertEquals(numTests, this.testService.getCounter());
     }
 
-    @Test(timeout = 10000)
+    @Test // (timeout = 10000)
     public void
             testSuspend() throws SerializationException, InterruptedException, ServiceInvocationException, IOException {
         Assert.assertNotEquals("connection-suspended", this.testService.getState());
@@ -188,9 +188,6 @@ public class ConnectionTest {
         Assert.assertEquals(ConnectionState.SUSPENDED, acknowledgement.getConnectionState());
         Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
         Assert.assertEquals("connection-suspended", this.testService.getState());
-
-        // Make a new connection TO the test service
-        this.dataSocket.close();
 
         // Wait for at least one potential heartbeat that should NOT properly go
         Thread.sleep(1000);
@@ -214,6 +211,8 @@ public class ConnectionTest {
         Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
 
         final String hostOfTestRunner = InetAddress.getLocalHost().getCanonicalHostName();
+        // Make a new connection TO the test service
+        this.dataSocket.close();
         this.dataSocket = TCPSocket.asClient(hostOfTestRunner, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
         this.dataSocket.waitUntilConnected(0);
         // We need to receive and send a handshake before the connection is in the CONNECTED state again

@@ -156,7 +156,7 @@ public final class ServiceMain {
                 final Class<? extends Service<T>> serviceClass = (Class<? extends Service<T>>) ServiceMain
                         .getServiceClass();
 
-                ServiceMain.log.debug("Found class {} as service type", serviceClass);
+                ServiceMain.log.debug("Found {} as service type", serviceClass);
                 final Service<T> service = serviceClass.newInstance();
 
                 ServiceMain.log.info("Starting service {}", service);
