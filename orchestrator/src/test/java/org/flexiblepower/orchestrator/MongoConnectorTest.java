@@ -52,7 +52,7 @@ public class MongoConnectorTest {
         Assert.assertEquals("stuff", map.get("stuff"));
     }
 
-    @Test
+    // @Test
     public void getNextPendingChange() {
         final MongoDbConnector mongo = MongoDbConnector.getInstance();
         System.out.println(mongo.getNextPendingChange());
