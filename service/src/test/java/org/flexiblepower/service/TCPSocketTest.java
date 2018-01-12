@@ -18,6 +18,7 @@
 package org.flexiblepower.service;
 
 import org.flexiblepower.commons.TCPSocket;
+import org.junit.After;
 import org.junit.Test;
 
 /**
@@ -108,6 +109,12 @@ public class TCPSocketTest {
 
         client1.interrupt();
         Thread.sleep(5000);
+        client2.interrupt();
+    }
+
+    @After
+    public void cleanup() {
+        TCPSocket.destroyLingeringSockets();
     }
 
 }

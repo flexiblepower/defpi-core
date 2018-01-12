@@ -173,7 +173,7 @@ public class ConnectionTest {
         Assert.assertEquals(numTests, this.testService.getCounter());
     }
 
-    @Test // (timeout = 10000)
+    @Test(timeout = 10000)
     public void
             testSuspend() throws SerializationException, InterruptedException, ServiceInvocationException, IOException {
         Assert.assertNotEquals("connection-suspended", this.testService.getState());
