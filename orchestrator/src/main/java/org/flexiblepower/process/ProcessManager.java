@@ -250,9 +250,7 @@ public class ProcessManager {
      * @return
      */
     private void updateConfiguration(final Process process, final List<ProcessParameter> newConfiguration) {
-        final ChangeProcessConfiguration pendingChange = new ChangeProcessConfiguration(process.getUserId(),
-                process.getId(),
-                newConfiguration);
+        final ChangeProcessConfiguration pendingChange = new ChangeProcessConfiguration(process, newConfiguration);
         PendingChangeManager.getInstance().submit(pendingChange);
     }
 

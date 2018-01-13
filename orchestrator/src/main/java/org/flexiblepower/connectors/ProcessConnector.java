@@ -194,6 +194,16 @@ public class ProcessConnector {
         return processConnection == null ? false : processConnection.updateConfiguration(configuration);
     }
 
+    /**
+     * @param id
+     */
+    public void disconnect(final ObjectId processId) {
+        final ProcessConnection processConnection = this.connections.get(processId);
+        if (processConnection != null) {
+            processConnection.close();
+        }
+    }
+
     private static final class ProcessConnection {
 
         private static final int IO_TIMEOUT = 10000;
@@ -215,7 +225,7 @@ public class ProcessConnector {
             this.serializer.addMessageClass(ErrorMessage.class);
         }
 
-        public boolean connectWithProcess() {
+        synchronized public boolean connectWithProcess() {
             try {
                 final Process process = ProcessManager.getInstance().getProcess(this.processId);
                 DockerConnector.getInstance().ensureProcessNetworkIsAttached(process);
@@ -424,7 +434,7 @@ public class ProcessConnector {
             return response != null;
         }
 
-        void close() {
+        synchronized void close() {
             ProcessConnector.log.debug("Terminating connection with process " + this.processId);
             // Terminate connection with process
             this.socket.close();
@@ -446,56 +456,55 @@ public class ProcessConnector {
             return builder.build();
         }
 
-        @SuppressWarnings("unchecked")
-        private <T> T send(final Message msg, final Class<T> expected) {
-            // Only one threat is allowed to do a send/receive at the time for each connection
-            synchronized (this) {
-                byte[] data;
-                try {
-                    data = this.serializer.serialize(msg);
-                } catch (final SerializationException e) {
-                    ProcessConnector.log.error("Could not serialize message", e);
-                    return null;
-                }
+        // Only one thread is allowed to do a send/receive at the time for each connection
+        synchronized private <T> T send(final Message msg, final Class<T> expected) {
+            byte[] data;
+            try {
+                data = this.serializer.serialize(msg);
+            } catch (final SerializationException e) {
+                ProcessConnector.log.error("Could not serialize message", e);
+                return null;
+            }
 
-                try {
-                    this.socket.send(data, ProcessConnection.IO_TIMEOUT);
-                } catch (final Exception e) {
-                    ProcessConnector.log.warn("Exception while sending message to Process ({}), try to resend.",
-                            e.getMessage());
-                    this.close();
-                    return null;
-                }
+            try {
+                this.socket.send(data, ProcessConnection.IO_TIMEOUT);
+            } catch (final Exception e) {
+                ProcessConnector.log.warn("Exception while sending message to Process ({}), try to resend.",
+                        e.getMessage());
+                this.close();
+                return null;
+            }
 
-                byte[] recv = null;
-                try {
-                    recv = this.socket.read(ProcessConnection.IO_TIMEOUT);
-                } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                    ProcessConnector.log.warn("Exception while reading from socket {}", e.getMessage());
-                    ProcessConnector.log.trace(e.getMessage(), e);
-                    this.close();
-                    return null;
-                }
+            byte[] recv = null;
+            try {
+                recv = this.socket.read(ProcessConnection.IO_TIMEOUT);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                ProcessConnector.log.warn("Exception while reading from socket ({}): {}", e.getClass(), e.getMessage());
+                ProcessConnector.log.trace(e.getMessage(), e);
+                this.close();
+                return null;
+            }
 
-                try {
-                    final Message m = this.serializer.deserialize(recv);
-                    if (expected.isInstance(m)) {
-                        return (T) m;
-                    } else if (m instanceof ErrorMessage) {
-                        ProcessConnector.log.error("Received Error message from Process " + this.processId.toString()
-                                + ". Expected " + expected.getSimpleName() + ". Message: "
-                                + ((ErrorMessage) m).getDebugInformation());
-                        return null;
-                    } else {
-                        ProcessConnector.log.error("Received invalid message from Process " + this.processId.toString()
-                                + ". Expected " + expected.getSimpleName() + ", got " + m.getClass().getSimpleName());
-                        return null;
-                    }
-                } catch (final SerializationException e) {
+            try {
+                final Message m = this.serializer.deserialize(recv);
+                if (expected.isInstance(m)) {
+                    @SuppressWarnings("unchecked")
+                    final T ret = (T) m;
+                    return ret;
+                } else if (m instanceof ErrorMessage) {
+                    ProcessConnector.log.error("Received Error message from Process " + this.processId.toString()
+                            + ". Expected " + expected.getSimpleName() + ". Message: "
+                            + ((ErrorMessage) m).getDebugInformation());
+                    return null;
+                } else {
                     ProcessConnector.log.error("Received invalid message from Process " + this.processId.toString()
-                            + ". Expected " + expected.getSimpleName() + ".");
+                            + ". Expected " + expected.getSimpleName() + ", got " + m.getClass().getSimpleName());
                     return null;
                 }
+            } catch (final SerializationException e) {
+                ProcessConnector.log.error("Received invalid message from Process " + this.processId.toString()
+                        + ". Expected " + expected.getSimpleName() + ".");
+                return null;
             }
         }
 
@@ -526,16 +535,6 @@ public class ProcessConnector {
             mongoDbConnector.save(process);
         }
 
-    }
-
-    /**
-     * @param id
-     */
-    public void disconnect(final ObjectId processId) {
-        final ProcessConnection processConnection = this.connections.get(processId);
-        if (processConnection != null) {
-            processConnection.close();
-        }
     }
 
 }

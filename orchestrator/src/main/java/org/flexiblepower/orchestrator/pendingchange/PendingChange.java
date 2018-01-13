@@ -75,7 +75,8 @@ public abstract class PendingChange {
     @Setter
     private State state;
 
-    public PendingChange() {
+    // Default constructor for morphia
+    protected PendingChange() {
 
     }
 

@@ -40,7 +40,9 @@ public class TerminateConnection extends PendingChange {
     private Connection connection;
     private Endpoint endpoint;
 
-    public TerminateConnection() {
+    // Default constructor for morphia
+    @SuppressWarnings("unused")
+    private TerminateConnection() {
         super();
     }
 

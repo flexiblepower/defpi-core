@@ -51,7 +51,9 @@ public class MoveProcess {
         private Connection connection;
         private Endpoint endpoint;
 
-        public SuspendConnection() {
+        // Default constructor for morphia
+        @SuppressWarnings("unused")
+        private SuspendConnection() {
             super();
         }
 
@@ -99,7 +101,9 @@ public class MoveProcess {
         private ObjectId nodePoolId;
         private ObjectId privateNodeId;
 
-        public SuspendProcess() {
+        // Default constructor for morphia
+        @SuppressWarnings("unused")
+        private SuspendProcess() {
             super();
         }
 
@@ -176,7 +180,9 @@ public class MoveProcess {
 
         private Process process;
 
-        public RemoveDockerService() {
+        // Default constructor for morphia
+        @SuppressWarnings("unused")
+        private RemoveDockerService() {
             super();
         }
 
@@ -227,7 +233,9 @@ public class MoveProcess {
         private ObjectId privateNodeId;
         private byte[] suspendState;
 
-        public CreateDockerService() {
+        // Default constructor for morphia
+        @SuppressWarnings("unused")
+        private CreateDockerService() {
             super();
         }
 
@@ -294,7 +302,9 @@ public class MoveProcess {
         private List<ProcessParameter> configuration;
         private byte[] suspendState;
 
-        public ResumeProcess() {
+        // Default constructor for morphia
+        @SuppressWarnings("unused")
+        private ResumeProcess() {
             super();
         }
 
@@ -345,7 +355,9 @@ public class MoveProcess {
         private Connection connection;
         private Endpoint endpoint;
 
-        public ResumeConnection() {
+        // Default constructor for morphia
+        @SuppressWarnings("unused")
+        private ResumeConnection() {
             super();
         }
 

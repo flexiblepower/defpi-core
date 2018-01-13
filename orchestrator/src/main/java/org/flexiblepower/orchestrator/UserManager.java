@@ -59,6 +59,8 @@ public class UserManager {
     /**
      * Get a user object from the database that has the provided userId, or null if no such user exists.
      *
+     * FIXME This seems to be a security leak isnt it?
+     *
      * @param userId
      * @return the user stored with the provided Id, or null
      */
