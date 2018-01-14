@@ -17,9 +17,15 @@
  */
 package org.flexiblepower.service;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.flexiblepower.commons.TCPSocket;
 import org.junit.After;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * ConnectionTest
@@ -28,7 +34,13 @@ import org.junit.Test;
  * @since May 12, 2017
  */
 @SuppressWarnings("static-method")
+@RunWith(Parameterized.class)
 public class TCPSocketTest {
+
+    @Parameters
+    public static List<Object[]> data() {
+        return Arrays.asList(new Object[3][0]);
+    }
 
     @Test
     public void doTest() throws Exception {
@@ -62,7 +74,7 @@ public class TCPSocketTest {
                 while (true) {
                     try {
                         server.waitUntilConnected(0);
-                        System.out.println(new String(server.read()));
+                        // System.out.println(new String(server.read()));
                     } catch (final Exception e) {
                         // e.printStackTrace();
                         server.close();
@@ -105,15 +117,15 @@ public class TCPSocketTest {
             }
         });
         client2.start();
-        Thread.sleep(5000);
+        Thread.sleep(1000);
 
         client1.interrupt();
-        Thread.sleep(5000);
+        Thread.sleep(1000);
         client2.interrupt();
     }
 
     @After
-    public void cleanup() {
+    public void cleanup() throws InterruptedException {
         TCPSocket.destroyLingeringSockets();
     }
 
