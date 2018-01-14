@@ -73,18 +73,24 @@ public class TCPSocket implements Closeable {
     }
 
     public static void destroyLingeringSockets() {
-        TCPSocket.ALL_SOCKETS.forEach(s -> s.close());
-        TCPSocket.ALL_SOCKETS.clear();
+        synchronized (TCPSocket.ALL_SOCKETS) {
+            TCPSocket.ALL_SOCKETS.forEach(s -> s.close());
+            TCPSocket.ALL_SOCKETS.clear();
+        }
     }
 
     private TCPSocket(final int port) {
         this.executor.submit(new ServerSocketRunner(port));
-        TCPSocket.ALL_SOCKETS.add(this);
+        synchronized (TCPSocket.ALL_SOCKETS) {
+            TCPSocket.ALL_SOCKETS.add(this);
+        }
     }
 
     private TCPSocket(final String address, final int port) {
         this.executor.submit(new ClientSocketRunner(address, port));
-        TCPSocket.ALL_SOCKETS.add(this);
+        synchronized (TCPSocket.ALL_SOCKETS) {
+            TCPSocket.ALL_SOCKETS.add(this);
+        }
     }
 
     public boolean ready() {
