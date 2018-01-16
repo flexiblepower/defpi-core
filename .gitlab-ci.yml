@@ -82,7 +82,7 @@ plugin-test:xsd:
 #    - 'docker run --rm --name ui-test -d -p 8756:80 orchestrator-ui:test'
 #    - 'sleep 10'
 #  script:
-#    - 'wget -q def-pi2.sensorlab.tno.nl:8756/login.html -O -| grep "Orchestrator"'
+#    - 'wget -q localhost:8756/login.html -O -| grep "Orchestrator"'
 #  after_script:
 #    - 'docker stop ui-test'
 
@@ -161,11 +161,11 @@ integrate:xsd_proto:
 deploy:
   image: tmaier/docker-compose:17.06
   tags:
-    - defpi1
+    - hesilab
   only:
     - master
   stage: deploy
   before_script:
-    - 'docker-compose -f orchestrator/docker-compose.yml pull'
+    - 'docker-compose -f orchestrator/docker-compose.test.yml pull'
   script:
-    - 'docker-compose -f orchestrator/docker-compose.yml up -d'
+    - 'docker-compose -f orchestrator/docker-compose.test.yml up -d'
