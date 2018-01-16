@@ -7,7 +7,7 @@ services:
     image: defpi.hesilab.nl:5000/defpi/orchestrator:latest
     restart: always
     ports:
-      - 0.0.0.0:8484:8080
+      - 0.0.0.0:8080:8080
       - 0.0.0.0:9999:9999
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -25,9 +25,9 @@ services:
     image: defpi.hesilab.nl:5000/defpi/orchestrator-ui:latest
     restart: always
     ports:
-      - 0.0.0.0:84:80
+      - 0.0.0.0:80:80
     environment:
-      - ORCHESTRATOR_URL=http://defpi.hesilab.nl:8484/
+      - ORCHESTRATOR_URL=http://defpi.hesilab.nl:8080/
   mongo:
     image: mvertes/alpine-mongo
     restart: always
