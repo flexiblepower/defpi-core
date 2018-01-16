@@ -39,6 +39,8 @@ import org.flexiblepower.defpi.dashboardgateway.dashboard.http.Dashboard_httpCon
 public class GatewayHandler extends AbstractHandler {
 
 	private static final String SESSION_COOKIE_NAME = "EFPISESSION";
+	public static final String NO_CACHE_KEY = "Cache-Control";
+	public static final String NO_CACHE_VALUE = "no-cache, no-store, must-revalidate";
 
 	private DashboardGateway main;
 	private Map<String, String> sessions = new ConcurrentHashMap<>();
@@ -66,6 +68,7 @@ public class GatewayHandler extends AbstractHandler {
 			// server login page
 			response.setStatus(200);
 			response.setHeader("content-type", "text/html");
+			response.setHeader(NO_CACHE_KEY, NO_CACHE_VALUE);
 			response.getWriter().print(
 					"<htm><body><form method=post><input type=text name=username /><input type=password name=password /><input type=submit name=submit /></form></body></html>");
 			response.getWriter().close();
@@ -84,20 +87,23 @@ public class GatewayHandler extends AbstractHandler {
 				response.addCookie(cookie);
 
 				// Redirect
-				response.setStatus(301);
+				response.setStatus(302);
 				response.setHeader("Location", "/");
+				response.setHeader(NO_CACHE_KEY, NO_CACHE_VALUE);
 				response.getWriter().close();
 			} else {
 				// Invalid!
 				response.setStatus(200);
 				response.setHeader("content-type", "text/html");
+				response.setHeader(NO_CACHE_KEY, NO_CACHE_VALUE);
 				response.getWriter().print("Failed to login");
 				response.getWriter().close();
 			}
 		} else {
 			// Redirect to the login page
-			response.setStatus(301);
+			response.setStatus(302);
 			response.setHeader("Location", "/");
+			response.setHeader(NO_CACHE_KEY, NO_CACHE_VALUE);
 			response.getWriter().close();
 		}
 	}
@@ -133,8 +139,9 @@ public class GatewayHandler extends AbstractHandler {
 			}
 
 			// Redirect
-			response.setStatus(301);
+			response.setStatus(302);
 			response.setHeader("Location", "/");
+			response.setHeader(NO_CACHE_KEY, NO_CACHE_VALUE);
 			response.getWriter().close();
 		} else {
 			Dashboard_httpConnectionHandlerImpl handler = main.getHandlerForUsername(username);
@@ -142,7 +149,9 @@ public class GatewayHandler extends AbstractHandler {
 				DashboardGateway.LOG
 						.warn("User " + username + " logged in, but there is no dashboard found for this user");
 				response.setHeader("content-type", "text/html");
-				response.getWriter().print("<h1>No dashboard found</h1><p><a href=\"/logout\">Logout</a></p>");
+				response.setHeader(NO_CACHE_KEY, NO_CACHE_VALUE);
+				response.getWriter().print(
+						"<html><body><h1>No dashboard found</h1><p><a href=\"/logout\">Logout</a></p></body></html>");
 				response.getWriter().close();
 			} else {
 				handler.handle(target, baseRequest, request, response);

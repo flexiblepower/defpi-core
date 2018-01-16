@@ -1,0 +1,57 @@
+<style type="text/css">
+#graph {
+	user-select: none;
+	-moz-user-select: none;
+	-khtml-user-select: none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
+	position: absolute;
+	top: 150px;
+	bottom: 130px;
+	left: 0px;
+	right: 0px;
+	padding: 1em;
+	overflow: auto;
+	background: white;
+}
+
+#graph h1 {
+	width: 100%;
+	font-size: 150%;
+	padding-top: 1em;
+	padding-bottom: .5em;
+	margin-bottom: .5em;
+	border-bottom: 1px dotted black;
+}
+
+#properties p {
+	line-height: 1.3em;
+}
+
+#navmenu li ul {
+	z-index: 30;
+}
+
+th {
+	font-weight: bold;
+	padding: 5px;
+}
+
+td {
+	padding: 5px;
+}
+
+table, th, td {
+	border: 1px solid black;
+}
+</style>
+
+<div id="graph">
+	<form method="post">
+		<h1>EFI Connections</h1>
+		@EFITABLE@
+
+		<h1>Observation connections</h1>
+		@OBSTABLE@ <input type="submit" value="Update" />
+	</form>
+</div>

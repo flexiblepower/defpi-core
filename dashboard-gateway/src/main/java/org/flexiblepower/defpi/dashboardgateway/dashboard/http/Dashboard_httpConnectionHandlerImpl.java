@@ -19,8 +19,6 @@
 package org.flexiblepower.defpi.dashboardgateway.dashboard.http;
 
 import java.io.IOException;
-import java.io.StringReader;
-import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.util.Enumeration;
 import java.util.Map;
@@ -33,6 +31,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Generated;
+import javax.servlet.ServletInputStream;
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -168,9 +168,9 @@ public class Dashboard_httpConnectionHandlerImpl implements Dashboard_httpConnec
 		}
 		// Body
 		try {
-			StringReader reader = new StringReader(httpResponse.getBody().toStringUtf8());
-			IOUtils.copy(reader, response.getWriter());
-			response.getWriter().close();
+			ServletOutputStream outputStream = response.getOutputStream();
+			IOUtils.write(httpResponse.getBody().toByteArray(), outputStream);
+			outputStream.close();
 		} catch (IOException e) {
 			LOG.warn("Could not write HTTP response body", e);
 		}
@@ -213,9 +213,8 @@ public class Dashboard_httpConnectionHandlerImpl implements Dashboard_httpConnec
 		}
 		// Body
 		try {
-			StringWriter writer = new StringWriter();
-			IOUtils.copy(request.getReader(), writer);
-			b.setBody(writer.toString());
+			ServletInputStream is = request.getInputStream();
+			b.setBodyBytes(ByteString.readFrom(is));
 		} catch (IOException e) {
 			LOG.warn("Could not read HTTP request body", e);
 		}
