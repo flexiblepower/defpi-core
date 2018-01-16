@@ -41,11 +41,15 @@ public class CreateConnectionEndpoint extends PendingChange {
     private Connection connection;
     private Endpoint endpoint;
 
-    public CreateConnectionEndpoint() {
+    // Private constructor for morphia
+    @SuppressWarnings("unused")
+    private CreateConnectionEndpoint() {
         super();
     }
 
-    public CreateConnectionEndpoint(final ObjectId userId, final Connection connection, final Connection.Endpoint endpoint) {
+    public CreateConnectionEndpoint(final ObjectId userId,
+            final Connection connection,
+            final Connection.Endpoint endpoint) {
         super(userId);
         this.connection = connection;
         this.endpoint = endpoint;

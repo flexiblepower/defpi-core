@@ -17,8 +17,15 @@
  */
 package org.flexiblepower.service;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.flexiblepower.commons.TCPSocket;
+import org.junit.After;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * ConnectionTest
@@ -27,7 +34,13 @@ import org.junit.Test;
  * @since May 12, 2017
  */
 @SuppressWarnings("static-method")
+@RunWith(Parameterized.class)
 public class TCPSocketTest {
+
+    @Parameters
+    public static List<Object[]> data() {
+        return Arrays.asList(new Object[3][0]);
+    }
 
     @Test
     public void doTest() throws Exception {
@@ -51,6 +64,69 @@ public class TCPSocketTest {
             server.waitUntilConnected(0);
             System.out.println(new String(server.read()));
         }
+    }
+
+    @Test
+    public void multiConnectTest() throws Exception {
+        final Thread serverThread = new Thread(() -> {
+            try {
+                TCPSocket server = TCPSocket.asServer(5001);
+                while (true) {
+                    try {
+                        server.waitUntilConnected(0);
+                        // System.out.println(new String(server.read()));
+                    } catch (final Exception e) {
+                        // e.printStackTrace();
+                        server.close();
+                        server = TCPSocket.asServer(5001);
+                    }
+                }
+            } catch (final Exception e) {
+                e.printStackTrace();
+            }
+        });
+        serverThread.start();
+        Thread.sleep(100);
+
+        final Thread client1 = new Thread(() -> {
+            try (TCPSocket client = TCPSocket.asClient("127.0.0.1", 5001)) {
+                client.waitUntilConnected(0);
+                while (true) {
+                    client.send("This is a test".getBytes());
+                    Thread.sleep(100);
+                }
+            } catch (final Exception e) {
+                // e.printStackTrace();
+            }
+        });
+        client1.start();
+        Thread.sleep(100);
+
+        final Thread client2 = new Thread(() -> {
+            TCPSocket client = TCPSocket.asClient("127.0.0.1", 5001);
+            while (true) {
+                try {
+                    client.waitUntilConnected(0);
+                    client.send("This is the second test".getBytes());
+                    Thread.sleep(100);
+                } catch (final Exception e) {
+                    // e.printStackTrace();
+                    client.close();
+                    client = TCPSocket.asClient("127.0.0.1", 5001);
+                }
+            }
+        });
+        client2.start();
+        Thread.sleep(1000);
+
+        client1.interrupt();
+        Thread.sleep(1000);
+        client2.interrupt();
+    }
+
+    @After
+    public void cleanup() throws InterruptedException {
+        TCPSocket.destroyLingeringSockets();
     }
 
 }

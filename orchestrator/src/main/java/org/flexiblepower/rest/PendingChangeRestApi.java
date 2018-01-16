@@ -76,7 +76,7 @@ public class PendingChangeRestApi extends BaseApi implements PendingChangeApi {
         }
         this.assertUserIsAdminOrEquals(pc.getUserId());
 
-        PendingChangeManager.getInstance().deletePendingChange(pendingChangeId);
+        PendingChangeManager.getInstance().deletePendingChange(pc);
     }
 
     @Override

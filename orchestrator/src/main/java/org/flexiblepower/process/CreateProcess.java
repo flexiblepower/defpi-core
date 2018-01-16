@@ -43,7 +43,9 @@ public class CreateProcess {
 
         private Process process;
 
-        public CreateDockerService() {
+        // Default constructor for morphia
+        @SuppressWarnings("unused")
+        private CreateDockerService() {
         }
 
         public CreateDockerService(final Process process) {
@@ -91,7 +93,9 @@ public class CreateProcess {
 
         private Process process;
 
-        public SendConfiguration() {
+        // Default constructor for morphia
+        @SuppressWarnings("unused")
+        private SendConfiguration() {
         }
 
         public SendConfiguration(final Process process) {

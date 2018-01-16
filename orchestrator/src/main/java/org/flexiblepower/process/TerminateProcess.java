@@ -46,7 +46,9 @@ public class TerminateProcess {
             return 2000;
         }
 
-        public SendTerminateSignal() {
+        // Default constructor for morphia
+        @SuppressWarnings("unused")
+        private SendTerminateSignal() {
             super();
         }
 
@@ -96,9 +98,13 @@ public class TerminateProcess {
     @Entity("PendingChange")
     public static class RemoveDockerService extends PendingChange {
 
+        private static final int NUM_TRIES_TO_TERMINATE_CONNECTIONS = 10;
+
         private Process process;
 
-        public RemoveDockerService() {
+        // Default constructor for morphia
+        @SuppressWarnings("unused")
+        private RemoveDockerService() {
             super();
         }
 
@@ -120,6 +126,12 @@ public class TerminateProcess {
 
         @Override
         public Result execute() {
+            if (!ConnectionManager.getInstance().getConnectionsForProcess(this.process).isEmpty()
+                    && (this.getCount() < RemoveDockerService.NUM_TRIES_TO_TERMINATE_CONNECTIONS)) {
+                RemoveDockerService.log.debug("There still exist connections, delay removal of docker service");
+                return Result.FAILED_TEMPORARY;
+            }
+
             ProcessConnector.getInstance().disconnect(this.process.getId());
 
             boolean removeDbRecord;

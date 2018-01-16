@@ -56,8 +56,8 @@ public class TCPSocket implements Closeable {
     // private final Thread connectionThread;
     private final Object waitLock = new Object();
 
-    protected Socket clientSocket;
-    protected ServerSocket serverSocket;
+    protected Socket socket;
+
     protected InputStream inputStream;
     protected OutputStream outputStream;
     protected boolean ready = false;
@@ -73,18 +73,24 @@ public class TCPSocket implements Closeable {
     }
 
     public static void destroyLingeringSockets() {
-        TCPSocket.ALL_SOCKETS.forEach(s -> s.close());
-        TCPSocket.ALL_SOCKETS.clear();
+        synchronized (TCPSocket.ALL_SOCKETS) {
+            TCPSocket.ALL_SOCKETS.forEach(s -> s.close());
+            TCPSocket.ALL_SOCKETS.clear();
+        }
     }
 
     private TCPSocket(final int port) {
         this.executor.submit(new ServerSocketRunner(port));
-        TCPSocket.ALL_SOCKETS.add(this);
+        synchronized (TCPSocket.ALL_SOCKETS) {
+            TCPSocket.ALL_SOCKETS.add(this);
+        }
     }
 
     private TCPSocket(final String address, final int port) {
         this.executor.submit(new ClientSocketRunner(address, port));
-        TCPSocket.ALL_SOCKETS.add(this);
+        synchronized (TCPSocket.ALL_SOCKETS) {
+            TCPSocket.ALL_SOCKETS.add(this);
+        }
     }
 
     public boolean ready() {
@@ -92,11 +98,11 @@ public class TCPSocket implements Closeable {
     }
 
     public boolean isConnected() {
-        return (this.clientSocket != null) && this.clientSocket.isConnected() && !this.clientSocket.isClosed();
+        return (this.socket != null) && this.socket.isConnected() && !this.socket.isClosed();
     }
 
     public boolean isClosed() {
-        return (this.clientSocket != null) && this.clientSocket.isClosed();
+        return (this.socket != null) && this.socket.isClosed();
     }
 
     public void waitUntilConnected(final long millis) throws InterruptedException, IOException {
@@ -190,22 +196,13 @@ public class TCPSocket implements Closeable {
     public synchronized void close() {
         this.keepOpen = false;
 
-        if (this.serverSocket != null) {
+        if (this.socket != null) {
             try {
-                this.serverSocket.close();
+                this.socket.close();
             } catch (final IOException e) {
                 TCPSocket.log.warn("Exception while closing socket: {}", e.getMessage());
             }
-            this.serverSocket = null;
-        }
-
-        if (this.clientSocket != null) {
-            try {
-                this.clientSocket.close();
-            } catch (final IOException e) {
-                TCPSocket.log.warn("Exception while closing socket: {}", e.getMessage());
-            }
-            this.clientSocket = null;
+            this.socket = null;
         }
 
         this.executor.shutdownNow();
@@ -230,7 +227,7 @@ public class TCPSocket implements Closeable {
         public void run() {
             this.backOffMs = SocketRunner.INITIAL_BACKOFF_MS;
             try {
-                TCPSocket.this.clientSocket = this.init();
+                TCPSocket.this.socket = this.init();
 
                 if (!TCPSocket.this.keepOpen) {
                     // Check if in the mean time we got a close request...
@@ -238,8 +235,8 @@ public class TCPSocket implements Closeable {
                     return;
                 }
 
-                TCPSocket.this.inputStream = TCPSocket.this.clientSocket.getInputStream();
-                TCPSocket.this.outputStream = TCPSocket.this.clientSocket.getOutputStream();
+                TCPSocket.this.inputStream = TCPSocket.this.socket.getInputStream();
+                TCPSocket.this.outputStream = TCPSocket.this.socket.getOutputStream();
                 TCPSocket.this.ready = true;
                 TCPSocket.this.releaseWaitLock();
             } catch (final IOException e) {
@@ -307,24 +304,13 @@ public class TCPSocket implements Closeable {
         @Override
         protected Socket init() {
             while (TCPSocket.this.keepOpen) {
-                try {
+                try (final ServerSocket serverSocket = new ServerSocket(this.listenPort)) {
                     TCPSocket.log.info("Starting server socket at {}", this.listenPort);
-                    TCPSocket.this.serverSocket = new ServerSocket(this.listenPort);
-                    // TCPSocket.this.serverSocket.setReuseAddress(false);
-                    // TCPSocket.this.serverSocket.setPerformancePreferences(0, 1, 1);
-                    final Socket client = TCPSocket.this.serverSocket.accept();
+                    final Socket client = serverSocket.accept();
                     TCPSocket.log.info("Accepted client socket at {}", client.getRemoteSocketAddress());
                     return client;
                 } catch (final IOException e) {
                     TCPSocket.log.trace("Unable to listen ({}), retrying...", e.getMessage());
-                    if (TCPSocket.this.serverSocket != null) {
-                        try {
-                            TCPSocket.this.serverSocket.close();
-                        } catch (final IOException e2) {
-                            // It's okay... just try again in a bit
-                        }
-                        TCPSocket.this.serverSocket = null;
-                    }
                     this.increaseBackOffAndWait();
                 }
             }
