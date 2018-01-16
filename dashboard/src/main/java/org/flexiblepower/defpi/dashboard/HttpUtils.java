@@ -2,7 +2,9 @@ package org.flexiblepower.defpi.dashboard;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.Charset;
 
 import org.apache.commons.io.IOUtils;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest;
@@ -15,6 +17,7 @@ public class HttpUtils {
 	public static final String CONTENT_TYPE = "Content-Type";
 	public static final String APPLICATION_JAVASCRIPT = "application/javascript";
 	public static final String TEXT_PLAIN = "text/plain";
+	public static final String TEXT_HTML = "text/html";
 	public static final String NO_CACHE_KEY = "Cache-Control";
 	public static final String NO_CACHE_VALUE = "no-cache, no-store, must-revalidate";
 
@@ -100,6 +103,21 @@ public class HttpUtils {
 		} catch (Exception e) {
 			return HttpUtils.internalError(request);
 		}
+	}
+
+	public static HTTPResponse serveDynamicText(HTTPRequest request, String contentType, String body) {
+		try {
+			return HTTPResponse.newBuilder().setId(request.getId()).setStatus(200)
+					.putHeaders(HttpUtils.CONTENT_TYPE, contentType).putHeaders(NO_CACHE_KEY, NO_CACHE_VALUE)
+					.setBody(ByteString.copyFromUtf8(body)).build();
+		} catch (Exception e) {
+			return HttpUtils.internalError(request);
+		}
+	}
+
+	public static String readTextFile(String path) throws IOException {
+		FileInputStream inputStream = new FileInputStream(new File(path));
+		return IOUtils.toString(inputStream, Charset.defaultCharset());
 	}
 
 }

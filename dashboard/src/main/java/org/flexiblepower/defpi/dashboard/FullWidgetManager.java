@@ -8,7 +8,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.apache.commons.io.IOUtils;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest;
-import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest.Method;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPResponse;
 
 import com.google.protobuf.ByteString;
@@ -58,9 +57,11 @@ public class FullWidgetManager implements HttpHandler {
 			String body = template.replace("$menu$", sb);
 
 			// Content of page
-			body = body.replace("$content$", activeWidget
-					.handle(HTTPRequest.newBuilder().setMethod(Method.GET).setId(0).setUri("/index.html").build())
-					.getBody().toStringUtf8());
+			body = body.replace("$content$",
+					activeWidget
+							.handle(HTTPRequest.newBuilder().setMethod(request.getMethod()).setId(0)
+									.setUri("/index.html").setBody(request.getBody()).build())
+							.getBody().toStringUtf8());
 
 			return HTTPResponse.newBuilder().setStatus(200).setId(request.getId())
 					.putHeaders(HttpUtils.NO_CACHE_KEY, HttpUtils.NO_CACHE_VALUE).setBody(ByteString.copyFromUtf8(body))

@@ -150,7 +150,8 @@ public class GatewayHandler extends AbstractHandler {
 						.warn("User " + username + " logged in, but there is no dashboard found for this user");
 				response.setHeader("content-type", "text/html");
 				response.setHeader(NO_CACHE_KEY, NO_CACHE_VALUE);
-				response.getWriter().print("<h1>No dashboard found</h1><p><a href=\"/logout\">Logout</a></p>");
+				response.getWriter().print(
+						"<html><body><h1>No dashboard found</h1><p><a href=\"/logout\">Logout</a></p></body></html>");
 				response.getWriter().close();
 			} else {
 				handler.handle(target, baseRequest, request, response);
