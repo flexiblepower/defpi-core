@@ -246,7 +246,7 @@ public class ProcessConnector {
                     this.socket.close();
                 }
 
-                ProcessConnector.log.warn("Could not connect with container: {}", e.getMessage());
+                ProcessConnector.log.warn("Could not connect with container ({}): {}", e.getClass(), e.getMessage());
                 ProcessConnector.log.trace(e.getMessage(), e);
                 return false;
             }
