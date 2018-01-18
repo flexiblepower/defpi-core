@@ -65,7 +65,9 @@ public class PendingChangeManager {
 
     public void release(final PendingChange pendingChange) {
         pendingChange.obtainedAt = null;
-        this.lockedResources.removeAll(pendingChange.getResources());
+        synchronized (this.lockedResources) {
+            this.lockedResources.removeAll(pendingChange.getResources());
+        }
         switch (pendingChange.getState()) {
         case FAILED_PERMANENTLY:
             MongoDbConnector.getInstance().save(pendingChange);
@@ -88,7 +90,6 @@ public class PendingChangeManager {
 
     protected void runPendingChange(final PendingChange pc) {
         PendingChangeManager.log.debug("Running PendingChange of type " + pc.getClass().getSimpleName());
-        this.lockedResources.addAll(pc.getResources());
 
         Result result;
         try {
@@ -146,7 +147,14 @@ public class PendingChangeManager {
         public void run() {
             final MongoDbConnector db = MongoDbConnector.getInstance();
             while (true) {
-                final PendingChange pc = db.getNextPendingChange(PendingChangeManager.this.lockedResources);
+                PendingChange pc;
+                synchronized (PendingChangeManager.this.lockedResources) {
+                    pc = db.getNextPendingChange(PendingChangeManager.this.lockedResources);
+                    if (pc != null) {
+                        PendingChangeManager.this.lockedResources.addAll(pc.getResources());
+                    }
+                }
+
                 if (pc == null) {
                     // Nothing to do, take a break...
                     synchronized (PendingChangeManager.this.waitLock) {
