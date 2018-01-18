@@ -17,6 +17,7 @@
  */
 package org.flexiblepower.process;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.flexiblepower.connectors.MongoDbConnector;
@@ -40,7 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ChangeProcessConfiguration extends PendingChange {
 
     private Process process;
-    private List<ProcessParameter> newConfigurtaion;
+    private List<ProcessParameter> newConfiguration;
 
     // Default constructor for morphia
     @SuppressWarnings("unused")
@@ -50,8 +51,9 @@ public class ChangeProcessConfiguration extends PendingChange {
 
     public ChangeProcessConfiguration(final Process process, final List<ProcessParameter> newConfiguration) {
         super(process.getUserId());
+        this.resources = Arrays.asList(process.getId());
         this.process = process;
-        this.newConfigurtaion = newConfiguration;
+        this.newConfiguration = newConfiguration;
     }
 
     @Override
@@ -64,7 +66,7 @@ public class ChangeProcessConfiguration extends PendingChange {
         ChangeProcessConfiguration.log.debug("Attempting to update configuration of process " + this.process.getId());
         boolean success;
         try {
-            success = ProcessConnector.getInstance().updateConfiguration(this.process.getId(), this.newConfigurtaion);
+            success = ProcessConnector.getInstance().updateConfiguration(this.process.getId(), this.newConfiguration);
         } catch (final ProcessNotFoundException e) {
             ChangeProcessConfiguration.log.error("No such process {}, failed permanently", this.process.getId());
             return Result.FAILED_PERMANENTLY;
@@ -74,7 +76,7 @@ public class ChangeProcessConfiguration extends PendingChange {
             ChangeProcessConfiguration.log.debug("Changing configuration of process " + this.process.getId()
                     + " was succesful, writing change to db");
             final MongoDbConnector db = MongoDbConnector.getInstance();
-            this.process.setConfiguration(this.newConfigurtaion);
+            this.process.setConfiguration(this.newConfiguration);
             db.save(this.process);
             return Result.SUCCESS;
         } else {

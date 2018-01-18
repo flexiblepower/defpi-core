@@ -19,6 +19,7 @@
 package org.flexiblepower.orchestrator.pendingchange;
 
 import java.util.Date;
+import java.util.List;
 
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.annotations.Entity;
@@ -55,6 +56,9 @@ public abstract class PendingChange {
     @Id
     @Getter
     protected ObjectId id;
+
+    @Getter
+    protected List<ObjectId> resources;
 
     @Getter
     private Date created;

@@ -17,6 +17,8 @@
  */
 package org.flexiblepower.process;
 
+import java.util.Arrays;
+
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.ProcessConnector;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
@@ -48,6 +50,7 @@ public class TerminateConnection extends PendingChange {
 
     public TerminateConnection(final ObjectId userId, final Connection connection, final Connection.Endpoint endpoint) {
         super(userId);
+        this.resources = Arrays.asList(connection.getId(), endpoint.getProcessId());
         this.connection = connection;
         this.endpoint = endpoint;
     }

@@ -277,6 +277,32 @@ public final class MongoDbConnector {
      *
      * @return The next unobtained PendingChange, null if there are no pendingChanges
      */
+    public PendingChange getNextPendingChange(final List<ObjectId> lockedResources) {
+        final Query<PendingChange> query = this.datastore.createQuery(PendingChange.class)
+                .field("obtainedAt")
+                .equal(null) // Must be null
+                .field("resources")
+                .hasNoneOf(lockedResources)
+                .field("state")
+                .notEqual(PendingChange.State.FAILED_PERMANENTLY) // Not failed
+                .field("runAt")
+                .lessThanOrEq(new Date()) // No future task
+                .order("runAt")
+                .disableValidation();
+        final UpdateOperations<PendingChange> update = this.datastore.createUpdateOperations(PendingChange.class)
+                .set("obtainedAt", new Date());
+        return this.datastore.findAndModify(query, update);
+    }
+
+    /**
+     * Retrieve the next PendingChange. It uses the findAndModify option to make sure that no tasks gets taken from the
+     * queue twice.
+     *
+     * See http://www.programcreek.com/java-api-examples/index.php?api=com.google.code.morphia.query.UpdateOperations
+     * for the polymorphism trick.
+     *
+     * @return The next unobtained PendingChange, null if there are no pendingChanges
+     */
     public PendingChange getNextPendingChange() {
         final Query<PendingChange> query = this.datastore.createQuery(PendingChange.class)
                 .field("obtainedAt")
