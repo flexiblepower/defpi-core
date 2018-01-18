@@ -18,6 +18,7 @@
 package org.flexiblepower.process;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 import org.flexiblepower.connectors.DockerConnector;
 import org.flexiblepower.connectors.MongoDbConnector;
@@ -52,7 +53,7 @@ public class CreateProcess {
 
         public CreateDockerService(final Process process) {
             super(process.getUserId());
-            this.resources = Arrays.asList(process.getId());
+            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
             this.process = process;
         }
 
@@ -103,7 +104,7 @@ public class CreateProcess {
 
         public SendConfiguration(final Process process) {
             super(process.getUserId());
-            this.resources = Arrays.asList(process.getId());
+            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
             this.process = process;
         }
 

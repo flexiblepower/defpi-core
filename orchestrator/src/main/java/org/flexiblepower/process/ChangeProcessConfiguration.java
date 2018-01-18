@@ -18,6 +18,7 @@
 package org.flexiblepower.process;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.flexiblepower.connectors.MongoDbConnector;
@@ -51,7 +52,7 @@ public class ChangeProcessConfiguration extends PendingChange {
 
     public ChangeProcessConfiguration(final Process process, final List<ProcessParameter> newConfiguration) {
         super(process.getUserId());
-        this.resources = Arrays.asList(process.getId());
+        this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
         this.process = process;
         this.newConfiguration = newConfiguration;
     }

@@ -278,6 +278,10 @@ public final class MongoDbConnector {
      * @return The next unobtained PendingChange, null if there are no pendingChanges
      */
     public PendingChange getNextPendingChange(final List<ObjectId> lockedResources) {
+        if (lockedResources.isEmpty()) {
+            return this.getNextPendingChange();
+        }
+
         final Query<PendingChange> query = this.datastore.createQuery(PendingChange.class)
                 .field("obtainedAt")
                 .equal(null) // Must be null
