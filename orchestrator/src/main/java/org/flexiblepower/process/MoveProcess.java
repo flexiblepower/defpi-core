@@ -17,6 +17,8 @@
  */
 package org.flexiblepower.process;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.bson.types.ObjectId;
@@ -61,6 +63,7 @@ public class MoveProcess {
                 final Connection connection,
                 final Connection.Endpoint endpoint) {
             super(userId);
+            this.resources = Collections.unmodifiableList(Arrays.asList(connection.getId(), endpoint.getProcessId()));
             this.connection = connection;
             this.endpoint = endpoint;
         }
@@ -109,6 +112,7 @@ public class MoveProcess {
 
         public SuspendProcess(final Process process, final ObjectId nodePoolId, final ObjectId privateNodeId) {
             super(process.getUserId());
+            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
             this.process = process;
             this.nodePoolId = nodePoolId;
             this.privateNodeId = privateNodeId;
@@ -188,6 +192,7 @@ public class MoveProcess {
 
         public RemoveDockerService(final Process process, final ObjectId nodePoolId, final ObjectId privateNodeId) {
             super(process.getUserId());
+            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
             this.process = process;
             if ((nodePoolId != null) && (privateNodeId != null)) {
                 throw new IllegalArgumentException("Either nodePoolId or privateNodeId should be null");
@@ -249,6 +254,7 @@ public class MoveProcess {
                 final ObjectId privateNodeId,
                 final byte[] suspendState) {
             super(process.getUserId());
+            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
             this.process = process;
             this.nodePoolId = nodePoolId;
             this.privateNodeId = privateNodeId;
@@ -310,6 +316,7 @@ public class MoveProcess {
 
         public ResumeProcess(final Process process, final byte[] suspendState) {
             super(process.getUserId());
+            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
             this.process = process;
             this.suspendState = suspendState;
         }
@@ -365,6 +372,7 @@ public class MoveProcess {
                 final Connection connection,
                 final Connection.Endpoint endpoint) {
             super(userId);
+            this.resources = Collections.unmodifiableList(Arrays.asList(connection.getId(), endpoint.getProcessId()));
             this.connection = connection;
             this.endpoint = endpoint;
         }

@@ -75,6 +75,7 @@ public class Main {
      *
      */
     private static void ensureAdminUserExists() {
+        Main.log.trace("Ensuring user with name {} exists", Main.ROOT_USER);
         final MongoDbConnector db = MongoDbConnector.getInstance();
         if (db.getUser(Main.ROOT_USER, Main.ROOT_PASSWORD) == null) {
             final User root = new User(Main.ROOT_USER, Main.ROOT_PASSWORD);

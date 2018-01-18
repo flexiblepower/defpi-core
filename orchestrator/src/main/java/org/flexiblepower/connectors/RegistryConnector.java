@@ -323,7 +323,7 @@ public class RegistryConnector {
         } catch (final RepositoryNotFoundException e) {
             throw new ServiceNotFoundException(e);
         }
-        throw new ServiceNotFoundException();
+        throw new ServiceNotFoundException(id);
     }
 
     private Service getServiceFromRegistry(final String repository,
