@@ -210,21 +210,6 @@
 
 		<plugins>
 			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>license-maven-plugin</artifactId>
-				<version>1.14</version>
-				<executions>
-					<execution>
-						<id>add-third-party</id>
-						<goals>
-							<goal>add-third-party</goal>
-						</goals>
-						<phase>generate-sources</phase>
-					</execution>
-				</executions>
-			</plugin>
-
-			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-source-plugin</artifactId>
 				<version>3.0.1</version>
@@ -256,17 +241,32 @@
 
 	<profiles>
 		<profile>
-		 <id>release</id>
-		   <distributionManagement>
+			<id>release</id>
+			<distributionManagement>
 				<repository>
 					<id>ossrh</id>
 					<name>Sonatype deployment repository</name>
 					<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
 				</repository>
 			</distributionManagement>
-		 
+
 			<build>
 				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>license-maven-plugin</artifactId>
+						<version>1.14</version>
+						<executions>
+							<execution>
+								<id>add-third-party</id>
+								<goals>
+									<goal>add-third-party</goal>
+								</goals>
+								<phase>generate-sources</phase>
+							</execution>
+						</executions>
+					</plugin>
+
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>
