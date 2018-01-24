@@ -86,9 +86,9 @@ public class ProcessConnector {
      * @return
      * @throws ProcessNotFoundException
      */
-    private synchronized ProcessConnection getProcessConnection(final ObjectId processId)
-            throws ProcessNotFoundException {
+    private ProcessConnection getProcessConnection(final ObjectId processId) throws ProcessNotFoundException {
         // Let's throw a message if the process is not present in DB
+        ProcessConnector.log.debug("Fetching connection with process {}", processId);
         ProcessManager.getInstance().getProcess(processId);
 
         if (!this.connections.containsKey(processId)) {
@@ -246,7 +246,7 @@ public class ProcessConnector {
                     this.socket.close();
                 }
 
-                ProcessConnector.log.warn("Could not connect with container: {}", e.getMessage());
+                ProcessConnector.log.warn("Could not connect with container ({}): {}", e.getMessage());
                 ProcessConnector.log.trace(e.getMessage(), e);
                 return false;
             }

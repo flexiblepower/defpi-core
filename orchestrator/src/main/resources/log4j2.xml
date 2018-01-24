@@ -4,10 +4,25 @@
 		<Console name="Console" target="SYSTEM_OUT">
 			<PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n" />
 		</Console>
+
+		<RollingFile name="RollingFile" fileName="orchestrator.log"
+			filePattern="orchestrator-%d{MM-dd-yyyy}-%i.log.gz">
+			<PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n" />
+
+			<Policies>
+				<TimeBasedTriggeringPolicy />
+				<SizeBasedTriggeringPolicy size="500 MB" />
+			</Policies>
+			<DefaultRolloverStrategy max="20" />
+		</RollingFile>
 	</Appenders>
+
 	<Loggers>
 		<Logger name="org.reflections" level="ERROR" />
-		<Logger name="org.flexiblepower" level="DEBUG" />
+		<Logger name="org.flexiblepower" level="TRACE" additivity="false">
+			<AppenderRef ref="RollingFile"/>
+			<AppenderRef ref="Console" level="DEBUG"/>
+		</Logger>
 		<Root level="WARN">
 			<AppenderRef ref="Console" />
 		</Root>

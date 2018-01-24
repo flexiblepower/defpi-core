@@ -17,8 +17,6 @@
  */
 package org.flexiblepower.exceptions;
 
-import java.net.URI;
-
 /**
  * ServiceNotFoundException
  *
@@ -38,8 +36,8 @@ public class ServiceNotFoundException extends NotFoundException {
         super(ServiceNotFoundException.SERVICE_NOT_FOUND_MESSAGE);
     }
 
-    public ServiceNotFoundException(final URI uri) {
-        super(ServiceNotFoundException.SERVICE_NOT_FOUND_MESSAGE + ": " + uri.toString());
+    public ServiceNotFoundException(final String id) {
+        super(ServiceNotFoundException.SERVICE_NOT_FOUND_MESSAGE + ": " + id);
     }
 
     public ServiceNotFoundException(final Throwable cause) {
