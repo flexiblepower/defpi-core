@@ -18,7 +18,11 @@
 
 package org.flexiblepower.defpi.dashboardgateway;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -69,8 +73,10 @@ public class GatewayHandler extends AbstractHandler {
 			response.setStatus(200);
 			response.setHeader("content-type", "text/html");
 			response.setHeader(NO_CACHE_KEY, NO_CACHE_VALUE);
-			response.getWriter().print(
-					"<htm><body><form method=post><input type=text name=username /><input type=password name=password /><input type=submit name=submit /></form></body></html>");
+			String html = new String(readFile("/dynamic/login.html"));
+			html = html.replace("$error$", "");
+
+			response.getWriter().print(html);
 			response.getWriter().close();
 		} else if (request.getRequestURI().equals("/") && request.getMethod().equals("POST")) {
 			// Try to login
@@ -93,12 +99,23 @@ public class GatewayHandler extends AbstractHandler {
 				response.getWriter().close();
 			} else {
 				// Invalid!
+				// server login page
 				response.setStatus(200);
 				response.setHeader("content-type", "text/html");
 				response.setHeader(NO_CACHE_KEY, NO_CACHE_VALUE);
-				response.getWriter().print("Failed to login");
+				String html = new String(readFile("/dynamic/login.html"));
+				html = html.replace("$error$", "<p class=\"error\">Invalid credentials</p>");
+
+				response.getWriter().print(html);
 				response.getWriter().close();
 			}
+		} else if (new File("/static/" + request.getRequestURI()).exists()) {
+			// Serve static content
+			response.setStatus(200);
+			response.setHeader("content-type", getContentType(request.getRequestURI()));
+			response.setHeader(NO_CACHE_KEY, NO_CACHE_VALUE);
+			writeStaticFile("/static/" + request.getRequestURI(), response.getOutputStream());
+			response.getOutputStream().close();
 		} else {
 			// Redirect to the login page
 			response.setStatus(302);
@@ -169,6 +186,66 @@ public class GatewayHandler extends AbstractHandler {
 			}
 		}
 		return null;
+	}
+
+	private static byte[] readFile(String filename) {
+		try (FileInputStream in = new FileInputStream(new File(filename));) {
+
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			byte[] buffer = new byte[1024];
+			int len;
+			while ((len = in.read(buffer)) > 0) {
+				out.write(buffer, 0, len);
+			}
+			return out.toByteArray();
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
+	private static boolean writeStaticFile(String filename, OutputStream out) {
+		try (FileInputStream in = new FileInputStream(new File(filename));) {
+			byte[] buffer = new byte[1024];
+			int len;
+			while ((len = in.read(buffer)) > 0) {
+				out.write(buffer, 0, len);
+			}
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
+	private static String getContentType(String filename) {
+		String[] uri = filename.split("\\.");
+
+		String contentType;
+		switch (uri[uri.length - 1].toLowerCase()) {
+		case "html":
+			contentType = "text/html";
+			break;
+		case "png":
+			contentType = "image/png";
+			break;
+		case "jpg":
+			contentType = "image/jpeg";
+			break;
+		case "jpeg":
+			contentType = "image/jpeg";
+			break;
+		case "gif":
+			contentType = "image/gif";
+			break;
+		case "js":
+			contentType = "application/javascript";
+			break;
+		case "css":
+			contentType = "text/css";
+			break;
+		default:
+			contentType = "text/plain";
+		}
+		return contentType;
 	}
 
 }
