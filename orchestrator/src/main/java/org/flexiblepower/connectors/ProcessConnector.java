@@ -17,11 +17,10 @@
  */
 package org.flexiblepower.connectors;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.commons.TCPSocket;
@@ -478,9 +477,15 @@ public class ProcessConnector {
             byte[] recv = null;
             try {
                 recv = this.socket.read(ProcessConnection.IO_TIMEOUT);
-            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            } catch (InterruptedException | IOException e) {
                 ProcessConnector.log.warn("Exception while reading from socket ({}): {}", e.getClass(), e.getMessage());
                 ProcessConnector.log.trace(e.getMessage(), e);
+                this.close();
+                return null;
+            }
+
+            if (recv == null) {
+                ProcessConnector.log.warn("Did not receive a response from process, close and try again");
                 this.close();
                 return null;
             }

@@ -112,13 +112,12 @@ public class ServiceManager<T> implements Closeable {
                 byte[] messageArray;
                 try {
                     this.managementSocket.waitUntilConnected(0);
-                    try {
-                        messageArray = this.managementSocket.read(ServiceManager.SOCKET_READ_TIMEOUT);
-                    } catch (final TimeoutException e) {
-                        // nothing received... just try again
+                    messageArray = this.managementSocket.read();
+                    if (messageArray == null) {
+                        // No message received...
                         continue;
                     }
-                } catch (IOException | ExecutionException | InterruptedException e) {
+                } catch (IOException | InterruptedException e) {
                     if (this.keepThreadAlive) {
                         ServiceManager.log.warn("Socket closed while expecting instruction, re-opening it", e);
                         this.managementSocket.close();

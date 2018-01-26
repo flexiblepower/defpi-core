@@ -37,6 +37,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -46,6 +47,7 @@ import org.junit.Test;
  * @since May 8, 2017
  */
 @SuppressWarnings("static-method")
+@Ignore // Don't run this test, it will mess with existing pending changes
 public class MongoConnectorTest {
 
     private static final String TEST_USER = "TEST_USER";

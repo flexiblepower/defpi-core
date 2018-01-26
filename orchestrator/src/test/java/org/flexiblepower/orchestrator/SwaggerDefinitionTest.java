@@ -38,6 +38,7 @@ import io.swagger.annotations.SwaggerDefinition;
  * @version 0.1
  * @since Nov 23, 2017
  */
+@SuppressWarnings("static-method")
 public class SwaggerDefinitionTest {
 
     @Test(timeout = 30000)
