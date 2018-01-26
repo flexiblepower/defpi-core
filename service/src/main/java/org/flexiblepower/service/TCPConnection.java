@@ -462,7 +462,7 @@ final class TCPConnection implements Connection, Closeable {
                                 && !TCPConnection.this.handShakeMonitor.handleHandShake(data)) {
                             TCPConnection.this.messageQueue.addMessage(data);
                         }
-                    } catch (final IOException | InterruptedException e) {
+                    } catch (final IOException e) {
                         // See if this was on purpose
                         if (TCPConnection.this.isConnected() && this.keepRunning) {
                             TCPConnection.log.warn("[{}] - IOException while reading from socket: {}",
