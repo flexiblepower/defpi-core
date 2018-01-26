@@ -129,16 +129,34 @@ public class TCPSocket implements Closeable {
         }
     }
 
-    public byte[] read(final int timeout) throws InterruptedException, ExecutionException, TimeoutException {
-        return this.executor.submit(() -> this.read()).get(timeout, TimeUnit.MILLISECONDS);
+    public byte[] read(final int timeout) throws IOException, InterruptedException {
+        final long t_start = System.currentTimeMillis();
+
+        if (!this.ready()) {
+            this.waitUntilConnected(timeout);
+        }
+
+        if (this.inputStream.available() > 0) {
+            return this.read();
+        }
+
+        while ((this.inputStream.available() == 0) && ((System.currentTimeMillis() - t_start) < timeout)) {
+            Thread.sleep(Math.max(1, Math.min(10, timeout - (System.currentTimeMillis() - t_start))));
+        }
+
+        if (this.inputStream.available() > 0) {
+            return this.read();
+        } else {
+            return null;
+        }
     }
 
-    public byte[] read() throws InterruptedException, IOException {
+    public byte[] read() throws IOException {
         // TCPSocket.log.trace("Waiting to read...");
         if (this.isClosed()) {
             throw new ClosedChannelException();
         }
-        // this.waitUntilConnected(0);
+
         synchronized (this.inputStream) {
             // TCPSocket.log.trace("Allowed to read");
             // Apparently this is the only way you can be sure that you read 4 bytes...
@@ -168,13 +186,29 @@ public class TCPSocket implements Closeable {
         }
     }
 
+    /**
+     * This function will throw an exception when the timeout is exceeded and CLOSE the socket. This is because we
+     * should always be able to send data, and if for some reason we cannot, the socket should be closed and
+     * re-initialized
+     *
+     * @param data
+     * @param timeout
+     * @throws InterruptedException
+     * @throws ExecutionException
+     * @throws TimeoutException
+     */
     public void send(final byte[] data, final int timeout) throws InterruptedException,
             ExecutionException,
             TimeoutException {
-        this.executor.submit(() -> {
-            this.send(data);
-            return true;
-        }).get(timeout, TimeUnit.MILLISECONDS);
+        try {
+            this.executor.submit(() -> {
+                this.send(data);
+                return true;
+            }).get(timeout, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            this.close();
+            throw e;
+        }
     }
 
     public void send(final byte[] data) throws InterruptedException, IOException {
