@@ -48,7 +48,7 @@ $(document).ready(function() {
 				royalSlider.addPage();
 				lastSlide = this.getLastSlide();
 			}
-			var widget = $('<div id="widget-' + widgetId + '" class="large_tile white"><h3>' + widgetTitle +'</h3><iframe src="/widget/' + widgetId + '/index.html"></iframe></div>');
+			var widget = $('<div id="widget-' + widgetId + '" class="large_tile white"><h3>' + widgetTitle +'</h3><iframe src="/dashboard/' + widgetId + '/index.html"></iframe></div>');
 			widget.insertBefore(lastSlide.children(".clear"));
 		},
 		

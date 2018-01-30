@@ -1,5 +1,7 @@
 package org.flexiblepower.defpi.dashboard.gateway.http;
 
+import java.io.IOException;
+
 import javax.annotation.Generated;
 
 import org.flexiblepower.defpi.dashboard.Dashboard;
@@ -36,7 +38,11 @@ public class Gateway_httpConnectionHandlerImpl implements Gateway_httpConnection
 
 	@Override
 	public void handleHTTPRequestMessage(HTTPRequest message) {
-		connection.send(service.getRequestRouter().handle(message));
+		try {
+			connection.send(service.getRequestRouter().handle(message));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	@Override

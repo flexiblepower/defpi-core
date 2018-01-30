@@ -1,5 +1,6 @@
 package org.flexiblepower.defpi.dashboard.widget.http;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -11,6 +12,7 @@ import java.util.concurrent.TimeoutException;
 import javax.annotation.Generated;
 
 import org.flexiblepower.defpi.dashboard.Dashboard;
+import org.flexiblepower.defpi.dashboard.HttpUtils;
 import org.flexiblepower.defpi.dashboard.Widget;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPResponse;
@@ -56,6 +58,7 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
 
 	@Override
 	public void handleWidgetHTTPResponseMessage(WidgetHTTPResponse message) {
+		LOG.debug("Received response " + message.getId());
 		CompletableFuture<HTTPResponse> completableFuture = this.responseList.get(message.getId());
 		if (completableFuture == null) {
 			LOG.error("Received HTTPResponse for unknown request id: " + message.getId());
@@ -97,16 +100,28 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
 
 	@Override
 	public HTTPResponse handle(HTTPRequest r) {
-		WidgetHTTPRequest widgetRequest = WidgetHTTPRequest.newBuilder().setId(r.getId()).setBody(r.getBody())
-				.setMethod(Method.valueOf(r.getMethod().toString())).putAllHeaders(r.getHeadersMap()).build();
-		connection.send(widgetRequest);
+		WidgetHTTPRequest widgetRequest = WidgetHTTPRequest.newBuilder().setId(r.getId()).setUri(r.getUri())
+				.setBody(r.getBody()).setMethod(Method.valueOf(r.getMethod().toString()))
+				.putAllHeaders(r.getHeadersMap()).build();
+		CompletableFuture<HTTPResponse> future = new CompletableFuture<HTTPResponse>();
+		responseList.put(r.getId(), future);
+
+		LOG.debug("Sending request " + r.getId());
+		try {
+			connection.send(widgetRequest);
+		} catch (IOException e) {
+			LOG.error("Could not send HTTP request for Widget", e);
+			return HttpUtils.internalError(r);
+		}
+
 		return waitForResponse(r.getId());
 	}
 
 	private HTTPResponse waitForResponse(Integer requestId) {
 		try {
-			LOG.debug("Waiting for response");
+			LOG.debug("Waiting for response " + requestId);
 			HTTPResponse httpResponse = responseList.get(requestId).get(30, TimeUnit.SECONDS);
+			LOG.debug("Done waiting for response " + requestId);
 			responseList.remove(requestId);
 			return httpResponse;
 		} catch (TimeoutException e) {

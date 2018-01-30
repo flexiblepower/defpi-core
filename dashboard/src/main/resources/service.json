@@ -44,7 +44,7 @@
 		},
 		{
 			"name": "widget",
-			"autoConnect": false,
+			"autoConnect": true,
 			"allowMultiple": true,
 			"interfaceVersions": [
 				{
