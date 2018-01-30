@@ -307,7 +307,7 @@ public class ControlAdminFullWidget implements Widget {
 
 	@Override
 	public String getTitle() {
-		return "Control Administration";
+		return "Aggregator";
 	}
 
 	@Override

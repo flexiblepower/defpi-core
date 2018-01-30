@@ -1,5 +1,4 @@
 <style type="text/css">
-
 #explenation {
 	width: 800px;
 	margin: 5px auto;
@@ -12,7 +11,7 @@
 }
 
 #options {
-/*	border: 1px solid white;*/
+	/*	border: 1px solid white;*/
 	margin: 0;
 	padding: 0;
 	text-align: center;
@@ -21,7 +20,6 @@
 .option {
 	display: inline-block;
 	text-align: left;
-
 	-webkit-border-radius: 10px;
 	-moz-border-radius: 10px;
 	border-radius: 10px;
@@ -30,29 +28,35 @@
 	width: 200px;
 	margin: 10px;
 	padding: 6px;
-
-	-webkit-box-shadow: 0px 0px 28px -3px rgba(255,255,255,0.3);
-	-moz-box-shadow: 0px 0px 28px -3px rgba(255,255,255,0.3);
-	box-shadow: 0px 0px 28px -3px rgba(255,255,255,0.3);
-
+	-webkit-box-shadow: 0px 0px 28px -3px rgba(255, 255, 255, 0.3);
+	-moz-box-shadow: 0px 0px 28px -3px rgba(255, 255, 255, 0.3);
+	box-shadow: 0px 0px 28px -3px rgba(255, 255, 255, 0.3);
 }
 
 .optionactive {
 	/* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#87cf08+0,67a102+100 */
 	background: #87cf08; /* Old browsers */
-	background: -moz-linear-gradient(left, #87cf08 0%, #67a102 100%); /* FF3.6-15 */
-	background: -webkit-linear-gradient(left, #87cf08 0%,#67a102 100%); /* Chrome10-25,Safari5.1-6 */
-	background: linear-gradient(to right, #87cf08 0%,#67a102 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#87cf08', endColorstr='#67a102',GradientType=1 ); /* IE6-9 */
+	background: -moz-linear-gradient(left, #87cf08 0%, #67a102 100%);
+	/* FF3.6-15 */
+	background: -webkit-linear-gradient(left, #87cf08 0%, #67a102 100%);
+	/* Chrome10-25,Safari5.1-6 */
+	background: linear-gradient(to right, #87cf08 0%, #67a102 100%);
+	/* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#87cf08',
+		endColorstr='#67a102', GradientType=1); /* IE6-9 */
 }
 
 .optionnotactive {
 	/* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#f2f2f2+0,dddddd+100 */
 	background: #f2f2f2; /* Old browsers */
-	background: -moz-linear-gradient(left, #f2f2f2 0%, #dddddd 100%); /* FF3.6-15 */
-	background: -webkit-linear-gradient(left, #f2f2f2 0%,#dddddd 100%); /* Chrome10-25,Safari5.1-6 */
-	background: linear-gradient(to right, #f2f2f2 0%,#dddddd 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f2f2f2', endColorstr='#dddddd',GradientType=1 ); /* IE6-9 */
+	background: -moz-linear-gradient(left, #f2f2f2 0%, #dddddd 100%);
+	/* FF3.6-15 */
+	background: -webkit-linear-gradient(left, #f2f2f2 0%, #dddddd 100%);
+	/* Chrome10-25,Safari5.1-6 */
+	background: linear-gradient(to right, #f2f2f2 0%, #dddddd 100%);
+	/* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f2f2f2',
+		endColorstr='#dddddd', GradientType=1); /* IE6-9 */
 }
 
 .option h1 {
@@ -73,7 +77,6 @@
 	height: 150px;
 	line-height: 14px;
 }
-
 
 .option button {
 	display: block;
@@ -101,36 +104,51 @@
 strong {
 	font-weight: bold;
 }
-
-
 </style>
 
-<div id="explenation">Op deze pagina kunt u selecteren wie uw apparatuur aanstuurt en met wie uw meetgegevens gedeeld worden. Uw keuze wordt direct actief.</div>
+<div id="explenation">Op deze pagina kunt u selecteren wie uw
+	apparatuur aanstuurt en met wie uw meetgegevens gedeeld worden. Uw
+	keuze wordt direct actief.</div>
 
 <div id="options">
-<div class="option @SYMPOWER_STYLE@">
-<h1>SymPower</h1>
-<h2>Aansturen</h2>
-<p>Wanneer SymPower gekozen is zal SymPower uw apparaten aansturen voor het optimaliseren van het energienet.</p>
-<h2>Meten</h2>
-<p>Meetgegevens van up apparaten worden gedeeld met SymPower. Deze gegevens hebben ze nodig om uw apparaten beter aan te kunnen sturen. Ook worden uw gegevens gedeeld met Alliander en TNO. Zij hebben uw gegevens nodig om het experiment te kunnen monitoren.</p>
-<form method="post">
-	<input type="hidden" name="option" value="sympower" />
-	<button>'SymPower' is geselecteerd</button>
-</form>
+	<div class="option @SYMPOWER_STYLE@">
+		<h1>SymPower</h1>
+		<h2>Aansturen</h2>
+		<p>Wanneer SymPower gekozen is zal SymPower uw apparaten aansturen
+			voor het optimaliseren van het energienet.</p>
+		<h2>Meten</h2>
+		<p>Meetgegevens van up apparaten worden gedeeld met SymPower. Deze
+			gegevens hebben ze nodig om uw apparaten beter aan te kunnen sturen.
+			Ook worden uw gegevens gedeeld met Alliander en TNO. Zij hebben uw
+			gegevens nodig om het experiment te kunnen monitoren.</p>
+		<form method="post">
+			<input type="hidden" name="option" value="sympower" />
+			<button>
+				Selecteer<br />'SymPower'
+			</button>
+		</form>
 
-</div>
+	</div>
 
-<div class="option @ALLEENMETEN_STYLE@" />
-<h1>Alleen meten</h1>
-<h2>Aansturen</h2>
-<p>Wanneer u 'alleen meten' selecteert, wordt uw apparatuur niet ingezet voor het optimaliseren van het energienet.<br /><strong>Let op:</strong> Wanneer u deze optie selecteert neemt u niet meer deel aan het experiment.</p>
-<h2>Meten</h2>
-<p>Meetgegevens van uw apparaten worden alleen gedeeld met Alliander en TNO. Zij hebben uw gegevens nodig om het experiment te kunnen monitoren.</p>
-<form method="post">
-	<input type="hidden" name="option" value="alleenmeten" />
-	<button>Selecteer 'Alleen meten'</button>
-</form>
+	<div class="option @ALLEENMETEN_STYLE@" />
+	<h1>Alleen meten</h1>
+	<h2>Aansturen</h2>
+	<p>
+		Wanneer u 'alleen meten' selecteert, wordt uw apparatuur niet ingezet
+		voor het optimaliseren van het energienet.<br /> <strong>Let
+			op:</strong> Wanneer u deze optie selecteert neemt u niet meer deel aan het
+		experiment.
+	</p>
+	<h2>Meten</h2>
+	<p>Meetgegevens van uw apparaten worden alleen gedeeld met
+		Alliander en TNO. Zij hebben uw gegevens nodig om het experiment te
+		kunnen monitoren.</p>
+	<form method="post">
+		<input type="hidden" name="option" value="alleenmeten" />
+		<button>
+			Selecteer<br />'Alleen meten'
+		</button>
+	</form>
 
 </div>
 
