@@ -27,11 +27,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.util.Collection;
 import java.util.LinkedList;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +50,6 @@ public class TCPSocket implements Closeable {
 
     private final ExecutorService executor = Executors
             .newSingleThreadScheduledExecutor(r -> new Thread(r, "TCPthread " + TCPSocket.threadCounter++));
-    // private final Thread connectionThread;
     private final Object waitLock = new Object();
 
     protected Socket socket;
@@ -152,20 +148,17 @@ public class TCPSocket implements Closeable {
     }
 
     public byte[] read() throws IOException {
-        // TCPSocket.log.trace("Waiting to read...");
         if (this.isClosed()) {
             throw new ClosedChannelException();
         }
 
         synchronized (this.inputStream) {
-            // TCPSocket.log.trace("Allowed to read");
-            // Apparently this is the only way you can be sure that you read 4 bytes...
+            // Read 4 bytes that will tell how long the message is
             final int len = ByteBuffer.wrap(new byte[] {(byte) this.inputStream.read(), (byte) this.inputStream.read(),
                     (byte) this.inputStream.read(), (byte) this.inputStream.read()}).getInt();
             if (len < 0) {
                 throw new IOException("Reached end of stream");
             }
-            // TCPSocket.log.trace("Reading {} bytes", len);
             final byte[] data = new byte[len];
             int read = 0;
             while (read < len) {
@@ -181,44 +174,15 @@ public class TCPSocket implements Closeable {
                     eof = this.inputStream.read();
                 }
             }
-            // TCPSocket.log.trace("Finished read: {}", new String(data).replace("\0", "\\0"));
             return data;
         }
     }
 
-    /**
-     * This function will throw an exception when the timeout is exceeded and CLOSE the socket. This is because we
-     * should always be able to send data, and if for some reason we cannot, the socket should be closed and
-     * re-initialized
-     *
-     * @param data
-     * @param timeout
-     * @throws InterruptedException
-     * @throws ExecutionException
-     * @throws TimeoutException
-     */
-    public void send(final byte[] data, final int timeout) throws InterruptedException,
-            ExecutionException,
-            TimeoutException {
-        try {
-            this.executor.submit(() -> {
-                this.send(data);
-                return true;
-            }).get(timeout, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            this.close();
-            throw e;
-        }
-    }
-
-    public void send(final byte[] data) throws InterruptedException, IOException {
-        // TCPSocket.log.trace("Waiting to send...");
+    public void send(final byte[] data) throws IOException {
         if (this.isClosed()) {
             throw new ClosedChannelException();
         }
-        // this.waitUntilConnected(0);
         synchronized (this.outputStream) {
-            // TCPSocket.log.trace("Sending {} bytes", data.length);
             this.outputStream.write(ByteBuffer.allocate(4).putInt(data.length).array());
             this.outputStream.write(data);
             this.outputStream.write(TCPSocket.EOM);
