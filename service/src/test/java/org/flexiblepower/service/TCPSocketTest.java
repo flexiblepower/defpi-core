@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.flexiblepower.commons.TCPSocket;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -51,6 +52,28 @@ public class TCPSocketTest {
             client.send("Test data".getBytes());
             server.waitUntilConnected(0);
             System.out.println(new String(server.read()));
+        }
+    }
+
+    @Test
+    public void testTimeout() throws Exception {
+        try (
+                final TCPSocket client = TCPSocket.asClient("127.0.0.1", 5000);
+                final TCPSocket server = TCPSocket.asServer(5000)) {
+            long t_start = System.currentTimeMillis();
+            Assert.assertNull(server.read(100));
+            long t_wait = System.currentTimeMillis() - t_start;
+            System.out.format("I had to wait %d ms\n", t_wait);
+            Assert.assertTrue(Math.abs(t_wait - 100) < 10);
+
+            t_start = System.currentTimeMillis();
+            Assert.assertNull(server.read(200));
+            t_wait = System.currentTimeMillis() - t_start;
+            System.out.format("I had to wait %d ms\n", t_wait);
+            Assert.assertTrue(Math.abs(t_wait - 200) < 10);
+
+            client.send("Test data".getBytes());
+            Assert.assertEquals("Test data", new String(server.read()));
         }
     }
 

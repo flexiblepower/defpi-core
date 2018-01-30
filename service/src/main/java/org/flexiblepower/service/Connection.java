@@ -17,6 +17,9 @@
  */
 package org.flexiblepower.service;
 
+import java.io.IOException;
+
+import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 
 /**
@@ -29,12 +32,16 @@ public interface Connection {
 
     /**
      * Sends Object message over the connection to the other process.
+     *
      * @param message the object to be send over the connection.
+     * @throws IOException when the state is not connected, or if the connection back end fails to send the message
+     * @throws SerializationException when serialization fails just before sending the message
      */
-    public void send(Object message);
+    public void send(Object message) throws IOException;
 
     /**
      * Indicates whether or not the connection is connected to the other process.
+     *
      * @return true if connected correctly, otherwise false.
      */
     public boolean isConnected();
@@ -47,18 +54,21 @@ public interface Connection {
      * SUSPENDED
      * INTERRUPTED
      * TERMINATED
+     *
      * @return the current state of the connection.
      */
     public ConnectionState getState();
 
     /**
      * Returns the remote process identifier of the current process.
+     *
      * @return the remote process identifier.
      */
     public String remoteProcessId();
 
     /**
      * Returns the remote service identifier of the service corresponding to the current process.
+     *
      * @return the remote service identifier.
      */
     public String remoteServiceId();
@@ -66,6 +76,7 @@ public interface Connection {
     /**
      * Returns the remote interface identifier corresponding to the interface of the service this connection is attached
      * to.
+     *
      * @return the remote interface identifier.
      */
     public String remoteInterfaceId();

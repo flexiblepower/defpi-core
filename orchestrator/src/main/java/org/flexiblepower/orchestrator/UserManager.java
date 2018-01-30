@@ -129,7 +129,7 @@ public class UserManager {
         return this.db.totalCount(User.class, filter);
     }
 
-    public Object listUsers(final int page,
+    public List<User> listUsers(final int page,
             final int perPage,
             final String sortDir,
             final String sortField,

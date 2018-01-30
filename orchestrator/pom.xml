@@ -8,7 +8,7 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>17.11.2-SNAPSHOT</version>
+		<version>17.11.3-SNAPSHOT</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
@@ -60,7 +60,7 @@
 		<dependency>
 			<groupId>com.spotify</groupId>
 			<artifactId>docker-client</artifactId>
-			<version>8.9.1-SNAPSHOT</version>
+			<version>8.10.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>ch.qos.logback</groupId>

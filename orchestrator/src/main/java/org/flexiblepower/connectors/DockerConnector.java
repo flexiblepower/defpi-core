@@ -55,6 +55,7 @@ import com.spotify.docker.client.messages.NetworkConfig;
 import com.spotify.docker.client.messages.ServiceCreateResponse;
 import com.spotify.docker.client.messages.mount.Mount;
 import com.spotify.docker.client.messages.swarm.ContainerSpec;
+import com.spotify.docker.client.messages.swarm.Driver;
 import com.spotify.docker.client.messages.swarm.EndpointSpec;
 import com.spotify.docker.client.messages.swarm.NetworkAttachmentConfig;
 import com.spotify.docker.client.messages.swarm.Placement;
@@ -472,6 +473,9 @@ public class DockerConnector {
         envArgs.forEach((key, value) -> envList.add(key + "=" + value));
         containerSpec.env(envList);
 
+        // Set the logging configuration for the process
+        taskSpec.logDriver(Driver.builder().name("json-file").addOption("max-size", "10m").build());
+
         // Add the containerSpec and placement to the taskSpec
         final Placement placement = Placement.create(Arrays.asList("node.id == " + node.getDockerId()));
         taskSpec.containerSpec(containerSpec.build()).resources(resources.build()).placement(placement);
@@ -487,16 +491,14 @@ public class DockerConnector {
     public String getContainerInfo() {
         try {
             final ContainerInfo info = this.client.inspectContainer(DockerConnector.getOrchestratorContainerId());
-            return String.format(
-                    "image: %s\nbuilt: %s (by %s)\non branch %s\nlast commit: %s (%s)\nstarted: %s\nnetworks: %s",
+            return String.format("image: %s\nbuilt: %s (by %s)\non branch %s\nlast commit: %s (%s)\nstarted: %s",
                     info.image(),
                     System.getenv(DockerConnector.BUILD_TIMESTAMP_KEY),
                     System.getenv(DockerConnector.BUILD_USER_KEY),
                     System.getenv(DockerConnector.GIT_BRANCH),
                     System.getenv(DockerConnector.GIT_COMMIT),
                     System.getenv(DockerConnector.GIT_LOG),
-                    info.created().toInstant(),
-                    info.networkSettings().networks().keySet());
+                    info.created().toInstant());
         } catch (DockerException | InterruptedException e) {
             DockerConnector.log.warn("Error obtaining running image: {}", e.getMessage());
             DockerConnector.log.trace(e.getMessage(), e);
