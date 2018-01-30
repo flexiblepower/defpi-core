@@ -130,12 +130,24 @@ public class DockerConnector {
             this.ensureProcessNetworkIsAttached(process);
 
             final Service service = ServiceManager.getInstance().getService(process.getServiceId());
-            final Node node = DockerConnector.determineRunningNode(process);
+            Node node = DockerConnector.determineRunningNode(process);
 
             ServiceSpec serviceSpec;
             if (process.getServiceId().equals(ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID)) {
                 // if this is the dashboard, it should be added to all user networks
                 final List<String> networks = new ArrayList<>();
+
+                final String dashboardNodeName = System.getenv(ProcessManager.DASHBOARD_GATEWAY_HOSTNAME_KEY);
+                if (dashboardNodeName != null) {
+                    node = NodeManager.getInstance().getNodeByHostname(dashboardNodeName);
+                } else {
+                    DockerConnector.log.warn(
+                            "No dashboard gateway host is specified, running on %s."
+                                    + " To alter this behavior specify the system environment variable %s",
+                            node.getHostname(),
+                            ProcessManager.DASHBOARD_GATEWAY_HOSTNAME_KEY);
+                }
+
                 for (final User u : UserManager.getInstance().getUsers()) {
                     this.ensureUserNetworkExists(u);
                     networks.add(DockerConnector.getNetworkNameFromUser(u));
