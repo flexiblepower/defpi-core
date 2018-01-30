@@ -48,6 +48,7 @@ public class ProcessManager {
      *
      */
     public static final String DASHBOARD_GATEWAY_SERVICE_ID = "dashboard-gateway";
+    public static final String DASHBOARD_GATEWAY_HOSTNAME_KEY = "DASHBOARD_GATEWAY_HOSTNAME";
     public static final String DASHBOARD_GATEWAY_PORT_KEY = "DASHBOARD_GATEWAY_PORT";
     public static final int DASHBOARD_GATEWAY_PORT_DFLT = 8080;
 
