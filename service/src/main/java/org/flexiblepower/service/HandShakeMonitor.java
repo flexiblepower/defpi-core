@@ -66,7 +66,7 @@ public class HandShakeMonitor {
         } catch (final SerializationException e) {
             // This should not happen
             throw new RuntimeException("Exception while serializing message: " + initHandshakeMessage, e);
-        } catch (final InterruptedException | IOException e) {
+        } catch (final IOException e) {
             this.close();
         }
     }

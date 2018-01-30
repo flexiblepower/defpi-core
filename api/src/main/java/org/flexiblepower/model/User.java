@@ -29,6 +29,8 @@ import org.mongodb.morphia.annotations.IndexOptions;
 import org.mongodb.morphia.annotations.Indexed;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
@@ -55,14 +57,13 @@ public class User {
     @JsonDeserialize(using = ObjectIdDeserializer.class)
     private ObjectId id;
 
-    @Getter
     @Indexed(options = @IndexOptions(unique = true))
     private String username;
 
-    @JsonIgnore
+    @JsonProperty(access = Access.WRITE_ONLY)
     private String password;
 
-    @JsonIgnore
+    @JsonProperty(access = Access.WRITE_ONLY)
     private String passwordHash;
 
     @Setter

@@ -466,8 +466,8 @@ public class ProcessConnector {
             }
 
             try {
-                this.socket.send(data, ProcessConnection.IO_TIMEOUT);
-            } catch (final Exception e) {
+                this.socket.send(data);
+            } catch (final IOException e) {
                 ProcessConnector.log.warn("Exception while sending message to Process ({}), try to resend.",
                         e.getMessage());
                 this.close();

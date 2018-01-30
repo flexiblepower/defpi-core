@@ -133,7 +133,16 @@ public class Dashboard_httpConnectionHandlerImpl implements Dashboard_httpConnec
 		HTTPRequest httpRequest = createHttpRequest(request);
 		CompletableFuture<HTTPResponse> future = new CompletableFuture<HTTPResponse>();
 		responseList.put(httpRequest.getId(), future);
-		this.connection.send(httpRequest);
+		
+		try {
+			this.connection.send(httpRequest);
+		} catch (IOException e) {
+			LOG.error("Error sending request: " + e.getMessage());
+			LOG.trace(e.getMessage(), e);
+			writeHttpResponse(HTTPResponse.newBuilder().setId(httpRequest.getId()).setStatus(500)
+					.setBody(ByteString.copyFrom("Error", Charset.defaultCharset())).build(), response);
+			return;
+		}
 
 		// Wait and get response
 		HTTPResponse httpResponse = waitForResponse(httpRequest.getId());

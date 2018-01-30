@@ -53,7 +53,9 @@ public class UserRestApi extends BaseApi implements UserApi {
         this.assertUserIsAdmin();
 
         // Update the password to store it encrypted
-        newUser.setPasswordHash();
+        if ((newUser.getPassword() != null) && (newUser.getPasswordHash() == null)) {
+            newUser.setPasswordHash();
+        }
         newUser.setAuthenticationToken(UUID.randomUUID().toString());
         this.db.saveUser(newUser);
         return newUser;
