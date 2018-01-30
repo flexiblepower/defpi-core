@@ -130,7 +130,7 @@ public class DockerConnector {
             this.ensureProcessNetworkIsAttached(process);
 
             final Service service = ServiceManager.getInstance().getService(process.getServiceId());
-            Node node = DockerConnector.determineRunningNode(process);
+            final Node node = DockerConnector.determineRunningNode(process);
 
             ServiceSpec serviceSpec;
             if (process.getServiceId().equals(ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID)) {
@@ -138,14 +138,20 @@ public class DockerConnector {
                 final List<String> networks = new ArrayList<>();
 
                 final String dashboardNodeName = System.getenv(ProcessManager.DASHBOARD_GATEWAY_HOSTNAME_KEY);
-                if (dashboardNodeName != null) {
-                    node = NodeManager.getInstance().getNodeByHostname(dashboardNodeName);
-                } else {
+                if (dashboardNodeName == null) {
                     DockerConnector.log.warn(
-                            "No dashboard gateway host is specified, running on %s."
-                                    + " To alter this behavior specify the system environment variable %s",
+                            "No dashboard gateway host is specified, running on {}."
+                                    + " To alter this behavior specify the system environment variable {}",
                             node.getHostname(),
                             ProcessManager.DASHBOARD_GATEWAY_HOSTNAME_KEY);
+                } else {
+                    final Node manuallySpecifiedNode = NodeManager.getInstance().getNodeByHostname(dashboardNodeName);
+                    if (manuallySpecifiedNode == null) {
+                        DockerConnector.log.warn(
+                                "Could not find node with hostname %s, instead dashboard gateway will run on {}.",
+                                dashboardNodeName,
+                                node.getHostname());
+                    }
                 }
 
                 for (final User u : UserManager.getInstance().getUsers()) {
