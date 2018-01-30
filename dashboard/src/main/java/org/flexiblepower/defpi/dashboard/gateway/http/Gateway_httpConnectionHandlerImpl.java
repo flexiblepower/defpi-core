@@ -1,6 +1,8 @@
 package org.flexiblepower.defpi.dashboard.gateway.http;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.annotation.Generated;
 
@@ -25,6 +27,8 @@ public class Gateway_httpConnectionHandlerImpl implements Gateway_httpConnection
 
 	private final Dashboard service;
 
+	private final ExecutorService executorService = Executors.newFixedThreadPool(2);
+
 	/**
 	 * Auto-generated constructor for the ConnectionHandlers of the provided service
 	 *
@@ -38,11 +42,18 @@ public class Gateway_httpConnectionHandlerImpl implements Gateway_httpConnection
 
 	@Override
 	public void handleHTTPRequestMessage(HTTPRequest message) {
-		try {
-			connection.send(service.getRequestRouter().handle(message));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		// We run this in a separate thread, so the user thread is free to handle new
+		// incoming messages (which we need for widgets)
+		executorService.execute(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					connection.send(service.getRequestRouter().handle(message));
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		});
 	}
 
 	@Override

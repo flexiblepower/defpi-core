@@ -24,7 +24,7 @@ public class HttpUtils {
 	public static HTTPResponse notFound(HTTPRequest request) {
 		return HTTPResponse.newBuilder().setId(request.getId()).setStatus(404).putHeaders(CONTENT_TYPE, TEXT_PLAIN)
 				.setBody(ByteString.copyFromUtf8(
-						"404: Not found\nThe requested resource " + request.getUri() + " could not been found"))
+						"404: Not found\nThe requested resource " + request.getUri() + " could not be found"))
 				.build();
 	}
 
