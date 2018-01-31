@@ -46,7 +46,7 @@ public class DashboardFullWidget implements Widget {
 		} else if (httpTask.getRequest().getMethod().equals(Method.GET) && path.equals("/script.js")) {
 			HttpUtils.serveStaticFile(httpTask, "/dynamic/widgets/DashboardFullWidget/script.js");
 		} else if (httpTask.getRequest().getMethod().equals(Method.POST) && path.equals("/getWidgets")) {
-			httpTask.respond(getWidgets(httpTask.getRequest()));
+			httpTask.respond(getActiveWidgets(httpTask.getRequest()));
 		} else {
 			LOG.warn("Got request for " + httpTask.getUri()
 					+ ", but dashboard only serves index.html, menu.png and script.js");
@@ -54,10 +54,12 @@ public class DashboardFullWidget implements Widget {
 		}
 	}
 
-	private HTTPResponse getWidgets(HTTPRequest request) {
+	private HTTPResponse getActiveWidgets(HTTPRequest request) {
 		JSONObject map = new JSONObject();
 		for (Entry<Integer, Widget> e : widgets.entrySet()) {
-			map.put(e.getKey().toString(), e.getValue().getTitle());
+			if (e.getValue().isActive()) {
+				map.put(e.getKey().toString(), e.getValue().getTitle());
+			}
 		}
 		return HTTPResponse.newBuilder().setId(request.getId()).setStatus(200)
 				.putHeaders(HttpUtils.NO_CACHE_KEY, HttpUtils.NO_CACHE_VALUE)
@@ -98,6 +100,11 @@ public class DashboardFullWidget implements Widget {
 				break;
 			}
 		}
+	}
+
+	@Override
+	public boolean isActive() {
+		return true;
 	}
 
 }

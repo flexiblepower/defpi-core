@@ -15,6 +15,7 @@ import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HT
 import org.flexiblepower.defpi.dashboard.widget.http.proto.Widget_httpProto.WidgetHTTPRequest;
 import org.flexiblepower.defpi.dashboard.widget.http.proto.Widget_httpProto.WidgetHTTPRequest.Method;
 import org.flexiblepower.defpi.dashboard.widget.http.proto.Widget_httpProto.WidgetHTTPResponse;
+import org.flexiblepower.defpi.dashboard.widget.http.proto.Widget_httpProto.WidgetInfo;
 import org.flexiblepower.service.Connection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +38,7 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
 	private final Connection connection;
 	private final Dashboard service;
 	private final Map<Integer, HttpTask> responseList = new ConcurrentHashMap<>();
+	private String title;
 
 	/**
 	 * Auto-generated constructor for the ConnectionHandlers of the provided service
@@ -47,6 +49,7 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
 	public Widget_httpConnectionHandlerImpl(Connection connection, Dashboard service) {
 		this.connection = connection;
 		this.service = service;
+		this.title = null;
 		this.service.registerWidget(this);
 	}
 
@@ -60,6 +63,11 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
 			httpTask.respond(HTTPResponse.newBuilder().setId(message.getId()).setBody(message.getBody())
 					.setStatus(message.getStatus()).putAllHeaders(message.getHeadersMap()).build());
 		}
+	}
+
+	@Override
+	public void handleWidgetInfoMessage(WidgetInfo message) {
+		this.title = message.getTitle();
 	}
 
 	@Override
@@ -116,12 +124,17 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
 
 	@Override
 	public String getTitle() {
-		return "Title TODO";
+		return title;
 	}
 
 	@Override
 	public Type getType() {
 		return Widget.Type.SMALL;
+	}
+
+	@Override
+	public boolean isActive() {
+		return title != null;
 	}
 
 }

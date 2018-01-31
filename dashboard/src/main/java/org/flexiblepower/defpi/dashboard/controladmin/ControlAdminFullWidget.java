@@ -115,4 +115,9 @@ public class ControlAdminFullWidget implements Widget {
 		return Type.FULL;
 	}
 
+	@Override
+	public boolean isActive() {
+		return true;
+	}
+
 }

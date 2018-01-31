@@ -17,4 +17,6 @@ public interface Widget extends HttpHandler {
 
 	Widget.Type getType();
 
+	boolean isActive();
+
 }
