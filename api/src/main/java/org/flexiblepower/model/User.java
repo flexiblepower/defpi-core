@@ -29,8 +29,6 @@ import org.mongodb.morphia.annotations.IndexOptions;
 import org.mongodb.morphia.annotations.Indexed;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonProperty.Access;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
@@ -60,10 +58,8 @@ public class User {
     @Indexed(options = @IndexOptions(unique = true))
     private String username;
 
-    @JsonProperty(access = Access.WRITE_ONLY)
     private String password;
 
-    @JsonProperty(access = Access.WRITE_ONLY)
     private String passwordHash;
 
     @Setter
@@ -92,6 +88,12 @@ public class User {
             this.passwordHash = User.computeUserPass(this.username, this.password);
             this.password = null;
         }
+    }
+
+    public void clearPasswordHash() {
+        // For instance to export it;
+        this.password = null;
+        this.passwordHash = null;
     }
 
     @Override

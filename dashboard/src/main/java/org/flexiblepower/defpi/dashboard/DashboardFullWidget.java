@@ -22,35 +22,44 @@ public class DashboardFullWidget implements Widget {
 	private AtomicInteger idGenerator = new AtomicInteger(0);
 
 	@Override
-	public HTTPResponse handle(HTTPRequest request) {
-		String uri = request.getUri();
+	public void handle(HttpTask httpTask) {
+		String uri = httpTask.getUri();
 		for (Entry<Integer, Widget> e : widgets.entrySet()) {
 			String prefix = "/" + e.getKey().toString();
 			if (uri.startsWith(prefix + "/")) {
 				String relativeUri = uri.substring(prefix.length(), uri.length());
-				return e.getValue().handle(HttpUtils.rewriteUri(request, relativeUri));
+				e.getValue().handle(new HttpTask(HttpUtils.rewriteUri(httpTask.getRequest(), relativeUri),
+						new HTTPResponseHandler() {
+							@Override
+							public void handleResponse(HttpTask localHttpTask, HTTPResponse response) {
+								httpTask.respond(response);
+							}
+						}, httpTask));
+				return;
 			}
 		}
-		String path = HttpUtils.path(uri);
-		if (request.getMethod().equals(Method.GET) && path.equals("/index.html")) {
-			return HttpUtils.serveStaticFile(request, "/dynamic/widgets/DashboardFullWidget/index.html");
-		} else if (request.getMethod().equals(Method.GET) && path.equals("/menu.png")) {
-			return HttpUtils.serveStaticFile(request, "/dynamic/widgets/DashboardFullWidget/menu.png");
-		} else if (request.getMethod().equals(Method.GET) && path.equals("/script.js")) {
-			return HttpUtils.serveStaticFile(request, "/dynamic/widgets/DashboardFullWidget/script.js");
-		} else if (request.getMethod().equals(Method.POST) && path.equals("/getWidgets")) {
-			return getWidgets(request);
+		String path = httpTask.getPath();
+		if (httpTask.getRequest().getMethod().equals(Method.GET) && path.equals("/index.html")) {
+			HttpUtils.serveStaticFile(httpTask, "/dynamic/widgets/DashboardFullWidget/index.html");
+		} else if (httpTask.getRequest().getMethod().equals(Method.GET) && path.equals("/menu.png")) {
+			HttpUtils.serveStaticFile(httpTask, "/dynamic/widgets/DashboardFullWidget/menu.png");
+		} else if (httpTask.getRequest().getMethod().equals(Method.GET) && path.equals("/script.js")) {
+			HttpUtils.serveStaticFile(httpTask, "/dynamic/widgets/DashboardFullWidget/script.js");
+		} else if (httpTask.getRequest().getMethod().equals(Method.POST) && path.equals("/getWidgets")) {
+			httpTask.respond(getActiveWidgets(httpTask.getRequest()));
 		} else {
-			LOG.warn("Got request for " + request.getUri()
+			LOG.warn("Got request for " + httpTask.getUri()
 					+ ", but dashboard only serves index.html, menu.png and script.js");
-			return HttpUtils.notFound(request);
+			HttpUtils.notFound(httpTask);
 		}
 	}
 
-	private HTTPResponse getWidgets(HTTPRequest request) {
+	private HTTPResponse getActiveWidgets(HTTPRequest request) {
 		JSONObject map = new JSONObject();
 		for (Entry<Integer, Widget> e : widgets.entrySet()) {
-			map.put(e.getKey().toString(), e.getValue().getTitle());
+			if (e.getValue().isActive()) {
+				map.put(e.getKey().toString(), e.getValue().getTitle());
+			}
 		}
 		return HTTPResponse.newBuilder().setId(request.getId()).setStatus(200)
 				.putHeaders(HttpUtils.NO_CACHE_KEY, HttpUtils.NO_CACHE_VALUE)
@@ -91,6 +100,11 @@ public class DashboardFullWidget implements Widget {
 				break;
 			}
 		}
+	}
+
+	@Override
+	public boolean isActive() {
+		return true;
 	}
 
 }

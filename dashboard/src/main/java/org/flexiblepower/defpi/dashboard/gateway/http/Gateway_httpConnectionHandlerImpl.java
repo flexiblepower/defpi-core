@@ -1,10 +1,19 @@
 package org.flexiblepower.defpi.dashboard.gateway.http;
 
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import javax.annotation.Generated;
 
 import org.flexiblepower.defpi.dashboard.Dashboard;
+import org.flexiblepower.defpi.dashboard.HTTPResponseHandler;
+import org.flexiblepower.defpi.dashboard.HttpTask;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest;
+import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPResponse;
 import org.flexiblepower.service.Connection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Gateway_httpConnectionHandlerImpl
@@ -17,11 +26,15 @@ import org.flexiblepower.service.Connection;
  * @author wilco
  */
 @Generated(value = "org.flexiblepower.plugin.servicegen", date = "Oct 26, 2017 12:58:33 PM")
-public class Gateway_httpConnectionHandlerImpl implements Gateway_httpConnectionHandler {
+public class Gateway_httpConnectionHandlerImpl implements Gateway_httpConnectionHandler, HTTPResponseHandler {
+
+	public static final Logger LOG = LoggerFactory.getLogger(Gateway_httpConnectionHandlerImpl.class);
 
 	private final Connection connection;
 
 	private final Dashboard service;
+
+	private final ExecutorService executorService = Executors.newFixedThreadPool(2);
 
 	/**
 	 * Auto-generated constructor for the ConnectionHandlers of the provided service
@@ -36,7 +49,14 @@ public class Gateway_httpConnectionHandlerImpl implements Gateway_httpConnection
 
 	@Override
 	public void handleHTTPRequestMessage(HTTPRequest message) {
-		connection.send(service.getRequestRouter().handle(message));
+		// We run this in a separate thread, so the user thread is free to handle new
+		// incoming messages (which we need for widgets)
+		executorService.execute(new Runnable() {
+			@Override
+			public void run() {
+				service.getRequestRouter().handle(new HttpTask(message, Gateway_httpConnectionHandlerImpl.this, null));
+			}
+		});
 	}
 
 	@Override
@@ -67,6 +87,15 @@ public class Gateway_httpConnectionHandlerImpl implements Gateway_httpConnection
 	public void terminated() {
 		// TODO Auto-generated method stub
 
+	}
+
+	@Override
+	public synchronized void handleResponse(HttpTask httpTask, HTTPResponse response) {
+		try {
+			connection.send(response);
+		} catch (IOException e) {
+			LOG.error("Unable to respond to HTTP Request", e);
+		}
 	}
 
 }

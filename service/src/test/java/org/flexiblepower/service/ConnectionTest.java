@@ -190,7 +190,7 @@ public class ConnectionTest {
         Assert.assertEquals("connection-suspended", this.testService.getState());
 
         // Wait for at least one potential heartbeat that should NOT properly go
-        Thread.sleep(1000);
+        Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
 
         this.managementSocket.send(this.serializer.serialize(ConnectionMessage.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)

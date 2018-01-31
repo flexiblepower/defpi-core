@@ -27,8 +27,12 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +55,9 @@ public class TCPSocket implements Closeable {
     private final ExecutorService executor = Executors
             .newSingleThreadScheduledExecutor(r -> new Thread(r, "TCPthread " + TCPSocket.threadCounter++));
     private final Object waitLock = new Object();
+
+    private final ExecutorService readExecutor = Executors.newSingleThreadExecutor();
+    private Future<byte[]> readFuture;
 
     protected Socket socket;
 
@@ -126,28 +133,44 @@ public class TCPSocket implements Closeable {
     }
 
     public byte[] read(final int timeout) throws IOException, InterruptedException {
-        final long t_start = System.currentTimeMillis();
-
-        if (!this.ready()) {
-            this.waitUntilConnected(timeout);
+        if (this.readFuture == null) {
+            this.readFuture = this.readExecutor.submit(() -> this.doRead());
         }
 
-        if (this.inputStream.available() > 0) {
-            return this.read();
-        }
-
-        while ((this.inputStream.available() == 0) && ((System.currentTimeMillis() - t_start) < timeout)) {
-            Thread.sleep(Math.max(1, Math.min(10, timeout - (System.currentTimeMillis() - t_start))));
-        }
-
-        if (this.inputStream.available() > 0) {
-            return this.read();
-        } else {
+        try {
+            final byte[] ret = this.readFuture.get(timeout, TimeUnit.MILLISECONDS);
+            this.readFuture = null;
+            return ret;
+        } catch (final TimeoutException e) {
             return null;
+        } catch (final ExecutionException e) {
+            this.readFuture = null;
+            throw new IOException(e);
         }
     }
 
     public byte[] read() throws IOException {
+        if (this.readFuture != null) {
+            try {
+                return this.readFuture.get();
+            } catch (InterruptedException | ExecutionException e) {
+                this.readFuture = null;
+                throw new IOException(e);
+            }
+        }
+
+        return this.doRead();
+    }
+
+    private byte[] doRead() throws IOException {
+        if (!this.ready()) {
+            try {
+                this.waitUntilConnected(0);
+            } catch (final InterruptedException e) {
+                throw new IOException(e);
+            }
+        }
+
         if (this.isClosed()) {
             throw new ClosedChannelException();
         }
@@ -179,6 +202,14 @@ public class TCPSocket implements Closeable {
     }
 
     public void send(final byte[] data) throws IOException {
+        if (!this.ready()) {
+            try {
+                this.waitUntilConnected(0);
+            } catch (final InterruptedException e) {
+                throw new IOException(e);
+            }
+        }
+
         if (this.isClosed()) {
             throw new ClosedChannelException();
         }
