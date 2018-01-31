@@ -65,13 +65,13 @@ public class TCPSocketTest {
             Assert.assertNull(server.read(100));
             long t_wait = System.currentTimeMillis() - t_start;
             System.out.format("I had to wait %d ms\n", t_wait);
-            Assert.assertTrue(Math.abs(t_wait - 100) < 25);
+            Assert.assertTrue(Math.abs(t_wait - 100) < 50);
 
             t_start = System.currentTimeMillis();
             Assert.assertNull(server.read(200));
             t_wait = System.currentTimeMillis() - t_start;
             System.out.format("I had to wait %d ms\n", t_wait);
-            Assert.assertTrue(Math.abs(t_wait - 200) < 25);
+            Assert.assertTrue(Math.abs(t_wait - 200) < 50);
 
             client.send("Test data".getBytes());
             Assert.assertEquals("Test data", new String(server.read()));
