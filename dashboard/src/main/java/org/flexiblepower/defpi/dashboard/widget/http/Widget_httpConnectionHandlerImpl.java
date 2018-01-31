@@ -1,17 +1,13 @@
 package org.flexiblepower.defpi.dashboard.widget.http;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import javax.annotation.Generated;
 
 import org.flexiblepower.defpi.dashboard.Dashboard;
+import org.flexiblepower.defpi.dashboard.HttpTask;
 import org.flexiblepower.defpi.dashboard.HttpUtils;
 import org.flexiblepower.defpi.dashboard.Widget;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest;
@@ -22,8 +18,6 @@ import org.flexiblepower.defpi.dashboard.widget.http.proto.Widget_httpProto.Widg
 import org.flexiblepower.service.Connection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.protobuf.ByteString;
 
 /**
  * Widget_httpConnectionHandlerImpl
@@ -42,7 +36,7 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
 
 	private final Connection connection;
 	private final Dashboard service;
-	private final Map<Integer, CompletableFuture<HTTPResponse>> responseList = new ConcurrentHashMap<>();
+	private final Map<Integer, HttpTask> responseList = new ConcurrentHashMap<>();
 
 	/**
 	 * Auto-generated constructor for the ConnectionHandlers of the provided service
@@ -59,13 +53,12 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
 	@Override
 	public void handleWidgetHTTPResponseMessage(WidgetHTTPResponse message) {
 		LOG.debug("Received response " + message.getId());
-		CompletableFuture<HTTPResponse> completableFuture = this.responseList.get(message.getId());
-		if (completableFuture == null) {
+		HttpTask httpTask = this.responseList.get(message.getId());
+		if (httpTask == null) {
 			LOG.error("Received HTTPResponse for unknown request id: " + message.getId());
 		} else {
-			HTTPResponse response = HTTPResponse.newBuilder().setId(message.getId()).setBody(message.getBody())
-					.setStatus(message.getStatus()).putAllHeaders(message.getHeadersMap()).build();
-			completableFuture.complete(response);
+			httpTask.respond(HTTPResponse.newBuilder().setId(message.getId()).setBody(message.getBody())
+					.setStatus(message.getStatus()).putAllHeaders(message.getHeadersMap()).build());
 		}
 	}
 
@@ -99,39 +92,20 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
 	}
 
 	@Override
-	public HTTPResponse handle(HTTPRequest r) {
+	public void handle(HttpTask httpTask) {
+		HTTPRequest r = httpTask.getRequest();
 		WidgetHTTPRequest widgetRequest = WidgetHTTPRequest.newBuilder().setId(r.getId()).setUri(r.getUri())
 				.setBody(r.getBody()).setMethod(Method.valueOf(r.getMethod().toString()))
 				.putAllHeaders(r.getHeadersMap()).build();
-		CompletableFuture<HTTPResponse> future = new CompletableFuture<HTTPResponse>();
-		responseList.put(r.getId(), future);
+
+		responseList.put(r.getId(), httpTask);
 
 		LOG.debug("Sending request " + r.getId());
 		try {
 			connection.send(widgetRequest);
 		} catch (IOException e) {
 			LOG.error("Could not send HTTP request for Widget", e);
-			return HttpUtils.internalError(r);
-		}
-
-		return waitForResponse(r.getId());
-	}
-
-	private HTTPResponse waitForResponse(Integer requestId) {
-		try {
-			LOG.debug("Waiting for response " + requestId);
-			HTTPResponse httpResponse = responseList.get(requestId).get(30, TimeUnit.SECONDS);
-			LOG.debug("Done waiting for response " + requestId);
-			responseList.remove(requestId);
-			return httpResponse;
-		} catch (TimeoutException e) {
-			LOG.debug("Gateway Timeout");
-			return HTTPResponse.newBuilder().setId(requestId).setStatus(504)
-					.setBody(ByteString.copyFrom("Gateway timeout", Charset.defaultCharset())).build();
-		} catch (InterruptedException | ExecutionException e) {
-			LOG.error("Error while waiting for response", e);
-			return HTTPResponse.newBuilder().setId(requestId).setStatus(500)
-					.setBody(ByteString.copyFrom("Error", Charset.defaultCharset())).build();
+			HttpUtils.internalError(httpTask);
 		}
 	}
 

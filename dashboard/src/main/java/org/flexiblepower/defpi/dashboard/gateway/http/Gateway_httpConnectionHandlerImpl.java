@@ -7,8 +7,13 @@ import java.util.concurrent.Executors;
 import javax.annotation.Generated;
 
 import org.flexiblepower.defpi.dashboard.Dashboard;
+import org.flexiblepower.defpi.dashboard.HTTPResponseHandler;
+import org.flexiblepower.defpi.dashboard.HttpTask;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest;
+import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPResponse;
 import org.flexiblepower.service.Connection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Gateway_httpConnectionHandlerImpl
@@ -21,7 +26,9 @@ import org.flexiblepower.service.Connection;
  * @author wilco
  */
 @Generated(value = "org.flexiblepower.plugin.servicegen", date = "Oct 26, 2017 12:58:33 PM")
-public class Gateway_httpConnectionHandlerImpl implements Gateway_httpConnectionHandler {
+public class Gateway_httpConnectionHandlerImpl implements Gateway_httpConnectionHandler, HTTPResponseHandler {
+
+	public static final Logger LOG = LoggerFactory.getLogger(Gateway_httpConnectionHandlerImpl.class);
 
 	private final Connection connection;
 
@@ -47,11 +54,7 @@ public class Gateway_httpConnectionHandlerImpl implements Gateway_httpConnection
 		executorService.execute(new Runnable() {
 			@Override
 			public void run() {
-				try {
-					connection.send(service.getRequestRouter().handle(message));
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+				service.getRequestRouter().handle(new HttpTask(message, Gateway_httpConnectionHandlerImpl.this, null));
 			}
 		});
 	}
@@ -84,6 +87,15 @@ public class Gateway_httpConnectionHandlerImpl implements Gateway_httpConnection
 	public void terminated() {
 		// TODO Auto-generated method stub
 
+	}
+
+	@Override
+	public synchronized void handleResponse(HttpTask httpTask, HTTPResponse response) {
+		try {
+			connection.send(response);
+		} catch (IOException e) {
+			LOG.error("Unable to respond to HTTP Request", e);
+		}
 	}
 
 }
