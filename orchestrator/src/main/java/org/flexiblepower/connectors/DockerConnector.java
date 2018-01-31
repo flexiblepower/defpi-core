@@ -47,10 +47,10 @@ import org.flexiblepower.proto.DefPiParams;
 
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.DockerClient.ListNetworksParam;
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.ContainerInfo;
-import com.spotify.docker.client.messages.Network;
 import com.spotify.docker.client.messages.NetworkConfig;
 import com.spotify.docker.client.messages.ServiceCreateResponse;
 import com.spotify.docker.client.messages.mount.Mount;
@@ -123,7 +123,7 @@ public class DockerConnector {
      * @return
      * @throws ServiceNotFoundException
      */
-    public synchronized String newProcess(final Process process) throws ServiceNotFoundException {
+    public String newProcess(final Process process) throws ServiceNotFoundException {
         try {
             this.ensureProcessNetworkExists(process);
             this.ensureProcessNetworkIsAttached(process);
@@ -179,7 +179,7 @@ public class DockerConnector {
      * @throws ProcessNotFoundException
      * @throws ServiceNotFoundException
      */
-    public synchronized boolean removeProcess(final Process process) throws ProcessNotFoundException {
+    public boolean removeProcess(final Process process) throws ProcessNotFoundException {
         if (process.getDockerId() != null) {
             try {
                 this.client.removeService(process.getDockerId());
@@ -200,7 +200,7 @@ public class DockerConnector {
     /**
      * @return
      */
-    public synchronized List<com.spotify.docker.client.messages.swarm.Node> listNodes() {
+    public List<com.spotify.docker.client.messages.swarm.Node> listNodes() {
         try {
             return this.client.listNodes();
         } catch (DockerException | InterruptedException e) {
@@ -214,7 +214,8 @@ public class DockerConnector {
     private void ensureProcessNetworkExists(final Process process) throws DockerException, InterruptedException {
         final String networkName = DockerConnector.getNetworkNameFromProcess(process);
         // check if it exists
-        if (!this.listNetworks().values().contains(networkName)) {
+        if (this.client.listNetworks(ListNetworksParam.byNetworkName(networkName)).isEmpty()) {
+            // if (!this.listNetworks().values().contains(networkName)) {
             this.newNetwork(networkName);
         }
     }
@@ -222,7 +223,8 @@ public class DockerConnector {
     private void ensureUserNetworkExists(final User user) throws DockerException, InterruptedException {
         final String networkName = DockerConnector.getNetworkNameFromUser(user);
         // check if it exists
-        if (!this.listNetworks().values().contains(networkName)) {
+        if (this.client.listNetworks(ListNetworksParam.byNetworkName(networkName)).isEmpty()) {
+            // if (!this.listNetworks().values().contains(networkName)) {
             this.newNetwork(networkName);
         }
     }
@@ -245,13 +247,10 @@ public class DockerConnector {
     public void ensureProcessNetworkIsAttached(final Process process) throws InterruptedException, DockerException {
         try {
             final String newProcessNetworkName = DockerConnector.getNetworkNameFromProcess(process);
-            String networkId = null;
-            for (final Network network : this.client.listNetworks()) {
-                if (network.name().equals(newProcessNetworkName)) {
-                    networkId = network.id();
-                    break;
-                }
-            }
+            final String networkId = this.client.listNetworks(ListNetworksParam.byNetworkName(newProcessNetworkName))
+                    .get(0)
+                    .id();
+
             // Connect orchestrator to network
             final String orchestratorContainerId = DockerConnector.getOrchestratorContainerId();
             final ContainerInfo orchestratorInfo = this.client.inspectContainer(orchestratorContainerId);
@@ -316,18 +315,6 @@ public class DockerConnector {
         } catch (final UnknownHostException e) {
             throw new DockerException("Unable to get local container id by hostname", e);
         }
-    }
-
-    /**
-     * @return
-     * @throws InterruptedException
-     * @throws DockerException
-     */
-    private Map<String, String> listNetworks() throws DockerException, InterruptedException {
-        final List<Network> networks = this.client.listNetworks();
-        final Map<String, String> ret = new HashMap<>();
-        networks.forEach((x) -> ret.put(x.id(), x.name()));
-        return ret;
     }
 
     /**

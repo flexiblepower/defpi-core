@@ -82,6 +82,7 @@
 
 	<modules>
 		<module>../../dashboard-gateway</module>
+		<module>../../dashboard</module>
 	</modules>
 
 	<!-- Where to push the service parent itself, should not be used by children -->
