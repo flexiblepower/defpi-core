@@ -3,7 +3,6 @@ package org.flexiblepower.defpi.dashboard;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.charset.Charset;
 
 import org.apache.commons.io.IOUtils;
@@ -21,26 +20,51 @@ public class HttpUtils {
 	public static final String NO_CACHE_KEY = "Cache-Control";
 	public static final String NO_CACHE_VALUE = "no-cache, no-store, must-revalidate";
 
-	public static HTTPResponse notFound(HTTPRequest request) {
-		return HTTPResponse.newBuilder().setId(request.getId()).setStatus(404).putHeaders(CONTENT_TYPE, TEXT_PLAIN)
-				.setBody(ByteString.copyFromUtf8(
-						"404: Not found\nThe requested resource " + request.getUri() + " could not been found"))
-				.build();
+	public static void notFound(HttpTask httpTask) {
+		httpTask.respond(HTTPResponse.newBuilder().setId(httpTask.getRequest().getId()).setStatus(404)
+				.putHeaders(CONTENT_TYPE, TEXT_PLAIN)
+				.setBody(ByteString.copyFromUtf8("404: Not found\nThe requested resource "
+						+ httpTask.getRequest().getUri() + " could not be found"))
+				.build());
 	}
 
-	public static HTTPResponse internalError(HTTPRequest request) {
-		return HTTPResponse.newBuilder().setId(request.getId()).setStatus(500).putHeaders(CONTENT_TYPE, TEXT_PLAIN)
-				.setBody(ByteString.copyFromUtf8("500: Internal server error.")).build();
+	public static void internalError(HttpTask httpTask) {
+		httpTask.respond(HTTPResponse.newBuilder().setId(httpTask.getRequest().getId()).setStatus(500)
+				.putHeaders(CONTENT_TYPE, TEXT_PLAIN).setBody(ByteString.copyFromUtf8("500: Internal server error."))
+				.build());
 	}
 
-	public static HTTPResponse internalError(HTTPRequest request, String reason) {
-		return HTTPResponse.newBuilder().setId(request.getId()).setStatus(500).putHeaders(CONTENT_TYPE, TEXT_PLAIN)
-				.setBody(ByteString.copyFromUtf8("500: Internal server error\n" + reason)).build();
+	public static void internalError(HttpTask httpTask, String reason) {
+		httpTask.respond(HTTPResponse.newBuilder().setId(httpTask.getRequest().getId()).setStatus(500)
+				.putHeaders(CONTENT_TYPE, TEXT_PLAIN)
+				.setBody(ByteString.copyFromUtf8("500: Internal server error\n" + reason)).build());
 	}
 
-	public static HTTPResponse badRequest(HTTPRequest request, String reason) {
-		return HTTPResponse.newBuilder().setId(request.getId()).setStatus(400).putHeaders(CONTENT_TYPE, TEXT_PLAIN)
-				.setBody(ByteString.copyFromUtf8("400: Bad request\n" + reason)).build();
+	public static void badRequest(HttpTask httpTask, String reason) {
+		httpTask.respond(HTTPResponse.newBuilder().setId(httpTask.getRequest().getId()).setStatus(400)
+				.putHeaders(CONTENT_TYPE, TEXT_PLAIN).setBody(ByteString.copyFromUtf8("400: Bad request\n" + reason))
+				.build());
+	}
+
+	public static void serveStaticFile(HttpTask httpTask, String filename) {
+		try {
+			httpTask.respond(HTTPResponse.newBuilder().setId(httpTask.getRequest().getId()).setStatus(200)
+					.putHeaders(HttpUtils.CONTENT_TYPE, HttpUtils.getContentType(filename))
+					.setBody(ByteString.copyFrom(IOUtils.toByteArray(new FileInputStream(new File(filename)))))
+					.build());
+		} catch (Exception e) {
+			HttpUtils.internalError(httpTask);
+		}
+	}
+
+	public static void serveDynamicText(HttpTask httpTask, String contentType, String body) {
+		try {
+			httpTask.respond(HTTPResponse.newBuilder().setId(httpTask.getRequest().getId()).setStatus(200)
+					.putHeaders(HttpUtils.CONTENT_TYPE, contentType).putHeaders(NO_CACHE_KEY, NO_CACHE_VALUE)
+					.setBody(ByteString.copyFromUtf8(body)).build());
+		} catch (Exception e) {
+			HttpUtils.internalError(httpTask);
+		}
 	}
 
 	public static HTTPResponse setNoCache(HTTPResponse response) {
@@ -81,38 +105,6 @@ public class HttpUtils {
 			contentType = TEXT_PLAIN;
 		}
 		return contentType;
-	}
-
-	public static String path(String uri) {
-		return URI.create(uri).getPath();
-	}
-
-	public static String fragment(String uri) {
-		return URI.create(uri).getFragment();
-	}
-
-	public static String query(String uri) {
-		return URI.create(uri).getQuery();
-	}
-
-	public static HTTPResponse serveStaticFile(HTTPRequest request, String filename) {
-		try {
-			return HTTPResponse.newBuilder().setId(request.getId()).setStatus(200)
-					.putHeaders(HttpUtils.CONTENT_TYPE, HttpUtils.getContentType(filename))
-					.setBody(ByteString.copyFrom(IOUtils.toByteArray(new FileInputStream(new File(filename))))).build();
-		} catch (Exception e) {
-			return HttpUtils.internalError(request);
-		}
-	}
-
-	public static HTTPResponse serveDynamicText(HTTPRequest request, String contentType, String body) {
-		try {
-			return HTTPResponse.newBuilder().setId(request.getId()).setStatus(200)
-					.putHeaders(HttpUtils.CONTENT_TYPE, contentType).putHeaders(NO_CACHE_KEY, NO_CACHE_VALUE)
-					.setBody(ByteString.copyFromUtf8(body)).build();
-		} catch (Exception e) {
-			return HttpUtils.internalError(request);
-		}
 	}
 
 	public static String readTextFile(String path) throws IOException {
