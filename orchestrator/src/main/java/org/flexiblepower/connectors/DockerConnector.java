@@ -92,7 +92,7 @@ public class DockerConnector {
 
     private static DockerConnector instance = null;
 
-    private final DockerClient client;
+    private DockerClient client;
 
     public static DockerClient init() throws DockerCertificateException {
         final String dockerHost = System.getenv(DockerConnector.DOCKER_HOST_KEY);
@@ -101,7 +101,6 @@ public class DockerConnector {
         } else {
             return DefaultDockerClient.builder().uri(dockerHost).build();
         }
-        // .dockerCertificates(new DockerCertificates(Paths.get(DockerConnector.CERT_PATH)))
     }
 
     private DockerConnector() {
@@ -167,8 +166,9 @@ public class DockerConnector {
 
             return id;
         } catch (DockerException | InterruptedException e) {
-            DockerConnector.log.debug("Exception while starting new process: {}", e.getMessage());
+            DockerConnector.log.error("Exception while starting new process: {}", e.getMessage());
             DockerConnector.log.trace(e.getMessage(), e);
+            DockerConnector.instance = null;
             return null;
         }
     }
@@ -188,6 +188,7 @@ public class DockerConnector {
                 throw new ProcessNotFoundException(process.getId().toString());
             } catch (DockerException | InterruptedException e) {
                 DockerConnector.log.error("Error while removing process: {}", e.getMessage());
+                DockerConnector.instance = null;
             }
         } else {
             // Container was probably never created
@@ -205,6 +206,7 @@ public class DockerConnector {
         } catch (DockerException | InterruptedException e) {
             DockerConnector.log.error("Error while listing nodes: {}", e.getMessage());
             DockerConnector.log.trace("Error while listing nodes", e);
+            DockerConnector.instance = null;
             throw new ApiException(e);
         }
     }
@@ -240,38 +242,43 @@ public class DockerConnector {
      * @throws InterruptedException
      * @throws DockerException
      */
-    public void ensureProcessNetworkIsAttached(final Process process) throws DockerException, InterruptedException {
-        final String newProcessNetworkName = DockerConnector.getNetworkNameFromProcess(process);
-        String networkId = null;
-        for (final Network network : this.client.listNetworks()) {
-            if (network.name().equals(newProcessNetworkName)) {
-                networkId = network.id();
-                break;
-            }
-        }
-        // Connect orchestrator to network
-        final String orchestratorContainerId = DockerConnector.getOrchestratorContainerId();
-        final ContainerInfo orchestratorInfo = this.client.inspectContainer(orchestratorContainerId);
-        if (!orchestratorInfo.networkSettings().networks().containsKey(newProcessNetworkName)) {
-            DockerConnector.log.info("Connecting {} to network {}", orchestratorContainerId, newProcessNetworkName);
-            this.client.connectToNetwork(orchestratorContainerId, newProcessNetworkName);
-        }
-        // Connect dashboard gateway to network
-        final Process dashboardGateway = ProcessManager.getInstance().getDashboardGateway();
-        if (dashboardGateway != null) {
-            final String dockerServiceId = dashboardGateway.getDockerId();
-            if (!dashboardGateway.getId().equals(process.getId()) && (dockerServiceId != null)) {
-                final com.spotify.docker.client.messages.swarm.Service dashboardInfo = this.client
-                        .inspectService(dockerServiceId);
-                for (final NetworkAttachmentConfig network : dashboardInfo.spec().networks()) {
-                    if (network.target().equals(networkId)) {
-                        // It is already atteched, we're done here!
-                        return;
-                    }
+    public void ensureProcessNetworkIsAttached(final Process process) throws InterruptedException, DockerException {
+        try {
+            final String newProcessNetworkName = DockerConnector.getNetworkNameFromProcess(process);
+            String networkId = null;
+            for (final Network network : this.client.listNetworks()) {
+                if (network.name().equals(newProcessNetworkName)) {
+                    networkId = network.id();
+                    break;
                 }
-                // If we're here that means that the dashboard proxy is not yet part of this network
-                this.updateDashboardGatewayService(process, dashboardGateway);
             }
+            // Connect orchestrator to network
+            final String orchestratorContainerId = DockerConnector.getOrchestratorContainerId();
+            final ContainerInfo orchestratorInfo = this.client.inspectContainer(orchestratorContainerId);
+            if (!orchestratorInfo.networkSettings().networks().containsKey(newProcessNetworkName)) {
+                DockerConnector.log.info("Connecting {} to network {}", orchestratorContainerId, newProcessNetworkName);
+                this.client.connectToNetwork(orchestratorContainerId, newProcessNetworkName);
+            }
+            // Connect dashboard gateway to network
+            final Process dashboardGateway = ProcessManager.getInstance().getDashboardGateway();
+            if (dashboardGateway != null) {
+                final String dockerServiceId = dashboardGateway.getDockerId();
+                if (!dashboardGateway.getId().equals(process.getId()) && (dockerServiceId != null)) {
+                    final com.spotify.docker.client.messages.swarm.Service dashboardInfo = this.client
+                            .inspectService(dockerServiceId);
+                    for (final NetworkAttachmentConfig network : dashboardInfo.spec().networks()) {
+                        if (network.target().equals(networkId)) {
+                            // It is already atteched, we're done here!
+                            return;
+                        }
+                    }
+                    // If we're here that means that the dashboard proxy is not yet part of this network
+                    this.updateDashboardGatewayService(process, dashboardGateway);
+                }
+            }
+        } catch (DockerException | InterruptedException e) {
+            DockerConnector.instance = null;
+            throw e;
         }
     }
 
@@ -520,6 +527,7 @@ public class DockerConnector {
         } catch (DockerException | InterruptedException e) {
             DockerConnector.log.warn("Error obtaining running image: {}", e.getMessage());
             DockerConnector.log.trace(e.getMessage(), e);
+            DockerConnector.instance = null;
             return "Unknown";
         }
     }

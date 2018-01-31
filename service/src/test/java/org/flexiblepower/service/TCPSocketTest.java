@@ -60,17 +60,18 @@ public class TCPSocketTest {
         try (
                 final TCPSocket client = TCPSocket.asClient("127.0.0.1", 5000);
                 final TCPSocket server = TCPSocket.asServer(5000)) {
+            client.waitUntilConnected(0);
             long t_start = System.currentTimeMillis();
             Assert.assertNull(server.read(100));
             long t_wait = System.currentTimeMillis() - t_start;
             System.out.format("I had to wait %d ms\n", t_wait);
-            Assert.assertTrue(Math.abs(t_wait - 100) < 10);
+            Assert.assertTrue(Math.abs(t_wait - 100) < 25);
 
             t_start = System.currentTimeMillis();
             Assert.assertNull(server.read(200));
             t_wait = System.currentTimeMillis() - t_start;
             System.out.format("I had to wait %d ms\n", t_wait);
-            Assert.assertTrue(Math.abs(t_wait - 200) < 10);
+            Assert.assertTrue(Math.abs(t_wait - 200) < 25);
 
             client.send("Test data".getBytes());
             Assert.assertEquals("Test data", new String(server.read()));
@@ -140,10 +141,10 @@ public class TCPSocketTest {
             }
         });
         client2.start();
-        Thread.sleep(1000);
+        Thread.sleep(100);
 
         client1.interrupt();
-        Thread.sleep(1000);
+        Thread.sleep(100);
         client2.interrupt();
     }
 

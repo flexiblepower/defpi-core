@@ -19,6 +19,7 @@
 package org.flexiblepower.rest;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -132,9 +133,13 @@ public class UserRestApi extends BaseApi implements UserApi {
             throw new AuthorizationException();
         } else if (this.sessionUser.isAdmin()) {
             final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
+            final List<User> userList = this.db.listUsers(page, perPage, sortDir, sortField, filter);
+
+            userList.forEach((u) -> u.clearPasswordHash());
+
             return Response.status(Status.OK.getStatusCode())
                     .header("X-Total-Count", Integer.toString(this.db.countUsers(filter)))
-                    .entity(this.db.listUsers(page, perPage, sortDir, sortField, filter))
+                    .entity(userList)
                     .build();
         } else {
             return Response.status(Status.OK.getStatusCode())
