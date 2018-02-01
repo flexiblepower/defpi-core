@@ -169,3 +169,24 @@ deploy:
     - 'docker-compose -f orchestrator/docker-compose.test.yml pull'
   script:
     - 'docker-compose -f orchestrator/docker-compose.test.yml up -d'
+
+# How to deploy the ek2 services to the registry
+.integrate_template: &deploy_dashboard
+  only:
+    - ek2_ui
+  stage: deploy
+  script:
+    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml clean deploy -pl ../$TEST_PROJ -am -DskipTests -Ddocker.registry=defpi.hesilab.nl:5000'
+
+# Deploy the dashboard
+integrate:skeleton_proto:
+  variables:
+    TEST_PROJ: dashboard
+  <<: *deploy_dashboard
+
+# Deploy the dashboard gateway
+integrate:xsd_proto:
+  variables:
+    TEST_PROJ: dashboard_gateway
+  <<: *deploy_dashboard
+
