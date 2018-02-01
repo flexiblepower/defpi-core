@@ -282,7 +282,14 @@ public class ConnectionManager {
             if (intface.isAutoConnect()) {
                 // search for other processes with that interface
                 final Process dashboardGateway = ProcessManager.getInstance().getDashboardGateway();
-                List<Process> processesToConnectWith = ProcessManager.getInstance().listProcesses(user);
+                List<Process> processesToConnectWith;
+                if (process.getServiceId().equals(ProcessManager.getDashboardGatewayServiceId())) {
+                    // This is the dashboard-gateway. It can connect with the dashboard process from every user.
+                    processesToConnectWith = ProcessManager.getInstance().listProcesses();
+                } else {
+                    // This is a normal process. It can connect with processes of this user.
+                    processesToConnectWith = ProcessManager.getInstance().listProcesses(user);
+                }
                 if (dashboardGateway != null) {
                     // If there is a dashboard-gateway, that is also a process that could be connected
                     final List<Process> newList = new ArrayList<>();
