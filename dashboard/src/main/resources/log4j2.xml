@@ -10,7 +10,7 @@
 		<Logger name="nl.tno" level="TRACE" />
 		<Logger name="org.flexiblepower" level="TRACE" />
 		<Logger name="net.powermatcher" level="TRACE" />
-		<Root level="WARN">
+		<Root level="DEBUG">
 			<AppenderRef ref="Console" />
 		</Root>
 	</Loggers>

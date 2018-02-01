@@ -3,25 +3,25 @@
 	"version": "1",
 	"parameters": [
 		{
-	  	  "id": "cemHashPair",
-	  	  "name": "cemHashPair",
-	  	  "type": "string"
-	  	},
+			"id": "cemHashPair",
+			"name": "cemHashPair",
+			"type": "string"
+		},
 		{
-	  	  "id": "rmHashPair",
-	  	  "name": "rmHashPair",
-	  	  "type": "string"
-	  	},
+			"id": "rmHashPair",
+			"name": "rmHashPair",
+			"type": "string"
+		},
 		{
-	  	  "id": "obsConsumerHashPair",
-	  	  "name": "obsConsumerHashPair",
-	  	  "type": "string"
-	  	},
+			"id": "obsConsumerHashPair",
+			"name": "obsConsumerHashPair",
+			"type": "string"
+		},
 		{
-	  	  "id": "obsPublisherHashPair",
-	  	  "name": "obsPublisherHashPair",
-	  	  "type": "string"
-	  	}
+			"id": "obsPublisherHashPair",
+			"name": "obsPublisherHashPair",
+			"type": "string"
+		}
 	],
 	"interfaces": [
 		{
@@ -44,7 +44,7 @@
 		},
 		{
 			"name": "widget",
-			"autoConnect": false,
+			"autoConnect": true,
 			"allowMultiple": true,
 			"interfaceVersions": [
 				{
@@ -55,6 +55,7 @@
 						"WidgetHTTPRequest"
 					],
 					"receives": [
+						"WidgetInfo",
 						"WidgetHTTPResponse"
 					]
 				}

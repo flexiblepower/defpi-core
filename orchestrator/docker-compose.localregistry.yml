@@ -4,7 +4,7 @@ networks:
     driver: overlay
 services:
   orchestrator:
-    image: localhost:5000/defpi/orchestrator:latest
+    image: defpi.hesilab.nl:5000/defpi/orchestrator:latest
     ports:
       - 8484:8080
       - 9999:9999
@@ -19,7 +19,8 @@ services:
       - MONGO_HOST=mongo_test
       - MONGO_DATABASE=def-pi
       - MONGO_PORT=27017
-      - REGISTRY_URL=localhost:5000
+      - REGISTRY_URL=registry:5000
+      - REGISTRY_EXTERNAL_URL=localhost:5000
       - USE_SECURE_REGISTRY=false
   orchestrator-ui:
     image: defpi.hesilab.nl:5000/defpi/orchestrator-ui
@@ -29,6 +30,8 @@ services:
       - ORCHESTRATOR_URL=http://127.0.0.1:8484/
   registry:
     image: registry:2
+    networks:
+     - management
     ports:
       - 5000:5000
   mongo_test:

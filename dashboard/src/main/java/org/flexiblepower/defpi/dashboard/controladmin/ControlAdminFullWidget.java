@@ -3,18 +3,14 @@ package org.flexiblepower.defpi.dashboard.controladmin;
 import java.util.HashMap;
 
 import org.flexiblepower.defpi.dashboard.Dashboard;
+import org.flexiblepower.defpi.dashboard.HttpTask;
 import org.flexiblepower.defpi.dashboard.HttpUtils;
 import org.flexiblepower.defpi.dashboard.Widget;
 import org.flexiblepower.defpi.dashboard.controladmin.defpi.DefPiConnectionAdmin;
-import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest.Method;
-import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * @author subramaniana
- */
 public class ControlAdminFullWidget implements Widget {
 
 	public static final Logger LOG = LoggerFactory.getLogger(ControlAdminFullWidget.class);
@@ -31,99 +27,6 @@ public class ControlAdminFullWidget implements Widget {
 		this.service = service;
 		this.connectionAdmin = new DefPiConnectionAdmin(service.getParameters());
 	}
-	//
-	// private boolean breakMyConnection(String processId, String hashPair) {
-	// String[] hash = hashPair.split(";");
-	// Process process = getMyProcess(processId);
-	// List<org.flexiblepower.model.Connection> myConnections =
-	// getMyConnections(processId);
-	// try {
-	// Service service = serviceApi.getService(process.getServiceId());
-	// for (Interface i : service.getInterfaces()) {
-	// for (InterfaceVersion iV : i.getInterfaceVersions()) {
-	// if (iV.getSendsHash().equals(hash[0]) &&
-	// iV.getReceivesHash().equals(hash[1])) {
-	// for (org.flexiblepower.model.Connection connection : myConnections) {
-	// // if(connection.getEndpoint1().)
-	// }
-	// }
-	// }
-	// }
-	// } catch (NotFoundException | AuthorizationException e) {
-	// LOG.error("There was an error looking up the service for process " +
-	// processId);
-	// return false;
-	// }
-	//
-	// return true;
-	// }
-	//
-	// private boolean isConnected(String process1, String process2) {
-	// List<org.flexiblepower.model.Connection> myConnections =
-	// getMyConnections(process1);
-	// if (myConnections != null) {
-	// for (org.flexiblepower.model.Connection connection : myConnections) {
-	// if ((connection.getEndpoint1().getProcessId().toString().equals(process1)
-	// && connection.getEndpoint2().getProcessId().toString().equals(process2))
-	// || (connection.getEndpoint2().getProcessId().toString().equals(process1)
-	// && connection.getEndpoint1().getProcessId().toString().equals(process2))) {
-	// return true;
-	// }
-	// }
-	// }
-	// return false;
-	// }
-	//
-	// private Process getMyProcess(String processId) {
-	// for (Process process : cemProcessMap.keySet()) {
-	// if (process.getId().toString().equals(processId)) {
-	// return process;
-	// }
-	// }
-	// for (Process process : rmProcessMap.keySet()) {
-	// if (process.getId().toString().equals(processId)) {
-	// return process;
-	// }
-	// }
-	// for (Process process : obsConProcessMap.keySet()) {
-	// if (process.getId().toString().equals(processId)) {
-	// return process;
-	// }
-	// }
-	// for (Process process : obsPubProcessMap.keySet()) {
-	// if (process.getId().toString().equals(processId)) {
-	// return process;
-	// }
-	// }
-	//
-	// return null;
-	// }
-	//
-	// private List<org.flexiblepower.model.Connection> getMyConnections(String
-	// processId) {
-	// for (Process process : cemProcessMap.keySet()) {
-	// if (process.getId().toString().equals(processId)) {
-	// return cemProcessMap.get(process);
-	// }
-	// }
-	// for (Process process : rmProcessMap.keySet()) {
-	// if (process.getId().toString().equals(processId)) {
-	// return rmProcessMap.get(process);
-	// }
-	// }
-	// for (Process process : obsConProcessMap.keySet()) {
-	// if (process.getId().toString().equals(processId)) {
-	// return obsConProcessMap.get(process);
-	// }
-	// }
-	// for (Process process : obsPubProcessMap.keySet()) {
-	// if (process.getId().toString().equals(processId)) {
-	// return obsPubProcessMap.get(process);
-	// }
-	// }
-	//
-	// return null;
-	// }
 
 	private HashMap<String, String> parseUpdatePost(String body) {
 		LOG.debug("body to parse: " + body);
@@ -138,47 +41,6 @@ public class ControlAdminFullWidget implements Widget {
 		LOG.debug("result: " + map);
 		return map;
 	}
-	//
-	// private HTTPResponse sendResponse(int id, int status, String response) {
-	// return
-	// HTTPResponse.newBuilder().setId(id).setBody(ByteString.copyFromUtf8(response)).setStatus(status).build();
-	// }
-
-	// private HashMap<Process, List<org.flexiblepower.model.Connection>>
-	// getProcessConnectionMap(String hashpair) {
-	// HashMap<Process, List<org.flexiblepower.model.Connection>> processMap = new
-	// HashMap<>();
-	// List<org.flexiblepower.model.Connection> processConnections;
-	// List<org.flexiblepower.model.Connection> connectionList;
-	// JSONObject filter = new JSONObject();
-	// String encodedFilter = null;
-	// List<Process> processes = null;
-	// try {
-	// filter.put("hashpair", hashpair);
-	// LOG.debug("hashpair: " + filter.toString());
-	// encodedFilter = URLEncoder.encode(filter.toString(), "UTF-8");
-	// LOG.debug("encoded hashpair: " + encodedFilter.toString());
-	// processes = processApi.listProcesses(encodedFilter);
-	// for (Process process : processes) {
-	// filter = new JSONObject();
-	// filter.put("processId", process.getId());
-	// encodedFilter = URLEncoder.encode(filter.toString(), "UTF-8");
-	// connectionList = connApi.listConnections(encodedFilter);
-	//
-	// processConnections = processMap.get(process);
-	// if (processConnections == null) {
-	// processMap.put(process, connectionList);
-	// } else {
-	// processConnections.addAll(connectionList);
-	// processMap.put(process, processConnections);
-	// }
-	// }
-	// } catch (UnsupportedEncodingException | AuthorizationException e) {
-	// e.printStackTrace();
-	// return null;
-	// }
-	// return processMap;
-	// }
 
 	private String stripURI(String uri) {
 		int begin = 0;
@@ -194,10 +56,10 @@ public class ControlAdminFullWidget implements Widget {
 	}
 
 	@Override
-	public HTTPResponse handle(HTTPRequest message) {
+	public void handle(HttpTask httpTask) {
 		try {
-			Method method = message.getMethod();
-			String uri = stripURI(message.getUri());
+			Method method = httpTask.getRequest().getMethod();
+			String uri = stripURI(httpTask.getUri());
 			if (method.equals(Method.GET)) {
 				if ("index.html".equals(uri)) {
 					connectionAdmin.refreshData();
@@ -205,13 +67,15 @@ public class ControlAdminFullWidget implements Widget {
 					html = html.replace("@EFITABLE@", new EfiTableModel(connectionAdmin).generateTable());
 					html = html.replace("@OBSTABLE@", new ObsTableModel(connectionAdmin).generateTable());
 
-					return HttpUtils.serveDynamicText(message, HttpUtils.TEXT_HTML, html);
+					HttpUtils.serveDynamicText(httpTask, HttpUtils.TEXT_HTML, html);
+					return;
 				} else if ("menu.png".equals(uri)) {
-					return HttpUtils.serveStaticFile(message, "/dynamic/widgets/ControlAdminFullWidget/menu.png");
+					HttpUtils.serveStaticFile(httpTask, "/dynamic/widgets/ControlAdminFullWidget/menu.png");
+					return;
 				}
 			} else if (method.equals(Method.POST)) {
 				if ("index.html".equals(uri)) {
-					HashMap<String, String> postData = parseUpdatePost(message.getBody());
+					HashMap<String, String> postData = parseUpdatePost(httpTask.getRequest().getBody());
 
 					LOG.debug("Received the folling POST data: " + postData);
 
@@ -225,13 +89,14 @@ public class ControlAdminFullWidget implements Widget {
 					html = html.replace("@EFITABLE@", efiTableModel.generateTable());
 					html = html.replace("@OBSTABLE@", obsTableModel.generateTable());
 
-					return HttpUtils.serveDynamicText(message, HttpUtils.TEXT_HTML, html);
+					HttpUtils.serveDynamicText(httpTask, HttpUtils.TEXT_HTML, html);
+					return;
 				}
 			}
-			return HttpUtils.notFound(message);
+			HttpUtils.notFound(httpTask);
 		} catch (Exception e) {
 			LOG.error("Could not generate ControlAdmin response", e);
-			return HttpUtils.internalError(message);
+			HttpUtils.internalError(httpTask);
 		}
 	}
 
@@ -248,6 +113,11 @@ public class ControlAdminFullWidget implements Widget {
 	@Override
 	public Type getType() {
 		return Type.FULL;
+	}
+
+	@Override
+	public boolean isActive() {
+		return true;
 	}
 
 }
