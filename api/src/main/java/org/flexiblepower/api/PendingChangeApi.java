@@ -98,4 +98,16 @@ public interface PendingChangeApi {
             @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
             @QueryParam("_sortField") @DefaultValue("id") String sortField,
             @QueryParam("_filters") @DefaultValue("{}") String filters) throws AuthorizationException;
+
+    @DELETE
+    @Path("/clean")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ApiOperation(nickname = "cleanPendingChanges",
+                  value = "Clean PendingChange",
+                  notes = "Clean up all lingering and permanently failed PendingChanges",
+                  code = 204,
+                  authorizations = {@Authorization(value = OrchestratorApi.ADMIN_AUTHENTICATION)})
+    @ApiResponses(value = {@ApiResponse(code = 204, message = "PendingChanges cleaned"),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
+    public void cleanPendingChanges() throws AuthorizationException;
 }
