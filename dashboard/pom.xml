@@ -31,7 +31,7 @@
 		<dependency>
 			<groupId>org.apache.cxf</groupId>
 			<artifactId>cxf-rt-rs-client</artifactId>
-			<version>3.2.0</version>
+			<version>3.2.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.flexiblepower.defpi</groupId>
@@ -80,6 +80,38 @@
 					</execution>
 				</executions>
 			</plugin>
+
+			<plugin>
+				<!-- Althoug this is also defined in the service-parent, it is required 
+					to make sure docker gets the shaded jar, and not the assembly jar -->
+				<groupId>com.spotify</groupId>
+				<artifactId>docker-maven-plugin</artifactId>
+				<version>1.0.0</version>
+				<executions>
+					<execution>
+						<!-- Build x86_64 image -->
+						<id>build-image</id>
+						<phase>package</phase>
+						<goals>
+							<goal>build</goal>
+						</goals>
+						<configuration>
+							<dockerDirectory>${project.build.directory}/docker</dockerDirectory>
+							<resources>
+								<resource>
+									<directory>${project.build.directory}</directory>
+									<include>${project.artifactId}-${project.version}-jar-with-dependencies.jar</include>
+								</resource>
+							</resources>
+							<imageName>${docker.imageName}:latest</imageName>
+							<imageTags>
+								<imageTag>${project.version}</imageTag>
+							</imageTags>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
 		</plugins>
 	</build>
 
