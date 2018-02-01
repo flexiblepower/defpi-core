@@ -35,18 +35,36 @@ import org.flexiblepower.codegen.compiler.Compiler;
  */
 public class ProtoCompiler implements Compiler {
 
+    private static final Object downloadFileLock = new Object();
     protected final File compilerFile;
-    private final String protobufVersion;
 
     public ProtoCompiler(final String protobufVersion) throws IOException {
         final String protoFilename = String.format("protoc-%s-%s-%s.exe",
                 protobufVersion,
                 ProtoCompiler.getOsName(),
                 ProtoCompiler.getArchitecture());
-        this.protobufVersion = protobufVersion;
 
         final Path tempPath = Paths.get("target", "protoc");
         this.compilerFile = tempPath.resolve(protoFilename).toFile();
+
+        ProtoCompiler.ensureCompilerExists(this.compilerFile, protobufVersion);
+    }
+
+    /**
+     * @param compilerFile2
+     * @throws IOException
+     */
+    private static void ensureCompilerExists(final File file, final String protobufVersion) throws IOException {
+        synchronized (ProtoCompiler.downloadFileLock) {
+            if (!file.exists()) {
+                Files.createDirectories(file.toPath().getParent());
+                PluginUtils.downloadFile(
+                        "http://central.maven.org/maven2/com/google/protobuf/protoc/" + protobufVersion + "/"
+                                + file.getName().toString(),
+                        file);
+                file.setExecutable(true);
+            }
+        }
     }
 
     public static String getOsName() {
@@ -71,15 +89,6 @@ public class ProtoCompiler implements Compiler {
         // Delay making the target folder to this point so it won't be made unnessecarily
         if (!targetPath.toFile().exists()) {
             Files.createDirectories(targetPath);
-        }
-
-        if (!this.compilerFile.exists()) {
-            Files.createDirectories(this.compilerFile.toPath().getParent());
-            PluginUtils.downloadFile(
-                    "http://central.maven.org/maven2/com/google/protobuf/protoc/" + this.protobufVersion + "/"
-                            + this.compilerFile.getName().toString(),
-                    this.compilerFile);
-            this.compilerFile.setExecutable(true);
         }
 
         // Build and execute the command

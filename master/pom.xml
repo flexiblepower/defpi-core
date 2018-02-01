@@ -64,6 +64,7 @@
 		<!-- The plugin needs the protobuf version to obtain the compiler from 
 			maven central explicitly -->
 		<protobuf.version>3.3.0</protobuf.version>
+		<jackson.databind.version>2.9.4</jackson.databind.version>
 	</properties>
 
 	<modules>
@@ -115,7 +116,13 @@
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
 				<artifactId>jackson-databind</artifactId>
-				<version>2.8.7</version>
+				<version>${jackson.databind.version}</version>
+			</dependency>
+			
+			<dependency>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-annotations</artifactId>
+				<version>${jackson.databind.version}</version>
 			</dependency>
 
 			<dependency>
