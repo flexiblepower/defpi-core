@@ -12,6 +12,10 @@
 	<artifactId>dashboard</artifactId>
 	<version>0.0.1</version>
 
+	<properties>
+		<docker.imageName>${docker.registry}/defpi/${project.artifactId}-ek2</docker.imageName>
+	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>commons-io</groupId>
