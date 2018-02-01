@@ -185,7 +185,7 @@ public class RegistryConnector {
 
                 try {
                     pool1.shutdown();
-                    if (!pool1.awaitTermination(1, TimeUnit.SECONDS)) {
+                    if (!pool1.awaitTermination(3, TimeUnit.SECONDS)) {
                         RegistryConnector.log
                                 .warn("It is taking a long time to list all service tags! Results will be incomplete");
                     }

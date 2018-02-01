@@ -132,10 +132,10 @@ public class DockerConnector {
             }
 
             final Service service = ServiceManager.getInstance().getService(process.getServiceId());
-            final Node node = DockerConnector.determineRunningNode(process);
+            Node node = DockerConnector.determineRunningNode(process);
 
             ServiceSpec serviceSpec;
-            if (process.getServiceId().equals(ProcessManager.getDashboardGatwayServiceId())) {
+            if (process.getServiceId().equals(ProcessManager.getDashboardGatewayServiceId())) {
                 // if this is the dashboard, it should be added to all user networks
                 final List<String> networks = new ArrayList<>();
 
@@ -154,6 +154,7 @@ public class DockerConnector {
                                 dashboardNodeName,
                                 node.getHostname());
                     }
+                    node = manuallySpecifiedNode;
                 }
 
                 for (final User u : UserManager.getInstance().getUsers()) {
@@ -422,7 +423,7 @@ public class DockerConnector {
         }
 
         // If this is the dashboard gateway, open up the port that is configured in the environment var
-        if (process.getServiceId().equals(ProcessManager.getDashboardGatwayServiceId())) {
+        if (process.getServiceId().equals(ProcessManager.getDashboardGatewayServiceId())) {
             int port = ProcessManager.DASHBOARD_GATEWAY_PORT_DFLT;
             final String portFromEnv = System.getenv(ProcessManager.DASHBOARD_GATEWAY_PORT_KEY);
             if (portFromEnv != null) {

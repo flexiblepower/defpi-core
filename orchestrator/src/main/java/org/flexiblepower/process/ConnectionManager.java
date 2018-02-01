@@ -205,8 +205,8 @@ public class ConnectionManager {
             }
 
             if (!process1.getUserId().equals(process2.getUserId())) {
-                if (!(process1.getServiceId().equals(ProcessManager.getDashboardGatwayServiceId())
-                        || process2.getServiceId().equals(ProcessManager.getDashboardGatwayServiceId()))) {
+                if (!(process1.getServiceId().equals(ProcessManager.getDashboardGatewayServiceId())
+                        || process2.getServiceId().equals(ProcessManager.getDashboardGatewayServiceId()))) {
                     // Dashboard-gateway is the only exception to the rule that processes can only connect if they are
                     // owned by the same user
                     throw new IllegalArgumentException("The two processes are not owned by the same user");

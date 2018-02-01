@@ -115,7 +115,7 @@ public class ProcessManager {
         return this.getDashboardGateway() != null;
     }
 
-    public static String getDashboardGatwayServiceId() {
+    public static String getDashboardGatewayServiceId() {
         final String gatewayService = System.getenv(ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID_KEY);
         if (gatewayService == null) {
             return ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID_DFLT;
@@ -126,7 +126,7 @@ public class ProcessManager {
 
     public Process getDashboardGateway() {
         for (final Process p : this.listProcesses()) {
-            if (p.getServiceId().equals(ProcessManager.getDashboardGatwayServiceId())) {
+            if (p.getServiceId().equals(ProcessManager.getDashboardGatewayServiceId())) {
                 return p;
             }
         }
@@ -185,7 +185,7 @@ public class ProcessManager {
         }
 
         // Is there a duplicate dashboard gateway?
-        if (process.getServiceId().equals(ProcessManager.getDashboardGatwayServiceId())) {
+        if (process.getServiceId().equals(ProcessManager.getDashboardGatewayServiceId())) {
             if (this.dashboardGatewayExists()) {
                 throw new IllegalArgumentException("There can only be one Dashboard Gateway in the system");
             }
