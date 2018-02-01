@@ -170,21 +170,6 @@
 
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
-						<artifactId>license-maven-plugin</artifactId>
-						<version>1.14</version>
-						<executions>
-							<execution>
-								<id>add-third-party</id>
-								<goals>
-									<goal>add-third-party</goal>
-								</goals>
-								<phase>generate-sources</phase>
-							</execution>
-						</executions>
-					</plugin>
-
-					<plugin>
-						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>build-helper-maven-plugin</artifactId>
 						<version>3.0.0</version>
 						<executions>
@@ -388,7 +373,7 @@
 
 		<profile>
 			<id>release</id>
-			
+
 			<distributionManagement>
 				<repository>
 					<id>ossrh</id>
@@ -399,6 +384,21 @@
 
 			<build>
 				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>license-maven-plugin</artifactId>
+						<version>1.14</version>
+						<executions>
+							<execution>
+								<id>add-third-party</id>
+								<goals>
+									<goal>add-third-party</goal>
+								</goals>
+								<phase>generate-sources</phase>
+							</execution>
+						</executions>
+					</plugin>
+
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>
