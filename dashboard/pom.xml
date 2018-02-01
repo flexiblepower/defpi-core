@@ -13,7 +13,7 @@
 	<version>0.0.1</version>
 
 	<properties>
-		<docker.imageName>${docker.registry}/defpi/${project.artifactId}-ek2</docker.imageName>
+		<docker.imageName>${docker.registry}/services/${project.artifactId}-ek2</docker.imageName>
 	</properties>
 
 	<dependencies>
