@@ -123,4 +123,10 @@ public class PendingChangeRestApi extends BaseApi implements PendingChangeApi {
                 .build();
     }
 
+    @Override
+    public void cleanPendingChanges() throws AuthorizationException {
+        this.assertUserIsAdmin();
+        PendingChangeManager.getInstance().cleanPendingChanges();
+    }
+
 }

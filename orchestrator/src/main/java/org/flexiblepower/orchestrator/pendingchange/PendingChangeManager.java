@@ -132,6 +132,15 @@ public class PendingChangeManager {
         MongoDbConnector.getInstance().delete(pendingChange);
     }
 
+    /**
+     *
+     */
+    public void cleanPendingChanges() {
+        MongoDbConnector.getInstance().cleanPendingChanges();
+        this.lockedResources.clear();
+
+    }
+
     private class PendingChangeRunner implements Runnable {
 
         public PendingChangeRunner() {
