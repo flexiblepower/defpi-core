@@ -92,6 +92,7 @@ public class DockerConnector {
 
     private static DockerConnector instance = null;
 
+    private final Object createNetLock = new Object();
     private DockerClient client;
 
     public static DockerClient init() throws DockerCertificateException {
@@ -125,8 +126,10 @@ public class DockerConnector {
      */
     public String newProcess(final Process process) throws ServiceNotFoundException {
         try {
-            this.ensureProcessNetworkExists(process);
-            this.ensureProcessNetworkIsAttached(process);
+            synchronized (this.createNetLock) {
+                this.ensureProcessNetworkExists(process);
+                this.ensureProcessNetworkIsAttached(process);
+            }
 
             final Service service = ServiceManager.getInstance().getService(process.getServiceId());
             final Node node = DockerConnector.determineRunningNode(process);
