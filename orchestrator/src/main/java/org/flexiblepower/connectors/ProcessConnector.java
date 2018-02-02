@@ -477,7 +477,7 @@ public class ProcessConnector {
             byte[] recv = null;
             try {
                 recv = this.socket.read(ProcessConnection.IO_TIMEOUT);
-            } catch (InterruptedException | IOException e) {
+            } catch (final IOException e) {
                 ProcessConnector.log.warn("Exception while reading from socket ({}): {}", e.getClass(), e.getMessage());
                 ProcessConnector.log.trace(e.getMessage(), e);
                 this.close();

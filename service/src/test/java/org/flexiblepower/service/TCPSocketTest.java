@@ -23,7 +23,9 @@ import java.util.List;
 import org.flexiblepower.commons.TCPSocket;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -38,12 +40,15 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class TCPSocketTest {
 
+    @Rule
+    public Timeout globalTimeout = Timeout.seconds(5);
+
     @Parameters
     public static List<Object[]> data() {
         return Arrays.asList(new Object[3][0]);
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void doTest() throws Exception {
         try (
                 final TCPSocket client = TCPSocket.asClient("127.0.0.1", 5000);
@@ -55,7 +60,7 @@ public class TCPSocketTest {
         }
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void testTimeout() throws Exception {
         try (
                 final TCPSocket client = TCPSocket.asClient("127.0.0.1", 5000);
@@ -78,7 +83,7 @@ public class TCPSocketTest {
         }
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void doTest2() throws Exception {
         try (
                 final TCPSocket client = TCPSocket.asClient("127.0.0.1", 5000);
@@ -90,7 +95,7 @@ public class TCPSocketTest {
         }
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void multiConnectTest() throws Exception {
         final Thread serverThread = new Thread(() -> {
             try {
@@ -98,7 +103,7 @@ public class TCPSocketTest {
                 while (true) {
                     try {
                         server.waitUntilConnected(0);
-                        // System.out.println(new String(server.read()));
+                        System.out.println(new String(server.read()));
                     } catch (final Exception e) {
                         // e.printStackTrace();
                         server.close();
@@ -124,7 +129,7 @@ public class TCPSocketTest {
             }
         });
         client1.start();
-        Thread.sleep(100);
+        Thread.sleep(300);
 
         final Thread client2 = new Thread(() -> {
             TCPSocket client = TCPSocket.asClient("127.0.0.1", 5001);
@@ -141,7 +146,7 @@ public class TCPSocketTest {
             }
         });
         client2.start();
-        Thread.sleep(100);
+        Thread.sleep(300);
 
         client1.interrupt();
         Thread.sleep(100);
@@ -150,7 +155,7 @@ public class TCPSocketTest {
 
     @After
     public void cleanup() throws InterruptedException {
-        TCPSocket.destroyLingeringSockets();
+        // TCPSocket.destroyLingeringSockets();
     }
 
 }

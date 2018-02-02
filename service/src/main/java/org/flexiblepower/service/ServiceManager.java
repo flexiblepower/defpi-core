@@ -70,7 +70,7 @@ public class ServiceManager<T> implements Closeable {
      * boolean is still true
      */
     private static final long SERVICE_IMPL_TIMEOUT_SECONDS = 5;
-    private static final int SOCKET_READ_TIMEOUT = 10000;
+    private static final long SOCKET_READ_TIMEOUT = 1000;
     public static final int MANAGEMENT_PORT = 4999;
     private static int threadCount = 0;
 
@@ -113,13 +113,14 @@ public class ServiceManager<T> implements Closeable {
                 try {
                     // ServiceManager.log.trace("Waiting for connected");
                     // this.managementSocket.waitUntilConnected(0);
-                    // ServiceManager.log.trace("Waiting for message");
+                    ServiceManager.log.trace("Waiting for message");
                     messageArray = this.managementSocket.read(ServiceManager.SOCKET_READ_TIMEOUT);
                     if (messageArray == null) {
+                        ServiceManager.log.trace("Read nothing, try again");
                         // No message received...
                         continue;
                     }
-                } catch (IOException | InterruptedException e) {
+                } catch (final IOException e) {
                     if (this.keepThreadAlive) {
                         ServiceManager.log.warn("Socket closed while expecting instruction, re-opening it", e);
                         this.managementSocket.close();
