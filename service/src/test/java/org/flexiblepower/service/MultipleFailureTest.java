@@ -20,7 +20,6 @@ package org.flexiblepower.service;
 import java.util.Arrays;
 import java.util.List;
 
-import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.service.TestHandler.TestHandlerBuilder;
 import org.junit.After;
 import org.junit.Assert;
@@ -49,7 +48,6 @@ public class MultipleFailureTest {
         TestHandler.handlerMap.clear();
         ConnectionIntegrationTest.counter = 1;
         ServiceExecutor.getInstance().shutDown();
-        TCPSocket.destroyLingeringSockets();
         Thread.sleep(MultipleFailureTest.WAIT_AFTER_CONNECT);
         // System.out.println("Alles weer schoon!");
     }

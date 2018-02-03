@@ -17,15 +17,14 @@
  */
 package org.flexiblepower.service;
 
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.NotYetConnectedException;
 import java.util.Arrays;
 import java.util.List;
 
 import org.flexiblepower.commons.TCPSocket;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -40,12 +39,9 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class TCPSocketTest {
 
-    @Rule
-    public Timeout globalTimeout = Timeout.seconds(5);
-
     @Parameters
     public static List<Object[]> data() {
-        return Arrays.asList(new Object[3][0]);
+        return Arrays.asList(new Object[5][0]);
     }
 
     @Test(timeout = 5000)
@@ -54,9 +50,10 @@ public class TCPSocketTest {
                 final TCPSocket client = TCPSocket.asClient("127.0.0.1", 5000);
                 final TCPSocket server = TCPSocket.asServer(5000)) {
             client.waitUntilConnected(0);
+            Assert.assertTrue(client.isConnected());
             client.send("Test data".getBytes());
-            server.waitUntilConnected(0);
-            System.out.println(new String(server.read()));
+            Assert.assertEquals("Test data", new String(server.read()));
+            Assert.assertTrue(server.isConnected());
         }
     }
 
@@ -66,96 +63,129 @@ public class TCPSocketTest {
                 final TCPSocket client = TCPSocket.asClient("127.0.0.1", 5000);
                 final TCPSocket server = TCPSocket.asServer(5000)) {
             client.waitUntilConnected(0);
+            Assert.assertTrue(client.isConnected());
+
+            // Test 100 ms
             long t_start = System.currentTimeMillis();
             Assert.assertNull(server.read(100));
             long t_wait = System.currentTimeMillis() - t_start;
             System.out.format("I had to wait %d ms\n", t_wait);
             Assert.assertTrue(Math.abs(t_wait - 100) < 50);
+            Assert.assertTrue("The server should be connected now", server.isConnected());
 
+            // Test 200 ms
             t_start = System.currentTimeMillis();
             Assert.assertNull(server.read(200));
             t_wait = System.currentTimeMillis() - t_start;
             System.out.format("I had to wait %d ms\n", t_wait);
             Assert.assertTrue(Math.abs(t_wait - 200) < 50);
 
+            // Test if data still comes through
             client.send("Test data".getBytes());
             Assert.assertEquals("Test data", new String(server.read()));
         }
     }
 
     @Test(timeout = 5000)
-    public void doTest2() throws Exception {
-        try (
-                final TCPSocket client = TCPSocket.asClient("127.0.0.1", 5000);
-                final TCPSocket server = TCPSocket.asServer(5000)) {
-            client.waitUntilConnected(0);
-            client.send("MORE ! Test data".getBytes());
-            server.waitUntilConnected(0);
-            System.out.println(new String(server.read()));
-        }
-    }
-
-    @Test(timeout = 5000)
     public void multiConnectTest() throws Exception {
+
+        // The thread will be always on!
         final Thread serverThread = new Thread(() -> {
             try {
-                TCPSocket server = TCPSocket.asServer(5001);
+                TCPSocket server = TCPSocket.asServer(5000);
                 while (true) {
                     try {
-                        server.waitUntilConnected(0);
                         System.out.println(new String(server.read()));
                     } catch (final Exception e) {
-                        // e.printStackTrace();
                         server.close();
-                        server = TCPSocket.asServer(5001);
+                        if (!Thread.currentThread().isInterrupted()) {
+                            // Rebuild!
+                            server = TCPSocket.asServer(5000);
+                        } else {
+                            break;
+                        }
                     }
                 }
             } catch (final Exception e) {
                 e.printStackTrace();
             }
         });
-        serverThread.start();
-        Thread.sleep(100);
 
+        final TCPSocket clientSocket = TCPSocket.asClient("127.0.0.1", 5000);
+        // the client socket won't be able to connect THIS fast
+        clientSocket.waitUntilConnected(1);
+        Assert.assertFalse("Client should not be able to open yet", clientSocket.isConnected());
+        Assert.assertFalse("Client should not closed yet", clientSocket.isClosed());
+
+        serverThread.start();
+
+        // But given some more time it will....
+        clientSocket.waitUntilConnected(0);
+        Assert.assertNull("Client should not be able to read", clientSocket.read(100));
+        Assert.assertTrue("Client should be connected by now", clientSocket.isConnected());
+        Assert.assertFalse("Client should not closed yet", clientSocket.isClosed());
+
+        // Send some data until we close or interrupt it
         final Thread client1 = new Thread(() -> {
-            try (TCPSocket client = TCPSocket.asClient("127.0.0.1", 5001)) {
-                client.waitUntilConnected(0);
+            try {
                 while (true) {
-                    client.send("This is a test".getBytes());
+                    clientSocket.send("This is a test".getBytes());
                     Thread.sleep(100);
                 }
             } catch (final Exception e) {
-                // e.printStackTrace();
+                clientSocket.close();
             }
         });
         client1.start();
-        Thread.sleep(300);
+
+        final TCPSocket clientSocket2 = TCPSocket.asClient("127.0.0.1", 5000);
+        clientSocket2.waitUntilConnected(300); // It won't be able to connect since the socket is "taken"
+        Assert.assertFalse("Client should not be able to connect while it is taken", clientSocket2.isConnected());
+        Assert.assertFalse("Client should not closed yet", clientSocket2.isClosed());
+
+        try {
+            clientSocket2.send("Some stuff".getBytes());
+            Assert.fail();
+        } catch (final Exception e) {
+            Assert.assertEquals(NotYetConnectedException.class, e.getClass());
+        }
 
         final Thread client2 = new Thread(() -> {
-            TCPSocket client = TCPSocket.asClient("127.0.0.1", 5001);
             while (true) {
                 try {
-                    client.waitUntilConnected(0);
-                    client.send("This is the second test".getBytes());
+                    clientSocket2.send("This is the second test".getBytes());
                     Thread.sleep(100);
                 } catch (final Exception e) {
-                    // e.printStackTrace();
-                    client.close();
-                    client = TCPSocket.asClient("127.0.0.1", 5001);
+                    clientSocket2.close();
                 }
             }
         });
         client2.start();
-        Thread.sleep(300);
 
-        client1.interrupt();
-        Thread.sleep(100);
-        client2.interrupt();
-    }
+        if (Math.random() < 0.5) {
+            client1.interrupt(); // Will make sure clientSocket1 is closed
+            Thread.sleep(100);
+        } else {
+            clientSocket.close(); // Same effect
+        }
+        Assert.assertFalse(clientSocket.isConnected());
+        Assert.assertTrue(clientSocket.isClosed());
 
-    @After
-    public void cleanup() throws InterruptedException {
-        // TCPSocket.destroyLingeringSockets();
+        try {
+            clientSocket.send("Some stuff".getBytes());
+            Assert.fail();
+        } catch (final Exception e) {
+            Assert.assertEquals(ClosedChannelException.class, e.getClass());
+        }
+
+        clientSocket2.waitUntilConnected(0);
+        Assert.assertTrue(clientSocket2.isConnected());
+        client2.interrupt(); // Will make sure clientSocket2 is closed
+        serverThread.interrupt();
+        Thread.sleep(200);
+
+        Assert.assertFalse(clientSocket2.isConnected());
+        Assert.assertTrue(clientSocket2.isClosed());
     }
 
 }
