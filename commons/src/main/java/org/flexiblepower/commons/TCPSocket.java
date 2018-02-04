@@ -23,7 +23,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
@@ -72,19 +71,24 @@ public class TCPSocket implements Closeable {
         return (this.socket != null) && this.socket.isClosed();
     }
 
-    public synchronized void waitUntilConnected(final long millis) throws IOException {
+    public synchronized void waitUntilConnected() throws IOException {
+        this.waitUntilConnected(0);
+    }
+
+    public synchronized boolean waitUntilConnected(final long millis) throws IOException {
         if (this.socket != null) {
-            return;
+            return true;
         }
 
         this.socket = this.connector.connect(millis);
         if (this.socket == null) {
-            return;
+            return false;
         } else {
             // So we DID get a socket, but it somehow poofed away
             if (!this.isConnected()) {
                 throw new ClosedChannelException();
             }
+            return true;
         }
     }
 
@@ -94,29 +98,24 @@ public class TCPSocket implements Closeable {
 
     @SuppressWarnings("resource")
     public byte[] read(final long timeout) throws IOException {
-        long t_penalty = 0;
-
-        if (timeout == 0) {
-            this.waitUntilConnected(0);
-        } else {
-            final long t_start = System.currentTimeMillis();
-            this.waitUntilConnected(timeout);
-            t_penalty = System.currentTimeMillis() - t_start;
-        }
-
-        if ((this.socket == null) && (timeout > 0)) {
-            return null;
-        }
-
         if (this.isClosed()) {
             throw new ClosedChannelException();
+        }
+
+        final long t_start = System.currentTimeMillis();
+        if (timeout == 0) {
+            this.waitUntilConnected();
+        } else {
+            if (!this.waitUntilConnected(timeout)) {
+                return null;
+            }
         }
 
         synchronized (this.socket.getInputStream()) {
             if (timeout == 0) {
                 this.socket.setSoTimeout(0);
             } else {
-                this.socket.setSoTimeout((int) (timeout - t_penalty));
+                this.socket.setSoTimeout((int) (timeout - (System.currentTimeMillis() - t_start)));
             }
 
             // Read 4 bytes that will tell how long the message is
@@ -127,6 +126,7 @@ public class TCPSocket implements Closeable {
                         .getInt();
 
                 if (len < 0) {
+                    this.close();
                     throw new IOException("Reached end of stream");
                 }
                 final byte[] data = new byte[len];
@@ -144,6 +144,7 @@ public class TCPSocket implements Closeable {
                     while (eof != TCPSocket.EOM) {
                         eof = is.read();
                         if (eof < 0) {
+                            this.close();
                             throw new IOException("Reached end of stream");
                         }
                     }
@@ -157,9 +158,7 @@ public class TCPSocket implements Closeable {
     }
 
     public void send(final byte[] data) throws IOException {
-        this.waitUntilConnected(TCPSocket.CONNECT_ON_SEND_TIMEOUT);
-
-        if (this.socket == null) {
+        if (!this.waitUntilConnected(TCPSocket.CONNECT_ON_SEND_TIMEOUT)) {
             throw new NotYetConnectedException();
         } else if (this.isClosed()) {
             throw new ClosedChannelException();
@@ -197,30 +196,34 @@ public class TCPSocket implements Closeable {
      * @version 0.1
      * @since Oct 11, 2017
      */
-    protected interface SocketRunner extends Closeable {
-
-        public Socket connect(long millis) throws IOException;
-
-    }
-
-    private final class ClientSocketRunner implements SocketRunner {
-
-        private final String targetAddress;
-        private final int targetPort;
+    protected abstract class SocketRunner implements Closeable {
 
         private static final long INITIAL_BACKOFF_MS = 50;
         private static final long MAXIMUM_BACKOFF_MS = 60000;
-        private long backOffMs = ClientSocketRunner.INITIAL_BACKOFF_MS;
+        private long backOffMs = SocketRunner.INITIAL_BACKOFF_MS;
+
+        public abstract Socket connect(long millis) throws IOException;
 
         protected void increaseBackOffAndWait(final long max) {
-            this.backOffMs = (long) Math.min(max,
-                    Math.min(ClientSocketRunner.MAXIMUM_BACKOFF_MS, this.backOffMs * 1.25));
+            this.backOffMs = (long) Math.min(max, Math.min(SocketRunner.MAXIMUM_BACKOFF_MS, this.backOffMs * 1.25));
             try {
                 Thread.sleep(this.backOffMs);
             } catch (final InterruptedException e) {
                 // Don't care, we'll see you next iteration
             }
         }
+
+        protected long timeLeft(final long t_start, final long millis) {
+            return millis == 0 ? SocketRunner.MAXIMUM_BACKOFF_MS
+                    : Math.max(0, millis - (System.currentTimeMillis() - t_start));
+        }
+
+    }
+
+    private final class ClientSocketRunner extends SocketRunner {
+
+        private final String targetAddress;
+        private final int targetPort;
 
         /**
          * @param address
@@ -247,16 +250,6 @@ public class TCPSocket implements Closeable {
             return null;
         }
 
-        /**
-         * @param t_start
-         * @param millis
-         * @return
-         */
-        private long timeLeft(final long t_start, final long millis) {
-            return millis == 0 ? ClientSocketRunner.MAXIMUM_BACKOFF_MS
-                    : Math.max(0, millis - (System.currentTimeMillis() - t_start));
-        }
-
         @Override
         public void close() throws IOException {
             // Do nothing
@@ -264,8 +257,9 @@ public class TCPSocket implements Closeable {
 
     }
 
-    private final class ServerSocketRunner implements SocketRunner {
+    private final class ServerSocketRunner extends SocketRunner {
 
+        private final int serverPort;
         private ServerSocket serverSocket;
 
         /**
@@ -273,20 +267,38 @@ public class TCPSocket implements Closeable {
          */
         public ServerSocketRunner(final int port) {
             TCPSocket.log.info("Starting server socket at {}", port);
+            this.serverPort = port;
+            this.bindServerSocket();
+        }
+
+        private synchronized boolean bindServerSocket() {
+            if (this.serverSocket != null) {
+                return true;
+            }
+
             try {
-                this.serverSocket = new ServerSocket(port);
+                TCPSocket.log.trace("Binding to port {}", this.serverPort);
+                this.serverSocket = new ServerSocket(this.serverPort);
                 this.serverSocket.setReuseAddress(true);
+                return true;
             } catch (final IOException e) {
-                TCPSocket.log.warn("Unable to open server socket: {}", e.getMessage());
-                TCPSocket.log.trace(e.getMessage(), e);
-                this.serverSocket = null;
+                TCPSocket.log.warn("Unable to open server socket at port {}: {}", this.serverPort, e.getMessage());
+                return false;
             }
         }
 
         @Override
         public Socket connect(final long millis) throws IOException {
+            final long t_start = System.currentTimeMillis();
+            while ((this.serverSocket == null) && (this.timeLeft(t_start, millis) > 0)) {
+                if (!this.bindServerSocket()) {
+                    this.increaseBackOffAndWait(this.timeLeft(t_start, millis));
+                }
+            }
+
             if (this.serverSocket == null) {
-                throw new SocketException("Server socket is null, probably was not bound!");
+                TCPSocket.log.trace("Server bind timed out");
+                return null;
             }
 
             this.serverSocket.setSoTimeout((int) millis);
