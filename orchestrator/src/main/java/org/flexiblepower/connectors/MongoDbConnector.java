@@ -19,6 +19,7 @@
 package org.flexiblepower.connectors;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -36,15 +37,17 @@ import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
+import org.mongodb.morphia.query.UpdateResults;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoClient;
+import com.mongodb.WriteResult;
 
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * MongoDbConnector
+ * MongoDbConnector5
  *
  * The MongoDBConnector takes care of writing and reading objects from and to the mongo database.
  *
@@ -61,7 +64,7 @@ public final class MongoDbConnector {
     public final static String MONGO_PORT_DFLT = "27017";
     private final static String MONGO_DATABASE_KEY = "MONGO_DATABASE";
     private final static String MONGO_DATABASE_DFLT = "def-pi";
-    private static final long PENDING_CHANGE_TIMEOUT_MS = 5 * 60 * 1000;
+    private static final long PENDING_CHANGE_TIMEOUT_MS = Duration.ofMinutes(5).toMillis();
 
     private static MongoDbConnector instance = null;
 
@@ -131,11 +134,11 @@ public final class MongoDbConnector {
      *
      * @param processId
      */
-    public void deleteConnectionsForProcess(final Process process) {
-        final Query<Connection> q = this.datastore.find(Connection.class);
-        q.or(q.criteria("container1").equal(process.getId()), q.criteria("container2").equal(process.getId()));
-        this.datastore.delete(q);
-    }
+    // public void deleteConnectionsForProcess(final Process process) {
+    // final Query<Connection> q = this.datastore.find(Connection.class);
+    // q.or(q.criteria("container1").equal(process.getId()), q.criteria("container2").equal(process.getId()));
+    // this.datastore.delete(q);
+    // }
 
     public <T> List<T> list(final Class<T> type,
             final int page,
@@ -161,9 +164,9 @@ public final class MongoDbConnector {
         return this.datastore.get(type, id);
     }
 
-    public <T> T get(final Class<T> type, final String id) throws InvalidObjectIdException {
-        return this.datastore.get(type, MongoDbConnector.stringToObjectId(id));
-    }
+    // public <T> T get(final Class<T> type, final String id) throws InvalidObjectIdException {
+    // return this.datastore.get(type, MongoDbConnector.stringToObjectId(id));
+    // }
 
     public <T> int totalCount(final Class<T> type, final Map<String, Object> filter) {
         final Query<T> query = this.datastore.createQuery(type);
@@ -208,13 +211,13 @@ public final class MongoDbConnector {
         this.datastore.delete(entity);
     }
 
-    public void delete(final Class<?> type, final ObjectId id) {
-        this.datastore.delete(type, id);
-    }
+    // public void delete(final Class<?> type, final ObjectId id) {
+    // this.datastore.delete(type, id);
+    // }
 
-    public void delete(final Class<?> type, final String id) throws InvalidObjectIdException {
-        this.delete(type, MongoDbConnector.stringToObjectId(id));
-    }
+    // public void delete(final Class<?> type, final String id) throws InvalidObjectIdException {
+    // this.delete(type, MongoDbConnector.stringToObjectId(id));
+    // }
 
     /**
      * Private function that throws an exception if the string is not a valid ObjectId, and returns the corresponding
@@ -277,6 +280,36 @@ public final class MongoDbConnector {
      *
      * @return The next unobtained PendingChange, null if there are no pendingChanges
      */
+    public PendingChange getNextPendingChange(final List<ObjectId> lockedResources) {
+        if (lockedResources.isEmpty()) {
+            return this.getNextPendingChange();
+        }
+
+        final Query<PendingChange> query = this.datastore.createQuery(PendingChange.class)
+                .field("obtainedAt")
+                .equal(null) // Must be null
+                .field("resources")
+                .hasNoneOf(lockedResources)
+                .field("state")
+                .notEqual(PendingChange.State.FAILED_PERMANENTLY) // Not failed
+                .field("runAt")
+                .lessThanOrEq(new Date()) // No future task
+                .order("runAt")
+                .disableValidation();
+        final UpdateOperations<PendingChange> update = this.datastore.createUpdateOperations(PendingChange.class)
+                .set("obtainedAt", new Date());
+        return this.datastore.findAndModify(query, update);
+    }
+
+    /**
+     * Retrieve the next PendingChange. It uses the findAndModify option to make sure that no tasks gets taken from the
+     * queue twice.
+     *
+     * See http://www.programcreek.com/java-api-examples/index.php?api=com.google.code.morphia.query.UpdateOperations
+     * for the polymorphism trick.
+     *
+     * @return The next unobtained PendingChange, null if there are no pendingChanges
+     */
     public PendingChange getNextPendingChange() {
         final Query<PendingChange> query = this.datastore.createQuery(PendingChange.class)
                 .field("obtainedAt")
@@ -292,10 +325,23 @@ public final class MongoDbConnector {
         return this.datastore.findAndModify(query, update);
     }
 
-    public PendingChange getAbendonedPendingChanges() {
-        return this.datastore.createQuery(PendingChange.class)
-                .filter("obtainedAt <",
-                        new Date(System.currentTimeMillis() - MongoDbConnector.PENDING_CHANGE_TIMEOUT_MS))
-                .get();
+    /**
+     *
+     */
+    public void cleanPendingChanges() {
+        // Remove pending changes that failed permanently
+        final Query<PendingChange> failed = this.datastore.createQuery(PendingChange.class).field("state").equal(
+                PendingChange.State.FAILED_PERMANENTLY);
+        final WriteResult deleted = this.datastore.delete(failed);
+        MongoDbConnector.log.info("Deleted {} permanently failed pending changes", deleted.getN());
+
+        // Remove any pending changes that haven't been updated for a long time
+        final Query<PendingChange> lingering = this.datastore.createQuery(PendingChange.class).filter("obtainedAt <",
+                new Date(System.currentTimeMillis() - MongoDbConnector.PENDING_CHANGE_TIMEOUT_MS));
+        final UpdateOperations<PendingChange> update = this.datastore.createUpdateOperations(PendingChange.class)
+                .unset("obtainedAt");
+        final UpdateResults updated = this.datastore.update(lingering, update);
+        MongoDbConnector.log.info("Cleared {} lingering pending changes", updated.getUpdatedCount());
     }
+
 }

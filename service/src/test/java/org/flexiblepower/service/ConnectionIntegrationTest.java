@@ -20,7 +20,6 @@ package org.flexiblepower.service;
 import java.util.Arrays;
 import java.util.List;
 
-import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.service.TestHandler.TestHandlerBuilder;
 import org.junit.After;
 import org.junit.Assert;
@@ -51,8 +50,6 @@ public class ConnectionIntegrationTest {
         ConnectionIntegrationTest.counter = 1;
         ServiceExecutor.getInstance().shutDown();
         System.gc();
-        Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
-        TCPSocket.destroyLingeringSockets();
         Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
         System.out.println("Alles weer schoon!");
     }

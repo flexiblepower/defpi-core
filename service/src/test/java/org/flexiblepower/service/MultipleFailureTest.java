@@ -20,13 +20,10 @@ package org.flexiblepower.service;
 import java.util.Arrays;
 import java.util.List;
 
-import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.service.TestHandler.TestHandlerBuilder;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 /**
@@ -37,7 +34,6 @@ import org.junit.runners.Parameterized.Parameters;
  * @since Nov 6, 2017
  */
 @SuppressWarnings("static-method")
-@RunWith(Parameterized.class)
 public class MultipleFailureTest {
 
     @Parameters
@@ -52,11 +48,8 @@ public class MultipleFailureTest {
         TestHandler.handlerMap.clear();
         ConnectionIntegrationTest.counter = 1;
         ServiceExecutor.getInstance().shutDown();
-        System.gc();
         Thread.sleep(MultipleFailureTest.WAIT_AFTER_CONNECT);
-        TCPSocket.destroyLingeringSockets();
-        Thread.sleep(MultipleFailureTest.WAIT_AFTER_CONNECT);
-        System.out.println("Alles weer schoon!");
+        // System.out.println("Alles weer schoon!");
     }
 
     @Test(timeout = 10000)
@@ -78,7 +71,7 @@ public class MultipleFailureTest {
                 Assert.assertNotNull(TestHandler.handlerMap.get("h2").lastMessage);
                 Assert.assertEquals("started", TestHandler.handlerMap.get("h2").lastMessage.getDebugInformation());
 
-                for (int i = 0; i < 10; i++) {
+                for (int i = 0; i < 3; i++) {
                     if (Math.random() < 0.5) {
                         mc1.socket.close();
                     } else {

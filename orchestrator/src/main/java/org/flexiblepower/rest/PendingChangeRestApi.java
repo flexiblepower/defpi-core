@@ -76,7 +76,7 @@ public class PendingChangeRestApi extends BaseApi implements PendingChangeApi {
         }
         this.assertUserIsAdminOrEquals(pc.getUserId());
 
-        PendingChangeManager.getInstance().deletePendingChange(pendingChangeId);
+        PendingChangeManager.getInstance().deletePendingChange(pc);
     }
 
     @Override
@@ -121,6 +121,12 @@ public class PendingChangeRestApi extends BaseApi implements PendingChangeApi {
                         Integer.toString(MongoDbConnector.getInstance().totalCount(PendingChange.class, filter)))
                 .entity(realList)
                 .build();
+    }
+
+    @Override
+    public void cleanPendingChanges() throws AuthorizationException {
+        this.assertUserIsAdmin();
+        PendingChangeManager.getInstance().cleanPendingChanges();
     }
 
 }

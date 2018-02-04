@@ -1,0 +1,115 @@
+package org.flexiblepower.defpi.dashboard;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.charset.Charset;
+
+import org.apache.commons.io.IOUtils;
+import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest;
+import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPResponse;
+
+import com.google.protobuf.ByteString;
+
+public class HttpUtils {
+
+	public static final String CONTENT_TYPE = "Content-Type";
+	public static final String APPLICATION_JAVASCRIPT = "application/javascript";
+	public static final String TEXT_PLAIN = "text/plain";
+	public static final String TEXT_HTML = "text/html";
+	public static final String NO_CACHE_KEY = "Cache-Control";
+	public static final String NO_CACHE_VALUE = "no-cache, no-store, must-revalidate";
+
+	public static void notFound(HttpTask httpTask) {
+		httpTask.respond(HTTPResponse.newBuilder().setId(httpTask.getRequest().getId()).setStatus(404)
+				.putHeaders(CONTENT_TYPE, TEXT_PLAIN)
+				.setBody(ByteString.copyFromUtf8("404: Not found\nThe requested resource "
+						+ httpTask.getRequest().getUri() + " could not be found"))
+				.build());
+	}
+
+	public static void internalError(HttpTask httpTask) {
+		httpTask.respond(HTTPResponse.newBuilder().setId(httpTask.getRequest().getId()).setStatus(500)
+				.putHeaders(CONTENT_TYPE, TEXT_PLAIN).setBody(ByteString.copyFromUtf8("500: Internal server error."))
+				.build());
+	}
+
+	public static void internalError(HttpTask httpTask, String reason) {
+		httpTask.respond(HTTPResponse.newBuilder().setId(httpTask.getRequest().getId()).setStatus(500)
+				.putHeaders(CONTENT_TYPE, TEXT_PLAIN)
+				.setBody(ByteString.copyFromUtf8("500: Internal server error\n" + reason)).build());
+	}
+
+	public static void badRequest(HttpTask httpTask, String reason) {
+		httpTask.respond(HTTPResponse.newBuilder().setId(httpTask.getRequest().getId()).setStatus(400)
+				.putHeaders(CONTENT_TYPE, TEXT_PLAIN).setBody(ByteString.copyFromUtf8("400: Bad request\n" + reason))
+				.build());
+	}
+
+	public static void serveStaticFile(HttpTask httpTask, String filename) {
+		try {
+			httpTask.respond(HTTPResponse.newBuilder().setId(httpTask.getRequest().getId()).setStatus(200)
+					.putHeaders(HttpUtils.CONTENT_TYPE, HttpUtils.getContentType(filename))
+					.setBody(ByteString.copyFrom(IOUtils.toByteArray(new FileInputStream(new File(filename)))))
+					.build());
+		} catch (Exception e) {
+			HttpUtils.internalError(httpTask);
+		}
+	}
+
+	public static void serveDynamicText(HttpTask httpTask, String contentType, String body) {
+		try {
+			httpTask.respond(HTTPResponse.newBuilder().setId(httpTask.getRequest().getId()).setStatus(200)
+					.putHeaders(HttpUtils.CONTENT_TYPE, contentType).putHeaders(NO_CACHE_KEY, NO_CACHE_VALUE)
+					.setBody(ByteString.copyFromUtf8(body)).build());
+		} catch (Exception e) {
+			HttpUtils.internalError(httpTask);
+		}
+	}
+
+	public static HTTPResponse setNoCache(HTTPResponse response) {
+		return HTTPResponse.newBuilder(response).putHeaders(NO_CACHE_KEY, NO_CACHE_VALUE).build();
+	}
+
+	public static HTTPRequest rewriteUri(HTTPRequest request, String uri) {
+		return HTTPRequest.newBuilder(request).setUri(uri).build();
+	}
+
+	public static String getContentType(String filename) {
+		String[] uri = filename.split("\\.");
+
+		String contentType;
+		switch (uri[uri.length - 1].toLowerCase()) {
+		case "html":
+			contentType = "text/html";
+			break;
+		case "png":
+			contentType = "image/png";
+			break;
+		case "jpg":
+			contentType = "image/jpeg";
+			break;
+		case "jpeg":
+			contentType = "image/jpeg";
+			break;
+		case "gif":
+			contentType = "image/gif";
+			break;
+		case "js":
+			contentType = APPLICATION_JAVASCRIPT;
+			break;
+		case "css":
+			contentType = "text/css";
+			break;
+		default:
+			contentType = TEXT_PLAIN;
+		}
+		return contentType;
+	}
+
+	public static String readTextFile(String path) throws IOException {
+		FileInputStream inputStream = new FileInputStream(new File(path));
+		return IOUtils.toString(inputStream, Charset.defaultCharset());
+	}
+
+}

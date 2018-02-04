@@ -18,6 +18,8 @@
 package org.flexiblepower.service;
 
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.List;
 
 import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.proto.ServiceProto.ErrorMessage;
@@ -35,6 +37,9 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import com.google.protobuf.ByteString;
 
@@ -44,7 +49,13 @@ import com.google.protobuf.ByteString;
  * @version 0.1
  * @since May 12, 2017
  */
+@RunWith(Parameterized.class)
 public class ServiceTest {
+
+    @Parameters
+    public static List<Object[]> data() {
+        return Arrays.asList(new Object[3][0]);
+    }
 
     // private static final String TEST_HOST = "172.17.0.2";
     private static final String TEST_HOST = "localhost";
@@ -67,13 +78,40 @@ public class ServiceTest {
         }
 
         this.managementSocket = TCPSocket.asClient(ServiceTest.TEST_HOST, ServiceManager.MANAGEMENT_PORT);
-        this.managementSocket.waitUntilConnected(0);
 
         this.pbSerializer.addMessageClass(GoToProcessStateMessage.class);
         this.pbSerializer.addMessageClass(SetConfigMessage.class);
         this.pbSerializer.addMessageClass(ProcessStateUpdateMessage.class);
         this.pbSerializer.addMessageClass(ResumeProcessMessage.class);
         this.pbSerializer.addMessageClass(ErrorMessage.class);
+    }
+
+    @Test(timeout = 10000)
+    public void runReconnectTests() throws Exception {
+        this.managementSocket.send("Rare string".getBytes());
+        byte[] data = this.managementSocket.read();
+        Object e = this.pbSerializer.deserialize(data);
+        Assert.assertEquals(ErrorMessage.class, e.getClass());
+        Assert.assertTrue(((ErrorMessage) e).getDebugInformation()
+                .startsWith("org.flexiblepower.exceptions.SerializationException"));
+
+        Thread.sleep(200);
+        this.managementSocket.close();
+
+        Thread.sleep(100);
+
+        this.managementSocket = TCPSocket.asClient(ServiceTest.TEST_HOST, ServiceManager.MANAGEMENT_PORT);
+
+        data = this.managementSocket.read(200);
+        Assert.assertNull(data);
+        Thread.sleep(100);
+        this.managementSocket.send("nog iets".getBytes());
+        data = this.managementSocket.read();
+        e = this.pbSerializer.deserialize(data);
+        Assert.assertEquals(ErrorMessage.class, e.getClass());
+        Assert.assertTrue(((ErrorMessage) e).getDebugInformation()
+                .startsWith("org.flexiblepower.exceptions.SerializationException"));
+        // this.managementSocket.waitUntilConnected(0);
     }
 
     @Test(timeout = 60000)

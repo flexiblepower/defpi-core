@@ -17,9 +17,10 @@
  */
 package org.flexiblepower.process;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.connectors.ProcessConnector;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
@@ -40,47 +41,48 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ChangeProcessConfiguration extends PendingChange {
 
-    private ObjectId processId;
-    private List<ProcessParameter> newConfigurtaion;
+    private Process process;
+    private List<ProcessParameter> newConfiguration;
 
-    public ChangeProcessConfiguration() {
+    // Default constructor for morphia
+    @SuppressWarnings("unused")
+    private ChangeProcessConfiguration() {
         super();
     }
 
-    public ChangeProcessConfiguration(final ObjectId userId,
-            final ObjectId processId,
-            final List<ProcessParameter> newConfiguration) {
-        super(userId);
-        this.processId = processId;
-        this.newConfigurtaion = newConfiguration;
+    public ChangeProcessConfiguration(final Process process, final List<ProcessParameter> newConfiguration) {
+        super(process.getUserId());
+        this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
+        this.process = process;
+        this.newConfiguration = newConfiguration;
     }
 
     @Override
     public String description() {
-        return "Update configuration of process " + this.processId;
+        return "Update configuration of process " + this.process.getId();
     }
 
     @Override
     public Result execute() {
-        ChangeProcessConfiguration.log.debug("Attempting to update configuration of process " + this.processId);
+        ChangeProcessConfiguration.log.debug("Attempting to update configuration of process " + this.process.getId());
         boolean success;
         try {
-            success = ProcessConnector.getInstance().updateConfiguration(this.processId, this.newConfigurtaion);
+            success = ProcessConnector.getInstance().updateConfiguration(this.process.getId(), this.newConfiguration);
         } catch (final ProcessNotFoundException e) {
-            ChangeProcessConfiguration.log.error("No such process {}, failed permanently", this.processId);
+            ChangeProcessConfiguration.log.error("No such process {}, failed permanently", this.process.getId());
             return Result.FAILED_PERMANENTLY;
         }
 
         if (success) {
-            ChangeProcessConfiguration.log.debug(
-                    "Changing configuration of process " + this.processId + " was succesful, writing change to db");
+            ChangeProcessConfiguration.log.debug("Changing configuration of process " + this.process.getId()
+                    + " was succesful, writing change to db");
             final MongoDbConnector db = MongoDbConnector.getInstance();
-            final Process process = db.get(Process.class, this.processId);
-            process.setConfiguration(this.newConfigurtaion);
-            db.save(process);
+            this.process.setConfiguration(this.newConfiguration);
+            db.save(this.process);
             return Result.SUCCESS;
         } else {
-            ChangeProcessConfiguration.log.debug("Changing configuration of process " + this.processId + " failed");
+            ChangeProcessConfiguration.log
+                    .debug("Changing configuration of process " + this.process.getId() + " failed");
             return Result.FAILED_TEMPORARY;
         }
     }

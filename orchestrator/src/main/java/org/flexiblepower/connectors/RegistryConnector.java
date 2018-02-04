@@ -35,9 +35,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.core.Response;
@@ -66,7 +69,7 @@ import lombok.extern.slf4j.Slf4j;
 public class RegistryConnector {
 
     public static final String REGISTRY_URL_KEY = "REGISTRY_URL";
-    private static final String REGISTRY_URL_DFLT = "registry:5000";
+    private static final String REGISTRY_URL_DFLT = "defpi.hesilab.nl:5000";
 
     public static final String REGISTRY_EXTERNAL_URL_KEY = "REGISTRY_EXTERNAL_URL";
 
@@ -75,15 +78,16 @@ public class RegistryConnector {
 
     private static final long MAX_CACHE_AGE_MS = Duration.ofMinutes(2).toMillis();
     private static final long MAX_CACHE_REFRESH_TIME = Duration.ofSeconds(5).toMillis();
-    private static final int MAX_THREADS = 10;
 
     private static RegistryConnector instance = null;
+    private static int threadCount = 0;
 
     private final String registryName;
     private final String registryApiLink;
-    // private final Gson gson = new Gson();
     private final ObjectMapper om = new ObjectMapper();
 
+    private final ExecutorService cacheExecutor = Executors.newFixedThreadPool(10,
+            r -> new Thread(r, "RegConThread" + RegistryConnector.threadCount++));
     private final Set<Interface> interfaceCache = new HashSet<>();
 
     private final Map<String, Service> serviceCache = new ConcurrentHashMap<>();
@@ -153,18 +157,16 @@ public class RegistryConnector {
         synchronized (this.allServiceCacheLock) {
             final long cacheAge = System.currentTimeMillis() - this.allServiceCacheLastUpdate;
             if (cacheAge > RegistryConnector.MAX_CACHE_AGE_MS) {
+
                 // Cache too old, refresh data
-
-                // Create one pool to list all tags, and a second pool to get the actual services
-                final ExecutorService pool1 = Executors.newFixedThreadPool(RegistryConnector.MAX_THREADS);
-                final ExecutorService pool2 = Executors.newFixedThreadPool(RegistryConnector.MAX_THREADS);
-
+                Future<Future<?>> listTagsFuture = null;
                 for (final String sn : this.listServiceNames(repository)) {
-                    pool1.submit(() -> {
+                    listTagsFuture = this.cacheExecutor.submit(() -> {
+                        Future<?> listVersionFuture = null;
                         final List<String> tagsList = this.listTags(repository, sn);
                         final Map<String, List<String>> versions = RegistryConnector.groupTagVersions(tagsList);
                         for (final Entry<String, List<String>> e : versions.entrySet()) {
-                            pool2.submit(() -> {
+                            listVersionFuture = this.cacheExecutor.submit(() -> {
                                 try {
                                     final String version = e.getKey();
                                     final Map<Architecture, String> tagsMap = RegistryConnector
@@ -180,25 +182,24 @@ public class RegistryConnector {
                                 }
                             });
                         }
+                        return listVersionFuture;
                     });
                 }
 
                 try {
-                    pool1.shutdown();
-                    if (!pool1.awaitTermination(1, TimeUnit.SECONDS)) {
-                        RegistryConnector.log
-                                .warn("It is taking a long time to list all service tags! Results will be incomplete");
+                    if (listTagsFuture != null) {
+                        final Future<?> lastVersion = listTagsFuture.get(1, TimeUnit.SECONDS);
+                        if (lastVersion != null) {
+                            lastVersion.get(RegistryConnector.MAX_CACHE_REFRESH_TIME, TimeUnit.MILLISECONDS);
+                        }
                     }
-                    // By now all get serviceFromRegistry calls are scheduled
-                    pool2.shutdown();
-                    if (!pool2.awaitTermination(RegistryConnector.MAX_CACHE_REFRESH_TIME, TimeUnit.MILLISECONDS)) {
-                        RegistryConnector.log
-                                .warn("It is taking a long time to get all services! Results may be incomplete");
-                    }
-                } catch (final InterruptedException e) {
-                    RegistryConnector.log.warn("Interrupted while fetching Services");
+                } catch (InterruptedException | ExecutionException e) {
+                    RegistryConnector.log.warn("Exception while fetching Services: {}", e.getClass());
+                    RegistryConnector.log.trace(e.getMessage(), e);
+                } catch (final TimeoutException e) {
+                    RegistryConnector.log
+                            .warn("Timeout while waiting for service versions, results may be incomplete!");
                 }
-
                 this.allServiceCacheLastUpdate = System.currentTimeMillis();
             }
         }
@@ -210,17 +211,13 @@ public class RegistryConnector {
             final long cacheAge = System.currentTimeMillis() - this.serviceCacheLastUpdate;
             if (cacheAge > RegistryConnector.MAX_CACHE_AGE_MS) {
                 // Cache too old, refresh data
-
-                // Create one pool to list all tags, and a second pool to get the actual services
-                final ExecutorService pool1 = Executors.newFixedThreadPool(RegistryConnector.MAX_THREADS);
-                final ExecutorService pool2 = Executors.newFixedThreadPool(RegistryConnector.MAX_THREADS);
-
+                Future<Future<?>> listTagsFuture = null;
                 for (final String serviceName : this.listServiceNames(repository)) {
-                    pool1.submit(() -> {
+                    listTagsFuture = this.cacheExecutor.submit(() -> {
                         final List<String> tagsList = this.listTags(repository, serviceName);
                         Collections.sort(tagsList);
                         final String version = (tagsList.contains("latest") ? "latest" : tagsList.get(0));
-                        pool2.submit(() -> {
+                        return this.cacheExecutor.submit(() -> {
                             try {
                                 final Map<Architecture, String> tagsMap = RegistryConnector
                                         .tagsToArchitectureMap(tagsList);
@@ -241,19 +238,18 @@ public class RegistryConnector {
                 }
 
                 try {
-                    pool1.shutdown();
-                    if (!pool1.awaitTermination(1, TimeUnit.SECONDS)) {
-                        RegistryConnector.log
-                                .warn("It is taking a long time to list all service tags! Results will be incomplete");
+                    if (listTagsFuture != null) {
+                        final Future<?> lastVersion = listTagsFuture.get(1, TimeUnit.SECONDS);
+                        if (lastVersion != null) {
+                            lastVersion.get(RegistryConnector.MAX_CACHE_REFRESH_TIME, TimeUnit.MILLISECONDS);
+                        }
                     }
-                    // By now all get serviceFromRegistry calls are scheduled
-                    pool2.shutdown();
-                    if (!pool2.awaitTermination(RegistryConnector.MAX_CACHE_REFRESH_TIME, TimeUnit.MILLISECONDS)) {
-                        RegistryConnector.log
-                                .warn("It is taking a long time to get all services! Results may be incomplete");
-                    }
-                } catch (final InterruptedException e) {
-                    RegistryConnector.log.warn("Interrupted while fetching Services");
+                } catch (InterruptedException | ExecutionException e) {
+                    RegistryConnector.log.warn("Exception while fetching Services: {}", e.getClass());
+                    RegistryConnector.log.trace(e.getMessage(), e);
+                } catch (final TimeoutException e) {
+                    RegistryConnector.log
+                            .warn("Timeout while waiting for service versions, results may be incomplete!");
                 }
 
                 this.serviceCacheLastUpdate = System.currentTimeMillis();
@@ -323,7 +319,7 @@ public class RegistryConnector {
         } catch (final RepositoryNotFoundException e) {
             throw new ServiceNotFoundException(e);
         }
-        throw new ServiceNotFoundException();
+        throw new ServiceNotFoundException(id);
     }
 
     private Service getServiceFromRegistry(final String repository,

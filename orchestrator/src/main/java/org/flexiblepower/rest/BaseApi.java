@@ -45,7 +45,7 @@ public abstract class BaseApi {
         String authString = httpHeaders.getHeaderString("Authorization");
         if ((authString == null) || !authString.startsWith(BaseApi.AUTH_PREFIX)) {
             // User did not provide Basic Auth info, so look for token in header
-            BaseApi.log.debug("Client is not using basic authentication! Looking for token header");
+            BaseApi.log.trace("Client is not using basic authentication! Looking for token header");
             final String token = httpHeaders.getHeaderString("X-Auth-Token");
             if (token == null) { // If token is also not present, user is unauthenticated!
                 BaseApi.log.debug("Client is not using token-based authentication either! Unauthenticated!");
@@ -58,8 +58,6 @@ public abstract class BaseApi {
                 BaseApi.log.debug("Unable to find user with provided token");
                 return;
             }
-            // Success!
-            BaseApi.log.debug("User {} logged in", this.sessionUser.getUsername());
         } else {
             // Trim the prefix
             authString = authString.substring(BaseApi.AUTH_PREFIX.length());
@@ -77,9 +75,9 @@ public abstract class BaseApi {
                 BaseApi.log.debug("Unable to find user with provided credentials");
                 return;
             }
-
-            BaseApi.log.debug("User {} logged in", this.sessionUser.getUsername());
         }
+        // Success!
+        BaseApi.log.trace("User {} logged in", this.sessionUser.getUsername());
     }
 
     /**

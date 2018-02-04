@@ -204,6 +204,24 @@ public class NodeManager {
         return this.getNodeAndSync(PrivateNode.class, id);
     }
 
+    public org.flexiblepower.model.Node getNodeByHostname(final String hostname) {
+        // Most likely it is a public node, so start here
+        final List<PublicNode> publicNodes = this.getNodesAndSync(PublicNode.class);
+        for (final PublicNode node : publicNodes) {
+            if (node.getHostname().equals(hostname)) {
+                return node;
+            }
+        }
+
+        final List<PrivateNode> privateNodes = this.getNodesAndSync(PrivateNode.class);
+        for (final PrivateNode node : privateNodes) {
+            if (node.getHostname().equals(hostname)) {
+                return node;
+            }
+        }
+        return null;
+    }
+
     public List<NodePool> getNodePools() {
         return MongoDbConnector.getInstance().list(NodePool.class);
     }

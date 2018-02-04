@@ -17,6 +17,9 @@
  */
 package org.flexiblepower.process;
 
+import java.util.Arrays;
+import java.util.Collections;
+
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.ProcessConnector;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
@@ -40,12 +43,15 @@ public class TerminateConnection extends PendingChange {
     private Connection connection;
     private Endpoint endpoint;
 
-    public TerminateConnection() {
+    // Default constructor for morphia
+    @SuppressWarnings("unused")
+    private TerminateConnection() {
         super();
     }
 
     public TerminateConnection(final ObjectId userId, final Connection connection, final Connection.Endpoint endpoint) {
         super(userId);
+        this.resources = Collections.unmodifiableList(Arrays.asList(connection.getId(), endpoint.getProcessId()));
         this.connection = connection;
         this.endpoint = endpoint;
     }

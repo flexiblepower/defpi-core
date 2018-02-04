@@ -17,6 +17,8 @@
  */
 package org.flexiblepower.process;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.bson.types.ObjectId;
@@ -51,7 +53,9 @@ public class MoveProcess {
         private Connection connection;
         private Endpoint endpoint;
 
-        public SuspendConnection() {
+        // Default constructor for morphia
+        @SuppressWarnings("unused")
+        private SuspendConnection() {
             super();
         }
 
@@ -59,6 +63,7 @@ public class MoveProcess {
                 final Connection connection,
                 final Connection.Endpoint endpoint) {
             super(userId);
+            this.resources = Collections.unmodifiableList(Arrays.asList(connection.getId(), endpoint.getProcessId()));
             this.connection = connection;
             this.endpoint = endpoint;
         }
@@ -99,12 +104,15 @@ public class MoveProcess {
         private ObjectId nodePoolId;
         private ObjectId privateNodeId;
 
-        public SuspendProcess() {
+        // Default constructor for morphia
+        @SuppressWarnings("unused")
+        private SuspendProcess() {
             super();
         }
 
         public SuspendProcess(final Process process, final ObjectId nodePoolId, final ObjectId privateNodeId) {
             super(process.getUserId());
+            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
             this.process = process;
             this.nodePoolId = nodePoolId;
             this.privateNodeId = privateNodeId;
@@ -176,12 +184,15 @@ public class MoveProcess {
 
         private Process process;
 
-        public RemoveDockerService() {
+        // Default constructor for morphia
+        @SuppressWarnings("unused")
+        private RemoveDockerService() {
             super();
         }
 
         public RemoveDockerService(final Process process, final ObjectId nodePoolId, final ObjectId privateNodeId) {
             super(process.getUserId());
+            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
             this.process = process;
             if ((nodePoolId != null) && (privateNodeId != null)) {
                 throw new IllegalArgumentException("Either nodePoolId or privateNodeId should be null");
@@ -227,7 +238,9 @@ public class MoveProcess {
         private ObjectId privateNodeId;
         private byte[] suspendState;
 
-        public CreateDockerService() {
+        // Default constructor for morphia
+        @SuppressWarnings("unused")
+        private CreateDockerService() {
             super();
         }
 
@@ -241,6 +254,7 @@ public class MoveProcess {
                 final ObjectId privateNodeId,
                 final byte[] suspendState) {
             super(process.getUserId());
+            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
             this.process = process;
             this.nodePoolId = nodePoolId;
             this.privateNodeId = privateNodeId;
@@ -294,12 +308,15 @@ public class MoveProcess {
         private List<ProcessParameter> configuration;
         private byte[] suspendState;
 
-        public ResumeProcess() {
+        // Default constructor for morphia
+        @SuppressWarnings("unused")
+        private ResumeProcess() {
             super();
         }
 
         public ResumeProcess(final Process process, final byte[] suspendState) {
             super(process.getUserId());
+            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
             this.process = process;
             this.suspendState = suspendState;
         }
@@ -345,7 +362,9 @@ public class MoveProcess {
         private Connection connection;
         private Endpoint endpoint;
 
-        public ResumeConnection() {
+        // Default constructor for morphia
+        @SuppressWarnings("unused")
+        private ResumeConnection() {
             super();
         }
 
@@ -353,6 +372,7 @@ public class MoveProcess {
                 final Connection connection,
                 final Connection.Endpoint endpoint) {
             super(userId);
+            this.resources = Collections.unmodifiableList(Arrays.asList(connection.getId(), endpoint.getProcessId()));
             this.connection = connection;
             this.endpoint = endpoint;
         }

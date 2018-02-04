@@ -55,14 +55,11 @@ public class User {
     @JsonDeserialize(using = ObjectIdDeserializer.class)
     private ObjectId id;
 
-    @Getter
     @Indexed(options = @IndexOptions(unique = true))
     private String username;
 
-    @JsonIgnore
     private String password;
 
-    @JsonIgnore
     private String passwordHash;
 
     @Setter
@@ -91,6 +88,12 @@ public class User {
             this.passwordHash = User.computeUserPass(this.username, this.password);
             this.password = null;
         }
+    }
+
+    public void clearPasswordHash() {
+        // For instance to export it;
+        this.password = null;
+        this.passwordHash = null;
     }
 
     @Override

@@ -18,6 +18,8 @@
 package org.flexiblepower.orchestrator.pendingchange;
 
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
@@ -39,6 +41,7 @@ public class PendingChangeManager {
     private static final int NUM_THREADS = 16;
     private static PendingChangeManager instance;
     protected final Object waitLock = new Object();
+    protected final List<ObjectId> lockedResources = new LinkedList<>();
 
     private PendingChangeManager() {
         for (int i = 0; i < PendingChangeManager.NUM_THREADS; i++) {
@@ -60,8 +63,11 @@ public class PendingChangeManager {
         }
     }
 
-    public void update(final PendingChange pendingChange) {
+    public void release(final PendingChange pendingChange) {
         pendingChange.obtainedAt = null;
+        synchronized (this.lockedResources) {
+            this.lockedResources.removeAll(pendingChange.getResources());
+        }
         switch (pendingChange.getState()) {
         case FAILED_PERMANENTLY:
             MongoDbConnector.getInstance().save(pendingChange);
@@ -84,6 +90,7 @@ public class PendingChangeManager {
 
     protected void runPendingChange(final PendingChange pc) {
         PendingChangeManager.log.debug("Running PendingChange of type " + pc.getClass().getSimpleName());
+
         Result result;
         try {
             result = pc.execute();
@@ -111,7 +118,7 @@ public class PendingChangeManager {
         default:
             break;
         }
-        this.update(pc);
+        this.release(pc);
     }
 
     public PendingChange getPendingChange(final ObjectId objectId) {
@@ -121,8 +128,17 @@ public class PendingChangeManager {
     /**
      * @param pendingChangeId
      */
-    public void deletePendingChange(final ObjectId pendingChangeId) {
-        MongoDbConnector.getInstance().delete(PendingChange.class, pendingChangeId);
+    public void deletePendingChange(final PendingChange pendingChange) {
+        MongoDbConnector.getInstance().delete(pendingChange);
+    }
+
+    /**
+     *
+     */
+    public void cleanPendingChanges() {
+        MongoDbConnector.getInstance().cleanPendingChanges();
+        this.lockedResources.clear();
+
     }
 
     private class PendingChangeRunner implements Runnable {
@@ -140,7 +156,14 @@ public class PendingChangeManager {
         public void run() {
             final MongoDbConnector db = MongoDbConnector.getInstance();
             while (true) {
-                final PendingChange pc = db.getNextPendingChange();
+                PendingChange pc;
+                synchronized (PendingChangeManager.this.lockedResources) {
+                    pc = db.getNextPendingChange(PendingChangeManager.this.lockedResources);
+                    if (pc != null) {
+                        PendingChangeManager.this.lockedResources.addAll(pc.getResources());
+                    }
+                }
+
                 if (pc == null) {
                     // Nothing to do, take a break...
                     synchronized (PendingChangeManager.this.waitLock) {

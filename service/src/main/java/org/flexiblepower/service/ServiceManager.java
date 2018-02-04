@@ -70,6 +70,7 @@ public class ServiceManager<T> implements Closeable {
      * boolean is still true
      */
     private static final long SERVICE_IMPL_TIMEOUT_SECONDS = 5;
+    private static final long SOCKET_READ_TIMEOUT = 1000;
     public static final int MANAGEMENT_PORT = 4999;
     private static int threadCount = 0;
 
@@ -110,9 +111,16 @@ public class ServiceManager<T> implements Closeable {
             while (this.keepThreadAlive) {
                 byte[] messageArray;
                 try {
-                    this.managementSocket.waitUntilConnected(0);
-                    messageArray = this.managementSocket.read();
-                } catch (IOException | InterruptedException e) {
+                    // ServiceManager.log.trace("Waiting for connected");
+                    // this.managementSocket.waitUntilConnected(0);
+                    ServiceManager.log.trace("Waiting for message");
+                    messageArray = this.managementSocket.read(ServiceManager.SOCKET_READ_TIMEOUT);
+                    if (messageArray == null) {
+                        ServiceManager.log.trace("Read nothing, try again");
+                        // No message received...
+                        continue;
+                    }
+                } catch (final IOException e) {
                     if (this.keepThreadAlive) {
                         ServiceManager.log.warn("Socket closed while expecting instruction, re-opening it", e);
                         this.managementSocket.close();
@@ -151,7 +159,7 @@ public class ServiceManager<T> implements Closeable {
                 // Now try to send the response
                 try {
                     this.managementSocket.send(responseArray);
-                } catch (final IOException | InterruptedException e) {
+                } catch (final IOException e) {
                     // Socket is closed, we are stopped
                     if (this.keepThreadAlive) {
                         ServiceManager.log.warn("Socket closed while sending reply, re-opening it", e);

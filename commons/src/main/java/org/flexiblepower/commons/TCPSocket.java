@@ -23,15 +23,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.nio.channels.NotYetConnectedException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,25 +39,13 @@ import org.slf4j.LoggerFactory;
  */
 public class TCPSocket implements Closeable {
 
-    private static final Collection<TCPSocket> ALL_SOCKETS = new LinkedList<>();
-
+    private static final int CONNECT_ON_SEND_TIMEOUT = 10;
     private static final int EOM = 0xFF;
     protected static final Logger log = LoggerFactory.getLogger(TCPSocket.class);
 
-    private static int threadCounter = 0;
+    private final SocketRunner connector;
 
-    private final ExecutorService executor = Executors
-            .newSingleThreadScheduledExecutor(r -> new Thread(r, "TCPthread " + TCPSocket.threadCounter++));
-    // private final Thread connectionThread;
-    private final Object waitLock = new Object();
-
-    protected Socket clientSocket;
-    protected ServerSocket serverSocket;
-    protected InputStream inputStream;
-    protected OutputStream outputStream;
-    protected boolean ready = false;
-
-    protected volatile boolean keepOpen = true;
+    protected Socket socket;
 
     public static synchronized TCPSocket asClient(final String targetAddress, final int port) {
         return new TCPSocket(targetAddress, port);
@@ -72,144 +55,139 @@ public class TCPSocket implements Closeable {
         return new TCPSocket(port);
     }
 
-    public static void destroyLingeringSockets() {
-        TCPSocket.ALL_SOCKETS.forEach(s -> s.close());
-        TCPSocket.ALL_SOCKETS.clear();
-    }
-
     private TCPSocket(final int port) {
-        this.executor.submit(new ServerSocketRunner(port));
-        TCPSocket.ALL_SOCKETS.add(this);
+        this.connector = new ServerSocketRunner(port);
     }
 
     private TCPSocket(final String address, final int port) {
-        this.executor.submit(new ClientSocketRunner(address, port));
-        TCPSocket.ALL_SOCKETS.add(this);
-    }
-
-    public boolean ready() {
-        return this.ready;
+        this.connector = new ClientSocketRunner(address, port);
     }
 
     public boolean isConnected() {
-        return (this.clientSocket != null) && this.clientSocket.isConnected() && !this.clientSocket.isClosed();
+        return (this.socket != null) && this.socket.isConnected() && !this.socket.isClosed();
     }
 
     public boolean isClosed() {
-        return (this.clientSocket != null) && this.clientSocket.isClosed();
+        return (this.socket != null) && this.socket.isClosed();
     }
 
-    public void waitUntilConnected(final long millis) throws InterruptedException, IOException {
-        if (this.ready()) {
-            return;
-        }
-
-        synchronized (this.waitLock) {
-            if (millis < 1) {
-                this.waitLock.wait();
-            } else {
-                this.waitLock.wait(millis);
-            }
-        }
-
-        if (!this.isConnected()) {
-            throw new ClosedChannelException();
-        }
+    public synchronized void waitUntilConnected() throws IOException {
+        this.waitUntilConnected(0);
     }
 
-    protected void releaseWaitLock() {
-        synchronized (this.waitLock) {
-            this.waitLock.notifyAll();
-        }
-    }
-
-    public byte[] read(final int timeout) throws InterruptedException, ExecutionException, TimeoutException {
-        return this.executor.submit(() -> this.read()).get(timeout, TimeUnit.MILLISECONDS);
-    }
-
-    public byte[] read() throws InterruptedException, IOException {
-        // TCPSocket.log.trace("Waiting to read...");
-        if (this.isClosed()) {
-            throw new ClosedChannelException();
-        }
-        // this.waitUntilConnected(0);
-        synchronized (this.inputStream) {
-            // TCPSocket.log.trace("Allowed to read");
-            // Apparently this is the only way you can be sure that you read 4 bytes...
-            final int len = ByteBuffer.wrap(new byte[] {(byte) this.inputStream.read(), (byte) this.inputStream.read(),
-                    (byte) this.inputStream.read(), (byte) this.inputStream.read()}).getInt();
-            if (len < 0) {
-                throw new IOException("Reached end of stream");
-            }
-            // TCPSocket.log.trace("Reading {} bytes", len);
-            final byte[] data = new byte[len];
-            int read = 0;
-            while (read < len) {
-                read += this.inputStream.read(data, read, len - read);
-            }
-            if (read != len) {
-                TCPSocket.log.warn("Expected {} bytes, instead received {}", len, read);
-            }
-            int eof = this.inputStream.read();
-            if (eof != TCPSocket.EOM) {
-                TCPSocket.log.warn("Expected EOM, instead read {}, skipping stream", eof);
-                while (eof != TCPSocket.EOM) {
-                    eof = this.inputStream.read();
-                }
-            }
-            // TCPSocket.log.trace("Finished read: {}", new String(data).replace("\0", "\\0"));
-            return data;
-        }
-    }
-
-    public void send(final byte[] data, final int timeout) throws InterruptedException,
-            ExecutionException,
-            TimeoutException {
-        this.executor.submit(() -> {
-            this.send(data);
+    public synchronized boolean waitUntilConnected(final long millis) throws IOException {
+        if (this.socket != null) {
             return true;
-        }).get(timeout, TimeUnit.MILLISECONDS);
+        }
+
+        this.socket = this.connector.connect(millis);
+        if (this.socket == null) {
+            return false;
+        } else {
+            // So we DID get a socket, but it somehow poofed away
+            if (!this.isConnected()) {
+                throw new ClosedChannelException();
+            }
+            return true;
+        }
     }
 
-    public void send(final byte[] data) throws InterruptedException, IOException {
-        // TCPSocket.log.trace("Waiting to send...");
+    public byte[] read() throws IOException {
+        return this.read(0);
+    }
+
+    @SuppressWarnings("resource")
+    public byte[] read(final long timeout) throws IOException {
         if (this.isClosed()) {
             throw new ClosedChannelException();
         }
-        // this.waitUntilConnected(0);
-        synchronized (this.outputStream) {
-            // TCPSocket.log.trace("Sending {} bytes", data.length);
-            this.outputStream.write(ByteBuffer.allocate(4).putInt(data.length).array());
-            this.outputStream.write(data);
-            this.outputStream.write(TCPSocket.EOM);
-            this.outputStream.flush();
+
+        final long t_start = System.currentTimeMillis();
+        if (timeout == 0) {
+            this.waitUntilConnected();
+        } else {
+            if (!this.waitUntilConnected(timeout)) {
+                return null;
+            }
+        }
+
+        synchronized (this.socket.getInputStream()) {
+            if (timeout == 0) {
+                this.socket.setSoTimeout(0);
+            } else {
+                this.socket.setSoTimeout((int) (timeout - (System.currentTimeMillis() - t_start)));
+            }
+
+            // Read 4 bytes that will tell how long the message is
+            try {
+                final InputStream is = this.socket.getInputStream();
+                final int len = ByteBuffer
+                        .wrap(new byte[] {(byte) is.read(), (byte) is.read(), (byte) is.read(), (byte) is.read()})
+                        .getInt();
+
+                if (len < 0) {
+                    this.close();
+                    throw new IOException("Reached end of stream");
+                }
+                final byte[] data = new byte[len];
+                int read = 0;
+                while (read < len) {
+                    read += is.read(data, read, len - read);
+                }
+                if (read != len) {
+                    TCPSocket.log.warn("Expected {} bytes, instead received {}", len, read);
+                }
+
+                int eof = is.read();
+                if (eof != TCPSocket.EOM) {
+                    TCPSocket.log.warn("Expected EOM, instead read {}, skipping stream", eof);
+                    while (eof != TCPSocket.EOM) {
+                        eof = is.read();
+                        if (eof < 0) {
+                            this.close();
+                            throw new IOException("Reached end of stream");
+                        }
+                    }
+                }
+
+                return data;
+            } catch (final SocketTimeoutException e) {
+                return null;
+            }
+        }
+    }
+
+    public void send(final byte[] data) throws IOException {
+        if (!this.waitUntilConnected(TCPSocket.CONNECT_ON_SEND_TIMEOUT)) {
+            throw new NotYetConnectedException();
+        } else if (this.isClosed()) {
+            throw new ClosedChannelException();
+        }
+
+        synchronized (this.socket.getOutputStream()) {
+            final OutputStream os = this.socket.getOutputStream();
+            os.write(ByteBuffer.allocate(4).putInt(data.length).array());
+            os.write(data);
+            os.write(TCPSocket.EOM);
+            os.flush();
         }
     }
 
     @Override
-    public synchronized void close() {
-        this.keepOpen = false;
+    public void close() {
+        try {
+            this.connector.close();
+        } catch (final IOException e) {
+            TCPSocket.log.warn("Exception while closing connector: {}", e.getMessage());
+        }
 
-        if (this.serverSocket != null) {
+        if ((this.socket != null) && !this.socket.isClosed()) {
             try {
-                this.serverSocket.close();
+                this.socket.close();
             } catch (final IOException e) {
                 TCPSocket.log.warn("Exception while closing socket: {}", e.getMessage());
             }
-            this.serverSocket = null;
         }
-
-        if (this.clientSocket != null) {
-            try {
-                this.clientSocket.close();
-            } catch (final IOException e) {
-                TCPSocket.log.warn("Exception while closing socket: {}", e.getMessage());
-            }
-            this.clientSocket = null;
-        }
-
-        this.executor.shutdownNow();
-        this.releaseWaitLock();
     }
 
     /**
@@ -218,43 +196,28 @@ public class TCPSocket implements Closeable {
      * @version 0.1
      * @since Oct 11, 2017
      */
-    protected abstract class SocketRunner implements Runnable {
+    protected abstract class SocketRunner implements Closeable {
 
         private static final long INITIAL_BACKOFF_MS = 50;
         private static final long MAXIMUM_BACKOFF_MS = 60000;
-        private long backOffMs;
+        private long backOffMs = SocketRunner.INITIAL_BACKOFF_MS;
 
-        abstract protected Socket init();
+        public abstract Socket connect(long millis) throws IOException;
 
-        @Override
-        public void run() {
-            this.backOffMs = SocketRunner.INITIAL_BACKOFF_MS;
-            try {
-                TCPSocket.this.clientSocket = this.init();
-
-                if (!TCPSocket.this.keepOpen) {
-                    // Check if in the mean time we got a close request...
-                    TCPSocket.this.close();
-                    return;
-                }
-
-                TCPSocket.this.inputStream = TCPSocket.this.clientSocket.getInputStream();
-                TCPSocket.this.outputStream = TCPSocket.this.clientSocket.getOutputStream();
-                TCPSocket.this.ready = true;
-                TCPSocket.this.releaseWaitLock();
-            } catch (final IOException e) {
-                TCPSocket.log.warn("Exception while initializing socket: {}", e.getMessage());
-            }
-        }
-
-        protected void increaseBackOffAndWait() {
-            this.backOffMs = (long) Math.min(SocketRunner.MAXIMUM_BACKOFF_MS, this.backOffMs * 1.25);
+        protected void increaseBackOffAndWait(final long max) {
+            this.backOffMs = (long) Math.min(max, Math.min(SocketRunner.MAXIMUM_BACKOFF_MS, this.backOffMs * 1.25));
             try {
                 Thread.sleep(this.backOffMs);
             } catch (final InterruptedException e) {
                 // Don't care, we'll see you next iteration
             }
         }
+
+        protected long timeLeft(final long t_start, final long millis) {
+            return millis == 0 ? SocketRunner.MAXIMUM_BACKOFF_MS
+                    : Math.max(0, millis - (System.currentTimeMillis() - t_start));
+        }
+
     }
 
     private final class ClientSocketRunner extends SocketRunner {
@@ -272,65 +235,93 @@ public class TCPSocket implements Closeable {
         }
 
         @Override
-        protected Socket init() {
-            while (TCPSocket.this.keepOpen) {
+        public Socket connect(final long millis) {
+            final long t_start = System.currentTimeMillis();
+            while (this.timeLeft(t_start, millis) > 0) {
                 try {
                     final Socket client = new Socket(this.targetAddress, this.targetPort);
-                    // client.setTcpNoDelay(false);
-                    // client.setReuseAddress(false);
-                    // client.setOOBInline(false);
-                    // client.setSoLinger(false, 0);
-                    // client.setPerformancePreferences(0, 1, 1);
                     TCPSocket.log.info("Initialized client socket to {}", client.getRemoteSocketAddress());
                     return client;
                 } catch (final IOException e) {
                     TCPSocket.log.trace("Unable to connect ({}), retrying...", e.getMessage());
-                    this.increaseBackOffAndWait();
+                    this.increaseBackOffAndWait(this.timeLeft(t_start, millis));
                 }
             }
             return null;
+        }
+
+        @Override
+        public void close() throws IOException {
+            // Do nothing
         }
 
     }
 
     private final class ServerSocketRunner extends SocketRunner {
 
-        private final int listenPort;
+        private final int serverPort;
+        private ServerSocket serverSocket;
 
         /**
          * @param port
          */
         public ServerSocketRunner(final int port) {
-            this.listenPort = port;
+            TCPSocket.log.info("Starting server socket at {}", port);
+            this.serverPort = port;
+            this.bindServerSocket();
+        }
+
+        private synchronized boolean bindServerSocket() {
+            if (this.serverSocket != null) {
+                return true;
+            }
+
+            try {
+                TCPSocket.log.trace("Binding to port {}", this.serverPort);
+                this.serverSocket = new ServerSocket(this.serverPort);
+                this.serverSocket.setReuseAddress(true);
+                return true;
+            } catch (final IOException e) {
+                TCPSocket.log.warn("Unable to open server socket at port {}: {}", this.serverPort, e.getMessage());
+                return false;
+            }
         }
 
         @Override
-        protected Socket init() {
-            while (TCPSocket.this.keepOpen) {
-                try {
-                    TCPSocket.log.info("Starting server socket at {}", this.listenPort);
-                    TCPSocket.this.serverSocket = new ServerSocket(this.listenPort);
-                    // TCPSocket.this.serverSocket.setReuseAddress(false);
-                    // TCPSocket.this.serverSocket.setPerformancePreferences(0, 1, 1);
-                    final Socket client = TCPSocket.this.serverSocket.accept();
-                    TCPSocket.log.info("Accepted client socket at {}", client.getRemoteSocketAddress());
-                    return client;
-                } catch (final IOException e) {
-                    TCPSocket.log.trace("Unable to listen ({}), retrying...", e.getMessage());
-                    if (TCPSocket.this.serverSocket != null) {
-                        try {
-                            TCPSocket.this.serverSocket.close();
-                        } catch (final IOException e2) {
-                            // It's okay... just try again in a bit
-                        }
-                        TCPSocket.this.serverSocket = null;
-                    }
-                    this.increaseBackOffAndWait();
+        public Socket connect(final long millis) throws IOException {
+            final long t_start = System.currentTimeMillis();
+            while ((this.serverSocket == null) && (this.timeLeft(t_start, millis) > 0)) {
+                if (!this.bindServerSocket()) {
+                    this.increaseBackOffAndWait(this.timeLeft(t_start, millis));
                 }
             }
-            return null;
+
+            if (this.serverSocket == null) {
+                TCPSocket.log.trace("Server bind timed out");
+                return null;
+            }
+
+            this.serverSocket.setSoTimeout((int) millis);
+            try {
+                final Socket client = this.serverSocket.accept();
+                TCPSocket.log.info("Accepted client socket at {}", client.getRemoteSocketAddress());
+                this.serverSocket.close();
+                return client;
+            } catch (final SocketTimeoutException e) {
+                TCPSocket.log.trace("Server accept timed out");
+                return null;
+            } catch (final IOException e) {
+                this.serverSocket.close();
+                throw e;
+            }
         }
 
+        @Override
+        public void close() throws IOException {
+            if (this.serverSocket != null) {
+                this.serverSocket.close();
+            }
+        }
     }
 
 }

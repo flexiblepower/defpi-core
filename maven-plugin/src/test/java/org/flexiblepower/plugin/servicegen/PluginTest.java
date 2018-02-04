@@ -19,8 +19,11 @@ package org.flexiblepower.plugin.servicegen;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Set;
 
+import org.flexiblepower.codegen.PluginUtils;
 import org.flexiblepower.codegen.model.InterfaceDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription;
 import org.flexiblepower.codegen.model.ServiceDescription;
@@ -51,6 +54,9 @@ public class PluginTest {
         final File inputFile = new File("src/test/resources/service.json");
         final ServiceDescription descr = this.mapper.readValue(inputFile, ServiceDescription.class);
 
+        Assert.assertEquals("Echo Service", descr.getName());
+        Assert.assertEquals("0.0.1-SNAPSHOT", descr.getVersion());
+
         final JavaTemplates t = new JavaTemplates("target.package", descr);
         for (final InterfaceDescription itf : descr.getInterfaces()) {
             for (final InterfaceVersionDescription vitf : itf.getInterfaceVersions()) {
@@ -78,6 +84,21 @@ public class PluginTest {
 
         final JavaTemplates t = new JavaTemplates("test.config", descr);
         PluginTest.log.info(t.generateConfigInterface());
+    }
+
+    @Test
+    public void steadyHashTest() throws JsonParseException, JsonMappingException, IOException {
+        final Path testFile = Files.createTempFile("http", ".proto");
+        PluginUtils.downloadFile(
+                "https://raw.githubusercontent.com/defpi/interfaces/6098df232adb24fe17612857ecc23597d5174680/defpi/HTTP.proto",
+                testFile.toFile());
+
+        final String fileHash = "e00da70ae21e257e79e23df20461e28edb5c6e4c16f6675b8dc4c40e574ebc06";
+        Assert.assertEquals(fileHash, PluginUtils.SHA256(testFile));
+        Assert.assertEquals("aafa92f5e8c919cc004f017d0c7706bf5e72594e656cf04cd67dd47b97cf7c6c",
+                PluginUtils.SHA256(fileHash + ";HTTPResponse"));
+        Assert.assertEquals("c46d5961b42774f80194e8308e4a1bec450881925f8d20a08a1f764acf22ed24",
+                PluginUtils.SHA256(fileHash + ";HTTPRequest"));
     }
 
 }

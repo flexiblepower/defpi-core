@@ -98,7 +98,7 @@ public class ConnectionTest {
         final String hostOfTestRunner = InetAddress.getLocalHost().getCanonicalHostName();
 
         this.managementSocket = TCPSocket.asClient(hostOfTestRunner, ServiceManager.MANAGEMENT_PORT);
-        this.managementSocket.waitUntilConnected(0);
+        this.managementSocket.waitUntilConnected();
 
         final ConnectionMessage createMsg = ConnectionMessage.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
@@ -123,7 +123,7 @@ public class ConnectionTest {
 
         // Create our local socket to connect to
         this.dataSocket = TCPSocket.asClient(hostOfTestRunner, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
-        this.dataSocket.waitUntilConnected(0);
+        this.dataSocket.waitUntilConnected();
         this.testAck();
     }
 
@@ -189,11 +189,8 @@ public class ConnectionTest {
         Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
         Assert.assertEquals("connection-suspended", this.testService.getState());
 
-        // Make a new connection TO the test service
-        this.dataSocket.close();
-
         // Wait for at least one potential heartbeat that should NOT properly go
-        Thread.sleep(1000);
+        Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
 
         this.managementSocket.send(this.serializer.serialize(ConnectionMessage.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
@@ -214,8 +211,10 @@ public class ConnectionTest {
         Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
 
         final String hostOfTestRunner = InetAddress.getLocalHost().getCanonicalHostName();
+        // Make a new connection TO the test service
+        this.dataSocket.close();
         this.dataSocket = TCPSocket.asClient(hostOfTestRunner, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
-        this.dataSocket.waitUntilConnected(0);
+        this.dataSocket.waitUntilConnected();
         // We need to receive and send a handshake before the connection is in the CONNECTED state again
         final Object receivedHandshake = this.serializer.deserialize(this.readSocketFilterHeartbeat());
         Assert.assertEquals(ConnectionHandshake.class, receivedHandshake.getClass());
@@ -258,7 +257,6 @@ public class ConnectionTest {
             this.dataSocket.close();
             this.dataSocket = null;
         }
-        TCPSocket.destroyLingeringSockets();
         Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
     }
 
