@@ -20,21 +20,66 @@ package org.flexiblepower.serializers;
 
 import org.flexiblepower.exceptions.SerializationException;
 
+/**
+ * MessageSerializer
+ *
+ * @version 0.1
+ * @since May 18, 2017
+ * @param <T> the Type of message to serialize
+ */
 public interface MessageSerializer<T> {
 
+    /**
+     * DescriptorType
+     *
+     * @version 0.1
+     * @since May 18, 2017
+     */
     public enum DescriptorType {
+        /**
+         * A google protobuf type
+         */
         PROTOBUF,
+        /**
+         * A schema validate XML type
+         */
         XSD,
-        JAVAOBJECT,
-        NONE
+        /**
+         * A serialized java object
+         */
+        JAVAOBJECT
     }
 
+    /**
+     * @return the type of message this the serializer will convert to/from
+     */
     DescriptorType getType();
 
+    /**
+     * Adds a message class to the set of classes this serializer will convert to/from
+     *
+     * @param clazz
+     */
     public void addMessageClass(Class<? extends T> clazz);
 
+    /**
+     * Deserialize a byte array of raw data to an object of Type T. The exact class of the return type will have to be
+     * added using {@link #addMessageClass(Class)} before this function is called.
+     *
+     * @param data the raw byte array
+     * @return A proper deserialized object
+     * @throws SerializationException
+     */
     public T deserialize(byte[] data) throws SerializationException;
 
+    /**
+     * Serialize a an object of Type T into a byte array of raw data. The exact class of the argument type will have to
+     * be added using {@link #addMessageClass(Class)} before this function is called.
+     *
+     * @param object to be serialized
+     * @return The raw byte array
+     * @throws SerializationException
+     */
     public byte[] serialize(T object) throws SerializationException;
 
 }
