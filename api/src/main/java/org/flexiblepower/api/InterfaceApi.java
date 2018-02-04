@@ -20,6 +20,7 @@ package org.flexiblepower.api;
 
 import java.util.List;
 
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -41,7 +42,7 @@ import io.swagger.annotations.Authorization;
  * This is the interface of the orchestrator Interface API.
  *
  * @version 0.1
- * @since Dec 6, 2017
+ * @since Apr 7, 2017
  */
 @Api("Interface")
 @Path("interface")
@@ -83,6 +84,7 @@ public interface InterfaceApi {
     @GET
     @Path("{id}")
     @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.TEXT_PLAIN)
     @ApiOperation(nickname = "getInterface",
                   value = "Get interface",
                   notes = "Gets the interface with the provided id",

@@ -49,19 +49,46 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 
+/**
+ * NodeApi
+ *
+ * @version 0.1
+ * @since Apr 7, 2017
+ */
 @Api("Node")
 @Path("/")
 public interface NodeApi {
 
+    /**
+     * Error message to display if the private node is not found
+     */
     final static String PRIVATE_NODE_NOT_FOUND_MESSAGE = "Private node not found";
+    /**
+     * Error message to display if the public node is not found
+     */
     final static String PUBLIC_NODE_NOT_FOUND_MESSAGE = "Public node not found";
+    /**
+     * Error message to display if the unidentified node is not found
+     */
     final static String UNIDENTIFIED_NODE_NOT_FOUND_MESSAGE = "Unidentified node not found";
+    /**
+     * Error message to display if the node pool is not found
+     */
     final static String NODE_POOL_NOT_FOUND_MESSAGE = "Node pool not found";
 
+    /**
+     * Create a new private node from an unidentified node.
+     *
+     * @param newNode the definition of the new private node to create
+     * @return the newly created private node
+     * @throws AuthorizationException If the user is not authorized to create the private node
+     * @throws NotFoundException When the unidentified node that is referred to is not found
+     * @throws InvalidObjectIdException When the argument newNode contains an invalid ObjectId
+     */
     @POST
     @Path("/privatenode")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "createPrivateNode",
                   value = "Create a new private node",
                   notes = "Create a private node based on the id of an unidentified node",
@@ -79,10 +106,19 @@ public interface NodeApi {
             NotFoundException,
             InvalidObjectIdException;
 
+    /**
+     * Create a new public node from an unidentified node
+     *
+     * @param newNode the definition of the new public node to create
+     * @return the newly created private node
+     * @throws AuthorizationException If the user is not authorized to create the public node
+     * @throws NotFoundException When the unidentified node, or the nodepool that is referred to is not found
+     * @throws InvalidObjectIdException When the argument newNode contains an invalid ObjectId
+     */
     @POST
     @Path("/publicnode")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "createPublicNode",
                   value = "Create a new public node",
                   notes = "Create a public node based on the id of an unidentified node",
@@ -100,8 +136,17 @@ public interface NodeApi {
             NotFoundException,
             InvalidObjectIdException;
 
+    /**
+     * Remove a private node, and return it to being an unidentified node
+     *
+     * @param nodeId the id of the node to remove
+     * @throws AuthorizationException If the user is not authorized to delete the private node
+     * @throws NotFoundException When the private node that is referred to is not found
+     * @throws InvalidObjectIdException When the argument nodeId is an invalid ObjectId
+     */
     @DELETE
     @Path("/privatenode/{node_id}")
+    @Consumes(MediaType.TEXT_PLAIN)
     @ApiOperation(nickname = "deletePrivateNode",
                   value = "Remove a private node",
                   notes = "Remove a private node and make it unidentified again",
@@ -118,8 +163,17 @@ public interface NodeApi {
             NotFoundException,
             InvalidObjectIdException;
 
+    /**
+     * Remove a public node, and return it to being an unidentified node
+     *
+     * @param nodeId the id of the node to remove
+     * @throws AuthorizationException If the user is not authorized to delete the public node
+     * @throws NotFoundException When the public node that is referred to is not found
+     * @throws InvalidObjectIdException When the argument nodeId is an invalid ObjectId
+     */
     @DELETE
     @Path("/publicnode/{node_id}")
+    @Consumes(MediaType.TEXT_PLAIN)
     @ApiOperation(nickname = "deletePublicNode",
                   value = "Remove a public node",
                   notes = "Remove a public node and make it unidentified again",
@@ -136,8 +190,18 @@ public interface NodeApi {
             NotFoundException,
             InvalidObjectIdException;
 
+    /**
+     * Get a private node based on its known ObjectId
+     *
+     * @param nodeId the id of the node to retrieve
+     * @return the private node that has the provided nodeId
+     * @throws AuthorizationException If the user is not authorized to get the information on the private node
+     * @throws NotFoundException When the private node that is referred to is not found
+     * @throws InvalidObjectIdException When the argument nodeId is an invalid ObjectId
+     */
     @GET
     @Path("/privatenode/{node_id}")
+    @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "getPrivateNode",
                   value = "Find a private node",
@@ -155,6 +219,15 @@ public interface NodeApi {
             NotFoundException,
             InvalidObjectIdException;
 
+    /**
+     * Get a public node based on its known ObjectId
+     *
+     * @param nodeId the id of the node to retrieve
+     * @return the public node that has the provided nodeId
+     * @throws AuthorizationException If the user is not authenticated to get the information on the public node
+     * @throws NotFoundException When the public node that is referred to is not found
+     * @throws InvalidObjectIdException When the argument nodeId is an invalid ObjectId
+     */
     @GET
     @Path("/publicnode/{node_id}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -162,7 +235,8 @@ public interface NodeApi {
                   value = "Find a public node",
                   notes = "Find the public node with the specified Id",
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "List all public nodes", response = PublicNode.class),
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "The definition of the public node", response = PublicNode.class),
             @ApiResponse(code = 400, message = InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE),
             @ApiResponse(code = 404, message = NodeApi.PUBLIC_NODE_NOT_FOUND_MESSAGE)})
     public PublicNode getPublicNode(
@@ -172,6 +246,14 @@ public interface NodeApi {
             InvalidObjectIdException,
             AuthorizationException;
 
+    /**
+     * List all private nodes that the user is authenticated to retrieve. When the user is an administrator, this will
+     * return all private nodes; when the user is not an administrator, this will return all private nodes that are
+     * registered under his name.
+     *
+     * @return A list of all available private nodes
+     * @throws AuthorizationException If the user is not logged in
+     */
     @GET
     @Path("/privatenode")
     @Produces(MediaType.APPLICATION_JSON)
@@ -189,6 +271,13 @@ public interface NodeApi {
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public List<PrivateNode> listPrivateNodes() throws AuthorizationException;
 
+    /**
+     * List all public nodes. Since by design of dEF-Pi all users can run code on public nodes, this function will
+     * always return all public nodes, as long as the user is valid.
+     *
+     * @return A list of all public nodes.
+     * @throws AuthorizationException If the user is not logged in
+     */
     @GET
     @Path("/publicnode")
     @Produces(MediaType.APPLICATION_JSON)
@@ -206,6 +295,12 @@ public interface NodeApi {
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public List<PublicNode> listPublicNodes() throws AuthorizationException;
 
+    /**
+     * List all unidentified nodes. By design only administrators may list unidentified nodes.
+     *
+     * @return A list of all unidentified nodes
+     * @throws AuthorizationException If the user is logged in as an administrator
+     */
     @GET
     @Path("/unidentifiednode")
     @Produces(MediaType.APPLICATION_JSON)
@@ -223,10 +318,17 @@ public interface NodeApi {
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public List<UnidentifiedNode> listUnidentifiedNodes() throws AuthorizationException;
 
+    /**
+     * Attempt to create a new node pool with provided specification.
+     *
+     * @param newNodePool the specification of the new node pool
+     * @return the created node pool
+     * @throws AuthorizationException if the user is not logged in as an administrator.
+     */
     @POST
     @Path("/nodepool")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "createNodePool",
                   value = "Create NodePool",
                   notes = "Create a new NodePool",
@@ -238,10 +340,20 @@ public interface NodeApi {
             createNodePool(@ApiParam(value = "The new NodePool to add", required = true) final NodePool newNodePool)
                     throws AuthorizationException;
 
+    /**
+     * Attempt to update the information of the with the provided specification.
+     *
+     * @param nodePoolId the ObjectId of the node pool to update
+     * @param updatedNodePool the updated specification of the new node pool
+     * @return the updated node pool
+     * @throws AuthorizationException if the user is not logged in as an administrator.
+     * @throws NodePoolNotFoundException if the node pool could not be found
+     * @throws InvalidObjectIdException if the provided ObjectId is not valid
+     */
     @PUT
     @Path("/nodepool/{nodepool_id}")
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "updateNodePool",
                   value = "Update NodePool",
                   notes = "Update a NodePool",
@@ -259,8 +371,17 @@ public interface NodeApi {
             NodePoolNotFoundException,
             InvalidObjectIdException;
 
+    /**
+     * Attempt to delete the node pool with the provided id.
+     *
+     * @param nodePoolId the ObjectId of the node pool to delete
+     * @throws AuthorizationException if the user is not logged in as an administrator.
+     * @throws NodePoolNotFoundException if the node pool could not be found
+     * @throws InvalidObjectIdException if the provided ObjectId is not valid
+     */
     @DELETE
     @Path("/nodepool/{nodepool_id}")
+    @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "deleteNodePool",
                   value = "Delete NodePool",
@@ -276,10 +397,20 @@ public interface NodeApi {
                       required = true) @PathParam("nodepool_id") final String nodePoolId)
             throws AuthorizationException,
             InvalidObjectIdException,
-            NotFoundException;
+            NodePoolNotFoundException;
 
+    /**
+     * Get information about the node pool with the provided id.
+     *
+     * @param nodePoolId the ObjectId of the node pool to retrieve
+     * @return the node pool with the provided node pool
+     * @throws AuthorizationException if the user is not logged in
+     * @throws NodePoolNotFoundException if the node pool could not be found
+     * @throws InvalidObjectIdException if the provided ObjectId is not valid
+     */
     @GET
     @Path("/nodepool/{nodepool_id}")
+    @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "getNodePool",
                   value = "Get NodePool data",
@@ -294,8 +425,19 @@ public interface NodeApi {
                       required = true) @PathParam("nodepool_id") final String nodePoolId)
             throws AuthorizationException,
             InvalidObjectIdException,
-            NotFoundException;
+            NodePoolNotFoundException;
 
+    /**
+     * List all existing node pools. Possible filtered, sorted or a subset when using multiple pages.
+     *
+     * @param page the current page to view (defaults to 1)
+     * @param perPage the amount of pools to view per page (defaults to 1000)
+     * @param sortDir the direction to sort the pools (defaults to "ASC")
+     * @param sortField the field to sort the pools on (defaults to "id")
+     * @param filters a list of filters in JSON notation
+     * @return A list of node pools that are available in the current dEF-Pi environment
+     * @throws AuthorizationException if the user is not logged in.
+     */
     @GET
     @Path("/nodepool")
     @Produces(MediaType.APPLICATION_JSON)

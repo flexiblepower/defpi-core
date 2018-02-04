@@ -20,6 +20,7 @@ package org.flexiblepower.api;
 
 import java.util.List;
 
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -39,9 +40,14 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 
+/**
+ * ServiceApi
+ *
+ * @version 0.1
+ * @since Apr 7, 2017
+ */
 @Api("Service")
 @Path("/service")
-@Produces(MediaType.APPLICATION_JSON)
 public interface ServiceApi {
 
     @GET
@@ -62,6 +68,7 @@ public interface ServiceApi {
 
     @GET
     @Path("/{id}")
+    @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "getService",
                   value = "Get a service",

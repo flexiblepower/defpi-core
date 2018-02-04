@@ -44,14 +44,23 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 
+/**
+ * ProcessApi
+ *
+ * @version 0.1
+ * @since Apr 7, 2017
+ */
 @Path("process")
 @Api("Process")
-@Produces(MediaType.APPLICATION_JSON)
 public interface ProcessApi {
 
+    /**
+     * Error message to display if the process is not found
+     */
     public static final String PROCESS_NOT_FOUND_MESSAGE = "Process not found";
 
     @GET
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "listProcesses",
                   value = "List processes",
                   notes = "List all processes that are currently running",
@@ -66,9 +75,9 @@ public interface ProcessApi {
             throws AuthorizationException;
 
     @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Path("{processId}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "getProcess",
                   value = "Get process data",
                   notes = "Get the data of the process with the specified Id",
@@ -87,9 +96,9 @@ public interface ProcessApi {
             InvalidObjectIdException;
 
     @PUT
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Path("{processId}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "updateProcess",
                   value = "Get process data",
                   notes = "Get the data of the process with the specified Id",
@@ -111,8 +120,8 @@ public interface ProcessApi {
             ProcessNotFoundException;
 
     @POST
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "newProcess",
                   value = "Create a process",
                   notes = "Create a new process",
@@ -127,6 +136,7 @@ public interface ProcessApi {
 
     @DELETE
     @Path("{processId}")
+    @Consumes(MediaType.TEXT_PLAIN)
     @ApiOperation(nickname = "removeProcess",
                   value = "Remove a process",
                   notes = "Remove the process with the specified Id",
@@ -146,6 +156,8 @@ public interface ProcessApi {
 
     @PUT
     @Path("trigger/{processId}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "triggerProcessUpdate",
                   value = "Trigger the process to update",
                   notes = "Will send the specified process its configuration and connections",

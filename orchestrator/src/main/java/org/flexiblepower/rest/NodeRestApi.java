@@ -34,7 +34,6 @@ import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.NodePoolNotFoundException;
-import org.flexiblepower.exceptions.NotFoundException;
 import org.flexiblepower.model.NodePool;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.PublicNode;
@@ -53,8 +52,8 @@ public class NodeRestApi extends BaseApi implements NodeApi {
     }
 
     @Override
-    public PrivateNode createPrivateNode(final PrivateNode newNode)
-            throws AuthorizationException, InvalidObjectIdException {
+    public PrivateNode createPrivateNode(final PrivateNode newNode) throws AuthorizationException,
+            InvalidObjectIdException {
         this.assertUserIsAdmin();
         // TODO this is a hack. The UI gives the id of the Unidentified node, not of the dockerId...
         final ObjectId oid = MongoDbConnector.stringToObjectId(newNode.getDockerId());
@@ -73,8 +72,8 @@ public class NodeRestApi extends BaseApi implements NodeApi {
     }
 
     @Override
-    public PublicNode createPublicNode(final PublicNode newNode)
-            throws AuthorizationException, InvalidObjectIdException {
+    public PublicNode createPublicNode(final PublicNode newNode) throws AuthorizationException,
+            InvalidObjectIdException {
         this.assertUserIsAdmin();
         // TODO this is a hack. The UI gives the id of the Unidentified node, not of the dockerId...
         final ObjectId oid = MongoDbConnector.stringToObjectId(newNode.getDockerId());
@@ -172,7 +171,9 @@ public class NodeRestApi extends BaseApi implements NodeApi {
 
     @Override
     public NodePool updateNodePool(final String nodePoolId, final NodePool updatedNodePool)
-            throws AuthorizationException, NodePoolNotFoundException, InvalidObjectIdException {
+            throws AuthorizationException,
+            NodePoolNotFoundException,
+            InvalidObjectIdException {
         this.assertUserIsAdmin();
         final NodePool nodePool = this.getNodePool(nodePoolId);
 
@@ -184,16 +185,18 @@ public class NodeRestApi extends BaseApi implements NodeApi {
     }
 
     @Override
-    public void deleteNodePool(final String nodePoolId)
-            throws AuthorizationException, InvalidObjectIdException, NotFoundException {
+    public void deleteNodePool(final String nodePoolId) throws AuthorizationException,
+            InvalidObjectIdException,
+            NodePoolNotFoundException {
         this.assertUserIsAdmin();
         final NodePool nodePool = this.getNodePool(nodePoolId);
         NodeManager.getInstance().deleteNodePool(nodePool);
     }
 
     @Override
-    public NodePool getNodePool(final String nodePoolId)
-            throws AuthorizationException, InvalidObjectIdException, NodePoolNotFoundException {
+    public NodePool getNodePool(final String nodePoolId) throws AuthorizationException,
+            InvalidObjectIdException,
+            NodePoolNotFoundException {
         this.assertUserIsLoggedIn();
         final ObjectId oid = MongoDbConnector.stringToObjectId(nodePoolId);
         final NodePool nodePool = NodeManager.getInstance().getNodePool(oid);

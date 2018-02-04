@@ -25,8 +25,14 @@ package org.flexiblepower.api;
  */
 public interface OrchestratorApi {
 
+    /**
+     * The name of the user authentication domain
+     */
     public final static String USER_AUTHENTICATION = "UserSecurity";
 
+    /**
+     * The name of the administrator authentication domain
+     */
     public final static String ADMIN_AUTHENTICATION = "AdminSecurity";
 
 }

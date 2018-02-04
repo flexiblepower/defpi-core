@@ -94,6 +94,7 @@ public interface ConnectionApi {
      * @throws InvalidObjectIdException
      */
     @GET
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("{connectionId}")
     @ApiOperation(nickname = "getConnection",
                   value = "Get connection data",
@@ -122,8 +123,8 @@ public interface ConnectionApi {
      * @throws ConnectionException
      */
     @POST
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "newConnection",
                   value = "Create a new connection",
                   notes = "Creates a new connection between two processes",
@@ -150,6 +151,7 @@ public interface ConnectionApi {
      */
     @DELETE
     @Path("{connectionId}")
+    @Consumes(MediaType.TEXT_PLAIN)
     @ApiOperation(nickname = "deleteConnection",
                   value = "Remove a connection",
                   notes = "Removes an existing connection between two processes",

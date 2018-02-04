@@ -43,16 +43,25 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 
+/**
+ * UserApi
+ *
+ * @version 0.1
+ * @since Apr 7, 2017
+ */
 @Api("User")
 @Path("user")
 @Produces(MediaType.APPLICATION_JSON)
 public interface UserApi {
 
+    /**
+     * Error message to display if the user is not found
+     */
     static final String USER_NOT_FOUND_MESSAGE = "User not found";
 
     @POST
-    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "createUser",
                   value = "Create user",
                   notes = "Create a new user",
@@ -65,8 +74,8 @@ public interface UserApi {
 
     @PUT
     @Path("/{user_id}")
+    @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "updateUser",
                   value = "Update user",
                   notes = "Update a user",
@@ -82,6 +91,7 @@ public interface UserApi {
 
     @DELETE
     @Path("/{user_id}")
+    @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "deleteUser",
                   value = "Delete user",
@@ -101,6 +111,8 @@ public interface UserApi {
 
     @GET
     @Path("/{user_id}")
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "getUser",
                   value = "Get user data",
                   notes = "Get data of the user with the provided Id",
@@ -118,6 +130,8 @@ public interface UserApi {
 
     @GET
     @Path("/by_username/{username}")
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "getUser",
                   value = "Get user data",
                   notes = "Get data of the user with the provided Id",
@@ -134,6 +148,7 @@ public interface UserApi {
             NotFoundException;
 
     @GET
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "listUsers",
                   value = "List users",
                   notes = "List all registered users",

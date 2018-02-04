@@ -18,6 +18,7 @@
 
 package org.flexiblepower.api;
 
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -40,13 +41,28 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 
+/**
+ * PendingChangeApi
+ *
+ * @version 0.1
+ * @since Apr 7, 2017
+ */
 @Api("PendingChange")
 @Path("pendingchange")
-@Produces(MediaType.APPLICATION_JSON)
 public interface PendingChangeApi {
 
+    /**
+     * Delete the pending change with a known ObjectId. This will prevent that the pending change will be executed in
+     * the future.
+     *
+     * @param pendingChangeId the ObjectId of the pending change to delete
+     * @throws AuthorizationException When the user is not authorized to delete the pending change
+     * @throws InvalidObjectIdException When the provided id is not a valid ObjectId
+     * @throws NotFoundException When the pending change could not be found
+     */
     @DELETE
     @Path("/{pendingchange_id}")
+    @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "deletePendingChange",
                   value = "Delete PendingChange",
@@ -59,12 +75,23 @@ public interface PendingChangeApi {
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public void deletePendingChange(
             @ApiParam(value = "The id of the PendingChange that needs to be deleted",
-                      required = true) @PathParam("pendingchange_id") final String PendingChangeId)
+                      required = true) @PathParam("pendingchange_id") final String pendingChangeId)
             throws AuthorizationException,
             InvalidObjectIdException,
             NotFoundException;
 
+    /**
+     * Retrieve the information about the pending change with a known ObjectId
+     *
+     * @param pendingChangeId the ObjectId of the pending change to get information about
+     * @return the definition of the pending change
+     * @throws AuthorizationException When the user is not authorized to get information about the pending change
+     * @throws InvalidObjectIdException When the provided id is not a valid ObjectId
+     * @throws NotFoundException When the pending change could not be found
+     */
     @GET
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/{pendingchange_id}")
     @ApiOperation(nickname = "getPendingChange",
                   value = "Get PendingChange data",
@@ -77,12 +104,24 @@ public interface PendingChangeApi {
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public PendingChangeDescription getPendingChange(
             @ApiParam(value = "The id of the PendingChange that needs to be fetched",
-                      required = true) @PathParam("pendingchange_id") final String pendingChange)
+                      required = true) @PathParam("pendingchange_id") final String pendingChangeId)
             throws AuthorizationException,
             InvalidObjectIdException,
             NotFoundException;
 
+    /**
+     * List all pending changes that this used is authorized to read.
+     *
+     * @param page the current page to view (defaults to 1)
+     * @param perPage the amount of pending changes to view per page (defaults to 1000)
+     * @param sortDir the direction to sort the pending changed (defaults to "ASC")
+     * @param sortField the field to sort the pending changes on (defaults to "id")
+     * @param filters a list of filters in JSON notation
+     * @return a list of all pending changes for this user
+     * @throws AuthorizationException When the user is not authenticated
+     */
     @GET
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "listPendingChanges",
                   value = "List pending changes",
                   notes = "List all registered PendingChanges",
@@ -99,9 +138,14 @@ public interface PendingChangeApi {
             @QueryParam("_sortField") @DefaultValue("id") String sortField,
             @QueryParam("_filters") @DefaultValue("{}") String filters) throws AuthorizationException;
 
+    /**
+     * Clean up all pending changes that are either lingering or are in the FAILED_PERMANENTLY state, or inactive for a
+     * long period of time. The exact criteria on what defines a long period of time depends on the implementation.
+     *
+     * @throws AuthorizationException when the user is not logged in as an administrator
+     */
     @DELETE
     @Path("/clean")
-    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "cleanPendingChanges",
                   value = "Clean PendingChange",
                   notes = "Clean up all lingering and permanently failed PendingChanges",
