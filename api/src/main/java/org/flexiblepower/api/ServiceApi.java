@@ -21,14 +21,15 @@ package org.flexiblepower.api;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.flexiblepower.exceptions.AuthorizationException;
-import org.flexiblepower.exceptions.NotFoundException;
 import org.flexiblepower.exceptions.RepositoryNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Service;
@@ -50,6 +51,19 @@ import io.swagger.annotations.Authorization;
 @Path("/service")
 public interface ServiceApi {
 
+    /**
+     * List all existing services. All users are allowed to list services, so only a check is performed to see if the
+     * user is authenticated.
+     *
+     * @param page the current page to view (defaults to 1)
+     * @param perPage the amount of services to view per page (defaults to
+     *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     * @param sortDir the direction to sort the services (defaults to "ASC")
+     * @param sortField the field to sort the services on (defaults to "id")
+     * @param filters a list of filters in JSON notation
+     * @return A list of services in the service registry
+     * @throws AuthorizationException When the user is not authenticated
+     */
     @GET
     @Path("/")
     @Produces(MediaType.APPLICATION_JSON)
@@ -64,8 +78,20 @@ public interface ServiceApi {
                          responseContainer = "List"),
             @ApiResponse(code = 404, message = RepositoryNotFoundException.REPOSITORY_NOT_FOUND_MESSAGE),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public List<Service> listServices() throws NotFoundException, AuthorizationException;
+    public List<Service> listServices(@QueryParam("_page") @DefaultValue("1") int page,
+            @QueryParam("_perPage") @DefaultValue("1000") int perPage,
+            @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
+            @QueryParam("_sortField") @DefaultValue("id") String sortField,
+            @QueryParam("_filters") @DefaultValue("{}") String filters) throws AuthorizationException;
 
+    /**
+     * Get the service with the specified Id.
+     *
+     * @param id The id of the service to retrieve from the registry
+     * @return The service with the specified Id
+     * @throws ServiceNotFoundException if no service is found with the specified id
+     * @throws AuthorizationException if the user is not authenticated
+     */
     @GET
     @Path("/{id}")
     @Consumes(MediaType.TEXT_PLAIN)
@@ -80,7 +106,7 @@ public interface ServiceApi {
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public Service getService(
             @ApiParam(name = "id", value = "The id of the service", required = true) @PathParam("id") final String id)
-            throws NotFoundException,
+            throws ServiceNotFoundException,
             AuthorizationException;
 
 }

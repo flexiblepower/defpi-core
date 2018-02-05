@@ -50,7 +50,12 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
     }
 
     @Override
-    public List<Connection> listConnections(final String filters) throws AuthorizationException {
+    public List<Connection> listConnections(final int page,
+            final int perPage,
+            final String sortDir,
+            final String sortField,
+            final String filters) throws AuthorizationException {
+        // TODO pagination
         List<Connection> connections;
         if (this.sessionUser == null) {
             throw new AuthorizationException();

@@ -251,6 +251,12 @@ public interface NodeApi {
      * return all private nodes; when the user is not an administrator, this will return all private nodes that are
      * registered under his name.
      *
+     * @param page the current page to view (defaults to 1)
+     * @param perPage the amount of nodes to view per page (defaults to
+     *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     * @param sortDir the direction to sort the nodes (defaults to "ASC")
+     * @param sortField the field to sort the nodes on (defaults to "id")
+     * @param filters a list of filters in JSON notation
      * @return A list of all available private nodes
      * @throws AuthorizationException If the user is not logged in
      */
@@ -269,12 +275,22 @@ public interface NodeApi {
                          response = PrivateNode.class,
                          responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public List<PrivateNode> listPrivateNodes() throws AuthorizationException;
+    public List<PrivateNode> listPrivateNodes(@QueryParam("_page") @DefaultValue("1") int page,
+            @QueryParam("_perPage") @DefaultValue(OrchestratorApi.DEFAULT_ITEMS_PER_PAGE) int perPage,
+            @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
+            @QueryParam("_sortField") @DefaultValue("id") String sortField,
+            @QueryParam("_filters") @DefaultValue("{}") String filters) throws AuthorizationException;
 
     /**
      * List all public nodes. Since by design of dEF-Pi all users can run code on public nodes, this function will
      * always return all public nodes, as long as the user is valid.
      *
+     * @param page the current page to view (defaults to 1)
+     * @param perPage the amount of nodes to view per page (defaults to
+     *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     * @param sortDir the direction to sort the nodes (defaults to "ASC")
+     * @param sortField the field to sort the nodes on (defaults to "id")
+     * @param filters a list of filters in JSON notation
      * @return A list of all public nodes.
      * @throws AuthorizationException If the user is not logged in
      */
@@ -293,11 +309,21 @@ public interface NodeApi {
                          response = PublicNode.class,
                          responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public List<PublicNode> listPublicNodes() throws AuthorizationException;
+    public List<PublicNode> listPublicNodes(@QueryParam("_page") @DefaultValue("1") int page,
+            @QueryParam("_perPage") @DefaultValue(OrchestratorApi.DEFAULT_ITEMS_PER_PAGE) int perPage,
+            @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
+            @QueryParam("_sortField") @DefaultValue("id") String sortField,
+            @QueryParam("_filters") @DefaultValue("{}") String filters) throws AuthorizationException;
 
     /**
      * List all unidentified nodes. By design only administrators may list unidentified nodes.
      *
+     * @param page the current page to view (defaults to 1)
+     * @param perPage the amount of nodes to view per page (defaults to
+     *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     * @param sortDir the direction to sort the nodes (defaults to "ASC")
+     * @param sortField the field to sort the nodes on (defaults to "id")
+     * @param filters a list of filters in JSON notation
      * @return A list of all unidentified nodes
      * @throws AuthorizationException If the user is logged in as an administrator
      */
@@ -316,7 +342,11 @@ public interface NodeApi {
                          response = UnidentifiedNode.class,
                          responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public List<UnidentifiedNode> listUnidentifiedNodes() throws AuthorizationException;
+    public List<UnidentifiedNode> listUnidentifiedNodes(@QueryParam("_page") @DefaultValue("1") int page,
+            @QueryParam("_perPage") @DefaultValue(OrchestratorApi.DEFAULT_ITEMS_PER_PAGE) int perPage,
+            @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
+            @QueryParam("_sortField") @DefaultValue("id") String sortField,
+            @QueryParam("_filters") @DefaultValue("{}") String filters) throws AuthorizationException;
 
     /**
      * Attempt to create a new node pool with provided specification.
@@ -341,7 +371,7 @@ public interface NodeApi {
                     throws AuthorizationException;
 
     /**
-     * Attempt to update the information of the with the provided specification.
+     * Attempt to update the information of the node pool with the provided specification.
      *
      * @param nodePoolId the ObjectId of the node pool to update
      * @param updatedNodePool the updated specification of the new node pool
@@ -431,7 +461,8 @@ public interface NodeApi {
      * List all existing node pools. Possible filtered, sorted or a subset when using multiple pages.
      *
      * @param page the current page to view (defaults to 1)
-     * @param perPage the amount of pools to view per page (defaults to 1000)
+     * @param perPage the amount of pools to view per page (defaults to
+     *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
      * @param sortDir the direction to sort the pools (defaults to "ASC")
      * @param sortField the field to sort the pools on (defaults to "id")
      * @param filters a list of filters in JSON notation
@@ -452,7 +483,7 @@ public interface NodeApi {
                          responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public Response listNodePools(@QueryParam("_page") @DefaultValue("1") int page,
-            @QueryParam("_perPage") @DefaultValue("1000") int perPage,
+            @QueryParam("_perPage") @DefaultValue(OrchestratorApi.DEFAULT_ITEMS_PER_PAGE) int perPage,
             @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
             @QueryParam("_sortField") @DefaultValue("id") String sortField,
             @QueryParam("_filters") @DefaultValue("{}") String filters) throws AuthorizationException;

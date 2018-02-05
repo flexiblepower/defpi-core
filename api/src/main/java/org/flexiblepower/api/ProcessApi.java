@@ -22,6 +22,7 @@ import java.util.List;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -33,7 +34,6 @@ import javax.ws.rs.core.MediaType;
 
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
-import org.flexiblepower.exceptions.NotFoundException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.Process;
 
@@ -59,6 +59,19 @@ public interface ProcessApi {
      */
     public static final String PROCESS_NOT_FOUND_MESSAGE = "Process not found";
 
+    /**
+     * List all existing processes for the current logged in user. By design if the user is an administrator, all
+     * processes are returned.
+     *
+     * @param page the current page to view (defaults to 1)
+     * @param perPage the amount of processes to view per page (defaults to
+     *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     * @param sortDir the direction to sort the processes (defaults to "ASC")
+     * @param sortField the field to sort the processes on (defaults to "id")
+     * @param filters a list of filters in JSON notation
+     * @return A list of processes for the logged in user
+     * @throws AuthorizationException
+     */
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "listProcesses",
@@ -71,9 +84,21 @@ public interface ProcessApi {
                          response = Process.class,
                          responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public List<org.flexiblepower.model.Process> listProcesses(@QueryParam("_filters") String filters)
-            throws AuthorizationException;
+    public List<org.flexiblepower.model.Process> listProcesses(@QueryParam("_page") @DefaultValue("1") int page,
+            @QueryParam("_perPage") @DefaultValue("1000") int perPage,
+            @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
+            @QueryParam("_sortField") @DefaultValue("id") String sortField,
+            @QueryParam("_filters") @DefaultValue("{}") String filters) throws AuthorizationException;
 
+    /**
+     * Get the process with the specified Id.
+     *
+     * @param processId The id of the process to look up
+     * @return Connection with the specified Id
+     * @throws AuthorizationException if the user is not authorized to get information about this process
+     * @throws ProcessNotFoundException When no process with the provided id is found
+     * @throws InvalidObjectIdException When the provided id is not a valid ObjectId
+     */
     @GET
     @Path("{processId}")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -92,9 +117,19 @@ public interface ProcessApi {
                       value = "The id of the process",
                       required = true) @PathParam("processId") final String processId)
             throws AuthorizationException,
-            NotFoundException,
+            ProcessNotFoundException,
             InvalidObjectIdException;
 
+    /**
+     * Attempt to update the information of the process with the provided specification.
+     *
+     * @param processId the ObjectId of the process to update
+     * @param process the updated specification of the new process
+     * @return the updated process
+     * @throws AuthorizationException if the user is not authorized to get information about the specified process
+     * @throws ProcessNotFoundException if the process could not be found
+     * @throws InvalidObjectIdException if the provided ObjectId is not valid
+     */
     @PUT
     @Path("{processId}")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -119,6 +154,14 @@ public interface ProcessApi {
             InvalidObjectIdException,
             ProcessNotFoundException;
 
+    /**
+     * Attempt to create a new process with provided specification.
+     *
+     * @param process the specification of the new process
+     * @return the created process
+     * @throws AuthorizationException if the user is not authorized to create the process with the provided
+     *             specification
+     */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
@@ -134,6 +177,14 @@ public interface ProcessApi {
                                  required = true) final Process process)
                     throws AuthorizationException;
 
+    /**
+     * Terminate and remove a process
+     *
+     * @param processId the id of the process to remove
+     * @throws AuthorizationException If the user is not authorized to terminate the process
+     * @throws ProcessNotFoundException When the process is not found
+     * @throws InvalidObjectIdException When the argument processId is an invalid ObjectId
+     */
     @DELETE
     @Path("{processId}")
     @Consumes(MediaType.TEXT_PLAIN)
@@ -151,9 +202,19 @@ public interface ProcessApi {
                       value = "The id of process to remove",
                       required = true) @PathParam("processId") final String processId)
             throws AuthorizationException,
-            NotFoundException,
+            ProcessNotFoundException,
             InvalidObjectIdException;
 
+    /**
+     * Trigger the orchestrator to update the configuration of the provided process. This function is intended for the
+     * process to use when it starts, and wants to let the orchestrator know that it is ready to receive a
+     * configuration.
+     *
+     * @param processId the ObjectId of the process to trigger
+     * @throws ProcessNotFoundException When the process is not found
+     * @throws InvalidObjectIdException When the argument processId is an invalid ObjectId
+     * @throws AuthorizationException If the user is not the owner of the process
+     */
     @PUT
     @Path("trigger/{processId}")
     @Consumes(MediaType.APPLICATION_JSON)

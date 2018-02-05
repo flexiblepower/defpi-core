@@ -22,6 +22,7 @@ import java.util.List;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -64,9 +65,14 @@ public interface ConnectionApi {
     static final String INTERFACE_NOT_FOUND_MESSAGE = "Interface to bind to was not found";
 
     /**
-     * List all existing connections
+     * List all existing connections for the current logged in user. By design if the user is an administrator, all
+     * connections are returned.
      *
-     * @param filters (may be null)
+     * @param page the current page to view (defaults to 1)
+     * @param perPage the amount of connections to view per page (defaults to 1000)
+     * @param sortDir the direction to sort the connections (defaults to "ASC")
+     * @param sortField the field to sort the pending changes on (defaults to "id")
+     * @param filters a list of filters in JSON notation (defaults to "{}")
      * @return a list of connections that belong to the current user
      * @throws AuthorizationException if the user is not authenticated at all
      */
@@ -82,16 +88,20 @@ public interface ConnectionApi {
                          response = Connection.class,
                          responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public List<Connection> listConnections(@QueryParam("_filters") String filters) throws AuthorizationException;
+    public List<Connection> listConnections(@QueryParam("_page") @DefaultValue("1") int page,
+            @QueryParam("_perPage") @DefaultValue(OrchestratorApi.DEFAULT_ITEMS_PER_PAGE) int perPage,
+            @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
+            @QueryParam("_sortField") @DefaultValue("id") String sortField,
+            @QueryParam("_filters") @DefaultValue("{}") String filters) throws AuthorizationException;
 
     /**
      * Get the connection with the specified Id
      *
      * @param id The id of the connection to look up
      * @return Connection with the specified Id
-     * @throws AuthorizationException if the user is not authenticated at all
-     * @throws ProcessNotFoundException
-     * @throws InvalidObjectIdException
+     * @throws AuthorizationException if the user is not authorized to get this connection
+     * @throws ProcessNotFoundException When no process with the provided ObjectId is found
+     * @throws InvalidObjectIdException When the provided id is not a valid ObjectId
      */
     @GET
     @Produces(MediaType.APPLICATION_JSON)

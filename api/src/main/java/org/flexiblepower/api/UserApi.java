@@ -34,6 +34,7 @@ import javax.ws.rs.core.Response;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.NotFoundException;
+import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.model.User;
 
 import io.swagger.annotations.Api;
@@ -59,6 +60,13 @@ public interface UserApi {
      */
     static final String USER_NOT_FOUND_MESSAGE = "User not found";
 
+    /**
+     * Attempt to create a new user with provided specification.
+     *
+     * @param newUser the specification of the new process
+     * @return the created user
+     * @throws AuthorizationException if the user is not an admin
+     */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
@@ -72,6 +80,16 @@ public interface UserApi {
     public User createUser(@ApiParam(value = "The new user to add", required = true) final User newUser)
             throws AuthorizationException;
 
+    /**
+     * Attempt to update the information of the user with the provided specification.
+     *
+     * @param userId the ObjectId of the user to update
+     * @param updatedUser the updated specification of the new user
+     * @return the updated user
+     * @throws AuthorizationException if the user is not an admin
+     * @throws NotFoundException if the user could not be found
+     * @throws InvalidObjectIdException if the provided ObjectId is not valid
+     */
     @PUT
     @Path("/{user_id}")
     @Consumes(MediaType.TEXT_PLAIN)
@@ -87,8 +105,19 @@ public interface UserApi {
             @ApiParam(value = "The id of the user that needs to be deleted",
                       required = true) @PathParam("user_id") final String userId,
             @ApiParam(value = "The user to update", required = true) final User updatedUser)
-            throws AuthorizationException;
+            throws AuthorizationException,
+            NotFoundException,
+            InvalidObjectIdException;
 
+    /**
+     * Remove a user. This is only allowed for an administrator.
+     *
+     * @param userId the id of the user to remove
+     * @throws AuthorizationException If the user is not and admin
+     * @throws ProcessNotFoundException When the user is not found
+     * @throws InvalidObjectIdException When the argument userId is an invalid ObjectId
+     * @throws NotFoundException
+     */
     @DELETE
     @Path("/{user_id}")
     @Consumes(MediaType.TEXT_PLAIN)
@@ -109,6 +138,16 @@ public interface UserApi {
             InvalidObjectIdException,
             NotFoundException;
 
+    /**
+     * Get the user with the specified user ID. This function will only return user information if the requested user
+     * is equal to the logged in user, or the logged in user is an administrator.
+     *
+     * @param userId The id of the user to look up
+     * @return User with the specified Id
+     * @throws AuthorizationException If the user is not authorized to get information about the user.
+     * @throws InvalidObjectIdException If the provided userId is not a valid ObjectId
+     * @throws NotFoundException When no user with the provided name
+     */
     @GET
     @Path("/{user_id}")
     @Consumes(MediaType.TEXT_PLAIN)
@@ -128,25 +167,45 @@ public interface UserApi {
                     InvalidObjectIdException,
                     NotFoundException;
 
+    /**
+     * Get the user with the specified user name. This function will only return user information if the requested user
+     * is equal to the logged in user, or the logged in user is an administrator.
+     *
+     * @param username The name of the user to look up
+     * @return User with the specified name
+     * @throws AuthorizationException If the user is not authorized to get information about the user.
+     * @throws NotFoundException When no user with the provided name
+     */
     @GET
     @Path("/by_username/{username}")
     @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "getUser",
                   value = "Get user data",
-                  notes = "Get data of the user with the provided Id",
+                  notes = "Get data of the user with the provided user name",
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
     @ApiResponses(value = {@ApiResponse(code = 200, message = "User data", response = User.class),
-            @ApiResponse(code = 400, message = InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE),
             @ApiResponse(code = 404, message = UserApi.USER_NOT_FOUND_MESSAGE),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public User getUserByUsername(
-            @ApiParam(value = "The usuername of the User that needs to be fetched",
-                      required = true) @PathParam("username") final String userId)
+            @ApiParam(value = "The username of the User that needs to be fetched",
+                      required = true) @PathParam("username") final String username)
             throws AuthorizationException,
-            InvalidObjectIdException,
             NotFoundException;
 
+    /**
+     * List all existing users. All users are allowed to list users, but only administrators can receive more than one
+     * user. Non-admin users will receive a list containing only the user information about themselves.
+     *
+     * @param page the current page to view (defaults to 1)
+     * @param perPage the amount of users to view per page (defaults to
+     *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     * @param sortDir the direction to sort the users (defaults to "ASC")
+     * @param sortField the field to sort the users on (defaults to "id")
+     * @param filters a list of filters in JSON notation
+     * @return A list of users in the dEF-Pi environment.
+     * @throws AuthorizationException When the user is not authenticated
+     */
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "listUsers",

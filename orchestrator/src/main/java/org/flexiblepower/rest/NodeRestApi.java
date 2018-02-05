@@ -141,7 +141,12 @@ public class NodeRestApi extends BaseApi implements NodeApi {
     }
 
     @Override
-    public List<PrivateNode> listPrivateNodes() throws AuthorizationException {
+    public List<PrivateNode> listPrivateNodes(final int page,
+            final int perPage,
+            final String sortDir,
+            final String sortField,
+            final String filters) throws AuthorizationException {
+        // TODO implement pagination
         if (this.sessionUser == null) {
             throw new AuthorizationException();
         } else if (this.sessionUser.isAdmin()) {
@@ -152,13 +157,23 @@ public class NodeRestApi extends BaseApi implements NodeApi {
     }
 
     @Override
-    public List<PublicNode> listPublicNodes() throws AuthorizationException {
+    public List<PublicNode> listPublicNodes(final int page,
+            final int perPage,
+            final String sortDir,
+            final String sortField,
+            final String filters) throws AuthorizationException {
+        // TODO implement pagination
         this.assertUserIsLoggedIn();
         return NodeManager.getInstance().getPublicNodes();
     }
 
     @Override
-    public List<UnidentifiedNode> listUnidentifiedNodes() throws AuthorizationException {
+    public List<UnidentifiedNode> listUnidentifiedNodes(final int page,
+            final int perPage,
+            final String sortDir,
+            final String sortField,
+            final String filters) throws AuthorizationException {
+        // TODO implement pagination
         this.assertUserIsAdmin();
         return NodeManager.getInstance().getUnidentifiedNodes();
     }

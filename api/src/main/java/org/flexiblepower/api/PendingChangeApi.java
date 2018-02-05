@@ -113,10 +113,11 @@ public interface PendingChangeApi {
      * List all pending changes that this used is authorized to read.
      *
      * @param page the current page to view (defaults to 1)
-     * @param perPage the amount of pending changes to view per page (defaults to 1000)
+     * @param perPage the amount of pending changes to view per page (defaults to {@value
+     *            OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
      * @param sortDir the direction to sort the pending changed (defaults to "ASC")
      * @param sortField the field to sort the pending changes on (defaults to "id")
-     * @param filters a list of filters in JSON notation
+     * @param filters a list of filters in JSON notation (defaults to "{}")
      * @return a list of all pending changes for this user
      * @throws AuthorizationException When the user is not authenticated
      */

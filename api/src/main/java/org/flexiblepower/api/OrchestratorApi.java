@@ -35,4 +35,9 @@ public interface OrchestratorApi {
      */
     public final static String ADMIN_AUTHENTICATION = "AdminSecurity";
 
+    /**
+     * The default maximum number of items on a page in the UI
+     */
+    public final static String DEFAULT_ITEMS_PER_PAGE = "1000";
+
 }
