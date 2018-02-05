@@ -111,12 +111,8 @@ public class ServiceManager<T> implements Closeable {
             while (this.keepThreadAlive) {
                 byte[] messageArray;
                 try {
-                    // ServiceManager.log.trace("Waiting for connected");
-                    // this.managementSocket.waitUntilConnected(0);
-                    ServiceManager.log.trace("Waiting for message");
                     messageArray = this.managementSocket.read(ServiceManager.SOCKET_READ_TIMEOUT);
                     if (messageArray == null) {
-                        ServiceManager.log.trace("Read nothing, try again");
                         // No message received...
                         continue;
                     }

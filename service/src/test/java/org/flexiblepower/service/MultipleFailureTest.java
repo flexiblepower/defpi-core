@@ -23,7 +23,9 @@ import java.util.List;
 import org.flexiblepower.service.TestHandler.TestHandlerBuilder;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.junit.runners.Parameterized.Parameters;
 
 /**
@@ -36,12 +38,19 @@ import org.junit.runners.Parameterized.Parameters;
 @SuppressWarnings("static-method")
 public class MultipleFailureTest {
 
+    /**
+     *
+     */
+    private static final int TEST_PORT = 5001;
+    private static final int WAIT_AFTER_CONNECT = 200;
+
     @Parameters
     public static List<Object[]> data() {
         return Arrays.asList(new Object[3][0]);
     }
 
-    private static final int WAIT_AFTER_CONNECT = 200;
+    @Rule
+    public Timeout globalTimeout = Timeout.seconds(10);
 
     @After
     public void reset() throws InterruptedException {
@@ -52,13 +61,27 @@ public class MultipleFailureTest {
         // System.out.println("Alles weer schoon!");
     }
 
-    @Test(timeout = 10000)
+    @Test
     public void testMultipleInterruptDetectionAndResume() throws Exception {
         final InterfaceInfo info = TestHandler.class.getAnnotation(InterfaceInfo.class);
         ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandlerBuilder());
 
-        try (final TCPConnection mc2 = new TCPConnection("CIT", 5000, "localhost", info, "", "", "")) {
-            try (final TCPConnection mc1 = new TCPConnection("CIT", 5000, "", info, "", "", "")) {
+        try (
+                final TCPConnection mc2 = new TCPConnection("CIT",
+                        MultipleFailureTest.TEST_PORT,
+                        "localhost",
+                        info,
+                        "",
+                        "",
+                        "")) {
+            try (
+                    final TCPConnection mc1 = new TCPConnection("CIT",
+                            MultipleFailureTest.TEST_PORT,
+                            "",
+                            info,
+                            "",
+                            "",
+                            "")) {
                 mc1.waitUntilConnected(0);
                 Thread.sleep(MultipleFailureTest.WAIT_AFTER_CONNECT);
 
@@ -92,11 +115,11 @@ public class MultipleFailureTest {
                     Assert.assertEquals("suspended", TestHandler.handlerMap.get("h2").state);
 
                     if (Math.random() < 0.5) {
-                        mc1.goToResumedState(5000, "");
-                        mc2.goToResumedState(5000, "localhost");
+                        mc1.goToResumedState(MultipleFailureTest.TEST_PORT, "");
+                        mc2.goToResumedState(MultipleFailureTest.TEST_PORT, "localhost");
                     } else {
-                        mc1.goToResumedState(5000, "localhost");
-                        mc2.goToResumedState(5000, "");
+                        mc1.goToResumedState(MultipleFailureTest.TEST_PORT, "localhost");
+                        mc2.goToResumedState(MultipleFailureTest.TEST_PORT, "");
                     }
                     Thread.sleep(MultipleFailureTest.WAIT_AFTER_CONNECT);
                     mc1.waitUntilConnected(0);
