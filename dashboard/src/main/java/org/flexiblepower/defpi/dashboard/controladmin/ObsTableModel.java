@@ -12,95 +12,97 @@ import org.slf4j.LoggerFactory;
 
 public class ObsTableModel {
 
-	public static final Logger LOG = LoggerFactory.getLogger(ObsTableModel.class);
+    public static final Logger LOG = LoggerFactory.getLogger(ObsTableModel.class);
 
-	private DefPiConnectionAdmin connectionAdmin;
+    private final DefPiConnectionAdmin connectionAdmin;
 
-	public ObsTableModel(DefPiConnectionAdmin connectionAdmin) {
-		this.connectionAdmin = connectionAdmin;
-	}
+    public ObsTableModel(final DefPiConnectionAdmin connectionAdmin) {
+        this.connectionAdmin = connectionAdmin;
+    }
 
-	public String generateTable() {
-		List<ObsPubProcess> obsPubs = new ArrayList<>();
-		obsPubs.addAll(connectionAdmin.listObsPub());
-		List<ObsSubProcess> obsSubs = new ArrayList<>();
-		obsSubs.addAll(connectionAdmin.listObsSub());
+    public String generateTable() {
+        final List<ObsPubProcess> obsPubs = new ArrayList<>();
+        obsPubs.addAll(this.connectionAdmin.listObsPub());
+        final List<ObsSubProcess> obsSubs = new ArrayList<>();
+        obsSubs.addAll(this.connectionAdmin.listObsSub());
 
-		StringBuilder sb = new StringBuilder();
-		sb.append("<table>");
-		generateHearder(sb, obsSubs);
+        final StringBuilder sb = new StringBuilder();
+        sb.append("<table>");
+        ObsTableModel.generateHeader(sb, obsSubs);
 
-		for (ObsPubProcess obsPub : obsPubs) {
-			generateRow(sb, obsPub, obsSubs);
-		}
+        for (final ObsPubProcess obsPub : obsPubs) {
+            ObsTableModel.generateRow(sb, obsPub, obsSubs);
+        }
 
-		sb.append("</table>");
-		return sb.toString();
-	}
+        sb.append("</table>");
+        return sb.toString();
+    }
 
-	private void generateHearder(StringBuilder sb, List<ObsSubProcess> obsSubs) {
-		sb.append("<tr>");
-		sb.append("<td></td>");
-		for (ObsSubProcess obsSub : obsSubs) {
-			sb.append("<th>");
-			sb.append(obsSub.getServiceId());
-			sb.append("<br />(");
-			sb.append(obsSub.getProcessId());
-			sb.append(")");
-			sb.append("</th>");
-		}
-		sb.append("</tr>");
-	}
+    private static void generateHeader(final StringBuilder sb, final List<ObsSubProcess> obsSubs) {
+        sb.append("<tr>");
+        sb.append("<td></td>");
+        for (final ObsSubProcess obsSub : obsSubs) {
+            sb.append("<th>");
+            sb.append(obsSub.getServiceId());
+            sb.append("<br />(");
+            sb.append(obsSub.getProcessId());
+            sb.append(")");
+            sb.append("</th>");
+        }
+        sb.append("</tr>");
+    }
 
-	private void generateRow(StringBuilder sb, ObsPubProcess obsPub, List<ObsSubProcess> obsSubs) {
-		sb.append("<tr>");
-		sb.append("<th>");
-		sb.append(obsPub.getServiceId());
-		sb.append("<br />(");
-		sb.append(obsPub.getProcessId());
-		sb.append(")");
-		sb.append("</th>");
-		for (ObsSubProcess obsSub : obsSubs) {
-			sb.append("<td><input type=\"checkbox\" name=\"");
-			sb.append(obsPub.getProcessId());
-			sb.append("_");
-			sb.append(obsSub.getProcessId());
-			sb.append("\" value=\"true\"");
-			if (obsPub.isConnectedWith(obsSub)) {
-				sb.append(" checked=\"checked\"");
-			}
-			sb.append(" />");
-			sb.append("</td>");
-		}
-		sb.append("</tr>");
-	}
+    private static void
+            generateRow(final StringBuilder sb, final ObsPubProcess obsPub, final List<ObsSubProcess> obsSubs) {
+        sb.append("<tr>");
+        sb.append("<th>");
+        sb.append(obsPub.getServiceId());
+        sb.append("<br />(");
+        sb.append(obsPub.getProcessId());
+        sb.append(")");
+        sb.append("</th>");
+        for (final ObsSubProcess obsSub : obsSubs) {
+            sb.append("<td><input type=\"checkbox\" name=\"");
+            sb.append(obsPub.getProcessId());
+            sb.append("_");
+            sb.append(obsSub.getProcessId());
+            sb.append("\" value=\"true\"");
+            if (obsPub.isConnectedWith(obsSub)) {
+                sb.append(" checked=\"checked\"");
+            }
+            sb.append(" />");
+            sb.append("</td>");
+        }
+        sb.append("</tr>");
+    }
 
-	public void handlePost(Map<String, String> data) {
-		List<ObsPubProcess> obsPubs = new ArrayList<>();
-		obsPubs.addAll(connectionAdmin.listObsPub());
-		List<ObsSubProcess> obsSubs = new ArrayList<>();
-		obsSubs.addAll(connectionAdmin.listObsSub());
+    public void handlePost(final Map<String, String> data) {
+        final List<ObsPubProcess> obsPubs = new ArrayList<>();
+        obsPubs.addAll(this.connectionAdmin.listObsPub());
+        final List<ObsSubProcess> obsSubs = new ArrayList<>();
+        obsSubs.addAll(this.connectionAdmin.listObsSub());
 
-		LOG.debug("Data: " + data);
+        ObsTableModel.LOG.debug("Data: " + data);
 
-		for (ObsPubProcess pub : obsPubs) {
-			try {
-				for (ObsSubProcess sub : obsSubs) {
-					String key = pub.getProcessId() + "_" + sub.getProcessId();
-					if (data.containsKey(key)) {
-						LOG.debug("key " + key + " does exist, connecting");
-						// should be connected
-						connectionAdmin.connect(pub, sub);
-					} else {
-						LOG.debug("key " + key + " does not exist, disconnecting");
-						// should not be connected
-						connectionAdmin.disconnect(pub, sub);
-					}
-				}
-			} catch (Exception e) {
-				LOG.error("Could not modify observation connection for observation publisher " + pub.getProcessId());
-			}
-		}
-	}
+        for (final ObsPubProcess pub : obsPubs) {
+            try {
+                for (final ObsSubProcess sub : obsSubs) {
+                    final String key = pub.getProcessId() + "_" + sub.getProcessId();
+                    if (data.containsKey(key)) {
+                        ObsTableModel.LOG.debug("key " + key + " does exist, connecting");
+                        // should be connected
+                        this.connectionAdmin.connect(pub, sub);
+                    } else {
+                        ObsTableModel.LOG.debug("key " + key + " does not exist, disconnecting");
+                        // should not be connected
+                        this.connectionAdmin.disconnect(pub, sub);
+                    }
+                }
+            } catch (final Exception e) {
+                ObsTableModel.LOG.error(
+                        "Could not modify observation connection for observation publisher " + pub.getProcessId());
+            }
+        }
+    }
 
 }

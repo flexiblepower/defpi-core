@@ -15,88 +15,88 @@ import org.flexiblepower.service.Service;
  * file is generated as a stub, and has to be implemented by the user.
  * Re-running the codegen plugin will not change the contents of this file.
  * Template by TNO, 2017
- * 
+ *
  * @author wilco
  */
 @Generated(value = "org.flexiblepower.plugin.servicegen", date = "Oct 26, 2017 12:58:33 PM")
 public class Dashboard implements Service<DashboardConfiguration> {
 
-	private HttpRouter requestRouter;
-	private FullWidgetManager fullWidgetManager = new FullWidgetManager();
-	private DashboardFullWidget dashboardFullWidget;
-	private DashboardConfiguration config;
-	private DefPiParameters parameters;
-	private ControlAdminFullWidget controlAdminFullWidget;
+    private HttpRouter requestRouter;
+    private final FullWidgetManager fullWidgetManager = new FullWidgetManager();
+    private DashboardFullWidget dashboardFullWidget;
+    private DashboardConfiguration config;
+    private DefPiParameters parameters;
+    private ControlAdminFullWidget controlAdminFullWidget;
 
-	@Override
-	public void resumeFrom(Serializable state) {
-		// TODO Auto-generated method stub
+    @Override
+    public void resumeFrom(final Serializable state) {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	@Override
-	public void init(DashboardConfiguration config, DefPiParameters parameters) {
-		this.parameters = parameters;
-		this.config = config;
-		requestRouter = new HttpRouter(fullWidgetManager);
-		dashboardFullWidget = new DashboardFullWidget();
-		controlAdminFullWidget = new ControlAdminFullWidget(this);
-		fullWidgetManager.registerFullWidget(dashboardFullWidget);
-		fullWidgetManager.registerFullWidget(controlAdminFullWidget);
-	}
+    @Override
+    public void init(final DashboardConfiguration dashboardConfig, final DefPiParameters defpiParams) {
+        this.parameters = defpiParams;
+        this.config = dashboardConfig;
+        this.requestRouter = new HttpRouter(this.fullWidgetManager);
+        this.dashboardFullWidget = new DashboardFullWidget();
+        this.controlAdminFullWidget = new ControlAdminFullWidget(this);
+        this.fullWidgetManager.registerFullWidget(this.dashboardFullWidget);
+        this.fullWidgetManager.registerFullWidget(this.controlAdminFullWidget);
+    }
 
-	@Override
-	public void modify(DashboardConfiguration config) {
-		// TODO Auto-generated method stub
-	}
+    @Override
+    public void modify(final DashboardConfiguration dashboardConfig) {
+        // TODO Auto-generated method stub
+    }
 
-	@Override
-	public Serializable suspend() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public Serializable suspend() {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	@Override
-	public void terminate() {
-		// TODO Auto-generated method stub
-	}
+    @Override
+    public void terminate() {
+        // TODO Auto-generated method stub
+    }
 
-	public void registerWidget(Widget widget) {
-		switch (widget.getType()) {
-		case FULL:
-			fullWidgetManager.registerFullWidget(widget);
-			break;
-		case SMALL:
-			dashboardFullWidget.registerSmallWidget(widget);
-			break;
-		default:
-			break;
-		}
-	}
+    public void registerWidget(final Widget widget) {
+        switch (widget.getType()) {
+        case FULL:
+            this.fullWidgetManager.registerFullWidget(widget);
+            break;
+        case SMALL:
+            this.dashboardFullWidget.registerSmallWidget(widget);
+            break;
+        default:
+            break;
+        }
+    }
 
-	public void unregisterWidget(Widget widget) {
-		switch (widget.getType()) {
-		case FULL:
-			fullWidgetManager.unregisterFullWidget(widget);
-			break;
-		case SMALL:
-			dashboardFullWidget.unregisterSmallWidget(widget);
-			break;
-		default:
-			break;
-		}
-	}
+    public void unregisterWidget(final Widget widget) {
+        switch (widget.getType()) {
+        case FULL:
+            this.fullWidgetManager.unregisterFullWidget(widget);
+            break;
+        case SMALL:
+            this.dashboardFullWidget.unregisterSmallWidget(widget);
+            break;
+        default:
+            break;
+        }
+    }
 
-	public HttpRouter getRequestRouter() {
-		return requestRouter;
-	}
+    public HttpRouter getRequestRouter() {
+        return this.requestRouter;
+    }
 
-	public DashboardConfiguration getConfig() {
-		return config;
-	}
+    public DashboardConfiguration getConfig() {
+        return this.config;
+    }
 
-	public DefPiParameters getParameters() {
-		return this.parameters;
-	}
+    public DefPiParameters getParameters() {
+        return this.parameters;
+    }
 
 }
