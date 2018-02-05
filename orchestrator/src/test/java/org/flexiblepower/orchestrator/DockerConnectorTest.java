@@ -22,7 +22,9 @@ import java.util.List;
 import org.flexiblepower.connectors.DockerConnector;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
@@ -36,6 +38,9 @@ import com.spotify.docker.client.messages.swarm.Node;
  */
 @SuppressWarnings("static-method")
 public class DockerConnectorTest {
+
+    @Rule
+    public Timeout globalTimeout = Timeout.seconds(5);
 
     @Test
     public void runDockerConnectorTest() throws DockerException, InterruptedException, DockerCertificateException {

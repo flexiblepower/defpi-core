@@ -110,15 +110,15 @@ public class PendingChangeRestApi extends BaseApi implements PendingChangeApi {
             filter.put("userId", this.sessionUser.getId());
         }
 
-        final List<PendingChange> list = MongoDbConnector.getInstance()
-                .list(PendingChange.class, page, perPage, sortDir, sortField, filter);
+        final List<PendingChange> list = PendingChangeManager.getInstance()
+                .listPendingChanges(page, perPage, sortDir, sortField, filter);
 
         final List<PendingChangeDescription> realList = new LinkedList<>();
         list.forEach((pcd) -> realList.add(PendingChangeRestApi.buildDescription(pcd)));
 
         return Response.status(Status.OK.getStatusCode())
                 .header("X-Total-Count",
-                        Integer.toString(MongoDbConnector.getInstance().totalCount(PendingChange.class, filter)))
+                        Integer.toString(PendingChangeManager.getInstance().countPendingChanges(filter)))
                 .entity(realList)
                 .build();
     }

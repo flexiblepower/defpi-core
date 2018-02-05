@@ -51,7 +51,7 @@ public class RegistryConnectorTest {
         }
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 15000)
     public void testListServices() throws RepositoryNotFoundException, ServiceNotFoundException, InterruptedException {
         final Collection<Service> services = this.connector.getServices(this.repository);
         System.out.format("Found %d services\n", services.size());
@@ -60,7 +60,7 @@ public class RegistryConnectorTest {
             System.out.println(services.iterator().next().getInterfaces());
         }
 
-        Thread.sleep(15000);
+        Thread.sleep(5000);
         final Collection<Service> services2 = this.connector.getServices(this.repository);
         System.out.format("Found %d services\n", services2.size());
 

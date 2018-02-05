@@ -20,6 +20,7 @@ package org.flexiblepower.orchestrator.pendingchange;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
@@ -132,6 +133,10 @@ public class PendingChangeManager {
         MongoDbConnector.getInstance().delete(pendingChange);
     }
 
+    public int countPendingChanges(final Map<String, Object> filter) {
+        return MongoDbConnector.getInstance().totalCount(PendingChange.class, filter);
+    }
+
     /**
      *
      */
@@ -179,6 +184,22 @@ public class PendingChangeManager {
             }
         }
 
+    }
+
+    /**
+     * @param sortField
+     * @param sortDir
+     * @param perPage
+     * @param page
+     * @param filter
+     * @return
+     */
+    public List<PendingChange> listPendingChanges(final int page,
+            final int perPage,
+            final String sortDir,
+            final String sortField,
+            final Map<String, Object> filter) {
+        return MongoDbConnector.getInstance().list(PendingChange.class, page, perPage, sortDir, sortField, filter);
     }
 
 }

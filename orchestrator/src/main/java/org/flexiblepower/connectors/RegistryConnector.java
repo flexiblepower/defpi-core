@@ -59,7 +59,7 @@ import org.json.JSONObject;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
+import com.fasterxml.jackson.databind.util.StdDateFormat;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -326,7 +326,8 @@ public class RegistryConnector {
             final String serviceName,
             final String version,
             final Map<Architecture, String> tags) throws ServiceNotFoundException {
-        final ISO8601DateFormat df = new ISO8601DateFormat();
+        // final ISO8601DateFormat df = new ISO8601DateFormat();
+        final StdDateFormat df = new StdDateFormat();
         final ServiceBuilder serviceBuilder = Service.builder();
 
         for (final Entry<Architecture, String> e : tags.entrySet()) {
