@@ -50,7 +50,7 @@ import io.swagger.annotations.SwaggerDefinition;
 @SuppressWarnings("static-method")
 public class RestServerTest {
 
-    private static final int TEST_PORT = 8484; // Main.URI_PORT;
+    private static final int TEST_PORT = Main.URI_PORT;
     private static Server server;
 
     @BeforeClass
