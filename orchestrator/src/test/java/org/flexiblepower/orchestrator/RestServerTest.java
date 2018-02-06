@@ -67,7 +67,7 @@ public class RestServerTest {
     public Timeout globalTimeout = Timeout.seconds(10);
 
     public void testListUsers() throws ClientProtocolException, URISyntaxException, IOException {
-        this.defaultTests("user", "_perPage=3&_sortDir=DESC", 200, MediaType.APPLICATION_JSON_TYPE);
+        this.defaultTests("user", "_perPage=2&_sortDir=DESC", 200, MediaType.APPLICATION_JSON_TYPE);
     }
 
     public void testListProcesses() throws ClientProtocolException, URISyntaxException, IOException {
