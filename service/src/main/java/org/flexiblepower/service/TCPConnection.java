@@ -44,9 +44,27 @@ import org.slf4j.LoggerFactory;
  * @version 0.1
  * @since May 12, 2017
  */
+/**
+ * TCPConnection
+ *
+ * @version 0.1
+ * @since Feb 6, 2018
+ */
+/**
+ * TCPConnection
+ *
+ * @version 0.1
+ * @since Feb 6, 2018
+ */
 final class TCPConnection implements Connection, Closeable {
 
+    /**
+     * Log for any events in this TCPConnection or subclasses.
+     */
     protected static final Logger log = LoggerFactory.getLogger(TCPConnection.class);
+    /**
+     * Keeps track of how many threads the TCPConnection class has spawned. Very useful for logging
+     */
     private static int threadCounter;
 
     private final ServiceExecutor serviceExecutor = ServiceExecutor.getInstance();
@@ -54,18 +72,59 @@ final class TCPConnection implements Connection, Closeable {
     private final MessageSerializer<Object> userMessageSerializer;
     private final InterfaceInfo info;
 
+    /**
+     * The connection executor is the pool of threads that will run the different services to keep a connection alive,
+     * and read its messages
+     */
     protected final ExecutorService connectionExecutor = Executors.newFixedThreadPool(3,
             r -> new Thread(r, "dEF-Pi connThread" + TCPConnection.threadCounter++));
+
+    /**
+     * A runnable object that will make sure the messages in the queue are given to the responsible ConnectionHandler
+     */
     protected final MessageQueue messageQueue = new MessageQueue();
+
+    /**
+     * A wait/lock object to make sure various functions in the Connection will wait until the connection is
+     * established.
+     */
     protected final Object connectionLock = new Object();
+
+    /**
+     * A string uniquely identifying this specific connection.
+     */
     protected final String connectionId;
 
+    /**
+     * The handler object from user code that handles all incoming messages
+     */
     private ConnectionHandler serviceHandler;
 
+    /**
+     * The port to listen or target remotely (depending on if {@link #targetAddress} is set
+     */
     protected int port;
+
+    /**
+     * The remote host address to target the TCPSocket to
+     */
     protected String targetAddress;
+
+    /**
+     * The socket that provides the underlying message carrying mechanism. This may be closed and reinitialized as the
+     * Connection is interrupted, suspended, or any transient intermediate state
+     */
     protected TCPSocket socket;
+
+    /**
+     * The heartbeat monitor is an external object that periodically checks if the connection is still healthy.
+     */
     protected HeartBeatMonitor heartBeatMonitor;
+
+    /**
+     * The handshake monitor is an external object to make sure the remote side is also initialized and has the correct
+     * protocol, and thus remote ConnectionHAndler
+     */
     protected HandShakeMonitor handShakeMonitor;
 
     private volatile ConnectionState state;
@@ -74,9 +133,13 @@ final class TCPConnection implements Connection, Closeable {
     private final String remoteInterfaceId;
 
     /**
-     * @param listenPort
+     * @param connectionId
+     * @param port
      * @param targetAddress
-     * @throws IOException
+     * @param info
+     * @param remoteProcessId
+     * @param remoteServiceId
+     * @param remoteInterfaceId
      */
     @SuppressWarnings("unchecked")
     TCPConnection(final String connectionId,
@@ -122,7 +185,9 @@ final class TCPConnection implements Connection, Closeable {
     }
 
     /**
-     * @throws ClosedChannelException when the state is not connected, i.e. when {@link #isConnected()} returns false.
+     * {@inheritDoc}
+     *
+     * @throws ClosedChannelException when the state is not connected.
      * @throws UnsupportedDataTypeException when the type of object is not registered with the serializer or if the
      *             serialization fails
      * @throws IOException when a low level network exception occurs

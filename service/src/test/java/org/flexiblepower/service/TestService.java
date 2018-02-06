@@ -120,7 +120,7 @@ public class TestService implements Service<TestServiceConfiguration>, Connectio
     /**
      * This is the function the ConnectionManager will look for to build the handler
      *
-     * @param connection
+     * @param connection The connection object that requires its messages to be handled.
      * @return the TestService itself
      */
     public ConnectionHandler build1(final Connection connection) {

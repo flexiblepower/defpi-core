@@ -37,6 +37,15 @@ import org.slf4j.LoggerFactory;
  */
 public class ServiceConfig {
 
+    /**
+     * Generate a configuration object that implements a specific class by using a map of key/value pairs. This will
+     * create a Proxy object mimicking the provided class.
+     *
+     * @param clazz the configuration class to mimic.
+     * @param rawValues key/value pairs containing the parameters.
+     * @return An object of the type clazz, that will return the values in the map when corresponding getKey functions
+     *         are called.
+     */
     @SuppressWarnings("unchecked")
     static <T> T generateConfig(final Class<T> clazz, final Map<String, String> rawValues) {
         if (clazz.equals(Void.class)) {
@@ -68,7 +77,9 @@ public class ServiceConfig {
         private final Function<String, Double> convertDouble = val -> val.isEmpty() ? 0.0 : Double.parseDouble(val);
 
         /**
-         * @param rawValues
+         * Creates a generated config InvocationHandler for the given key/value map.
+         *
+         * @param rawValues a key/value map containing the configuration parameters
          */
         public GeneratedConfigHandler(final Map<String, String> rawValues) {
             this.values = new HashMap<>();

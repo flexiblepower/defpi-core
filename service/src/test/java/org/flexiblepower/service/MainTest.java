@@ -50,8 +50,7 @@ public class MainTest {
     public static class MainConnectionHandler implements ConnectionHandler {
 
         /**
-         * @param c
-         * @param s
+         * @param c the Connection to handle
          */
         public MainConnectionHandler(final Connection c) {
             // TODO Auto-generated constructor stub
@@ -99,8 +98,7 @@ public class MainTest {
     public static class MainConnectionHandler2 implements ConnectionHandler {
 
         /**
-         * @param c
-         * @param s
+         * @param c the Connection to handle
          */
         public MainConnectionHandler2(final Connection c) {
             // TODO Auto-generated constructor stub

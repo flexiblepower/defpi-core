@@ -19,7 +19,6 @@ package org.flexiblepower.service;
 
 import java.io.IOException;
 
-import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 
 /**
@@ -35,7 +34,6 @@ public interface Connection {
      *
      * @param message the object to be send over the connection.
      * @throws IOException when the state is not connected, or if the connection back end fails to send the message
-     * @throws SerializationException when serialization fails just before sending the message
      */
     public void send(Object message) throws IOException;
 

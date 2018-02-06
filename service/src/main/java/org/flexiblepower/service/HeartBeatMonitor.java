@@ -32,7 +32,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * HeartBeatMonitor
+ * The heartbeat monitor adds functionality to a socket by periodically sending a heartbeat PING byte. A remote socket
+ * with a heartbeat monitor will respond to it with a PONG byte. This PONG signifies that the connection is still alive,
+ * and hence multiple missed PONGs will lead to the monitor to conclude that the connection is interrupted.
  *
  * @version 0.1
  * @since Aug 23, 2017
@@ -61,7 +63,10 @@ public class HeartBeatMonitor implements Closeable {
     private int missedHeartBeats;
 
     /**
-     * @param object
+     * Create a HeartBeatMonitor for the specified socket.
+     *
+     * @param socket The socket to perform the heartbeat on
+     * @param connectionId The id of the connection, mostly used for logging.
      */
     public HeartBeatMonitor(final TCPSocket socket, final String connectionId) {
         final ThreadFactory threadFactory = r -> new Thread(r, "dEF-Pi hbMonThread-" + HeartBeatMonitor.threadCount++);
@@ -160,6 +165,10 @@ public class HeartBeatMonitor implements Closeable {
         this.socket.close();
     }
 
+    /**
+     * Stops the monitor from sending bytes or responding in the future. This would be desireable for example when the
+     * connection is suspended.
+     */
     public void stop() {
         if (this.heartBeatFuture != null) {
             this.heartBeatFuture.cancel(true);

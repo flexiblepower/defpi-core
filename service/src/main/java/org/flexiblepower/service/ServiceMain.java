@@ -37,7 +37,6 @@ public final class ServiceMain {
     private static final Logger log = LoggerFactory.getLogger(ServiceMain.class);
     private static final ServiceExecutor serviceExecutor = ServiceExecutor.getInstance();
     private static Reflections reflections;
-    protected static int threadCount = 0;
 
     /**
      * @return
@@ -141,6 +140,11 @@ public final class ServiceMain {
         }
     }
 
+    /**
+     * This is the main entrypoint for the service library, and thus for any dEF-Pi process
+     *
+     * @param args Array of String arguments, which we currently ignore
+     */
     public static <T> void main(final String[] args) {
         ServiceMain.reflections = new Reflections();
         // Get service from package

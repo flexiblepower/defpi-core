@@ -28,7 +28,7 @@ import lombok.Value;
  *
  * @version 0.1
  * @since 20 mrt. 2017
- * @see #Interface
+ * @see Interface
  */
 @Value
 @Embedded

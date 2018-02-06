@@ -53,6 +53,15 @@ public class Interface {
     private final boolean allowMultiple;
     private final boolean autoConnect;
 
+    /**
+     * Returns true if this interface is compatible with another. In other words, if any {@linkplain InterfaceVersion}
+     * of this interface is the mirror of any {@linkplain InterfaceVersion} of the other interface in terms of the
+     * send/receive hashes.
+     * 
+     * @param other The interface to compare with
+     * @return true if for any interface version the send/receive hash pair matches any of the other interface's version
+     *         receive/send hash pair
+     */
     public boolean isCompatibleWith(final Interface other) {
         if (this.interfaceVersions != null) {
             for (final InterfaceVersion iv : this.interfaceVersions) {
@@ -66,6 +75,12 @@ public class Interface {
         return false;
     }
 
+    /**
+     * From this interface, find the {@linkplain InterfaceVersion} with the provided name
+     * 
+     * @param interfaceName The name of the required interface
+     * @return The interface version with the provided name, or null if there is no such interface version
+     */
     public InterfaceVersion getInterfaceVersionByName(final String interfaceName) {
         if (this.interfaceVersions != null) {
             for (final InterfaceVersion iv : this.interfaceVersions) {
