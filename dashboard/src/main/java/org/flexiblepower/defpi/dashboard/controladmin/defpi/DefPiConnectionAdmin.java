@@ -104,7 +104,7 @@ public class DefPiConnectionAdmin {
         try {
             filter.put("hashpair", hashpair);
             encodedFilter = URLEncoder.encode(filter.toString(), "UTF-8");
-            return this.processApi.listProcesses(encodedFilter);
+            return this.processApi.listProcesses(0, 0, "", "", encodedFilter);
         } catch (UnsupportedEncodingException | AuthorizationException e) {
             e.printStackTrace();
             return null;
@@ -197,7 +197,7 @@ public class DefPiConnectionAdmin {
         final JSONObject filter = new JSONObject();
         filter.put("processId", process1.getProcessId());
         final String encodedFilter = URLEncoder.encode(filter.toString(), "UTF-8");
-        for (final Connection c : this.connApi.listConnections(encodedFilter)) {
+        for (final Connection c : this.connApi.listConnections(0, 0, "", "", encodedFilter)) {
             // Dirty little hack, getEndpointForProcess accepts a process
             final Process p = new Process();
             p.setId(new ObjectId(process1.getProcessId()));
@@ -219,7 +219,7 @@ public class DefPiConnectionAdmin {
         final JSONObject filter = new JSONObject();
         filter.put("processId", p.getId());
         final String encodedFilter = URLEncoder.encode(filter.toString(), "UTF-8");
-        final List<Connection> listConnections = this.connApi.listConnections(encodedFilter);
+        final List<Connection> listConnections = this.connApi.listConnections(0, 0, "", "", encodedFilter);
         for (final Connection c : listConnections) {
             final Endpoint otherEndpoint = c.getOtherEndpoint(c.getEndpointForProcess(p));
             if (this.interfaceIdHasOneOfHashpairs(c.getEndpoint1().getInterfaceId(), hashpairs)) {
