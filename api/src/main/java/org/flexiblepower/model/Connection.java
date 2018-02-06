@@ -35,8 +35,9 @@ import lombok.NoArgsConstructor;
  * The connection is how processes communicate with one another. Note that this class is only the model of a
  * connection, and should not contain any implementation specifics.
  *
+ * @author coenvl
  * @version 0.1
- * @since Dec 6, 2017
+ * @since Mar 20, 2017
  */
 @Data
 @Entity
@@ -102,9 +103,9 @@ public class Connection {
     private final Endpoint endpoint2;
 
     /**
-     * @param oid
-     * @param ep1
-     * @param ep2
+     * @param oid The objectId of the connection
+     * @param ep1 One endpoint
+     * @param ep2 Second endpoint
      */
     public Connection(final ObjectId oid, Endpoint ep1, Endpoint ep2) {
         this.id = oid;
