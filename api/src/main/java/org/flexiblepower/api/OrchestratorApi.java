@@ -25,8 +25,19 @@ package org.flexiblepower.api;
  */
 public interface OrchestratorApi {
 
+    /**
+     * The name of the user authentication domain
+     */
     public final static String USER_AUTHENTICATION = "UserSecurity";
 
+    /**
+     * The name of the administrator authentication domain
+     */
     public final static String ADMIN_AUTHENTICATION = "AdminSecurity";
+
+    /**
+     * The default maximum number of items on a page in the UI
+     */
+    public final static String DEFAULT_ITEMS_PER_PAGE = "1000";
 
 }

@@ -2,22 +2,24 @@ package org.flexiblepower.defpi.dashboard.controladmin.defpi;
 
 public abstract class DefPiProcess {
 
-	protected DefPiConnectionAdmin connectionAdmin;
-	private String processId;
-	private String serviceId;
+    protected DefPiConnectionAdmin connectionAdmin;
+    private final String processId;
+    private final String serviceId;
 
-	public DefPiProcess(DefPiConnectionAdmin defPiConnectionAdmin, String processId, String serviceId) {
-		this.connectionAdmin = defPiConnectionAdmin;
-		this.processId = processId;
-		this.serviceId = serviceId;
-	}
+    public DefPiProcess(final DefPiConnectionAdmin defPiConnectionAdmin,
+            final String processId,
+            final String serviceId) {
+        this.connectionAdmin = defPiConnectionAdmin;
+        this.processId = processId;
+        this.serviceId = serviceId;
+    }
 
-	public String getProcessId() {
-		return processId;
-	}
+    public String getProcessId() {
+        return this.processId;
+    }
 
-	public String getServiceId() {
-		return serviceId;
-	}
+    public String getServiceId() {
+        return this.serviceId;
+    }
 
 }

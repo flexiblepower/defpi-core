@@ -25,6 +25,7 @@ import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -63,15 +64,18 @@ import com.google.protobuf.Message;
  */
 public class ServiceManager<T> implements Closeable {
 
-    private static final Logger log = LoggerFactory.getLogger(ServiceManager.class);
+    /**
+     * The global port number on which to listen for management messages
+     */
+    public static final int MANAGEMENT_PORT = 4999;
 
     /**
      * The receive timeout of the managementsocket also determines how often the thread "checks" if the keepalive
      * boolean is still true
      */
-    private static final long SERVICE_IMPL_TIMEOUT_SECONDS = 5;
-    private static final int SOCKET_READ_TIMEOUT = 10000;
-    public static final int MANAGEMENT_PORT = 4999;
+    private static final long SOCKET_READ_TIMEOUT_MILLIS = Duration.ofSeconds(10).toMillis();
+    private static final long SERVICE_IMPL_TIMEOUT_MILLIS = Duration.ofSeconds(5).toMillis();
+    private static final Logger log = LoggerFactory.getLogger(ServiceManager.class);
     private static int threadCount = 0;
 
     private final ServiceExecutor serviceExecutor;
@@ -111,15 +115,12 @@ public class ServiceManager<T> implements Closeable {
             while (this.keepThreadAlive) {
                 byte[] messageArray;
                 try {
-                    // ServiceManager.log.trace("Waiting for connected");
-                    // this.managementSocket.waitUntilConnected(0);
-                    // ServiceManager.log.trace("Waiting for message");
-                    messageArray = this.managementSocket.read(ServiceManager.SOCKET_READ_TIMEOUT);
+                    messageArray = this.managementSocket.read(ServiceManager.SOCKET_READ_TIMEOUT_MILLIS);
                     if (messageArray == null) {
                         // No message received...
                         continue;
                     }
-                } catch (IOException | InterruptedException e) {
+                } catch (final IOException e) {
                     if (this.keepThreadAlive) {
                         ServiceManager.log.warn("Socket closed while expecting instruction, re-opening it", e);
                         this.managementSocket.close();
@@ -332,12 +333,13 @@ public class ServiceManager<T> implements Closeable {
                 return ServiceManager.this.createProcessStateUpdateMessage(ProcessState.RUNNING);
             });
 
-            return startFuture.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            return startFuture.get(ServiceManager.SERVICE_IMPL_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
         case SUSPENDED:
             final Future<Serializable> suspendFuture = this.serviceExecutor.submit(() -> {
                 return this.managedService.suspend();
             });
-            final Serializable state = suspendFuture.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            final Serializable state = suspendFuture.get(ServiceManager.SERVICE_IMPL_TIMEOUT_MILLIS,
+                    TimeUnit.MILLISECONDS);
             this.keepThreadAlive = false;
 
             return this.createProcessStateUpdateMessage(ProcessState.SUSPENDED, this.javaIoSerializer.serialize(state));
@@ -386,7 +388,7 @@ public class ServiceManager<T> implements Closeable {
             return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
         });
 
-        return future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        return future.get(ServiceManager.SERVICE_IMPL_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -431,7 +433,7 @@ public class ServiceManager<T> implements Closeable {
             return this.createProcessStateUpdateMessage(ProcessState.RUNNING);
         });
 
-        return configFuture.get(ServiceManager.SERVICE_IMPL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        return configFuture.get(ServiceManager.SERVICE_IMPL_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
     }
 
     /**

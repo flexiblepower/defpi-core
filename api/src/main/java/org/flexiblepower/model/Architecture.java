@@ -18,11 +18,32 @@
 
 package org.flexiblepower.model;
 
+/**
+ * Architecture
+ *
+ * @version 0.1
+ * @since May 8, 2017
+ */
 public enum Architecture {
+    /**
+     * Any other architecture
+     */
     UNKNOWN,
+    /**
+     * x86 64 bit
+     */
     X86_64,
+    /**
+     * ARM based architecture
+     */
     ARM;
 
+    /**
+     * Get the enum type from a text representation of the architecture. This function is used for parsing responses
+     *
+     * @param text The textual representation to parse into an Architecture enum
+     * @return The Archictecture enum that corresponds to the input
+     */
     public static Architecture fromString(final String text) {
         for (final Architecture a : Architecture.values()) {
             if (text.toUpperCase().startsWith(a.name())) {

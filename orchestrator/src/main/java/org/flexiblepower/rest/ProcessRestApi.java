@@ -51,7 +51,12 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
     }
 
     @Override
-    public List<Process> listProcesses(final String filters) throws AuthorizationException {
+    public List<Process> listProcesses(final int page,
+            final int perPage,
+            final String sortDir,
+            final String sortField,
+            final String filters) throws AuthorizationException {
+        // TODO Implement pagination
         List<Process> processes;
         if (this.sessionUser == null) {
             throw new AuthorizationException();
@@ -105,7 +110,7 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
         final ObjectId oid = MongoDbConnector.stringToObjectId(id);
         final Process ret = ProcessManager.getInstance().getProcess(oid);
         if (ret == null) {
-            throw new ProcessNotFoundException(id);
+            throw new ProcessNotFoundException(oid);
         }
 
         this.assertUserIsAdminOrEquals(ret.getUserId());

@@ -25,21 +25,34 @@ package org.flexiblepower.exceptions;
  */
 public class ServiceNotFoundException extends NotFoundException {
 
-    /**
-     *
-     */
     private static final long serialVersionUID = -7761214427127076445L;
 
+    /**
+     * The message string stating that the repository is not found
+     */
     public static final String SERVICE_NOT_FOUND_MESSAGE = "Service not found";
 
+    /**
+     * Create an exception with the default message that the service could not be found
+     */
     public ServiceNotFoundException() {
         super(ServiceNotFoundException.SERVICE_NOT_FOUND_MESSAGE);
     }
 
+    /**
+     * Create a ServiceNotFoundException that the service with the provided id could not be found
+     *
+     * @param id the ID of the service that was not found
+     */
     public ServiceNotFoundException(final String id) {
         super(ServiceNotFoundException.SERVICE_NOT_FOUND_MESSAGE + ": " + id);
     }
 
+    /**
+     * Create a ServiceNotFoundException with an underlying cause
+     *
+     * @param cause the underlying cause why the service could not be found
+     */
     public ServiceNotFoundException(final Throwable cause) {
         super(ServiceNotFoundException.SERVICE_NOT_FOUND_MESSAGE + ": " + cause.getMessage());
     }

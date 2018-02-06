@@ -17,6 +17,8 @@
  */
 package org.flexiblepower.exceptions;
 
+import org.bson.types.ObjectId;
+
 /**
  * ProcessNotFoundException
  *
@@ -25,16 +27,13 @@ package org.flexiblepower.exceptions;
  */
 public class ProcessNotFoundException extends NotFoundException {
 
-    /**
-     *
-     */
     private static final long serialVersionUID = -7947643331231772808L;
 
     /**
-     * @param msg
+     * @param processId Create an execption that the process with the provided ID cannot be found.
      */
-    public ProcessNotFoundException(final String processId) {
-        super("Could not find Process with id " + processId);
+    public ProcessNotFoundException(final ObjectId processId) {
+        super("Could not find Process with id " + processId.toString());
     }
 
 }

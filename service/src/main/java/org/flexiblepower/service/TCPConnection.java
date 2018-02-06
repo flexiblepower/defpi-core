@@ -417,7 +417,7 @@ final class TCPConnection implements Connection, Closeable {
                 }
 
                 try {
-                    TCPConnection.this.socket.waitUntilConnected(0);
+                    TCPConnection.this.socket.waitUntilConnected();
                 } catch (final Exception e) {
                     if (this.keepRunning) {
                         TCPConnection.log.warn("[{}] - Interrupted while waiting for connection to establish",

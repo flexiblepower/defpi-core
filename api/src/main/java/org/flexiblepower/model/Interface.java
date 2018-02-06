@@ -28,6 +28,14 @@ import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.Value;
 
+/**
+ * Interface is the main class where is defined how the {@linkplain Service} objects may connect to one another. An
+ * Interface may define multiple variants as a different {@linkplain InterfaceVersion}.
+ *
+ * @author coenvl
+ * @version 0.1
+ * @since Mar 20, 2017
+ */
 @Value
 @Embedded
 @AllArgsConstructor

@@ -17,12 +17,6 @@
  */
 
 package org.flexiblepower.rest;
-// @Override
-// public void deleteService(final String repositoryName, final String image, final String tag)
-// throws ServiceNotFoundException,
-// AuthorizationException {
-// this.registryConnector.deleteService(repositoryName, image, tag);
-// }
 
 import java.util.List;
 
@@ -42,7 +36,12 @@ public class ServiceRestApi extends BaseApi implements ServiceApi {
     }
 
     @Override
-    public List<Service> listServices() throws AuthorizationException {
+    public List<Service> listServices(final int page,
+            final int perPage,
+            final String sortDir,
+            final String sortField,
+            final String filters) throws AuthorizationException {
+        // TODO implement
         this.assertUserIsLoggedIn();
         return ServiceManager.getInstance().listServices();
     }

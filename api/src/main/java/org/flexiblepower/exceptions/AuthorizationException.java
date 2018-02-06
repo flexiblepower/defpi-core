@@ -25,13 +25,16 @@ package org.flexiblepower.exceptions;
  */
 public class AuthorizationException extends Exception {
 
-    /**
-     *
-     */
     private static final long serialVersionUID = 6350891352054597536L;
 
+    /**
+     * Default message to show that the user is not authorized
+     */
     public final static String UNAUTHORIZED_MESSAGE = "The user is not authorized to perform this operation";
 
+    /**
+     * Create an Exception stating that the user is not authorized
+     */
     public AuthorizationException() {
         super(AuthorizationException.UNAUTHORIZED_MESSAGE);
     }

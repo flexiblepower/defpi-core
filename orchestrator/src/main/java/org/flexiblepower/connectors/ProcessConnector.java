@@ -93,8 +93,10 @@ public class ProcessConnector {
         if (!this.connections.containsKey(processId)) {
             final ProcessConnection processConnection = new ProcessConnection(processId);
             if (processConnection.connectWithProcess()) {
+                ProcessConnector.log.debug("Connected with process on address " + processId);
                 this.connections.put(processId, processConnection);
             } else {
+                ProcessConnector.log.debug("Unable to connect to process " + processId);
                 return null;
             }
         }
@@ -236,16 +238,16 @@ public class ProcessConnector {
                 if (this.socket != null) {
                     this.socket.close();
                 }
+
                 this.socket = TCPSocket.asClient(process.getId().toString(), ProcessConnection.MANAGEMENT_PORT);
-                this.socket.waitUntilConnected(ProcessConnection.IO_TIMEOUT);
-                ProcessConnector.log.debug("Connected with process on address " + process.getId());
-                return true;
+                return this.socket.waitUntilConnected(ProcessConnection.IO_TIMEOUT);
             } catch (final Exception e) {
                 if (this.socket != null) {
                     this.socket.close();
                 }
 
-                ProcessConnector.log.warn("Could not connect with container ({}): {}", e.getMessage());
+                ProcessConnector.log
+                        .warn("Exception while connecting with container ({}): {}", e.getClass(), e.getMessage());
                 ProcessConnector.log.trace(e.getMessage(), e);
                 return false;
             }
@@ -477,7 +479,7 @@ public class ProcessConnector {
             byte[] recv = null;
             try {
                 recv = this.socket.read(ProcessConnection.IO_TIMEOUT);
-            } catch (InterruptedException | IOException e) {
+            } catch (final IOException e) {
                 ProcessConnector.log.warn("Exception while reading from socket ({}): {}", e.getClass(), e.getMessage());
                 ProcessConnector.log.trace(e.getMessage(), e);
                 this.close();

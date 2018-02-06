@@ -84,7 +84,7 @@ public class UserRestApi extends BaseApi implements UserApi {
     }
 
     @Override
-    public User getUserByUsername(final String username) throws AuthorizationException, InvalidObjectIdException {
+    public User getUserByUsername(final String username) throws AuthorizationException {
         final User ret = UserManager.getInstance().getUser(username);
         if (ret == null) {
             this.assertUserIsAdmin();

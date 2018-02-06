@@ -86,19 +86,31 @@ public class ServiceTest {
         this.pbSerializer.addMessageClass(ErrorMessage.class);
     }
 
-    @Test(timeout = 60000)
+    @Test(timeout = 10000)
     public void runReconnectTests() throws Exception {
         this.managementSocket.send("Rare string".getBytes());
-        final byte[] data = this.managementSocket.read();
-        final Object e = this.pbSerializer.deserialize(data);
+        byte[] data = this.managementSocket.read();
+        Object e = this.pbSerializer.deserialize(data);
         Assert.assertEquals(ErrorMessage.class, e.getClass());
         Assert.assertTrue(((ErrorMessage) e).getDebugInformation()
                 .startsWith("org.flexiblepower.exceptions.SerializationException"));
-        this.managementSocket.close();
 
         Thread.sleep(200);
+        this.managementSocket.close();
+
+        Thread.sleep(100);
 
         this.managementSocket = TCPSocket.asClient(ServiceTest.TEST_HOST, ServiceManager.MANAGEMENT_PORT);
+
+        data = this.managementSocket.read(200);
+        Assert.assertNull(data);
+        Thread.sleep(100);
+        this.managementSocket.send("nog iets".getBytes());
+        data = this.managementSocket.read();
+        e = this.pbSerializer.deserialize(data);
+        Assert.assertEquals(ErrorMessage.class, e.getClass());
+        Assert.assertTrue(((ErrorMessage) e).getDebugInformation()
+                .startsWith("org.flexiblepower.exceptions.SerializationException"));
         // this.managementSocket.waitUntilConnected(0);
     }
 

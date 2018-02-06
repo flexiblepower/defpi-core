@@ -20,11 +20,12 @@ package org.flexiblepower.service;
 import java.util.Arrays;
 import java.util.List;
 
-import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.service.TestHandler.TestHandlerBuilder;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -34,9 +35,7 @@ import org.junit.runners.Parameterized.Parameters;
 @SuppressWarnings("static-method")
 public class ConnectionIntegrationTest {
 
-    /**
-     *
-     */
+    private static final int TEST_PORT = 5001;
     private static final int WAIT_AFTER_CONNECT = 100;
     protected static int counter = 1;
 
@@ -45,6 +44,9 @@ public class ConnectionIntegrationTest {
         return Arrays.asList(new Object[3][0]);
     }
 
+    @Rule
+    public Timeout globalTimeout = Timeout.seconds(5);
+
     @After
     public void reset() throws InterruptedException {
         TestHandler.handlerMap.clear();
@@ -52,20 +54,29 @@ public class ConnectionIntegrationTest {
         ServiceExecutor.getInstance().shutDown();
         System.gc();
         Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
-        TCPSocket.destroyLingeringSockets();
-        Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
-        System.out.println("Alles weer schoon!");
     }
 
-    @Test(timeout = 10000)
+    @Test
     public void testNormalConnection() throws Exception {
 
         final InterfaceInfo info = TestHandler.class.getAnnotation(InterfaceInfo.class);
         ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandlerBuilder());
 
         try (
-                final TCPConnection mc1 = new TCPConnection("CIT", 5000, "", info, "", "", "");
-                final TCPConnection mc2 = new TCPConnection("CIT", 5000, "localhost", info, "", "", "")) {
+                final TCPConnection mc1 = new TCPConnection("CIT",
+                        ConnectionIntegrationTest.TEST_PORT,
+                        "",
+                        info,
+                        "",
+                        "",
+                        "");
+                final TCPConnection mc2 = new TCPConnection("CIT",
+                        ConnectionIntegrationTest.TEST_PORT,
+                        "localhost",
+                        info,
+                        "",
+                        "",
+                        "")) {
             mc2.waitUntilConnected(0);
             Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT); // Make sure at least 1 heartbeat is sent
 
@@ -82,14 +93,26 @@ public class ConnectionIntegrationTest {
         Assert.assertEquals("terminated", TestHandler.handlerMap.get("h2").state);
     }
 
-    @Test(timeout = 15000)
+    @Test
     public void testSuspendAndResume() throws Exception {
         final InterfaceInfo info = TestHandler.class.getAnnotation(InterfaceInfo.class);
         ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandlerBuilder());
 
         try (
-                final TCPConnection mc1 = new TCPConnection("CIT", 5000, "", info, "", "", "");
-                final TCPConnection mc2 = new TCPConnection("CIT", 5000, "localhost", info, "", "", "")) {
+                final TCPConnection mc1 = new TCPConnection("CIT",
+                        ConnectionIntegrationTest.TEST_PORT,
+                        "",
+                        info,
+                        "",
+                        "",
+                        "");
+                final TCPConnection mc2 = new TCPConnection("CIT",
+                        ConnectionIntegrationTest.TEST_PORT,
+                        "localhost",
+                        info,
+                        "",
+                        "",
+                        "")) {
 
             mc1.waitUntilConnected(0);
             Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
@@ -128,13 +151,27 @@ public class ConnectionIntegrationTest {
         }
     }
 
-    @Test(timeout = 30000)
+    @Test
     public void testInterruptDetectionAndResume() throws Exception {
         final InterfaceInfo info = TestHandler.class.getAnnotation(InterfaceInfo.class);
         ConnectionManager.registerConnectionHandlerFactory(TestHandler.class, new TestHandler.TestHandlerBuilder());
 
-        try (final TCPConnection mc2 = new TCPConnection("CIT", 5000, "localhost", info, "", "", "")) {
-            try (final TCPConnection mc1 = new TCPConnection("CIT", 5000, "", info, "", "", "")) {
+        try (
+                final TCPConnection mc2 = new TCPConnection("CIT",
+                        ConnectionIntegrationTest.TEST_PORT,
+                        "localhost",
+                        info,
+                        "",
+                        "",
+                        "")) {
+            try (
+                    final TCPConnection mc1 = new TCPConnection("CIT",
+                            ConnectionIntegrationTest.TEST_PORT,
+                            "",
+                            info,
+                            "",
+                            "",
+                            "")) {
                 mc1.waitUntilConnected(0);
                 Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
 
@@ -158,7 +195,14 @@ public class ConnectionIntegrationTest {
             Assert.assertTrue(("terminated".equals(state1) && "interrupted".equals(state2))
                     || ("terminated".equals(state2) && "interrupted".equals(state1)));
 
-            try (final TCPConnection mc3 = new TCPConnection("CIT", 5000, "", info, "", "", "")) {
+            try (
+                    final TCPConnection mc3 = new TCPConnection("CIT",
+                            ConnectionIntegrationTest.TEST_PORT,
+                            "",
+                            info,
+                            "",
+                            "",
+                            "")) {
                 mc3.waitUntilConnected(0);
                 Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
 

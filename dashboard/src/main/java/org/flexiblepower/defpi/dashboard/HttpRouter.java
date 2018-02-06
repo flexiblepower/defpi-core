@@ -6,42 +6,41 @@ import org.slf4j.LoggerFactory;
 
 public class HttpRouter implements HttpHandler {
 
-	private final static Logger LOG = LoggerFactory.getLogger(HttpRouter.class);
+    private final static Logger LOG = LoggerFactory.getLogger(HttpRouter.class);
 
-	private HttpStaticContentHandler staticContentHandler;
-	private FullWidgetManager fullWidgetManager;
+    private final HttpStaticContentHandler staticContentHandler;
+    private final FullWidgetManager fullWidgetManager;
 
-	public HttpRouter(FullWidgetManager fullWidgetManager) {
-		this.fullWidgetManager = fullWidgetManager;
-		this.staticContentHandler = new HttpStaticContentHandler();
-	}
+    public HttpRouter(final FullWidgetManager fullWidgetManager) {
+        this.fullWidgetManager = fullWidgetManager;
+        this.staticContentHandler = new HttpStaticContentHandler();
+    }
 
-	@Override
-	public void handle(HttpTask httpTask) {
-		LOG.info(httpTask.getRequest().getMethod() + ": " + httpTask.getRequest().getUri());
+    @Override
+    public void handle(final HttpTask httpTask) {
+        HttpRouter.LOG.info(httpTask.getRequest().getMethod() + ": " + httpTask.getRequest().getUri());
 
-		// Rewrite?
-		if (httpTask.getPath().equals("/")) {
-			httpTask.respond(HTTPResponse.newBuilder().setId(httpTask.getRequest().getId())
-					.putHeaders("Location", "/dashboard/index.html").setStatus(301).build());
-			return;
-		}
+        // Rewrite?
+        if (httpTask.getPath().equals("/")) {
+            httpTask.respond(HTTPResponse.newBuilder()
+                    .setId(httpTask.getRequest().getId())
+                    .putHeaders("Location", "/dashboard/index.html")
+                    .setStatus(301)
+                    .build());
+            return;
+        }
 
-		// Dynamic?
-		fullWidgetManager.handle(new HttpTask(httpTask.getRequest(), new HTTPResponseHandler() {
-			@Override
-			public void handleResponse(HttpTask httpTask, HTTPResponse response) {
-				// If the dynamic handler could not handle the request, try to serve static
-				// content
-				if (response.getStatus() == 404) {
-					staticContentHandler.handle(httpTask.getOriginalTask());
-				} else {
-					// Just answer
-					httpTask.getOriginalTask().respond(response);
-				}
-			}
-
-		}, httpTask));
-	}
+        // Dynamic?
+        this.fullWidgetManager.handle(new HttpTask(httpTask.getRequest(), (httpTask1, response) -> {
+            // If the dynamic handler could not handle the request, try to serve static
+            // content
+            if (response.getStatus() == 404) {
+                HttpRouter.this.staticContentHandler.handle(httpTask1.getOriginalTask());
+            } else {
+                // Just answer
+                httpTask1.getOriginalTask().respond(response);
+            }
+        }, httpTask));
+    }
 
 }

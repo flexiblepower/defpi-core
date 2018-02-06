@@ -23,12 +23,33 @@ package org.flexiblepower.proto;
  */
 public enum DefPiParams {
 
+    /**
+     * The hostname or IP-address of the orchestrator
+     */
     ORCHESTRATOR_HOST,
+    /**
+     * The port where the orchestrator REST API is available
+     */
     ORCHESTRATOR_PORT,
+    /**
+     * The user authentication token for the orchestrator API
+     */
     ORCHESTRATOR_TOKEN,
+    /**
+     * The current Process ObjectId
+     */
     PROCESS_ID,
+    /**
+     * The current User ObjectId
+     */
     USER_ID,
+    /**
+     * The current User name
+     */
     USER_NAME,
+    /**
+     * The current User e-mail
+     */
     USER_EMAIL;
 
 }
