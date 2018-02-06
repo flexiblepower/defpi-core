@@ -148,6 +148,7 @@ public class TCPSocket implements Closeable {
             if (!this.isConnected()) {
                 throw new ClosedChannelException();
             }
+            this.socket.setKeepAlive(true);
             return true;
         }
     }
@@ -195,6 +196,7 @@ public class TCPSocket implements Closeable {
             this.waitUntilConnected();
         } else {
             if (!this.waitUntilConnected(timeout)) {
+                TCPSocket.log.trace("Read timeout while waiting to connect");
                 return null;
             }
         }
@@ -240,6 +242,7 @@ public class TCPSocket implements Closeable {
 
                 return data;
             } catch (final SocketTimeoutException e) {
+                TCPSocket.log.trace("Read timeout while waiting for data");
                 return null;
             }
         }
