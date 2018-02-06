@@ -47,145 +47,147 @@ import org.slf4j.LoggerFactory;
  * file is generated as a stub, and has to be implemented by the user.
  * Re-running the codegen plugin will not change the contents of this file.
  * Template by FAN, 2017
- * 
+ *
  */
 @Generated(value = "org.flexiblepower.plugin.servicegen", date = "Oct 9, 2017 8:45:27 PM")
 public class DashboardGateway implements Service<Void> {
 
-	public static final Logger LOG = LoggerFactory.getLogger(DashboardGateway.class);
+    public static final Logger LOG = LoggerFactory.getLogger(DashboardGateway.class);
 
-	private Server server;
-	private Map<String, Dashboard_httpConnectionHandlerImpl> dashboardConnections = Collections
-			.synchronizedMap(new HashMap<>());
+    protected Server server;
+    private final Map<String, Dashboard_httpConnectionHandlerImpl> dashboardConnections = Collections
+            .synchronizedMap(new HashMap<>());
 
-	private ServerThread serverThread;
+    private ServerThread serverThread;
 
-	private DefPiParameters params;
+    private DefPiParameters params;
 
-	private class ServerThread extends Thread {
-		@Override
-		public void run() {
-			try {
-				server.start();
-				server.join();
-			} catch (Exception e) {
-				LOG.error("Error while running Jetty HTTP Server", e);
-			}
-		}
-	}
+    protected class ServerThread extends Thread {
 
-	@Override
-	public void resumeFrom(Serializable state) {
-		// TODO Auto-generated method stub
+        @Override
+        public void run() {
+            try {
+                DashboardGateway.this.server.start();
+                DashboardGateway.this.server.join();
+            } catch (final Exception e) {
+                DashboardGateway.LOG.error("Error while running Jetty HTTP Server", e);
+            }
+        }
+    }
 
-	}
+    @Override
+    public void resumeFrom(final Serializable state) {
+        // TODO Auto-generated method stub
 
-	@Override
-	public void init(Void config, DefPiParameters params) {
-		try {
-			this.params = params;
-			server = new Server(8080);
-			server.setHandler(new GatewayHandler(this));
-			serverThread = new ServerThread();
-			serverThread.start();
-		} catch (Exception e) {
-			LOG.error("Could not start DashboardGateway HTTP server", e);
-		}
-	}
+    }
 
-	@Override
-	public void modify(Void config) {
-		// TODO Auto-generated method stub
-	}
+    @Override
+    public void init(final Void config, final DefPiParameters defpiParams) {
+        try {
+            this.params = defpiParams;
+            this.server = new Server(8080);
+            this.server.setHandler(new GatewayHandler(this));
+            this.serverThread = new ServerThread();
+            this.serverThread.start();
+        } catch (final Exception e) {
+            DashboardGateway.LOG.error("Could not start DashboardGateway HTTP server", e);
+        }
+    }
 
-	@Override
-	public Serializable suspend() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public void modify(final Void config) {
+        // TODO Auto-generated method stub
+    }
 
-	@Override
-	public void terminate() {
-		try {
-			server.stop();
-		} catch (Exception e) {
-			LOG.error("Could not stop DashboardGateway HTTP server", e);
-		}
-	}
+    @Override
+    public Serializable suspend() {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	public void addDashboardConnection(Dashboard_httpConnectionHandlerImpl connection) {
-		this.dashboardConnections.put(connection.getUsername(), connection);
-	}
+    @Override
+    public void terminate() {
+        try {
+            this.server.stop();
+        } catch (final Exception e) {
+            DashboardGateway.LOG.error("Could not stop DashboardGateway HTTP server", e);
+        }
+    }
 
-	public void removeDashboardConnection(Dashboard_httpConnectionHandlerImpl connection) {
-		this.dashboardConnections.remove(connection.getUsername());
-	}
+    public void addDashboardConnection(final Dashboard_httpConnectionHandlerImpl connection) {
+        this.dashboardConnections.put(connection.getUsername(), connection);
+    }
 
-	public Dashboard_httpConnectionHandlerImpl getHandlerForUsername(String username) {
-		return this.dashboardConnections.get(username);
-	}
+    public void removeDashboardConnection(final Dashboard_httpConnectionHandlerImpl connection) {
+        this.dashboardConnections.remove(connection.getUsername());
+    }
 
-	public boolean validCredentials(String username, String password) {
-		try {
-			URL orch = new URL("http://" + params.getOrchestratorHost() + ":" + params.getOrchestratorPort()
-					+ "/user/by_username/" + URLEncoder.encode(username, "UTF-8"));
-			HttpURLConnection con = (HttpURLConnection) orch.openConnection();
-			con.setRequestProperty("Authorization",
-					"Basic " + new String(Base64.getEncoder().encode((username + ":" + password).getBytes())));
-			con.setRequestMethod("GET");
-			int code = con.getResponseCode();
-			boolean success = code == 200;
-			if (success) {
-				LOG.info("Attempted login for user " + username + " was successful");
-			} else {
-				LOG.info("Attempted login for user " + username + " failed");
+    public Dashboard_httpConnectionHandlerImpl getHandlerForUsername(final String username) {
+        return this.dashboardConnections.get(username);
+    }
 
-			}
-			return success;
-		} catch (IOException e) {
-			return false;
-		}
-	}
+    public boolean validCredentials(final String username, final String password) {
+        try {
+            final URL orch = new URL("http://" + this.params.getOrchestratorHost() + ":"
+                    + this.params.getOrchestratorPort() + "/user/by_username/" + URLEncoder.encode(username, "UTF-8"));
+            final HttpURLConnection con = (HttpURLConnection) orch.openConnection();
+            con.setRequestProperty("Authorization",
+                    "Basic " + new String(Base64.getEncoder().encode((username + ":" + password).getBytes())));
+            con.setRequestMethod("GET");
+            final int code = con.getResponseCode();
+            final boolean success = code == 200;
+            if (success) {
+                DashboardGateway.LOG.info("Attempted login for user " + username + " was successful");
+            } else {
+                DashboardGateway.LOG.info("Attempted login for user " + username + " failed");
 
-	public String getUsernameForProcessId(String processId) {
-		try {
-			// Retrieve the userId
-			URL orch = new URL("http://" + params.getOrchestratorHost() + ":" + params.getOrchestratorPort()
-					+ "/process/" + URLEncoder.encode(processId, "UTF-8"));
-			HttpURLConnection con = (HttpURLConnection) orch.openConnection();
-			con.setRequestMethod("GET");
-			con.setRequestProperty("X-Auth-Token", params.getOrchestratorToken());
-			int code = con.getResponseCode();
-			LOG.debug("GET to " + orch.toString() + " returned : " + code);
+            }
+            return success;
+        } catch (final IOException e) {
+            return false;
+        }
+    }
 
-			String responseBody = IOUtils.toString(new InputStreamReader(con.getInputStream()));
+    public String getUsernameForProcessId(final String processId) {
+        try {
+            // Retrieve the userId
+            URL orch = new URL("http://" + this.params.getOrchestratorHost() + ":" + this.params.getOrchestratorPort()
+                    + "/process/" + URLEncoder.encode(processId, "UTF-8"));
+            HttpURLConnection con = (HttpURLConnection) orch.openConnection();
+            con.setRequestMethod("GET");
+            con.setRequestProperty("X-Auth-Token", this.params.getOrchestratorToken());
+            int code = con.getResponseCode();
+            DashboardGateway.LOG.debug("GET to " + orch.toString() + " returned : " + code);
 
-			JSONObject obj = new JSONObject(responseBody);
-			String userId = obj.getString("userId");
+            String responseBody = IOUtils.toString(new InputStreamReader(con.getInputStream()));
 
-			if (userId == null) {
-				LOG.error("Got an invalid response from " + orch.toString() + ", received " + responseBody);
-				return null;
-			}
+            JSONObject obj = new JSONObject(responseBody);
+            final String userId = obj.getString("userId");
 
-			// Retrieve the username
-			orch = new URL("http://" + params.getOrchestratorHost() + ":" + params.getOrchestratorPort() + "/user/"
-					+ URLEncoder.encode(userId, "UTF-8"));
-			con = (HttpURLConnection) orch.openConnection();
-			con.setRequestMethod("GET");
-			con.setRequestProperty("X-Auth-Token", params.getOrchestratorToken());
-			code = con.getResponseCode();
-			LOG.debug("GET to " + orch.toString() + " returned : " + code);
+            if (userId == null) {
+                DashboardGateway.LOG
+                        .error("Got an invalid response from " + orch.toString() + ", received " + responseBody);
+                return null;
+            }
 
-			responseBody = IOUtils.toString(new InputStreamReader(con.getInputStream()));
+            // Retrieve the username
+            orch = new URL("http://" + this.params.getOrchestratorHost() + ":" + this.params.getOrchestratorPort()
+                    + "/user/" + URLEncoder.encode(userId, "UTF-8"));
+            con = (HttpURLConnection) orch.openConnection();
+            con.setRequestMethod("GET");
+            con.setRequestProperty("X-Auth-Token", this.params.getOrchestratorToken());
+            code = con.getResponseCode();
+            DashboardGateway.LOG.debug("GET to " + orch.toString() + " returned : " + code);
 
-			obj = new JSONObject(responseBody);
-			return obj.getString("username");
+            responseBody = IOUtils.toString(new InputStreamReader(con.getInputStream()));
 
-		} catch (IOException e) {
-			LOG.error("Could not determine the owner of process " + processId, e);
-			return null;
-		}
-	}
+            obj = new JSONObject(responseBody);
+            return obj.getString("username");
+
+        } catch (final IOException e) {
+            DashboardGateway.LOG.error("Could not determine the owner of process " + processId, e);
+            return null;
+        }
+    }
 
 }

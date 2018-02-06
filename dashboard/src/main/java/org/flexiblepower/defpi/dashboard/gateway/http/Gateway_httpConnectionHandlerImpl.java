@@ -22,80 +22,76 @@ import org.slf4j.LoggerFactory;
  * file is generated as a stub, and has to be implemented by the user.
  * Re-running the codegen plugin will not change the contents of this file.
  * Template by TNO, 2017
- * 
+ *
  * @author wilco
  */
 @Generated(value = "org.flexiblepower.plugin.servicegen", date = "Oct 26, 2017 12:58:33 PM")
 public class Gateway_httpConnectionHandlerImpl implements Gateway_httpConnectionHandler, HTTPResponseHandler {
 
-	public static final Logger LOG = LoggerFactory.getLogger(Gateway_httpConnectionHandlerImpl.class);
+    public static final Logger LOG = LoggerFactory.getLogger(Gateway_httpConnectionHandlerImpl.class);
 
-	private final Connection connection;
+    private final Connection connection;
 
-	private final Dashboard service;
+    private final Dashboard service;
 
-	private final ExecutorService executorService = Executors.newFixedThreadPool(2);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(2);
 
-	/**
-	 * Auto-generated constructor for the ConnectionHandlers of the provided service
-	 *
-	 * @param service
-	 *            The service for which to handle the connections
-	 */
-	public Gateway_httpConnectionHandlerImpl(Connection connection, Dashboard service) {
-		this.connection = connection;
-		this.service = service;
-	}
+    /**
+     * Auto-generated constructor for the ConnectionHandlers of the provided service
+     *
+     * @param service
+     *            The service for which to handle the connections
+     */
+    public Gateway_httpConnectionHandlerImpl(final Connection connection, final Dashboard service) {
+        this.connection = connection;
+        this.service = service;
+    }
 
-	@Override
-	public void handleHTTPRequestMessage(HTTPRequest message) {
-		// We run this in a separate thread, so the user thread is free to handle new
-		// incoming messages (which we need for widgets)
-		executorService.execute(new Runnable() {
-			@Override
-			public void run() {
-				service.getRequestRouter().handle(new HttpTask(message, Gateway_httpConnectionHandlerImpl.this, null));
-			}
-		});
-	}
+    @Override
+    public void handleHTTPRequestMessage(final HTTPRequest message) {
+        // We run this in a separate thread, so the user thread is free to handle new
+        // incoming messages (which we need for widgets)
+        this.executorService.execute(() -> Gateway_httpConnectionHandlerImpl.this.service.getRequestRouter()
+                .handle(new HttpTask(message, Gateway_httpConnectionHandlerImpl.this, null)));
+    }
 
-	@Override
-	public void onSuspend() {
-		// TODO Auto-generated method stub
+    @Override
+    public void onSuspend() {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	@Override
-	public void resumeAfterSuspend() {
-		// TODO Auto-generated method stub
+    @Override
+    public void resumeAfterSuspend() {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	@Override
-	public void onInterrupt() {
-		// TODO Auto-generated method stub
+    @Override
+    public void onInterrupt() {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	@Override
-	public void resumeAfterInterrupt() {
-		// TODO Auto-generated method stub
+    @Override
+    public void resumeAfterInterrupt() {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	@Override
-	public void terminated() {
-		// TODO Auto-generated method stub
+    @Override
+    public void terminated() {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	@Override
-	public synchronized void handleResponse(HttpTask httpTask, HTTPResponse response) {
-		try {
-			connection.send(response);
-		} catch (IOException e) {
-			LOG.error("Unable to respond to HTTP Request", e);
-		}
-	}
+    @Override
+    public synchronized void handleResponse(final HttpTask httpTask, final HTTPResponse response) {
+        try {
+            this.connection.send(response);
+        } catch (final IOException e) {
+            Gateway_httpConnectionHandlerImpl.LOG.error("Unable to respond to HTTP Request", e);
+        }
+    }
 
 }

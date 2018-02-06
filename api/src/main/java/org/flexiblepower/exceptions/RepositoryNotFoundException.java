@@ -25,29 +25,30 @@ package org.flexiblepower.exceptions;
  */
 public class RepositoryNotFoundException extends NotFoundException {
 
-    /**
-     *
-     */
     private static final long serialVersionUID = -2287421836765202024L;
 
+    /**
+     * The message string stating that the repository is not found
+     */
     public static final String REPOSITORY_NOT_FOUND_MESSAGE = "Repository not found";
 
+    /**
+     * Create a RepositoryNotFoundException with the given message
+     *
+     * @param msg The message to show with the exception
+     * @param cause The underlying Throwable that caused this exception
+     */
     public RepositoryNotFoundException(final String msg, final Exception cause) {
         super(msg, cause);
     }
 
     /**
-     * @param repositoryName
+     * Create a RepositoryNotFoundException that the repository with the provided name could not be found
+     *
+     * @param repositoryName the name of the repository that was not found
      */
     public RepositoryNotFoundException(final String repositoryName) {
         super(RepositoryNotFoundException.REPOSITORY_NOT_FOUND_MESSAGE + ": " + repositoryName.toString());
-    }
-
-    /**
-     * @param repositoryName
-     */
-    public RepositoryNotFoundException() {
-        super(RepositoryNotFoundException.REPOSITORY_NOT_FOUND_MESSAGE);
     }
 
 }

@@ -4,7 +4,7 @@ networks:
     driver: overlay
 services:
   orchestrator:
-    image: defpi.hesilab.nl:5000/defpi/orchestrator:latest
+    image: localhost:5000/defpi/orchestrator:latest
     ports:
       - 8484:8080
       - 9999:9999
@@ -23,7 +23,7 @@ services:
       - REGISTRY_EXTERNAL_URL=localhost:5000
       - USE_SECURE_REGISTRY=false
   orchestrator-ui:
-    image: defpi.hesilab.nl:5000/defpi/orchestrator-ui
+    image: localhost:5000/defpi/orchestrator-ui
     ports:
       - 84:80
     environment:

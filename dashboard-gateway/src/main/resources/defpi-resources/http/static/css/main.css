@@ -71,13 +71,15 @@ form {
     -moz-border-radius: 20px;
     -webkit-border-radius: 20px;
  
-    /*** Background Gradient - 2 declarations one for Firefox and one for Webkit ***/
-    background:  -moz-linear-gradient(19% 75% 90deg,#ddd, #aaa);
-    background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#ddd), to(#aaa));
+    /*** Background Gradient - 3 declarations one for Firefox and one for Webkit ***/
+    background: linear-gradient(#ddd, #aaa);
+    background: -moz-linear-gradient(19% 75% 90deg,#ddd, #aaa);
+    background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#ddd), to(#aaa));
  
     /*** Shadow behind the box ***/
-    -moz-box-shadow:0px -5px 10px #333;
-    -webkit-box-shadow:0px -5px 10px #333;
+    box-shadow: 0px -5px 10px #333;
+    -moz-box-shadow: 0px -5px 10px #333;
+    -webkit-box-shadow: 0px -5px 10px #333;
 }
 
 input {

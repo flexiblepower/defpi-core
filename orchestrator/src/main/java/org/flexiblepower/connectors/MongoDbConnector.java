@@ -35,6 +35,7 @@ import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
+import org.mongodb.morphia.query.FindOptions;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
 import org.mongodb.morphia.query.UpdateResults;
@@ -152,8 +153,9 @@ public final class MongoDbConnector {
         for (final Entry<String, Object> e : filter.entrySet()) {
             query.filter(e.getKey(), e.getValue());
         }
-        query = query.order(sortSign + sortField).offset((page - 1) * perPage).limit(perPage);
-        return query.asList();
+        final FindOptions opts = new FindOptions().skip((page - 1) * perPage).limit(perPage);
+        query = query.order(sortSign + sortField);
+        return query.asList(opts);
     }
 
     public <T> List<T> list(final Class<T> type) {
@@ -174,7 +176,7 @@ public final class MongoDbConnector {
         for (final Entry<String, Object> e : filter.entrySet()) {
             query.filter(e.getKey(), e.getValue());
         }
-        return (int) query.countAll();
+        return (int) query.count(); // All();
     }
 
     public static Map<String, Object> parseFilters(final String filters) {
@@ -229,7 +231,7 @@ public final class MongoDbConnector {
      */
     public static ObjectId stringToObjectId(final String id) throws InvalidObjectIdException {
         if (!ObjectId.isValid(id)) {
-            throw new InvalidObjectIdException("The provided id is not a valid ObjectId");
+            throw new InvalidObjectIdException(id);
         }
         return new ObjectId(id);
     }

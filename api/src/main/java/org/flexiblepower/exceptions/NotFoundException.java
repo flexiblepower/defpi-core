@@ -18,22 +18,30 @@
 package org.flexiblepower.exceptions;
 
 /**
- * NotFoundException
+ * NotFoundException 404
  *
  * @version 0.1
  * @since Apr 12, 2017
  */
 public abstract class NotFoundException extends Exception {
 
-    /**
-     *
-     */
     private static final long serialVersionUID = -6337738231851288131L;
 
+    /**
+     * Create a NotFoundException with the given message
+     *
+     * @param msg The message to show with the exception
+     */
     protected NotFoundException(final String msg) {
         super(msg);
     }
 
+    /**
+     * Create a NotFoundException with the given message
+     *
+     * @param msg The message to show with the exception
+     * @param cause The underlying Throwable that caused this exception
+     */
     protected NotFoundException(final String msg, final Throwable cause) {
         super(msg, cause);
     }

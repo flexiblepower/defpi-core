@@ -4,6 +4,6 @@ import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HT
 
 public interface HTTPResponseHandler {
 
-	void handleResponse(HttpTask httpTask, HTTPResponse response);
+    void handleResponse(HttpTask httpTask, HTTPResponse response);
 
 }

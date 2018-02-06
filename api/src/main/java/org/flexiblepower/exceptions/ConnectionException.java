@@ -27,18 +27,22 @@ import javax.ws.rs.core.Response.Status;
  */
 public class ConnectionException extends ApiException {
 
-    /**
-     *
-     */
     private static final long serialVersionUID = -7196576043993506083L;
 
     /**
+     * Create a connection exception with the provided error message
      *
+     * @param msg
      */
     public ConnectionException(final String msg) {
         super(Status.CONFLICT, msg);
     }
 
+    /**
+     * Create a connection exception that was cause by an underlying case throwable
+     *
+     * @param t the thrown cause of this exception
+     */
     public ConnectionException(final Throwable t) {
         super(Status.CONFLICT, t);
     }

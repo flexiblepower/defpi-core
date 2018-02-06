@@ -7,48 +7,48 @@ import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HT
 
 public class HttpTask {
 
-	private HTTPRequest request;
-	private HTTPResponseHandler responseHandler;
-	private HttpTask originalTask;
-	private boolean responded;
+    private final HTTPRequest request;
+    private final HTTPResponseHandler responseHandler;
+    private final HttpTask originalTask;
+    private boolean responded;
 
-	public HttpTask(HTTPRequest request, HTTPResponseHandler responseHandler, HttpTask originalTask) {
-		this.request = request;
-		this.responseHandler = responseHandler;
-		this.originalTask = originalTask;
-		responded = false;
-	}
+    public HttpTask(final HTTPRequest request, final HTTPResponseHandler responseHandler, final HttpTask originalTask) {
+        this.request = request;
+        this.responseHandler = responseHandler;
+        this.originalTask = originalTask;
+        this.responded = false;
+    }
 
-	public HTTPRequest getRequest() {
-		return this.request;
-	}
+    public HTTPRequest getRequest() {
+        return this.request;
+    }
 
-	public String getUri() {
-		return request.getUri();
-	}
+    public String getUri() {
+        return this.request.getUri();
+    }
 
-	public String getPath() {
-		return URI.create(request.getUri()).getPath();
-	}
+    public String getPath() {
+        return URI.create(this.request.getUri()).getPath();
+    }
 
-	public String getFragment() {
-		return URI.create(request.getUri()).getFragment();
-	}
+    public String getFragment() {
+        return URI.create(this.request.getUri()).getFragment();
+    }
 
-	public String getQuery() {
-		return URI.create(request.getUri()).getQuery();
-	}
+    public String getQuery() {
+        return URI.create(this.request.getUri()).getQuery();
+    }
 
-	public synchronized void respond(HTTPResponse response) {
-		if (responded) {
-			throw new IllegalStateException("Already respondend to HttpRequest with uri " + getUri());
-		}
-		responded = true;
-		responseHandler.handleResponse(this, response);
-	}
+    public synchronized void respond(final HTTPResponse response) {
+        if (this.responded) {
+            throw new IllegalStateException("Already respondend to HttpRequest with uri " + this.getUri());
+        }
+        this.responded = true;
+        this.responseHandler.handleResponse(this, response);
+    }
 
-	public HttpTask getOriginalTask() {
-		return originalTask;
-	}
+    public HttpTask getOriginalTask() {
+        return this.originalTask;
+    }
 
 }

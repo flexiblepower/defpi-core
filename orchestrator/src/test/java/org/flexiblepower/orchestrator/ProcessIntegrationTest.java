@@ -35,6 +35,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.spotify.docker.client.DefaultDockerClient;
@@ -50,6 +51,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since Apr 24, 2017
  */
 @Slf4j
+@Ignore // This test is not supposed to run in CI
 public class ProcessIntegrationTest {
 
     private static final String TEST_USER = "TestUser";

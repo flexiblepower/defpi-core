@@ -6,33 +6,33 @@ import java.util.stream.Collectors;
 
 public class CemProcess extends DefPiProcess {
 
-	private List<String> rmProcessIds = new ArrayList<>();
+    private final List<String> rmProcessIds = new ArrayList<>();
 
-	public CemProcess(DefPiConnectionAdmin defPiConnectionAdmin, String processId, String serviceId) {
-		super(defPiConnectionAdmin, processId, serviceId);
-	}
+    public CemProcess(final DefPiConnectionAdmin defPiConnectionAdmin, final String processId, final String serviceId) {
+        super(defPiConnectionAdmin, processId, serviceId);
+    }
 
-	public List<String> getRmProcessIds() {
-		return rmProcessIds;
-	}
+    public List<String> getRmProcessIds() {
+        return this.rmProcessIds;
+    }
 
-	public List<RmProcess> getConnectedRmProcess() {
-		return rmProcessIds.stream().map(id -> connectionAdmin.getRmProcess(id)).collect(Collectors.toList());
-	}
+    public List<RmProcess> getConnectedRmProcess() {
+        return this.rmProcessIds.stream().map(id -> this.connectionAdmin.getRmProcess(id)).collect(Collectors.toList());
+    }
 
-	public boolean isConnectedWith(RmProcess rmProcess) {
-		for (String id : rmProcessIds) {
-			if (id.equals(rmProcess.getProcessId())) {
-				return true;
-			}
-		}
-		return false;
-	}
+    public boolean isConnectedWith(final RmProcess rmProcess) {
+        for (final String id : this.rmProcessIds) {
+            if (id.equals(rmProcess.getProcessId())) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-	@Override
-	public String toString() {
-		return "CemProcess [rmProcessId=" + rmProcessIds + ", getProcessId()=" + getProcessId() + ", getServiceId()="
-				+ getServiceId() + "]";
-	}
+    @Override
+    public String toString() {
+        return "CemProcess [rmProcessId=" + this.rmProcessIds + ", getProcessId()=" + this.getProcessId()
+                + ", getServiceId()=" + this.getServiceId() + "]";
+    }
 
 }
