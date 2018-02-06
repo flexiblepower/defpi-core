@@ -66,12 +66,10 @@ public class RestServerTest {
     @Rule
     public Timeout globalTimeout = Timeout.seconds(10);
 
-    @Test
     public void testListUsers() throws ClientProtocolException, URISyntaxException, IOException {
         this.defaultTests("user", "_perPage=3&_sortDir=DESC", 200, MediaType.APPLICATION_JSON_TYPE);
     }
 
-    @Test
     public void testListProcesses() throws ClientProtocolException, URISyntaxException, IOException {
         System.out.println(this.defaultTests("process",
                 "_page=0&_perPage=0&_sortDir=&_sortField=",
