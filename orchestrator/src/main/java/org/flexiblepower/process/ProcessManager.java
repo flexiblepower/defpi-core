@@ -72,7 +72,7 @@ public class ProcessManager {
     public Process getProcess(final ObjectId processId) throws ProcessNotFoundException {
         final Process ret = this.mongoDbConnector.get(Process.class, processId);
         if (ret == null) {
-            throw new ProcessNotFoundException(processId.toString());
+            throw new ProcessNotFoundException(processId);
         }
         return ret;
     }

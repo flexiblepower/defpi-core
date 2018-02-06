@@ -189,7 +189,7 @@ public class DockerConnector {
                 this.client.removeService(process.getDockerId());
                 return true;
             } catch (final com.spotify.docker.client.exceptions.ServiceNotFoundException e) {
-                throw new ProcessNotFoundException(process.getId().toString());
+                throw new ProcessNotFoundException(process.getId());
             } catch (DockerException | InterruptedException e) {
                 DockerConnector.log.error("Error while removing process: {}", e.getMessage());
                 DockerConnector.instance = null;

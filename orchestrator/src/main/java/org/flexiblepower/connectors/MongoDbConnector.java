@@ -231,7 +231,7 @@ public final class MongoDbConnector {
      */
     public static ObjectId stringToObjectId(final String id) throws InvalidObjectIdException {
         if (!ObjectId.isValid(id)) {
-            throw new InvalidObjectIdException("The provided id is not a valid ObjectId");
+            throw new InvalidObjectIdException(id);
         }
         return new ObjectId(id);
     }

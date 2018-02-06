@@ -72,7 +72,7 @@ public class PendingChangeRestApi extends BaseApi implements PendingChangeApi {
         final ObjectId pendingChangeId = MongoDbConnector.stringToObjectId(pendingChange);
         final PendingChange pc = PendingChangeManager.getInstance().getPendingChange(pendingChangeId);
         if (pc == null) {
-            throw new PendingChangeNotFoundException();
+            throw new PendingChangeNotFoundException(pendingChangeId);
         }
         this.assertUserIsAdminOrEquals(pc.getUserId());
 
@@ -87,7 +87,7 @@ public class PendingChangeRestApi extends BaseApi implements PendingChangeApi {
 
         final PendingChange pc = PendingChangeManager.getInstance().getPendingChange(pendingChangeId);
         if (pc == null) {
-            throw new PendingChangeNotFoundException();
+            throw new PendingChangeNotFoundException(pendingChangeId);
         }
         this.assertUserIsAdminOrEquals(pc.getUserId());
 

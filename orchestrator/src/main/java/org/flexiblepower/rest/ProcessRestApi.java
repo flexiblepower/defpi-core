@@ -110,7 +110,7 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
         final ObjectId oid = MongoDbConnector.stringToObjectId(id);
         final Process ret = ProcessManager.getInstance().getProcess(oid);
         if (ret == null) {
-            throw new ProcessNotFoundException(id);
+            throw new ProcessNotFoundException(oid);
         }
 
         this.assertUserIsAdminOrEquals(ret.getUserId());

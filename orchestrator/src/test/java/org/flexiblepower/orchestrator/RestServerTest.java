@@ -10,10 +10,15 @@ import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.Charset;
 
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -26,8 +31,12 @@ import org.flexiblepower.api.ProcessApi;
 import org.flexiblepower.api.ServiceApi;
 import org.flexiblepower.api.UserApi;
 import org.flexiblepower.rest.OrchestratorApplication;
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.SwaggerDefinition;
@@ -39,43 +48,46 @@ import io.swagger.annotations.SwaggerDefinition;
  * @since Nov 23, 2017
  */
 @SuppressWarnings("static-method")
-public class SwaggerDefinitionTest {
+public class RestServerTest {
 
-    @Test(timeout = 30000)
-    public void runTest() throws Exception {
-        final Server x = Main.startServer();
+    private static final int TEST_PORT = 8484; // Main.URI_PORT;
+    private static Server server;
 
-        final URI uri = new URI("http",
-                null,
-                InetAddress.getLocalHost().getHostName(),
-                Main.URI_PORT,
-                Main.URI_PATH + "/swagger.json",
-                null,
-                null);
+    @BeforeClass
+    public static void init() throws Exception {
+        RestServerTest.server = Main.startServer();
+    }
 
-        System.out.println("GETting " + uri);
-        @SuppressWarnings("resource")
-        final HttpClient client = HttpClientBuilder.create().build();
+    @AfterClass
+    public static void stop() throws Exception {
+        RestServerTest.server.stop();
+    }
 
-        // Create http request with token in header
-        final HttpGet request = new HttpGet(uri);
+    @Rule
+    public Timeout globalTimeout = Timeout.seconds(10);
 
-        final HttpResponse response = client.execute(request);
-        Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-        Assert.assertEquals(MediaType.APPLICATION_JSON, response.getEntity().getContentType().getValue());
+    @Test
+    public void testListUsers() throws ClientProtocolException, URISyntaxException, IOException {
+        this.defaultTests("user", "_perPage=3&_sortDir=DESC", 200, MediaType.APPLICATION_JSON_TYPE);
+    }
 
-        final byte[] buf = new byte[128];
-        int len = 0;
-        final StringBuilder builder = new StringBuilder();
-        try (final InputStream is = response.getEntity().getContent()) {
-            while ((len = is.read(buf)) > 0) {
-                builder.append(new String(buf, 0, len));
-            }
-        } catch (final IOException e) {
-            // TODO Auto-generated catch block
-        }
+    @Test
+    public void testListProcesses() throws ClientProtocolException, URISyntaxException, IOException {
+        System.out.println(this.defaultTests("process",
+                "_page=0&_perPage=0&_sortDir=&_sortField=",
+                200,
+                MediaType.APPLICATION_JSON_TYPE));
+    }
 
-        final String content = builder.toString();
+    @Test
+    public void test404() throws ClientProtocolException, URISyntaxException, IOException {
+        this.defaultTests("bestaatniet", null, 404, MediaType.APPLICATION_JSON_TYPE);
+    }
+
+    @Test
+    public void testSwagger() throws Exception {
+        final String content = this.defaultTests("swagger.json", null, 200, MediaType.APPLICATION_JSON_TYPE);
+
         Assert.assertTrue(content.contains("swagger"));
 
         Assert.assertTrue(content
@@ -96,8 +108,47 @@ public class SwaggerDefinitionTest {
                 Assert.assertTrue(content.contains(annotation.nickname()));
             }
         }
+    }
 
-        x.stop();
+    @SuppressWarnings("resource")
+    private String defaultTests(final String path,
+            final String query,
+            final int expectedResponse,
+            final MediaType expectedType) throws URISyntaxException,
+            ClientProtocolException,
+            IOException {
+        final URI uri = new URI("http",
+                null,
+                InetAddress.getLocalHost().getHostName(),
+                RestServerTest.TEST_PORT,
+                Main.URI_PATH + "/" + path,
+                query,
+                null);
+
+        System.out.println("GETting " + uri);
+        final HttpGet request = new HttpGet(uri);
+        final String auth = "admin:admin";
+        final byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(Charset.forName("UTF-8")));
+        request.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + new String(encodedAuth));
+        final HttpClient client = HttpClientBuilder.create().build();
+
+        final HttpResponse response = client.execute(request);
+        Assert.assertEquals(expectedResponse, response.getStatusLine().getStatusCode());
+        if (response.getEntity().getContentLength() == 0) {
+            return "";
+        }
+        Assert.assertEquals(expectedType.toString(), response.getEntity().getContentType().getValue());
+
+        final byte[] buf = new byte[128];
+        int len = 0;
+        final StringBuilder builder = new StringBuilder();
+        try (final InputStream is = response.getEntity().getContent()) {
+            while ((len = is.read(buf)) > 0) {
+                builder.append(new String(buf, 0, len));
+            }
+        }
+
+        return builder.toString();
     }
 
 }
