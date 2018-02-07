@@ -39,11 +39,22 @@ import org.flexiblepower.orchestrator.UserManager;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * UserRestApi
+ *
+ * @version 0.1
+ * @since Mar 30, 2017
+ */
 @Slf4j
 public class UserRestApi extends BaseApi implements UserApi {
 
     private final UserManager db = UserManager.getInstance();
 
+    /**
+     * Create the REST API with the headers from the HTTP request (will be injected by the HTTP server)
+     *
+     * @param httpHeaders The headers from the HTTP request for authorization
+     */
     protected UserRestApi(@Context final HttpHeaders httpHeaders) {
         super(httpHeaders);
     }
@@ -54,9 +65,9 @@ public class UserRestApi extends BaseApi implements UserApi {
         this.assertUserIsAdmin();
 
         // Update the password to store it encrypted
-        if ((newUser.getPassword() != null) && (newUser.getPasswordHash() == null)) {
-            newUser.setPasswordHash();
-        }
+        // if ((newUser.getPassword() != null) && (newUser.getPasswordHash() == null)) {
+        // newUser.setPasswordHash();
+        // }
         newUser.setAuthenticationToken(UUID.randomUUID().toString());
         this.db.saveUser(newUser);
         return newUser;
@@ -142,9 +153,11 @@ public class UserRestApi extends BaseApi implements UserApi {
                     .entity(userList)
                     .build();
         } else {
+            final User ret = this.sessionUser;
+            ret.clearPasswordHash();
             return Response.status(Status.OK.getStatusCode())
                     .header("X-Total-Count", Integer.toString(1))
-                    .entity(Arrays.asList(this.sessionUser))
+                    .entity(Arrays.asList(ret))
                     .build();
         }
     }

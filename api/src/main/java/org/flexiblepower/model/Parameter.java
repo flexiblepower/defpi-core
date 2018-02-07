@@ -44,7 +44,7 @@ public class Parameter {
      * configuration will return.
      *
      * @version 0.1
-     * @since Feb 7, 2018
+     * @since Apr 24, 2017
      */
     public enum Type {
         /**

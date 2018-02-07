@@ -43,9 +43,20 @@ import org.json.JSONObject;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * ProcessRestApi
+ *
+ * @version 0.1
+ * @since Mar 30, 2017
+ */
 @Slf4j
 public class ProcessRestApi extends BaseApi implements ProcessApi {
 
+    /**
+     * Create the REST API with the headers from the HTTP request (will be injected by the HTTP server)
+     *
+     * @param httpHeaders The headers from the HTTP request for authorization
+     */
     protected ProcessRestApi(@Context final HttpHeaders httpHeaders) {
         super(httpHeaders);
     }

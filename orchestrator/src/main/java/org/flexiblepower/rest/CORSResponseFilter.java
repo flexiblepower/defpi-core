@@ -26,7 +26,7 @@ import javax.ws.rs.container.ContainerResponseFilter;
 import javax.ws.rs.core.MultivaluedMap;
 
 /**
- *         Make sure the REST API allows requests from other domains
+ * Make sure the REST API allows requests from other domains
  */
 public class CORSResponseFilter implements ContainerResponseFilter {
 

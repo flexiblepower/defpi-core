@@ -63,6 +63,9 @@ import io.swagger.jaxrs.listing.SwaggerSerializers;
                                                 description = "This operation can only be performed by an administrator.")}))
 public class OrchestratorApplication extends Application {
 
+    /**
+     * @param publishURI The URI where this application will be externally available
+     */
     public OrchestratorApplication(final URI publishURI) {
         final BeanConfig beanConfig = new BeanConfig();
         beanConfig.setResourcePackage("org.flexiblepower");

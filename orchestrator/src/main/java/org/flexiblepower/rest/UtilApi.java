@@ -25,10 +25,22 @@ import javax.ws.rs.core.MediaType;
 
 import org.flexiblepower.connectors.DockerConnector;
 
+/**
+ * UtilApi contains some utilities for the running server. These are not published via swagger or the WADL, but are
+ * only intended for the server administrators. However these functions are openly available so care should be taken as
+ * to what information is available here.
+ *
+ * @author coenvl
+ * @version 0.1
+ * @since Aug 31, 2017
+ */
 @Path("diag")
 @SuppressWarnings("static-method")
 public class UtilApi {
 
+    /**
+     * @return A simple text message showing information about the current running image
+     */
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     public String getVersion() {

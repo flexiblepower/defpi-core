@@ -80,7 +80,7 @@ public class Main {
         if (db.getUser(Main.ROOT_USER, Main.ROOT_PASSWORD) == null) {
             final User root = new User(Main.ROOT_USER, Main.ROOT_PASSWORD);
             root.setAuthenticationToken(UUID.randomUUID().toString());
-            root.setPasswordHash();
+            // root.setPasswordHash();
             root.setAdmin(true);
 
             UserManager.getInstance().saveUser(root);

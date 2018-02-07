@@ -29,14 +29,30 @@ import org.flexiblepower.exceptions.NotFoundException;
 import org.flexiblepower.model.Interface;
 import org.flexiblepower.orchestrator.ServiceManager;
 
+/**
+ * InterfaceRestApi
+ *
+ * @version 0.1
+ * @since Mar 30, 2017
+ */
 public class InterfaceRestApi extends BaseApi implements InterfaceApi {
 
+    /**
+     * Create the REST API with the headers from the HTTP request (will be injected by the HTTP server)
+     *
+     * @param httpHeaders The headers from the HTTP request for authorization
+     */
     protected InterfaceRestApi(@Context final HttpHeaders httpHeaders) {
         super(httpHeaders);
     }
 
     @Override
-    public List<Interface> listInterfaces() throws AuthorizationException {
+    public List<Interface> listInterfaces(final int page,
+            final int perPage,
+            final String sortDir,
+            final String sortField,
+            final String filters) throws AuthorizationException {
+        // TODO implement pagination, sorting and filtering
         this.assertUserIsLoggedIn();
         return ServiceManager.getInstance().listInterfaces();
     }

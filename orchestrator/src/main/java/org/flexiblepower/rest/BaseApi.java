@@ -39,8 +39,18 @@ public abstract class BaseApi {
 
     private static final String AUTH_PREFIX = "Basic ";
 
+    /**
+     * The session user is the user who successfully logged in using Basic authentication or using his authentication
+     * token.
+     */
     protected final User sessionUser;
 
+    /**
+     * Create the abstract base class for the REST API. The base API will make sure the user is logged in by taking the
+     * authentication headers from the HTTP request.
+     *
+     * @param httpHeaders The headers of the HTTP request that creates this object
+     */
     protected BaseApi(final HttpHeaders httpHeaders) {
         String authString = httpHeaders.getHeaderString("Authorization");
         if ((authString == null) || !authString.startsWith(BaseApi.AUTH_PREFIX)) {
@@ -83,7 +93,7 @@ public abstract class BaseApi {
     /**
      * Protected function that only throws an exception if the current logged in user is not an admin.
      *
-     * @throws AuthorizationException
+     * @throws AuthorizationException If the assertion fails
      */
     protected void assertUserIsAdmin() throws AuthorizationException {
         if ((this.sessionUser == null) || !this.sessionUser.isAdmin()) {
@@ -91,6 +101,11 @@ public abstract class BaseApi {
         }
     }
 
+    /**
+     * Protected function that throws an exception if there is no logged in user.
+     *
+     * @throws AuthorizationException If the assertion fails
+     */
     protected void assertUserIsLoggedIn() throws AuthorizationException {
         if (this.sessionUser == null) {
             throw new AuthorizationException();
@@ -102,7 +117,7 @@ public abstract class BaseApi {
      * provided userId.
      *
      * @param userId The userId that should be logged in
-     * @throws AuthorizationException
+     * @throws AuthorizationException If the assertion fails
      */
     protected void assertUserIsAdminOrEquals(final ObjectId userId) throws AuthorizationException {
         if (this.sessionUser == null) {

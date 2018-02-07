@@ -45,6 +45,11 @@ import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
  */
 public class PendingChangeRestApi extends BaseApi implements PendingChangeApi {
 
+    /**
+     * Create the REST API with the headers from the HTTP request (will be injected by the HTTP server)
+     *
+     * @param httpHeaders The headers from the HTTP request for authorization
+     */
     protected PendingChangeRestApi(@Context final HttpHeaders httpHeaders) {
         super(httpHeaders);
     }
