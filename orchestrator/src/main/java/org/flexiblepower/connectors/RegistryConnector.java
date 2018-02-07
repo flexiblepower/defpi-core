@@ -69,7 +69,7 @@ import lombok.extern.slf4j.Slf4j;
 public class RegistryConnector {
 
     public static final String REGISTRY_URL_KEY = "REGISTRY_URL";
-    private static final String REGISTRY_URL_DFLT = "localhost:5000";
+    private static final String REGISTRY_URL_DFLT = "registry:5000";
 
     public static final String REGISTRY_EXTERNAL_URL_KEY = "REGISTRY_EXTERNAL_URL";
 
