@@ -78,7 +78,7 @@ public interface InterfaceApi {
      *
      * @param id The id of the interface
      * @return The interface with the provided id
-     * @throws NotFoundException
+     * @throws NotFoundException If the referenced interface could not be found
      * @throws AuthorizationException if the user is not authenticated at all
      */
     @GET

@@ -29,10 +29,12 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
- * Node
+ * A PrivateNode is a piece of hardware in the dEF-Pi environment that only one specific user may deploy process on.
  *
  * @version 0.1
  * @since 20 mrt. 2017
+ * @see UnidentifiedNode
+ * @see PublicNode
  */
 @Entity
 @Getter
@@ -44,6 +46,12 @@ public class PrivateNode extends Node {
     @JsonDeserialize(using = ObjectIdDeserializer.class)
     private ObjectId userId;
 
+    /**
+     * Create a PrivateNode from an {@link UnidentifiedNode} and a user to assign it to.
+     *
+     * @param unidentifiedNode The existing node which is unidentified, and should be upgraded to a private node
+     * @param owner The intended private owner of the node
+     */
     public PrivateNode(final UnidentifiedNode unidentifiedNode, final User owner) {
         super(unidentifiedNode.getDockerId(), unidentifiedNode.getHostname(), unidentifiedNode.getArchitecture());
         this.userId = owner.getId();

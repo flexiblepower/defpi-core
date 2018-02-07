@@ -63,14 +63,14 @@ public interface ProcessApi {
      * List all existing processes for the current logged in user. By design if the user is an administrator, all
      * processes are returned.
      *
-     * @param page the current page to view (defaults to 1)
-     * @param perPage the amount of processes to view per page (defaults to
+     * @param page The current page to view (defaults to 1)
+     * @param perPage The amount of processes to view per page (defaults to
      *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
-     * @param sortDir the direction to sort the processes (defaults to "ASC")
-     * @param sortField the field to sort the processes on (defaults to "id")
-     * @param filters a list of filters in JSON notation
+     * @param sortDir The direction to sort the processes (defaults to "ASC")
+     * @param sortField The field to sort the processes on (defaults to "id")
+     * @param filters A list of filters in JSON notation
      * @return A list of processes for the logged in user
-     * @throws AuthorizationException
+     * @throws AuthorizationException If the user is not authorized to get information about this process
      */
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -84,7 +84,7 @@ public interface ProcessApi {
                          response = Process.class,
                          responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public List<org.flexiblepower.model.Process> listProcesses(@QueryParam("_page") @DefaultValue("1") int page,
+    public List<Process> listProcesses(@QueryParam("_page") @DefaultValue("1") int page,
             @QueryParam("_perPage") @DefaultValue("1000") int perPage,
             @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
             @QueryParam("_sortField") @DefaultValue("id") String sortField,
@@ -95,7 +95,7 @@ public interface ProcessApi {
      *
      * @param processId The id of the process to look up
      * @return Connection with the specified Id
-     * @throws AuthorizationException if the user is not authorized to get information about this process
+     * @throws AuthorizationException If the user is not authorized to get information about this process
      * @throws ProcessNotFoundException When no process with the provided id is found
      * @throws InvalidObjectIdException When the provided id is not a valid ObjectId
      */

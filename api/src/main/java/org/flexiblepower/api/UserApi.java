@@ -63,7 +63,7 @@ public interface UserApi {
     /**
      * Attempt to create a new user with provided specification.
      *
-     * @param newUser the specification of the new process
+     * @param newUser The specification of the new process
      * @return the created user
      * @throws AuthorizationException if the user is not an admin
      */
@@ -112,11 +112,11 @@ public interface UserApi {
     /**
      * Remove a user. This is only allowed for an administrator.
      *
-     * @param userId the id of the user to remove
-     * @throws AuthorizationException If the user is not and admin
+     * @param userId The id of the user to remove
+     * @throws AuthorizationException If the user is not an admin
      * @throws ProcessNotFoundException When the user is not found
      * @throws InvalidObjectIdException When the argument userId is an invalid ObjectId
-     * @throws NotFoundException
+     * @throws NotFoundException When the referenced user could not be found
      */
     @DELETE
     @Path("/{user_id}")

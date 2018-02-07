@@ -58,8 +58,8 @@ public class Connection {
         /**
          * Construct a connection endpoint for the specified process and interface Id
          * 
-         * @param processId
-         * @param interfaceId
+         * @param processId The ObjectId of the process this endpoint will use
+         * @param interfaceId The ID of the interface this endpoint will use 
          */
         public Endpoint(final ObjectId processId, final String interfaceId) {
             this.processId = processId;

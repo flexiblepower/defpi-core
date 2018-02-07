@@ -123,16 +123,14 @@ public class Process {
     private String serviceId;
 
     /**
-     * The NodePool where this process should be running. Mutually exclusive with
-     * privateNodeId.
+     * The NodePool where this process should be running. Mutually exclusive with privateNodeId.
      */
     @JsonSerialize(using = ToStringSerializer.class)
     @JsonDeserialize(using = ObjectIdDeserializer.class)
     private ObjectId nodePoolId;
 
     /**
-     * The Private Node where this process should be running. Mutually exclusive
-     * with nodePoolId.
+     * The Private Node where this process should be running. Mutually exclusive with nodePoolId.
      */
     @JsonSerialize(using = ToStringSerializer.class)
     @JsonDeserialize(using = ObjectIdDeserializer.class)
@@ -145,16 +143,15 @@ public class Process {
     private String dockerId;
 
     /**
-     * The node on which the process is actually running. May be null when the state
-     * is not RUNNING.
+     * The node on which the process is actually running. May be null when the state is not RUNNING.
      */
     private String runningDockerNodeId;
 
     private List<ProcessParameter> configuration;
 
     /**
-     * To enable debugging of a process, this number should be set to something else
-     * than 0. Note that this can only be done when serializing a process from JSON.
+     * To enable debugging of a process, this number should be set to something else than 0. Note that this can only be
+     * done when serializing a process from JSON.
      */
     private int debuggingPort;
 
@@ -162,11 +159,11 @@ public class Process {
 
     private long maxNanoCPUs;
 
+    @Builder.Default
     private boolean suspendOnDebug = true;
 
     /**
-     * Mount points can be added in order to allow physical devices be used from the
-     * java process. e.g. to use a usb device from /dev/usb0
+     * Mount points can be added in order to allow physical devices be used from the java process. e.g. to use a usb device from /dev/usb0
      */
     private List<MountPoint> mountPoints;
 

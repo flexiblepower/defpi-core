@@ -24,7 +24,9 @@ import lombok.NoArgsConstructor;
 import lombok.Value;
 
 /**
- * InterfaceVersion
+ * The InterfaceVersion represents a specific version of the {@link Interface}, with a particular send/receive hashpair.
+ * This uniquely identifies what other InterfaceVersions are compatible with it. The InterfaceVersion is the specific
+ * endpoint for a connection that allows a process to communicate with other processes.
  *
  * @version 0.1
  * @since 20 mrt. 2017
@@ -40,6 +42,13 @@ public class InterfaceVersion implements Comparable<InterfaceVersion> {
     private String receivesHash;
     private String sendsHash;
 
+    /**
+     * Returns whether this interface version is compatible with another. This is true if and only if this version's send
+     * hash equals the other version's receive hash and vice versa.
+     * 
+     * @param other The other interface version to check compatibility with
+     * @return true if the other interface version is compatibly.
+     */
     public boolean isCompatibleWith(final InterfaceVersion other) {
         return this.receivesHash.equals(other.getSendsHash()) && this.sendsHash.equals(other.getReceivesHash());
     }
