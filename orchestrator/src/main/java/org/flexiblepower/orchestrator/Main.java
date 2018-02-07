@@ -46,7 +46,7 @@ public class Main {
 
     // Base URI the HTTP server will listen on
     public static final String URI_SCHEME = Scheme.HTTP.name();
-    public static final String URI_HOST = "defpi.hesilab.nl";
+    public static final String URI_HOST = "localhost";
     public static final int URI_PORT = 8080;
     public static final String URI_PATH = "";
 
