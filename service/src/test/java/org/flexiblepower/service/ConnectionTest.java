@@ -258,7 +258,6 @@ public class ConnectionTest {
             this.dataSocket.close();
             this.dataSocket = null;
         }
-        ConnectionManager.clearConnectionHandlerFactories();
         Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
     }
 

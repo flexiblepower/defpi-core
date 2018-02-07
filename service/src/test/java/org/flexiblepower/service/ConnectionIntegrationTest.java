@@ -50,7 +50,6 @@ public class ConnectionIntegrationTest {
     @After
     public void reset() throws InterruptedException {
         TestHandler.handlerMap.clear();
-        ConnectionManager.clearConnectionHandlerFactories();
         ConnectionIntegrationTest.counter = 1;
         ServiceExecutor.getInstance().shutDown();
         System.gc();

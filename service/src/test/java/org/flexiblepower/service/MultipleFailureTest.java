@@ -55,7 +55,6 @@ public class MultipleFailureTest {
     @After
     public void reset() throws InterruptedException {
         TestHandler.handlerMap.clear();
-        ConnectionManager.clearConnectionHandlerFactories();
         ConnectionIntegrationTest.counter = 1;
         ServiceExecutor.getInstance().shutDown();
         Thread.sleep(MultipleFailureTest.WAIT_AFTER_CONNECT);

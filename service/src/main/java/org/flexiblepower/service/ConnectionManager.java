@@ -181,16 +181,6 @@ public class ConnectionManager implements Closeable {
         ConnectionManager.log.debug("Registered {} for type {}", connectionHandlerManager, key);
     }
 
-    /**
-     * This function will unregister all connectionHandlerFactories. It is only meant to be used during testing since
-     * after this, all previously registered managers and interface infos will be deleted.
-     */
-    static void clearConnectionHandlerFactories() {
-        ConnectionManager.log.warn("Removing all registered connection handlers!");
-        ConnectionManager.connectionHandlers.clear();
-        ConnectionManager.interfaceInfo.clear();
-    }
-
     private static String handlerKey(final String receivesHash, final String sendsHash) {
         return receivesHash + "/" + sendsHash;
     }
