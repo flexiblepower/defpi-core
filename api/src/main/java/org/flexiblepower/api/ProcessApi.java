@@ -65,7 +65,7 @@ public interface ProcessApi {
      *
      * @param page The current page to view (defaults to 1)
      * @param perPage The amount of processes to view per page (defaults to
-     *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     *            {@value org.flexiblepower.api.OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
      * @param sortDir The direction to sort the processes (defaults to "ASC")
      * @param sortField The field to sort the processes on (defaults to "id")
      * @param filters A list of filters in JSON notation
@@ -84,8 +84,8 @@ public interface ProcessApi {
                          response = Process.class,
                          responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public List<Process> listProcesses(@QueryParam("_page") @DefaultValue("1") int page,
-            @QueryParam("_perPage") @DefaultValue("1000") int perPage,
+    public List<Process> listProcesses(@QueryParam("_page") @DefaultValue("1") final int page,
+            @QueryParam("_perPage") @DefaultValue(OrchestratorApi.DEFAULT_ITEMS_PER_PAGE) int perPage,
             @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
             @QueryParam("_sortField") @DefaultValue("id") String sortField,
             @QueryParam("_filters") @DefaultValue("{}") String filters) throws AuthorizationException;

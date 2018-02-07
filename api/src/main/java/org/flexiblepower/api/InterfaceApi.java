@@ -60,7 +60,7 @@ public interface InterfaceApi {
      *
      * @param page the current page to view (defaults to 1)
      * @param perPage the amount of interfaces to view per page (defaults to
-     *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     *            {@value org.flexiblepower.api.OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
      * @param sortDir the direction to sort the interfaces (defaults to "ASC")
      * @param sortField the field to sort the interfaces on (defaults to "id")
      * @param filters a list of filters in JSON notation

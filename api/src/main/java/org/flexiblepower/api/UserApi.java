@@ -199,7 +199,7 @@ public interface UserApi {
      *
      * @param page the current page to view (defaults to 1)
      * @param perPage the amount of users to view per page (defaults to
-     *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     *            {@value org.flexiblepower.api.OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
      * @param sortDir the direction to sort the users (defaults to "ASC")
      * @param sortField the field to sort the users on (defaults to "id")
      * @param filters a list of filters in JSON notation
@@ -216,7 +216,7 @@ public interface UserApi {
             @ApiResponse(code = 200, message = "An array of Users", response = User.class, responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public Response listUsers(@QueryParam("_page") @DefaultValue("1") int page,
-            @QueryParam("_perPage") @DefaultValue("1000") int perPage,
+            @QueryParam("_perPage") @DefaultValue(OrchestratorApi.DEFAULT_ITEMS_PER_PAGE) int perPage,
             @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
             @QueryParam("_sortField") @DefaultValue("id") String sortField,
             @QueryParam("_filters") @DefaultValue("{}") String filters) throws AuthorizationException;

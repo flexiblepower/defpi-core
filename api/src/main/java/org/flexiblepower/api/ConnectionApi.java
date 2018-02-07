@@ -69,7 +69,8 @@ public interface ConnectionApi {
      * connections are returned.
      *
      * @param page the current page to view (defaults to 1)
-     * @param perPage the amount of connections to view per page (defaults to 1000)
+     * @param perPage the amount of connections to view per page (defaults to
+     *            {@value org.flexiblepower.api.OrchestratorApi#DEFAULT_ITEMS_PER_PAGE}})
      * @param sortDir the direction to sort the connections (defaults to "ASC")
      * @param sortField the field to sort the pending changes on (defaults to "id")
      * @param filters a list of filters in JSON notation (defaults to "{}")
