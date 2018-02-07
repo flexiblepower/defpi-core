@@ -74,7 +74,7 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
         } else if (this.sessionUser.isAdmin()) {
             processes = ProcessManager.getInstance().listProcesses();
         } else {
-            processes = ProcessManager.getInstance().listProcesses(this.sessionUser);
+            processes = ProcessManager.getInstance().listProcessesForUser(this.sessionUser);
         }
         if (filters != null) {
             final JSONObject f = new JSONObject(filters);

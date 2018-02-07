@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Random;
 
 import org.flexiblepower.exceptions.ApiException;
-import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Architecture;
 import org.flexiblepower.model.Node;
@@ -95,7 +94,7 @@ public class DockerConnector {
     private final Object createNetLock = new Object();
     private DockerClient client;
 
-    public static DockerClient init() throws DockerCertificateException {
+    private static DockerClient init() throws DockerCertificateException {
         final String dockerHost = System.getenv(DockerConnector.DOCKER_HOST_KEY);
         if (dockerHost == null) {
             return DefaultDockerClient.fromEnv().build();
@@ -112,6 +111,9 @@ public class DockerConnector {
         }
     }
 
+    /**
+     * @return The singleton instance of the DockerConnector
+     */
     public synchronized static DockerConnector getInstance() {
         if (DockerConnector.instance == null) {
             DockerConnector.instance = new DockerConnector();
@@ -120,9 +122,9 @@ public class DockerConnector {
     }
 
     /**
-     * @param json
-     * @return
-     * @throws ServiceNotFoundException
+     * @param process The process to create a new docker service for
+     * @return The id of the docker service that is created
+     * @throws ServiceNotFoundException When the docker image cannot be found
      */
     public String newProcess(final Process process) throws ServiceNotFoundException {
         try {
@@ -178,31 +180,32 @@ public class DockerConnector {
     }
 
     /**
-     * @param uuid
-     * @return
-     * @throws ProcessNotFoundException
-     * @throws ServiceNotFoundException
+     * @param process The process to remove
+     * @return Whether the docker service is succesfully removed, or more precise, if by the end of calling this
+     *         function the service is gone
      */
-    public boolean removeProcess(final Process process) throws ProcessNotFoundException {
-        if (process.getDockerId() != null) {
-            try {
-                this.client.removeService(process.getDockerId());
-                return true;
-            } catch (final com.spotify.docker.client.exceptions.ServiceNotFoundException e) {
-                throw new ProcessNotFoundException(process.getId());
-            } catch (DockerException | InterruptedException e) {
-                DockerConnector.log.error("Error while removing process: {}", e.getMessage());
-                DockerConnector.instance = null;
-            }
-        } else {
+    public boolean removeProcess(final Process process) {
+        if (process.getDockerId() == null) {
             // Container was probably never created
             return true;
         }
-        return false;
+
+        try {
+            this.client.removeService(process.getDockerId());
+            return true;
+        } catch (final com.spotify.docker.client.exceptions.ServiceNotFoundException e) {
+            // The service is already remove elsewhere?
+            return true;
+        } catch (DockerException | InterruptedException e) {
+            DockerConnector.log.error("Error while removing process: {}", e.getMessage());
+            DockerConnector.instance = null;
+            return false;
+        }
+
     }
 
     /**
-     * @return
+     * @return A list of docker nodes in the swarm
      */
     public List<com.spotify.docker.client.messages.swarm.Node> listNodes() {
         try {
@@ -242,13 +245,14 @@ public class DockerConnector {
     }
 
     /**
-     * And connect to the new network
+     * Make sure the process and the orchestrator share a network. The process belongs to a user, who has a private
+     * network, and the orchestrator is added to this network in runtime.
      *
-     * @param networkName the name of the network to attach to
-     * @throws InterruptedException
-     * @throws DockerException
+     * @param process the process which we want to make sure is in an attached network
+     * @throws InterruptedException If an interruption occurs before the docker client was able to get the required info
+     * @throws DockerException If an exception occurs in the docker client
      */
-    public void ensureProcessNetworkIsAttached(final Process process) throws InterruptedException, DockerException {
+    public void ensureProcessNetworkIsAttached(final Process process) throws DockerException, InterruptedException {
         try {
             final String newProcessNetworkName = DockerConnector.getNetworkNameFromProcess(process);
             final String networkId = this.client.listNetworks(ListNetworksParam.byNetworkName(newProcessNetworkName))
@@ -302,8 +306,7 @@ public class DockerConnector {
             dashboardGateway.setDockerId(newId.id());
             MongoDbConnector.getInstance().save(dashboardGateway);
         } catch (final ServiceNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            DockerConnector.log.error("Unable to update dashboard gateway, unable to find service: {}", e.getMessage());
         }
     }
 
@@ -504,6 +507,12 @@ public class DockerConnector {
                 .build();
     }
 
+    /**
+     * Get some diagnostic information about the current running container. Very useful for validating the running
+     * version of the orchestrator
+     *
+     * @return A string with some container info, or "UNKNOWN" if failed to obtain the information
+     */
     public String getContainerInfo() {
         try {
             final ContainerInfo info = this.client.inspectContainer(DockerConnector.getOrchestratorContainerId());

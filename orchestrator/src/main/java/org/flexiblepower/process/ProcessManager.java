@@ -81,18 +81,15 @@ public class ProcessManager {
      * @return List of processes of all users
      */
     public List<Process> listProcesses() {
-        return this.listProcesses(null);
+        return this.mongoDbConnector.list(Process.class);
     }
 
     /**
+     * @param owner The user who is the owner of the list of processes
      * @return List of processes of a specific user
      */
-    public List<Process> listProcesses(final User owner) {
-        if (owner == null) {
-            return this.mongoDbConnector.list(Process.class);
-        } else {
-            return this.mongoDbConnector.listProcessesForUser(owner);
-        }
+    public List<Process> listProcessesForUser(final User owner) {
+        return this.mongoDbConnector.listProcessesForUser(owner);
     }
 
     public Process createProcess(final Process process) {
@@ -239,7 +236,6 @@ public class ProcessManager {
     /**
      * @param currentProcess
      * @param newProcess
-     * @return
      */
     private void moveProcess(final Process currentProcess, final Process newProcess) {
         final PendingChangeManager pcm = PendingChangeManager.getInstance();
@@ -257,9 +253,10 @@ public class ProcessManager {
     }
 
     /**
-     * @param process
-     * @param newConfiguration
-     * @return
+     * Update the configuration for a process
+     *
+     * @param process The process to update
+     * @param newConfiguration A list of parameters representing the new configuration
      */
     private void updateConfiguration(final Process process, final List<ProcessParameter> newConfiguration) {
         final ChangeProcessConfiguration pendingChange = new ChangeProcessConfiguration(process, newConfiguration);
@@ -267,7 +264,9 @@ public class ProcessManager {
     }
 
     /**
-     * @param currentProcess
+     * Trigger a process by sending its configuration and/or connections.
+     *
+     * @param process The process to trigger
      */
     public void triggerConfig(final Process process) {
         final PendingChangeManager pcm = PendingChangeManager.getInstance();

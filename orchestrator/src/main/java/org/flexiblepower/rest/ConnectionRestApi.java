@@ -180,6 +180,6 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
         this.assertUserIsAdminOrEquals(p2.getUserId());
 
         ConnectionRestApi.log.info("Removing connection {}", id);
-        ConnectionManager.getInstance().terminateConnection(connection);
+        ConnectionManager.getInstance().terminateConnection(connection, p1.getUserId());
     }
 }

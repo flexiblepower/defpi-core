@@ -38,6 +38,12 @@ import lombok.extern.slf4j.Slf4j;
  */
 public class TerminateProcess {
 
+    /**
+     * SendTerminateSignal
+     *
+     * @version 0.1
+     * @since Aug 14, 2017
+     */
     @Slf4j
     @Entity("PendingChange")
     public static class SendTerminateSignal extends PendingChange {
@@ -55,6 +61,11 @@ public class TerminateProcess {
             super();
         }
 
+        /**
+         * Create a pending change to terminate a process by sending it a TERMINATE signal.
+         *
+         * @param process The process to terminate
+         */
         public SendTerminateSignal(final Process process) {
             super(process.getUserId());
             this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
@@ -98,6 +109,12 @@ public class TerminateProcess {
 
     }
 
+    /**
+     * RemoveDockerService
+     *
+     * @version 0.1
+     * @since Aug 14, 2017
+     */
     @Slf4j
     @Entity("PendingChange")
     public static class RemoveDockerService extends PendingChange {
@@ -112,6 +129,11 @@ public class TerminateProcess {
             super();
         }
 
+        /**
+         * Create a pending change to terminate a process by removing the docker service
+         *
+         * @param process The process to terminate
+         */
         public RemoveDockerService(final Process process) {
             super(process.getUserId());
             this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
@@ -139,19 +161,10 @@ public class TerminateProcess {
 
             ProcessConnector.getInstance().disconnect(this.process.getId());
 
-            boolean removeDbRecord;
-            try {
-                removeDbRecord = DockerConnector.getInstance().removeProcess(this.process);
-                if (removeDbRecord) {
-                    RemoveDockerService.log
-                            .debug("Removing Docker service for process " + this.process.getId() + " was successful");
-                }
+            if (DockerConnector.getInstance().removeProcess(this.process)) {
                 // Delete record from MongoDB
-            } catch (final ProcessNotFoundException e) {
-                RemoveDockerService.log.warn("Trying to remove Docker Service, but is already gone...");
-                removeDbRecord = true;
-            }
-            if (removeDbRecord) {
+                RemoveDockerService.log
+                        .debug("Removing Docker service for process " + this.process.getId() + " was successful");
                 MongoDbConnector.getInstance().delete(this.process);
                 return Result.SUCCESS;
             } else {

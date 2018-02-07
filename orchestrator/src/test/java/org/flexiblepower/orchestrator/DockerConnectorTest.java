@@ -45,14 +45,16 @@ public class DockerConnectorTest {
     @Test
     public void runDockerConnectorTest() throws DockerException, InterruptedException, DockerCertificateException {
         try {
-            DockerConnector.init().inspectSwarm();
+            DockerConnector.getInstance();
         } catch (final Exception e) {
             Assume.assumeNoException(e);
         }
 
-        final List<Node> nodes = DockerConnector.init().listNodes();
+        final List<Node> nodes = DockerConnector.getInstance().listNodes();
         System.out.println(nodes);
         Assert.assertNotNull(nodes);
+
+        System.out.println(DockerConnector.getInstance().getContainerInfo());
     }
 
 }

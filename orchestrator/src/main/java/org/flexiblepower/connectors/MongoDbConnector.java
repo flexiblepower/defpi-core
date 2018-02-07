@@ -58,13 +58,26 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class MongoDbConnector {
 
-    // private final static String host = "efpi-rd1.sensorlab.tno.nl";
+    /**
+     * The key, or system variable name, which holds the hostname where the mongo db is available from the orchestrator
+     * point of view
+     */
     public final static String MONGO_HOST_KEY = "MONGO_HOST";
-    public final static String MONGO_HOST_DFLT = "localhost";
+    private final static String MONGO_HOST_DFLT = "localhost";
+
+    /**
+     * The key, or system variable name, which holds the port where the mongo db runs as available from the orchestrator
+     * point of view
+     */
     public final static String MONGO_PORT_KEY = "MONGO_PORT";
-    public final static String MONGO_PORT_DFLT = "27017";
-    private final static String MONGO_DATABASE_KEY = "MONGO_DATABASE";
+    private final static String MONGO_PORT_DFLT = "27017";
+
+    /**
+     * The key, or system variable name, which holds the name of the database to use in the mongo db.
+     */
+    public final static String MONGO_DATABASE_KEY = "MONGO_DATABASE";
     private final static String MONGO_DATABASE_DFLT = "def-pi";
+
     private static final long PENDING_CHANGE_TIMEOUT_MS = Duration.ofMinutes(5).toMillis();
 
     private static MongoDbConnector instance = null;
@@ -103,6 +116,9 @@ public final class MongoDbConnector {
         this.datastore.ensureIndexes();
     }
 
+    /**
+     * @return The singleton instance of the MongoDbConnector
+     */
     public synchronized static MongoDbConnector getInstance() {
         if (MongoDbConnector.instance == null) {
             MongoDbConnector.instance = new MongoDbConnector();
@@ -110,10 +126,10 @@ public final class MongoDbConnector {
         return MongoDbConnector.instance;
     }
 
-    public void close() {
-        this.client.close();
-    }
-
+    /**
+     * @param user The user who is the owner of the list of processes
+     * @return List of processes of a specific user
+     */
     public List<Process> listProcessesForUser(final User user) {
         final Query<Process> query = this.datastore.find(Process.class);
         query.criteria("userId").equal(user.getId());
@@ -121,6 +137,7 @@ public final class MongoDbConnector {
     }
 
     /**
+     * @param process the process the list of connections are connected to
      * @return a list of all connections that are connected to the process with the provided id
      */
     public List<Connection> getConnectionsForProcess(final Process process) {
@@ -131,16 +148,16 @@ public final class MongoDbConnector {
     }
 
     /**
-     * Removes all connections that are connected to the process with the provided id from the database.
+     * List object; It is possible to paginate, sort and filter all objects depending on the provided arguments.
      *
-     * @param processId
+     * @param type The type of object to retrieve
+     * @param page The page to view
+     * @param perPage The amount of objects to view per page, and thus the maximum amount of objects returned
+     * @param sortDir The direction to sort
+     * @param sortField The field to sort on
+     * @param filter A key/value map of filters
+     * @return A list all objects that match the filters, or a paginated subset thereof
      */
-    // public void deleteConnectionsForProcess(final Process process) {
-    // final Query<Connection> q = this.datastore.find(Connection.class);
-    // q.or(q.criteria("container1").equal(process.getId()), q.criteria("container2").equal(process.getId()));
-    // this.datastore.delete(q);
-    // }
-
     public <T> List<T> list(final Class<T> type,
             final int page,
             final int perPage,
@@ -158,18 +175,35 @@ public final class MongoDbConnector {
         return query.asList(opts);
     }
 
+    /**
+     * List object of a specific type
+     *
+     * @param type The type of object to retrieve
+     * @return A list of all objects in the mongo db of the specified type
+     */
     public <T> List<T> list(final Class<T> type) {
         return this.datastore.find(type).asList();
     }
 
+    /**
+     * Get object with a specific object id
+     *
+     * @param type The type of object to retrieve
+     * @param id The ObjectId to search for
+     * @return A list of all objects in the mongo db of the specified type
+     */
     public <T> T get(final Class<T> type, final ObjectId id) {
         return this.datastore.get(type, id);
     }
 
-    // public <T> T get(final Class<T> type, final String id) throws InvalidObjectIdException {
-    // return this.datastore.get(type, MongoDbConnector.stringToObjectId(id));
-    // }
-
+    /**
+     * Count all objects of a particular type currently stored in the database; possibly count the subset that match a
+     * set of criteria
+     *
+     * @param type The type of object to count
+     * @param filter A filter to count a specific filtered subset of objects, may be empty
+     * @return The number of objects that match the filter
+     */
     public <T> int totalCount(final Class<T> type, final Map<String, Object> filter) {
         final Query<T> query = this.datastore.createQuery(type);
         query.disableValidation();
@@ -179,6 +213,14 @@ public final class MongoDbConnector {
         return (int) query.count(); // All();
     }
 
+    /**
+     * Create the Map of key/value pairs that will act as filters on any
+     * {@link #list(Class, int, int, String, String, Map)} or {@link #totalCount(Class, Map)} function. By using the map
+     * representation it is easier to add filters in an earlier stage.
+     *
+     * @param filters The JSON representation of a key/value map
+     * @return The {@link Map} with the given key/value pairs
+     */
     public static Map<String, Object> parseFilters(final String filters) {
         try {
             final ObjectMapper om = new ObjectMapper();
@@ -191,43 +233,28 @@ public final class MongoDbConnector {
         }
     }
 
-    /*
-     * public static Map<String, Object> parseFilters(final String filters) {
-     * final Gson gson = new GsonBuilder().create();
-     *
-     * @SuppressWarnings("unchecked")
-     * final Map<String, Object> filter = gson.fromJson(filters, Map.class);
-     * return filter;
-     * }
-     */
-
     /**
-     * @param entity
+     * @param entity the entity to store in the MongoDB
      * @return the new objectId of the stored entity
      */
     public ObjectId save(final Object entity) {
         return (ObjectId) this.datastore.save(entity).getId();
     }
 
+    /**
+     * @param entity the entity to remove from the MongoDB
+     */
     public void delete(final Object entity) {
         this.datastore.delete(entity);
     }
 
-    // public void delete(final Class<?> type, final ObjectId id) {
-    // this.datastore.delete(type, id);
-    // }
-
-    // public void delete(final Class<?> type, final String id) throws InvalidObjectIdException {
-    // this.delete(type, MongoDbConnector.stringToObjectId(id));
-    // }
-
     /**
-     * Private function that throws an exception if the string is not a valid ObjectId, and returns the corresponding
-     * ObjectId otherwise.
+     * Convert a string to a valid ObjectId. Throw an exception if the string is not a valid ObjectId, and returns the
+     * corresponding ObjectId otherwise.
      *
-     * @param userId
-     * @return
-     * @throws InvalidObjectIdException
+     * @param id The String form of the desired ObjectId
+     * @return The ObjectId with the provided string representation
+     * @throws InvalidObjectIdException If the string is not a valid ObjectId
      */
     public static ObjectId stringToObjectId(final String id) throws InvalidObjectIdException {
         if (!ObjectId.isValid(id)) {
@@ -239,8 +266,8 @@ public final class MongoDbConnector {
     /**
      * This is essentially a "login" action, in which the user obtains from the database his user information.
      *
-     * @param username
-     * @param password
+     * @param username the user name
+     * @param password the user password to check against
      * @return the user that is stored in the database that has the provided user name and password
      */
     public User getUser(final String username, final String password) {
@@ -255,18 +282,36 @@ public final class MongoDbConnector {
         return query.get();
     }
 
+    /**
+     * Get the user simply by finding his username.
+     *
+     * @param username the name of the user to find.
+     * @return The user with the provided name or null
+     */
     public User getUserByUsername(final String username) {
         final Query<User> q = this.datastore.find(User.class);
         q.criteria("username").equal(username);
         return q.get();
     }
 
+    /**
+     * This is essentially a "login" action, in which the user obtains from the database his user information.
+     *
+     * @param token The user authentication token
+     * @return the user that is stored in the database that has the provided user name and password or null
+     */
     public User getUserByToken(final String token) {
         final Query<User> q = this.datastore.find(User.class);
         q.criteria("authenticationToken").equal(token);
         return q.get();
     }
 
+    /**
+     * Get an unidentified node by finding its docker id
+     *
+     * @param dockerId the dockerId of the node to look for
+     * @return The UnidentifiedNode with the provided id, or null
+     */
     public UnidentifiedNode getUnidentifiedNodeByDockerId(final String dockerId) {
         final Query<UnidentifiedNode> q = this.datastore.find(UnidentifiedNode.class);
         q.criteria("dockerId").equal(dockerId);
@@ -280,6 +325,7 @@ public final class MongoDbConnector {
      * See http://www.programcreek.com/java-api-examples/index.php?api=com.google.code.morphia.query.UpdateOperations
      * for the polymorphism trick.
      *
+     * @param lockedResources The resources that are "locked" which may not be a resource of the retrieved PendingChange
      * @return The next unobtained PendingChange, null if there are no pendingChanges
      */
     public PendingChange getNextPendingChange(final List<ObjectId> lockedResources) {
@@ -328,7 +374,8 @@ public final class MongoDbConnector {
     }
 
     /**
-     *
+     * Clean up all pending changes that are either lingering or are in the FAILED_PERMANENTLY state, or inactive for a
+     * long period of time.
      */
     public void cleanPendingChanges() {
         // Remove pending changes that failed permanently

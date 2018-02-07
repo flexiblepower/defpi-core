@@ -46,6 +46,12 @@ import lombok.extern.slf4j.Slf4j;
  */
 public class MoveProcess {
 
+    /**
+     * SuspendConnection
+     *
+     * @version 0.1
+     * @since Aug 14, 2017
+     */
     @Slf4j
     @Entity("PendingChange")
     public static class SuspendConnection extends PendingChange {
@@ -53,12 +59,19 @@ public class MoveProcess {
         private Connection connection;
         private Endpoint endpoint;
 
-        // Default constructor for morphia
         @SuppressWarnings("unused")
         private SuspendConnection() {
+            // Default constructor for morphia
             super();
         }
 
+        /**
+         * Suspend connection endpoint
+         *
+         * @param userId The user who owns the process to connect
+         * @param connection The Connection to suspend
+         * @param endpoint The endpoint to suspend
+         */
         public SuspendConnection(final ObjectId userId,
                 final Connection connection,
                 final Connection.Endpoint endpoint) {
@@ -96,6 +109,12 @@ public class MoveProcess {
         }
     }
 
+    /**
+     * SuspendProcess
+     *
+     * @version 0.1
+     * @since Aug 14, 2017
+     */
     @Entity("PendingChange")
     @Slf4j
     public static class SuspendProcess extends PendingChange {
@@ -110,6 +129,14 @@ public class MoveProcess {
             super();
         }
 
+        /**
+         * Create a pending change to suspend a process with the end goal of moving it. To move it, either the
+         * nodePoolId or the privateNodeId must be set. When both are set, the nodepool takes precedence.
+         *
+         * @param process The process to suspend
+         * @param nodePoolId The ID of the nodepool to move the process to (maybe null)
+         * @param privateNodeId The ID of the private node to move the process to (maybe null)
+         */
         public SuspendProcess(final Process process, final ObjectId nodePoolId, final ObjectId privateNodeId) {
             super(process.getUserId());
             this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
@@ -178,6 +205,12 @@ public class MoveProcess {
 
     }
 
+    /**
+     * RemoveDockerService
+     *
+     * @version 0.1
+     * @since Aug 14, 2017
+     */
     @Entity("PendingChange")
     @Slf4j
     public static class RemoveDockerService extends PendingChange {
@@ -190,6 +223,14 @@ public class MoveProcess {
             super();
         }
 
+        /**
+         * Create a pending change to remove a docker service with the end goal of moving a process. Either the
+         * nodePoolId or the privateNodeId must be set. When both are set, the nodepool takes precedence.
+         *
+         * @param process The process to suspend
+         * @param nodePoolId The ID of the nodepool to move the process to (maybe null)
+         * @param privateNodeId The ID of the private node to move the process to (maybe null)
+         */
         public RemoveDockerService(final Process process, final ObjectId nodePoolId, final ObjectId privateNodeId) {
             super(process.getUserId());
             this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
@@ -208,17 +249,10 @@ public class MoveProcess {
         public Result execute() {
             ProcessConnector.getInstance().disconnect(this.process.getId());
 
-            boolean removeDbRecord;
-            try {
-                removeDbRecord = DockerConnector.getInstance().removeProcess(this.process);
+            // Delete record from MongoDB
+            if (DockerConnector.getInstance().removeProcess(this.process)) {
                 RemoveDockerService.log
                         .debug("Removing Docker service for process " + this.process.getId() + " was successful");
-                // Delete record from MongoDB
-            } catch (final ProcessNotFoundException e) {
-                RemoveDockerService.log.warn("Trying to remove Docker Service, but is already gone...");
-                removeDbRecord = true;
-            }
-            if (removeDbRecord) {
                 MongoDbConnector.getInstance().delete(this.process);
                 return Result.SUCCESS;
             } else {
@@ -229,6 +263,12 @@ public class MoveProcess {
         }
     }
 
+    /**
+     * CreateDockerService
+     *
+     * @version 0.1
+     * @since Aug 14, 2017
+     */
     @Slf4j
     @Entity("PendingChange")
     public static class CreateDockerService extends PendingChange {
@@ -249,6 +289,15 @@ public class MoveProcess {
             return 5000;
         }
 
+        /**
+         * Create a pending change to create a new docker service for a process when moving it. To move it, either the
+         * nodePoolId or the privateNodeId must be set. When both are set, the nodepool takes precedence.
+         *
+         * @param process The process to create a new service for
+         * @param nodePoolId The ID of the nodepool to move the process to (maybe null)
+         * @param privateNodeId The ID of the private node to move the process to (maybe null)
+         * @param suspendState The byte array that represents the state that the process must be resumed from
+         */
         public CreateDockerService(final Process process,
                 final ObjectId nodePoolId,
                 final ObjectId privateNodeId,
@@ -300,6 +349,12 @@ public class MoveProcess {
         }
     }
 
+    /**
+     * ResumeProcess
+     *
+     * @version 0.1
+     * @since Aug 14, 2017
+     */
     @Entity("PendingChange")
     @Slf4j
     public static class ResumeProcess extends PendingChange {
@@ -314,6 +369,12 @@ public class MoveProcess {
             super();
         }
 
+        /**
+         * Create a pending change to resume a moved process.
+         *
+         * @param process The process to resume
+         * @param suspendState The byte array that represents the state that the process must be resumed from
+         */
         public ResumeProcess(final Process process, final byte[] suspendState) {
             super(process.getUserId());
             this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
@@ -355,6 +416,12 @@ public class MoveProcess {
 
     }
 
+    /**
+     * ResumeConnection
+     *
+     * @version 0.1
+     * @since Aug 14, 2017
+     */
     @Entity("PendingChange")
     @Slf4j
     public static class ResumeConnection extends PendingChange {
@@ -368,6 +435,13 @@ public class MoveProcess {
             super();
         }
 
+        /**
+         * Resume a suspended connection endpoint
+         *
+         * @param userId The user who owns the process to connect
+         * @param connection The Connection to resume
+         * @param endpoint The endpoint to resume
+         */
         public ResumeConnection(final ObjectId userId,
                 final Connection connection,
                 final Connection.Endpoint endpoint) {
@@ -399,10 +473,6 @@ public class MoveProcess {
                 }
             } catch (final ProcessNotFoundException e) {
                 ResumeConnection.log.info("Failed to resume connection for unkown process {}, failed permanently",
-                        this.endpoint.getProcessId());
-                return Result.FAILED_PERMANENTLY;
-            } catch (final ServiceNotFoundException e) {
-                ResumeConnection.log.info("Could not find service for process {}, failed permanently",
                         this.endpoint.getProcessId());
                 return Result.FAILED_PERMANENTLY;
             }

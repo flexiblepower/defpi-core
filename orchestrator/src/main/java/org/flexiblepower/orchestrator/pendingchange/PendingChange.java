@@ -79,11 +79,18 @@ public abstract class PendingChange {
     @Setter
     private State state;
 
-    // Default constructor for morphia
+    /**
+     * Default constructor for morphia
+     */
     protected PendingChange() {
 
     }
 
+    /**
+     * Create a pending change owned by a specific user.
+     *
+     * @param userId The ID of the owner of the pending change
+     */
     public PendingChange(final ObjectId userId) {
         final long now = System.currentTimeMillis();
         this.created = new Date(now);

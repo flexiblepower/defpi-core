@@ -68,11 +68,11 @@ public class ProcessIntegrationTest {
     public static void init() {
         String mongoHost = System.getenv(MongoDbConnector.MONGO_HOST_KEY);
         if (mongoHost == null) {
-            mongoHost = MongoDbConnector.MONGO_HOST_DFLT;
+            mongoHost = "localhost";
         }
         String mongoPort = System.getenv(MongoDbConnector.MONGO_PORT_KEY);
         if (mongoPort == null) {
-            mongoPort = MongoDbConnector.MONGO_PORT_DFLT;
+            mongoPort = "27017";
         }
 
         try (final Socket socket = new Socket(mongoHost, Integer.parseInt(mongoPort))) {
@@ -94,8 +94,8 @@ public class ProcessIntegrationTest {
         // Get the user or create one
         User user = this.um.getUser(ProcessIntegrationTest.TEST_USER, ProcessIntegrationTest.TEST_PASS);
         if (user == null) {
-            final ObjectId uid = this.um.createNewUser(ProcessIntegrationTest.TEST_USER,
-                    ProcessIntegrationTest.TEST_PASS);
+            final ObjectId uid = this.um
+                    .saveUser(new User(ProcessIntegrationTest.TEST_USER, ProcessIntegrationTest.TEST_PASS));
             user = this.um.getUser(uid);
         }
         Assert.assertNotNull("User not found", user);
@@ -156,7 +156,7 @@ public class ProcessIntegrationTest {
 
         try {
             // Try remove all processes
-            final List<Process> myProcesses = this.pm.listProcesses(user);
+            final List<Process> myProcesses = this.pm.listProcessesForUser(user);
             for (final Process process : myProcesses) {
                 try {
                     this.pm.deleteProcess(process);

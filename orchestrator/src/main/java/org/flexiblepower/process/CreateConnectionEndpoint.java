@@ -23,7 +23,6 @@ import java.util.Collections;
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.ProcessConnector;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
-import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Connection.Endpoint;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange;
@@ -50,6 +49,14 @@ public class CreateConnectionEndpoint extends PendingChange {
         super();
     }
 
+    /**
+     * Create a pending change to create a new connection endpoint, which is the half of a connection within one
+     * process.
+     *
+     * @param userId The user who owns the process to connect
+     * @param connection The Connection to create
+     * @param endpoint The endpoint to create
+     */
     public CreateConnectionEndpoint(final ObjectId userId,
             final Connection connection,
             final Connection.Endpoint endpoint) {
@@ -79,7 +86,7 @@ public class CreateConnectionEndpoint extends PendingChange {
                         + " to create connection " + this.connection.getId());
                 return Result.FAILED_TEMPORARY;
             }
-        } catch (final ProcessNotFoundException | ServiceNotFoundException e) {
+        } catch (final ProcessNotFoundException e) {
             CreateConnectionEndpoint.log.error("Could not signal process {} to create connection {} ({})",
                     this.endpoint.getProcessId(),
                     this.connection.getId(),

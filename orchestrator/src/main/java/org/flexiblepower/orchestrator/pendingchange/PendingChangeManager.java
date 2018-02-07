@@ -127,12 +127,18 @@ public class PendingChangeManager {
     }
 
     /**
-     * @param pendingChangeId
+     * @param pendingChange the pending change to delete from the database
      */
     public void deletePendingChange(final PendingChange pendingChange) {
         MongoDbConnector.getInstance().delete(pendingChange);
     }
 
+    /**
+     * Count all pending changes currently stored in the database
+     *
+     * @param filter A filter to count a specific filtered subset of pending changes, may be empty
+     * @return The number of pending changes that match the filter
+     */
     public int countPendingChanges(final Map<String, Object> filter) {
         return MongoDbConnector.getInstance().totalCount(PendingChange.class, filter);
     }
@@ -187,12 +193,16 @@ public class PendingChangeManager {
     }
 
     /**
-     * @param sortField
-     * @param sortDir
-     * @param perPage
-     * @param page
-     * @param filter
-     * @return
+     * List pending changes. It is possible to paginate, sort and filter all pending changes depending on the provided
+     * arguments.
+     *
+     * @param page The page to view
+     * @param perPage The amount of pending changes to view per page, and thus the maximum amount of pending changes
+     *            returned
+     * @param sortDir The direction to sort the pending changes
+     * @param sortField The field to sort the pending changes
+     * @param filter A key/value map of filters
+     * @return A list all pending changes that match the filters, or a paginated subset thereof
      */
     public List<PendingChange> listPendingChanges(final int page,
             final int perPage,

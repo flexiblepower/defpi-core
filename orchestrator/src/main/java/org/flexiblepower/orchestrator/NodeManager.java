@@ -266,6 +266,16 @@ public class NodeManager {
         MongoDbConnector.getInstance().delete(nodePool);
     }
 
+    /**
+     * List node pools. It is possible to paginate, sort and filter all node pools depending on the provided arguments.
+     *
+     * @param page The page to view
+     * @param perPage The amount of node pools to view per page, and thus the maximum amount of node pools returned
+     * @param sortDir The direction to sort
+     * @param sortField The field to sort on
+     * @param filter A key/value map of filters
+     * @return A list all node pools that match the filters, or a paginated subset thereof
+     */
     public List<NodePool> listNodePools(final int page,
             final int perPage,
             final String sortDir,
@@ -274,6 +284,12 @@ public class NodeManager {
         return MongoDbConnector.getInstance().list(NodePool.class, page, perPage, sortDir, sortField, filter);
     }
 
+    /**
+     * Count all node pools currently stored in the database
+     *
+     * @param filter A filter to count a specific filtered subset of node pools, may be empty
+     * @return The number of node pools that match the filter
+     */
     public int countNodePools(final Map<String, Object> filter) {
         return MongoDbConnector.getInstance().totalCount(NodePool.class, filter);
     }

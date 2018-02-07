@@ -52,10 +52,6 @@ public class ServiceManager {
         return ServiceManager.instance;
     }
 
-    // public List<String> listRepositories() {
-    // return RegistryConnector.getInstance().listRepositories();
-    // }
-
     public Service getService(final String id) throws ServiceNotFoundException {
         return RegistryConnector.getInstance().getService(ServiceManager.SERVICE_REPOSITORY, id);
     }
@@ -70,7 +66,9 @@ public class ServiceManager {
     }
 
     /**
-     * @return
+     * Returns a list of all interfaces that are currently known.
+     *
+     * @return a List of interfaces
      */
     public List<Interface> listInterfaces() {
         final List<Interface> result = new LinkedList<>();
