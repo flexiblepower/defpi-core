@@ -25,13 +25,12 @@ package org.flexiblepower.exceptions;
  */
 public class InvalidInputException extends Exception {
 
-    /**
-     *
-     */
     private static final long serialVersionUID = -4533673102194251388L;
 
     /**
-     * @param invalidObjectIdMessage
+     * Create an InvalidInputException with the provided message
+     *
+     * @param message
      */
     public InvalidInputException(final String message) {
         super(message);

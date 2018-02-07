@@ -45,16 +45,17 @@ import io.swagger.jaxrs.listing.SwaggerSerializers;
  * @since 20 mrt. 2017
  */
 @SwaggerDefinition(info = @Info(description = "API for communicating with the distributed EF-Pi orchestrator",
-                                version = "v0.2.1",
+                                version = "v1",
                                 title = "dEF-Pi API",
-                                termsOfService = "Proof of concept, for testing purposes only. No rights or claims can be derived from this",
+                                termsOfService = "Licensed under the Apache License, Version 2.0. Copyright 2017 The Flexiblepower Alliance Network",
                                 contact = @Contact(name = "TNO",
                                                    email = "coen.vanleeuwen@tno.nl",
                                                    url = "http://www.tno.nl"),
                                 license = @License(name = "Apache 2.0", url = "http://www.apache.org")),
                    consumes = {MediaType.APPLICATION_JSON},
                    produces = {MediaType.APPLICATION_JSON},
-                   externalDocs = @ExternalDocs(value = "Flexiblepower.io", url = "http://flexiblepower.github.io/"),
+                   externalDocs = @ExternalDocs(value = "dEF-Pi documentation on github",
+                                                url = "https://github.com/flexiblepower/defpi-documentation"),
                    securityDefinition = @SecurityDefinition(basicAuthDefinitions = {
                            @BasicAuthDefinition(key = OrchestratorApi.USER_AUTHENTICATION,
                                                 description = "This operation will only have effect for the logged in user."),
@@ -78,15 +79,15 @@ public class OrchestratorApplication extends Application {
 
         // Add resources for the model
         resources.add(ConnectionRestApi.class);
-        // resources.add(InterfaceRestApi.class);
         resources.add(NodeRestApi.class);
         resources.add(ProcessRestApi.class);
         resources.add(ServiceRestApi.class);
         resources.add(UserRestApi.class);
         resources.add(InterfaceRestApi.class);
         resources.add(PendingChangeRestApi.class);
-        resources.add(UtilApi.class);
 
+        // Add some other APIs or resources for our backend
+        resources.add(UtilApi.class);
         resources.add(ExceptionMapper.class);
 
         // Add resources for swagger, jackson and CORS

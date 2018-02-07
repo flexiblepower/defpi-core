@@ -29,6 +29,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import javax.activation.UnsupportedDataTypeException;
+
 import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
@@ -119,8 +121,14 @@ final class TCPConnection implements Connection, Closeable {
                 && this.handShakeMonitor.ready();
     }
 
+    /**
+     * @throws ClosedChannelException when the state is not connected, i.e. when {@link #isConnected()} returns false.
+     * @throws UnsupportedDataTypeException when the type of object is not registered with the serializer or if the
+     *             serialization fails
+     * @throws IOException when a low level network exception occurs
+     */
     @Override
-    public void send(final Object message) {
+    public void send(final Object message) throws IOException {
         if (message == null) {
             TCPConnection.log.warn("[{}] - Send(Object message) method was called with null message, ignoring...",
                     this.connectionId);
@@ -129,21 +137,21 @@ final class TCPConnection implements Connection, Closeable {
 
         if (!this.isConnected()) {
             TCPConnection.log.warn("[{}] - Unable to send when connection state is {}!", this.connectionId, this.state);
-            throw new IllegalStateException("Unable to send when connection state is " + this.state);
+            throw new ClosedChannelException();
         }
 
         if (!Arrays.asList(this.info.sendTypes()).contains(message.getClass())) {
-            throw new IllegalArgumentException("The message type " + message.getClass().getName()
+            throw new UnsupportedDataTypeException("The message type " + message.getClass().getName()
                     + " was not registered to be sent with this interface.");
         }
 
         final byte[] data;
         try {
             data = this.userMessageSerializer.serialize(message);
-        } catch (final Exception e) {
+        } catch (final SerializationException e) {
             TCPConnection.log
                     .error("[{}] - Error while serializing message, not sending message.", this.connectionId, e);
-            return;
+            throw new UnsupportedDataTypeException("Error serializing message: " + e.getMessage());
         }
 
         try {
@@ -153,12 +161,7 @@ final class TCPConnection implements Connection, Closeable {
                     this.connectionId,
                     ConnectionState.INTERRUPTED);
             this.goToInterruptedState();
-        } catch (final Exception e) {
-            TCPConnection.log.error("[{}] - Exception while sending message: {}, goto {}",
-                    this.connectionId,
-                    e.getMessage(),
-                    ConnectionState.INTERRUPTED);
-            TCPConnection.log.trace(e.getMessage(), e);
+            throw e;
         }
     }
 
@@ -414,7 +417,7 @@ final class TCPConnection implements Connection, Closeable {
                 }
 
                 try {
-                    TCPConnection.this.socket.waitUntilConnected(0);
+                    TCPConnection.this.socket.waitUntilConnected();
                 } catch (final Exception e) {
                     if (this.keepRunning) {
                         TCPConnection.log.warn("[{}] - Interrupted while waiting for connection to establish",
@@ -462,7 +465,7 @@ final class TCPConnection implements Connection, Closeable {
                                 && !TCPConnection.this.handShakeMonitor.handleHandShake(data)) {
                             TCPConnection.this.messageQueue.addMessage(data);
                         }
-                    } catch (final IOException | InterruptedException e) {
+                    } catch (final IOException e) {
                         // See if this was on purpose
                         if (TCPConnection.this.isConnected() && this.keepRunning) {
                             TCPConnection.log.warn("[{}] - IOException while reading from socket: {}",

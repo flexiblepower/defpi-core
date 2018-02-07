@@ -9,7 +9,7 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>17.11.1</version>
+		<version>17.11.2</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
@@ -19,5 +19,29 @@
 			<artifactId>protobuf-java</artifactId>
 		</dependency>
 	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>3.0.0</version>
+				<executions>
+					<execution>
+						<id>add-source</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>add-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>${project.basedir}/src/main/generated</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
 
 </project>

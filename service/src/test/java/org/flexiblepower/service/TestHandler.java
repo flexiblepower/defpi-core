@@ -17,6 +17,7 @@
  */
 package org.flexiblepower.service;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,7 +43,7 @@ public class TestHandler implements ConnectionHandler {
      */
     public static class TestHandlerBuilder implements ConnectionHandlerManager {
 
-        public synchronized static TestHandler build1(final Connection c) throws InterruptedException {
+        public synchronized static TestHandler build1(final Connection c) throws Exception {
             final String name = "h" + ConnectionIntegrationTest.counter++;
             final TestHandler ret = new TestHandler(name, c);
             TestHandler.handlerMap.put(name, ret);
@@ -57,7 +58,7 @@ public class TestHandler implements ConnectionHandler {
     public ErrorMessage lastMessage;
     public String state;
 
-    public TestHandler(final String name, final Connection connection) throws InterruptedException {
+    public TestHandler(final String name, final Connection connection) throws Exception {
         this.name = name;
 
         System.out.println(this.name + ": connected");
@@ -81,10 +82,14 @@ public class TestHandler implements ConnectionHandler {
         System.out.println(this.name + ": resumeAfterSuspend()");
         this.state = "resume-suspended";
         if (this.name.equals("h1")) {
-            this.connection.send(ErrorMessage.newBuilder()
-                    .setDebugInformation("resumed from suspend")
-                    .setProcessId("Error process")
-                    .build());
+            try {
+                this.connection.send(ErrorMessage.newBuilder()
+                        .setDebugInformation("resumed from suspend")
+                        .setProcessId("Error process")
+                        .build());
+            } catch (final IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -98,10 +103,14 @@ public class TestHandler implements ConnectionHandler {
     public void resumeAfterInterrupt() {
         System.out.println(this.name + ": resumeAfterInterrupt()");
         this.state = "resume-interrupted";
-        this.connection.send(ErrorMessage.newBuilder()
-                .setDebugInformation("resumed from interrupt")
-                .setProcessId("Error process")
-                .build());
+        try {
+            this.connection.send(ErrorMessage.newBuilder()
+                    .setDebugInformation("resumed from interrupt")
+                    .setProcessId("Error process")
+                    .build());
+        } catch (final IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

@@ -19,8 +19,6 @@
 package org.flexiblepower.defpi.dashboardgateway.dashboard.http;
 
 import java.io.IOException;
-import java.io.StringReader;
-import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.util.Enumeration;
 import java.util.Map;
@@ -33,6 +31,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Generated;
+import javax.servlet.ServletInputStream;
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -56,170 +56,190 @@ import com.google.protobuf.ByteString;
  * file is generated as a stub, and has to be implemented by the user.
  * Re-running the codegen plugin will not change the contents of this file.
  * Template by FAN, 2017
- * 
+ *
  */
 @Generated(value = "org.flexiblepower.plugin.servicegen", date = "Oct 9, 2017 8:45:27 PM")
 public class Dashboard_httpConnectionHandlerImpl implements Dashboard_httpConnectionHandler {
 
-	public static final Logger LOG = LoggerFactory.getLogger(Dashboard_httpConnectionHandlerImpl.class);
+    public static final Logger LOG = LoggerFactory.getLogger(Dashboard_httpConnectionHandlerImpl.class);
 
-	private final Connection connection;
-	private final DashboardGateway service;
-	private final AtomicInteger requestIdGenerator = new AtomicInteger(0);
-	private final Map<Integer, CompletableFuture<HTTPResponse>> responseList = new ConcurrentHashMap<>();
-	private String username = null;
+    private final Connection connection;
+    private final DashboardGateway service;
+    private final AtomicInteger requestIdGenerator = new AtomicInteger(0);
+    private final Map<Integer, CompletableFuture<HTTPResponse>> responseList = new ConcurrentHashMap<>();
+    private String username = null;
 
-	/**
-	 * Auto-generated constructor for the ConnectionHandlers of the provided service
-	 *
-	 * @param service
-	 *            The service for which to handle the connections
-	 */
-	public Dashboard_httpConnectionHandlerImpl(Connection connection, DashboardGateway service) {
-		this.connection = connection;
-		this.service = service;
-		service.addDashboardConnection(this);
-	}
+    /**
+     * Auto-generated constructor for the ConnectionHandlers of the provided service
+     *
+     * @param service
+     *            The service for which to handle the connections
+     */
+    public Dashboard_httpConnectionHandlerImpl(final Connection connection, final DashboardGateway service) {
+        this.connection = connection;
+        this.service = service;
+        service.addDashboardConnection(this);
+    }
 
-	@Override
-	public void handleHTTPResponseMessage(HTTPResponse message) {
-		CompletableFuture<HTTPResponse> completableFuture = this.responseList.get(message.getId());
-		if (completableFuture == null) {
-			LOG.error("Received HTTPResponse for unknown request id: " + message.getId());
-		} else {
-			completableFuture.complete(message);
-		}
-	}
+    @Override
+    public void handleHTTPResponseMessage(final HTTPResponse message) {
+        final CompletableFuture<HTTPResponse> completableFuture = this.responseList.get(message.getId());
+        if (completableFuture == null) {
+            Dashboard_httpConnectionHandlerImpl.LOG
+                    .error("Received HTTPResponse for unknown request id: " + message.getId());
+        } else {
+            completableFuture.complete(message);
+        }
+    }
 
-	@Override
-	public void onSuspend() {
-		// TODO Auto-generated method stub
+    @Override
+    public void onSuspend() {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	@Override
-	public void resumeAfterSuspend() {
-		// TODO Auto-generated method stub
+    @Override
+    public void resumeAfterSuspend() {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	@Override
-	public void onInterrupt() {
-		// TODO Auto-generated method stub
+    @Override
+    public void onInterrupt() {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	@Override
-	public void resumeAfterInterrupt() {
-		// TODO Auto-generated method stub
-	}
+    @Override
+    public void resumeAfterInterrupt() {
+        // TODO Auto-generated method stub
+    }
 
-	@Override
-	public void terminated() {
-		service.removeDashboardConnection(this);
-	}
+    @Override
+    public void terminated() {
+        this.service.removeDashboardConnection(this);
+    }
 
-	public String getUsername() {
-		if (username == null) {
-			String processId = connection.remoteProcessId();
-			username = service.getUsernameForProcessId(processId);
-			LOG.debug("Process " + processId + " belongs to user " + username);
-		}
-		return username;
-	}
+    public String getUsername() {
+        if (this.username == null) {
+            final String processId = this.connection.remoteProcessId();
+            this.username = this.service.getUsernameForProcessId(processId);
+            Dashboard_httpConnectionHandlerImpl.LOG.debug("Process " + processId + " belongs to user " + this.username);
+        }
+        return this.username;
+    }
 
-	public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
-		// Create request
-		HTTPRequest httpRequest = createHttpRequest(request);
-		CompletableFuture<HTTPResponse> future = new CompletableFuture<HTTPResponse>();
-		responseList.put(httpRequest.getId(), future);
-		this.connection.send(httpRequest);
+    @SuppressWarnings("unused")
+    public void handle(final String target,
+            final Request baseRequest,
+            final HttpServletRequest request,
+            final HttpServletResponse response) {
+        // Create request
+        final HTTPRequest httpRequest = this.createHttpRequest(request);
+        final CompletableFuture<HTTPResponse> future = new CompletableFuture<>();
+        this.responseList.put(httpRequest.getId(), future);
 
-		// Wait and get response
-		HTTPResponse httpResponse = waitForResponse(httpRequest.getId());
-		writeHttpResponse(httpResponse, response);
-	}
+        try {
+            this.connection.send(httpRequest);
+        } catch (final IOException e) {
+            Dashboard_httpConnectionHandlerImpl.LOG.error("Error sending request: " + e.getMessage());
+            Dashboard_httpConnectionHandlerImpl.LOG.trace(e.getMessage(), e);
+            Dashboard_httpConnectionHandlerImpl.writeHttpResponse(HTTPResponse.newBuilder()
+                    .setId(httpRequest.getId())
+                    .setStatus(500)
+                    .setBody(ByteString.copyFrom("Error", Charset.defaultCharset()))
+                    .build(), response);
+            return;
+        }
 
-	private HTTPResponse waitForResponse(Integer requestId) {
-		try {
-			LOG.debug("Waiting for response");
-			HTTPResponse httpResponse = responseList.get(requestId).get(30, TimeUnit.SECONDS);
-			responseList.remove(requestId);
-			return httpResponse;
-		} catch (TimeoutException e) {
-			LOG.debug("Gateway Timeout");
-			return HTTPResponse.newBuilder().setId(requestId).setStatus(504)
-					.setBody(ByteString.copyFrom("Gateway timeout", Charset.defaultCharset())).build();
-		} catch (InterruptedException | ExecutionException e) {
-			LOG.error("Error while waiting for response", e);
-			return HTTPResponse.newBuilder().setId(requestId).setStatus(500)
-					.setBody(ByteString.copyFrom("Error", Charset.defaultCharset())).build();
-		}
-	}
+        // Wait and get response
+        final HTTPResponse httpResponse = this.waitForResponse(httpRequest.getId());
+        Dashboard_httpConnectionHandlerImpl.writeHttpResponse(httpResponse, response);
+    }
 
-	private void writeHttpResponse(HTTPResponse httpResponse, HttpServletResponse response) {
-		// Status
-		response.setStatus(httpResponse.getStatus());
-		// Headers
-		for (Entry<String, String> e : httpResponse.getHeadersMap().entrySet()) {
-			if (!e.getKey().equals("WWW-Authenticate")) {
-				response.setHeader(e.getKey(), e.getValue());
-			}
-		}
-		// Body
-		try {
-			StringReader reader = new StringReader(httpResponse.getBody().toStringUtf8());
-			IOUtils.copy(reader, response.getWriter());
-			response.getWriter().close();
-		} catch (IOException e) {
-			LOG.warn("Could not write HTTP response body", e);
-		}
-	}
+    private HTTPResponse waitForResponse(final Integer requestId) {
+        try {
+            Dashboard_httpConnectionHandlerImpl.LOG.debug("Waiting for response");
+            final HTTPResponse httpResponse = this.responseList.get(requestId).get(30, TimeUnit.SECONDS);
+            this.responseList.remove(requestId);
+            return httpResponse;
+        } catch (final TimeoutException e) {
+            Dashboard_httpConnectionHandlerImpl.LOG.debug("Gateway Timeout");
+            return HTTPResponse.newBuilder()
+                    .setId(requestId)
+                    .setStatus(504)
+                    .setBody(ByteString.copyFrom("Gateway timeout", Charset.defaultCharset()))
+                    .build();
+        } catch (InterruptedException | ExecutionException e) {
+            Dashboard_httpConnectionHandlerImpl.LOG.error("Error while waiting for response", e);
+            return HTTPResponse.newBuilder()
+                    .setId(requestId)
+                    .setStatus(500)
+                    .setBody(ByteString.copyFrom("Error", Charset.defaultCharset()))
+                    .build();
+        }
+    }
 
-	private HTTPRequest createHttpRequest(HttpServletRequest request) {
-		Builder b = HTTPRequest.newBuilder();
-		// Id
-		b.setId(requestIdGenerator.incrementAndGet());
-		// Uri
-		b.setUri(request.getRequestURI());
-		// Headers
-		Enumeration<String> headerNames = request.getHeaderNames();
-		while (headerNames.hasMoreElements()) {
-			String key = headerNames.nextElement();
-			if (!key.equals("Authorization")) {
-				b.putHeaders(key, request.getHeader(key));
-			}
-		}
-		// Method
-		String method = request.getMethod();
-		if (method.equals("HEAD")) {
-			b.setMethod(Method.HEAD);
-		} else if (method.equals("POST")) {
-			b.setMethod(Method.POST);
-		} else if (method.equals("PUT")) {
-			b.setMethod(Method.PUT);
-		} else if (method.equals("DELETE")) {
-			b.setMethod(Method.DELETE);
-		} else if (method.equals("TRACE")) {
-			b.setMethod(Method.TRACE);
-		} else if (method.equals("OPTIONS")) {
-			b.setMethod(Method.OPTIONS);
-		} else if (method.equals("CONNECT")) {
-			b.setMethod(Method.CONNECT);
-		} else if (method.equals("PATCH")) {
-			b.setMethod(Method.PATCH);
-		} else {
-			b.setMethod(Method.GET);
-		}
-		// Body
-		try {
-			StringWriter writer = new StringWriter();
-			IOUtils.copy(request.getReader(), writer);
-			b.setBody(writer.toString());
-		} catch (IOException e) {
-			LOG.warn("Could not read HTTP request body", e);
-		}
-		return b.build();
-	}
+    private static void writeHttpResponse(final HTTPResponse httpResponse, final HttpServletResponse response) {
+        // Status
+        response.setStatus(httpResponse.getStatus());
+        // Headers
+        for (final Entry<String, String> e : httpResponse.getHeadersMap().entrySet()) {
+            if (!e.getKey().equals("WWW-Authenticate")) {
+                response.setHeader(e.getKey(), e.getValue());
+            }
+        }
+        // Body
+        try (final ServletOutputStream outputStream = response.getOutputStream()) {
+            IOUtils.write(httpResponse.getBody().toByteArray(), outputStream);
+        } catch (final IOException e) {
+            Dashboard_httpConnectionHandlerImpl.LOG.warn("Could not write HTTP response body", e);
+        }
+    }
+
+    private HTTPRequest createHttpRequest(final HttpServletRequest request) {
+        final Builder b = HTTPRequest.newBuilder();
+        // Id
+        b.setId(this.requestIdGenerator.incrementAndGet());
+        // Uri
+        b.setUri(request.getRequestURI());
+        // Headers
+        final Enumeration<String> headerNames = request.getHeaderNames();
+        while (headerNames.hasMoreElements()) {
+            final String key = headerNames.nextElement();
+            if (!key.equals("Authorization")) {
+                b.putHeaders(key, request.getHeader(key));
+            }
+        }
+        // Method
+        final String method = request.getMethod();
+        if (method.equals("HEAD")) {
+            b.setMethod(Method.HEAD);
+        } else if (method.equals("POST")) {
+            b.setMethod(Method.POST);
+        } else if (method.equals("PUT")) {
+            b.setMethod(Method.PUT);
+        } else if (method.equals("DELETE")) {
+            b.setMethod(Method.DELETE);
+        } else if (method.equals("TRACE")) {
+            b.setMethod(Method.TRACE);
+        } else if (method.equals("OPTIONS")) {
+            b.setMethod(Method.OPTIONS);
+        } else if (method.equals("CONNECT")) {
+            b.setMethod(Method.CONNECT);
+        } else if (method.equals("PATCH")) {
+            b.setMethod(Method.PATCH);
+        } else {
+            b.setMethod(Method.GET);
+        }
+
+        // Body
+        try (final ServletInputStream is = request.getInputStream()) {
+            b.setBodyBytes(ByteString.readFrom(is));
+        } catch (final IOException e) {
+            Dashboard_httpConnectionHandlerImpl.LOG.warn("Could not read HTTP request body", e);
+        }
+        return b.build();
+    }
 
 }

@@ -17,8 +17,6 @@
  */
 package org.flexiblepower.exceptions;
 
-import java.net.URI;
-
 /**
  * ServiceNotFoundException
  *
@@ -27,19 +25,18 @@ import java.net.URI;
  */
 public class NodePoolNotFoundException extends NotFoundException {
 
-    /**
-     *
-     */
     private static final long serialVersionUID = -7761214427627076445L;
 
+    /**
+     * The message string stating that the nodepool is not found
+     */
     public static final String SERVICE_NOT_FOUND_MESSAGE = "NodePool not found";
 
+    /**
+     * Create an exception with the default message that the nodepool is not found
+     */
     public NodePoolNotFoundException() {
         super(NodePoolNotFoundException.SERVICE_NOT_FOUND_MESSAGE);
-    }
-
-    public NodePoolNotFoundException(final URI uri) {
-        super(NodePoolNotFoundException.SERVICE_NOT_FOUND_MESSAGE + ": " + uri.toString());
     }
 
 }

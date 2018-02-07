@@ -4,7 +4,7 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>master</artifactId>
-	<version>17.11.1</version>
+	<version>17.11.2</version>
 	<packaging>pom</packaging>
 
 	<name>dEF-Pi master POM</name>
@@ -64,6 +64,7 @@
 		<!-- The plugin needs the protobuf version to obtain the compiler from 
 			maven central explicitly -->
 		<protobuf.version>3.3.0</protobuf.version>
+		<jackson.databind.version>2.9.4</jackson.databind.version>
 	</properties>
 
 	<modules>
@@ -79,6 +80,11 @@
 
 	<!-- Where to push the maven compiled jars -->
 	<distributionManagement>
+		<repository>
+			<id>ossrh</id>
+			<name>Sonatype snapshot repository</name>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+		</repository>
 		<snapshotRepository>
 			<id>ossrh</id>
 			<name>Sonatype snapshot repository</name>
@@ -110,13 +116,31 @@
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
 				<artifactId>jackson-databind</artifactId>
-				<version>2.8.7</version>
+				<version>${jackson.databind.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-annotations</artifactId>
+				<version>${jackson.databind.version}</version>
 			</dependency>
 
 			<dependency>
 				<groupId>org.mongodb</groupId>
 				<artifactId>bson</artifactId>
-				<version>3.4.2</version>
+				<version>3.6.2</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.mongodb</groupId>
+				<artifactId>mongodb-driver</artifactId>
+				<version>3.6.2</version>
+			</dependency>
+
+			<dependency>
+			    <groupId>org.json</groupId>
+			    <artifactId>json</artifactId>
+			    <version>20180130</version>
 			</dependency>
 
 			<dependency>
@@ -205,21 +229,6 @@
 
 		<plugins>
 			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>license-maven-plugin</artifactId>
-				<version>1.14</version>
-				<executions>
-					<execution>
-						<id>add-third-party</id>
-						<goals>
-							<goal>add-third-party</goal>
-						</goals>
-						<phase>generate-sources</phase>
-					</execution>
-				</executions>
-			</plugin>
-
-			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-source-plugin</artifactId>
 				<version>3.0.1</version>
@@ -251,18 +260,33 @@
 
 	<profiles>
 		<profile>
-		 <id>release</id>
-		   <distributionManagement>
+			<id>release</id>
+			<distributionManagement>
 				<repository>
 					<id>ossrh</id>
 					<name>Sonatype deployment repository</name>
 					<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
 				</repository>
 			</distributionManagement>
-		 
-	        <build>
-	            <plugins>
-	                <plugin>
+
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>license-maven-plugin</artifactId>
+						<version>1.14</version>
+						<executions>
+							<execution>
+								<id>add-third-party</id>
+								<goals>
+									<goal>add-third-party</goal>
+								</goals>
+								<phase>generate-sources</phase>
+							</execution>
+						</executions>
+					</plugin>
+
+					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>
 						<version>1.5</version>
@@ -276,8 +300,8 @@
 							</execution>
 						</executions>
 					</plugin>
-	            </plugins>
-	        </build>
+				</plugins>
+			</build>
 		</profile>
 	</profiles>
 

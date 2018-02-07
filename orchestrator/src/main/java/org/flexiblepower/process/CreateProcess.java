@@ -17,6 +17,9 @@
  */
 package org.flexiblepower.process;
 
+import java.util.Arrays;
+import java.util.Collections;
+
 import org.flexiblepower.connectors.DockerConnector;
 import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.connectors.ProcessConnector;
@@ -43,11 +46,14 @@ public class CreateProcess {
 
         private Process process;
 
-        public CreateDockerService() {
+        // Default constructor for morphia
+        @SuppressWarnings("unused")
+        private CreateDockerService() {
         }
 
         public CreateDockerService(final Process process) {
             super(process.getUserId());
+            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
             this.process = process;
         }
 
@@ -91,11 +97,14 @@ public class CreateProcess {
 
         private Process process;
 
-        public SendConfiguration() {
+        // Default constructor for morphia
+        @SuppressWarnings("unused")
+        private SendConfiguration() {
         }
 
         public SendConfiguration(final Process process) {
             super(process.getUserId());
+            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
             this.process = process;
         }
 

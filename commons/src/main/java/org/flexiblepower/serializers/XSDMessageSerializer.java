@@ -34,6 +34,12 @@ import javax.xml.namespace.QName;
 
 import org.flexiblepower.exceptions.SerializationException;
 
+/**
+ * XSDMessageSerializer
+ *
+ * @version 0.1
+ * @since May 18, 2017
+ */
 public class XSDMessageSerializer implements MessageSerializer<Object> {
 
     private final Map<String, Class<?>> classes = new HashMap<>();

@@ -23,314 +23,445 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.nio.channels.NotYetConnectedException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * TCPSocket
+ * The TCPSocket is a wrapper class around the {@linkplain java.net.Socket} to make sure that byte arrays are received
+ * as a whole. (i.e. some checks are added to make sure byte arrays are sent with an additional four bytes indicating
+ * the length, and an END-OF-MESSAGE byte is added at the end.)
+ * <p>
+ * TCPSockets are meant as disposable, they will function as long as the socket is alive, but when an IOException occurs
+ * that is non-recoverable (i.e a remote hangup, end-of-stream) the socket is closed. The only iterative attempts to
+ * connect the socket occur when initiating the connection, for example when calling {@linkplain #waitUntilConnected()}.
  *
- * @version 0.1
+ * @author Coen van Leeuwen
+ * @version 0.3
  * @since Oct 11, 2017
  */
 public class TCPSocket implements Closeable {
 
-    private static final Collection<TCPSocket> ALL_SOCKETS = new LinkedList<>();
-
-    private static final int EOM = 0xFF;
+    /**
+     * Logger for all TCPSocket events
+     */
     protected static final Logger log = LoggerFactory.getLogger(TCPSocket.class);
 
-    private static int threadCounter = 0;
+    private static final int CONNECT_ON_SEND_TIMEOUT = 10;
+    private static final int EOM = 0xFF;
 
-    private final ExecutorService executor = Executors
-            .newSingleThreadScheduledExecutor(r -> new Thread(r, "TCPthread " + TCPSocket.threadCounter++));
-    // private final Thread connectionThread;
-    private final Object waitLock = new Object();
+    private final SocketConnector connector;
 
-    protected Socket clientSocket;
-    protected ServerSocket serverSocket;
-    protected InputStream inputStream;
-    protected OutputStream outputStream;
-    protected boolean ready = false;
+    /**
+     * The backing java.net.Socket that this class wraps around
+     */
+    protected Socket socket;
 
-    protected volatile boolean keepOpen = true;
-
-    public static synchronized TCPSocket asClient(final String targetAddress, final int port) {
-        return new TCPSocket(targetAddress, port);
+    /**
+     * Builder function to create a new TCP socket as a client, connecting to a Server socket
+     *
+     * @param host the target host name of the server to connect to.
+     * @param port the port of the remote server to connect to
+     * @return A TCPSocket that will try to connect to the provided host and port
+     * @see java.net.Socket#Socket(String, int)
+     */
+    public static synchronized TCPSocket asClient(final String host, final int port) {
+        return new TCPSocket(host, port);
     }
 
+    /**
+     * Builder function to create a new TCP socket as a server, receiving a connection from a Client socket
+     *
+     * @param port the port of the socket to bind to
+     * @return A TCPSocket that will try to bind to the provided port
+     * @see java.net.ServerSocket#ServerSocket(int)
+     */
     public static synchronized TCPSocket asServer(final int port) {
         return new TCPSocket(port);
     }
 
-    public static void destroyLingeringSockets() {
-        TCPSocket.ALL_SOCKETS.forEach(s -> s.close());
-        TCPSocket.ALL_SOCKETS.clear();
-    }
-
     private TCPSocket(final int port) {
-        this.executor.submit(new ServerSocketRunner(port));
-        TCPSocket.ALL_SOCKETS.add(this);
+        this.connector = new ServerSocketConnector(port);
     }
 
     private TCPSocket(final String address, final int port) {
-        this.executor.submit(new ClientSocketRunner(address, port));
-        TCPSocket.ALL_SOCKETS.add(this);
+        this.connector = new ClientSocketConnector(address, port);
     }
 
-    public boolean ready() {
-        return this.ready;
-    }
-
+    /**
+     * This function will check if the socket is connected or not. Contrary to
+     * {@linkplain java.net.Socket#isConnected()}, this function will return when the socket is closed.
+     *
+     * @return a boolean indicating whether the TCPSocket is connected or not.
+     */
     public boolean isConnected() {
-        return (this.clientSocket != null) && this.clientSocket.isConnected() && !this.clientSocket.isClosed();
+        return (this.socket != null) && this.socket.isConnected() && !this.socket.isClosed();
     }
 
+    /**
+     * This function will return if the socket has been closed. This is true after {@linkplain #close()} has been
+     * called, or
+     * when an IOException has occurred during a read or send operation.
+     *
+     * @return a boolean indicating whether the TCPSocket has been closed.
+     */
     public boolean isClosed() {
-        return (this.clientSocket != null) && this.clientSocket.isClosed();
+        return (this.socket != null) && this.socket.isClosed();
     }
 
-    public void waitUntilConnected(final long millis) throws InterruptedException, IOException {
-        if (this.ready()) {
-            return;
-        }
-
-        synchronized (this.waitLock) {
-            if (millis < 1) {
-                this.waitLock.wait();
-            } else {
-                this.waitLock.wait(millis);
-            }
-        }
-
-        if (!this.isConnected()) {
-            throw new ClosedChannelException();
-        }
+    /**
+     * Calling this function will block forever until either an IOException occurred, or the socket successfully
+     * connected. Common exceptions that occur in the underlying Socket are ignored, and a retry is scheduled until it
+     * succeeds, or a non-recoverable exception occurs.
+     *
+     * @throws IOException when the underlying socket throws an exception while waiting to connect
+     * @see #waitUntilConnected(long)
+     */
+    public synchronized void waitUntilConnected() throws IOException {
+        this.waitUntilConnected(0);
     }
 
-    protected void releaseWaitLock() {
-        synchronized (this.waitLock) {
-            this.waitLock.notifyAll();
-        }
-    }
-
-    public byte[] read(final int timeout) throws InterruptedException, ExecutionException, TimeoutException {
-        return this.executor.submit(() -> this.read()).get(timeout, TimeUnit.MILLISECONDS);
-    }
-
-    public byte[] read() throws InterruptedException, IOException {
-        // TCPSocket.log.trace("Waiting to read...");
-        if (this.isClosed()) {
-            throw new ClosedChannelException();
-        }
-        // this.waitUntilConnected(0);
-        synchronized (this.inputStream) {
-            // TCPSocket.log.trace("Allowed to read");
-            // Apparently this is the only way you can be sure that you read 4 bytes...
-            final int len = ByteBuffer.wrap(new byte[] {(byte) this.inputStream.read(), (byte) this.inputStream.read(),
-                    (byte) this.inputStream.read(), (byte) this.inputStream.read()}).getInt();
-            if (len < 0) {
-                throw new IOException("Reached end of stream");
-            }
-            // TCPSocket.log.trace("Reading {} bytes", len);
-            final byte[] data = new byte[len];
-            int read = 0;
-            while (read < len) {
-                read += this.inputStream.read(data, read, len - read);
-            }
-            if (read != len) {
-                TCPSocket.log.warn("Expected {} bytes, instead received {}", len, read);
-            }
-            int eof = this.inputStream.read();
-            if (eof != TCPSocket.EOM) {
-                TCPSocket.log.warn("Expected EOM, instead read {}, skipping stream", eof);
-                while (eof != TCPSocket.EOM) {
-                    eof = this.inputStream.read();
-                }
-            }
-            // TCPSocket.log.trace("Finished read: {}", new String(data).replace("\0", "\\0"));
-            return data;
-        }
-    }
-
-    public void send(final byte[] data, final int timeout) throws InterruptedException,
-            ExecutionException,
-            TimeoutException {
-        this.executor.submit(() -> {
-            this.send(data);
+    /**
+     * Calling this function will until either an IOException occurred, the socket successfully
+     * connected, or the timeout has passed. Common exceptions that occur in the underlying Socket are ignored, and a
+     * retry is scheduled until it succeeds, or a non-recoverable exception occurs.
+     *
+     * @param millis the amount of milliseconds to wait. When 0 entered this function behaves identical as
+     *            {@linkplain #waitUntilConnected()}
+     * @return whether the socket connected
+     * @throws IOException when the underlying socket throws an exception while waiting to connect
+     */
+    public synchronized boolean waitUntilConnected(final long millis) throws IOException {
+        if (this.socket != null) {
             return true;
-        }).get(timeout, TimeUnit.MILLISECONDS);
+        }
+
+        this.socket = this.connector.connect(millis);
+        if (this.socket == null) {
+            return false;
+        } else {
+            // So we DID get a socket, but it somehow poofed away
+            if (!this.isConnected()) {
+                throw new ClosedChannelException();
+            }
+            this.socket.setKeepAlive(true);
+            return true;
+        }
     }
 
-    public void send(final byte[] data) throws InterruptedException, IOException {
-        // TCPSocket.log.trace("Waiting to send...");
+    /**
+     * Try to read data from the socket, blocking forever until the data is read, or an exception occurs.
+     * <p>
+     * It is not necessary to use {@linkplain #waitUntilConnected()} before calling this function; if the socket was not
+     * connected before using {@linkplain #read()}, it will be connected before attempting to read from the socket.
+     *
+     * @return the data that was read from the socket
+     * @throws ClosedChannelException when this socket has been closed
+     * @throws IOException When the underlying socket is closed before the data is received, the end-of-stream is
+     *             reached, or any exception occurs while reading, or while waiting for the data
+     * @see #read(long)
+     */
+    public byte[] read() throws IOException {
+        return this.read(0);
+    }
+
+    /**
+     * Try to read data from the socket, blocking until the data is read, the maximum time has passed, or an exception
+     * occurs. If a timeout of 0 is provided, this function behaves identical to {@linkplain #read()}.
+     * <p>
+     * It is not necessary to use {@linkplain #waitUntilConnected(long)} before calling this function; if the socket was
+     * not
+     * connected before using {@linkplain #read(long)}, it will be connected before attempting to read from the socket.
+     * The
+     * time spent waiting to connect will be subtracted from the timeout.
+     *
+     * @param timeout the amount of milliseconds to wait, before returning null
+     * @return the data that was read from the socket or null if no data was read.
+     * @throws ClosedChannelException when this socket has been closed
+     * @throws IOException When the underlying socket is closed before the data is received, the end-of-stream is
+     *             reached, or any exception occurs while reading, or while waiting for the data.
+     */
+    @SuppressWarnings("resource")
+    public byte[] read(final long timeout) throws IOException {
         if (this.isClosed()) {
             throw new ClosedChannelException();
         }
-        // this.waitUntilConnected(0);
-        synchronized (this.outputStream) {
-            // TCPSocket.log.trace("Sending {} bytes", data.length);
-            this.outputStream.write(ByteBuffer.allocate(4).putInt(data.length).array());
-            this.outputStream.write(data);
-            this.outputStream.write(TCPSocket.EOM);
-            this.outputStream.flush();
+
+        final long t_start = System.currentTimeMillis();
+        if (timeout == 0) {
+            this.waitUntilConnected();
+        } else {
+            if (!this.waitUntilConnected(timeout)) {
+                TCPSocket.log.trace("Read timeout while waiting to connect");
+                return null;
+            }
+        }
+
+        synchronized (this.socket.getInputStream()) {
+            if (timeout == 0) {
+                this.socket.setSoTimeout(0);
+            } else {
+                this.socket.setSoTimeout((int) (timeout - (System.currentTimeMillis() - t_start)));
+            }
+
+            // Read 4 bytes that will tell how long the message is
+            try {
+                final InputStream is = this.socket.getInputStream();
+                final int len = ByteBuffer
+                        .wrap(new byte[] {(byte) is.read(), (byte) is.read(), (byte) is.read(), (byte) is.read()})
+                        .getInt();
+
+                if (len < 0) {
+                    this.close();
+                    throw new IOException("Reached end of stream");
+                }
+                final byte[] data = new byte[len];
+                int read = 0;
+                while (read < len) {
+                    read += is.read(data, read, len - read);
+                }
+                if (read != len) {
+                    TCPSocket.log.warn("Expected {} bytes, instead received {}", len, read);
+                }
+
+                int eof = is.read();
+                if (eof != TCPSocket.EOM) {
+                    TCPSocket.log.warn("Expected EOM, instead read {}, skipping stream", eof);
+                    while (eof != TCPSocket.EOM) {
+                        eof = is.read();
+                        if (eof < 0) {
+                            this.close();
+                            throw new IOException("Reached end of stream");
+                        }
+                    }
+                }
+
+                return data;
+            } catch (final SocketTimeoutException e) {
+                TCPSocket.log.trace("Read timeout while waiting for data");
+                return null;
+            }
+        }
+    }
+
+    /**
+     * Try to send data to the socket.
+     * <p>
+     * It is not necessary to use {@linkplain #waitUntilConnected()} before calling this function; but it is
+     * recommended.
+     * If the socket was not connected before using {@linkplain #send(byte[])}, it will be attempted to connect, but
+     * with a
+     * very brief timeout, which will only succeed if the remote socket is already attempting to connect.
+     *
+     * @param data The byte array to send through the socket
+     * @throws NotYetConnectedException when the socket is not yet connected, and fails to connect immediately
+     * @throws ClosedChannelException when this socket has been closed
+     * @throws IOException When the underlying socket is closed before the data is sent, or while waiting for the data
+     */
+    public void send(final byte[] data) throws IOException {
+        if (!this.waitUntilConnected(TCPSocket.CONNECT_ON_SEND_TIMEOUT)) {
+            throw new NotYetConnectedException();
+        } else if (this.isClosed()) {
+            throw new ClosedChannelException();
+        }
+
+        synchronized (this.socket.getOutputStream()) {
+            try {
+                // We should not close this stream, as it will also close the socket
+                @SuppressWarnings("resource")
+                final OutputStream os = this.socket.getOutputStream();
+                os.write(ByteBuffer.allocate(4).putInt(data.length).array());
+                os.write(data);
+                os.write(TCPSocket.EOM);
+                os.flush();
+            } catch (final IOException e) {
+                this.close();
+                throw e;
+            }
         }
     }
 
     @Override
-    public synchronized void close() {
-        this.keepOpen = false;
+    public void close() {
+        try {
+            this.connector.close();
+        } catch (final IOException e) {
+            TCPSocket.log.warn("Exception while closing connector: {}", e.getMessage());
+        }
 
-        if (this.serverSocket != null) {
+        if ((this.socket != null) && !this.socket.isClosed()) {
             try {
-                this.serverSocket.close();
+                this.socket.close();
             } catch (final IOException e) {
                 TCPSocket.log.warn("Exception while closing socket: {}", e.getMessage());
             }
-            this.serverSocket = null;
         }
-
-        if (this.clientSocket != null) {
-            try {
-                this.clientSocket.close();
-            } catch (final IOException e) {
-                TCPSocket.log.warn("Exception while closing socket: {}", e.getMessage());
-            }
-            this.clientSocket = null;
-        }
-
-        this.executor.shutdownNow();
-        this.releaseWaitLock();
     }
 
     /**
-     * SocketRunner makes sure the socket intialized
+     * SocketConnector makes sure the socket initializes
      *
      * @version 0.1
      * @since Oct 11, 2017
      */
-    protected abstract class SocketRunner implements Runnable {
+    protected abstract class SocketConnector implements Closeable {
 
         private static final long INITIAL_BACKOFF_MS = 50;
         private static final long MAXIMUM_BACKOFF_MS = 60000;
-        private long backOffMs;
+        private long backOffMs = SocketConnector.INITIAL_BACKOFF_MS;
 
-        abstract protected Socket init();
+        /**
+         * Set up the connection
+         *
+         * @param millis the timeout in milliseconds
+         * @return the Socket that is the result of a successfull connection, or null if the timeout has passed before
+         *         the connection succeeded
+         * @throws IOException
+         */
+        public abstract Socket connect(final long millis) throws IOException;
 
-        @Override
-        public void run() {
-            this.backOffMs = SocketRunner.INITIAL_BACKOFF_MS;
-            try {
-                TCPSocket.this.clientSocket = this.init();
-
-                if (!TCPSocket.this.keepOpen) {
-                    // Check if in the mean time we got a close request...
-                    TCPSocket.this.close();
-                    return;
-                }
-
-                TCPSocket.this.inputStream = TCPSocket.this.clientSocket.getInputStream();
-                TCPSocket.this.outputStream = TCPSocket.this.clientSocket.getOutputStream();
-                TCPSocket.this.ready = true;
-                TCPSocket.this.releaseWaitLock();
-            } catch (final IOException e) {
-                TCPSocket.log.warn("Exception while initializing socket: {}", e.getMessage());
-            }
-        }
-
-        protected void increaseBackOffAndWait() {
-            this.backOffMs = (long) Math.min(SocketRunner.MAXIMUM_BACKOFF_MS, this.backOffMs * 1.25);
+        /**
+         * Increase the timeout and wait before re-attempting the connection
+         *
+         * @param max a maximum timeout to respect
+         */
+        protected void increaseBackOffAndWait(final long max) {
+            this.backOffMs = (long) Math.min(max, Math.min(SocketConnector.MAXIMUM_BACKOFF_MS, this.backOffMs * 1.25));
             try {
                 Thread.sleep(this.backOffMs);
             } catch (final InterruptedException e) {
                 // Don't care, we'll see you next iteration
             }
         }
+
+        /**
+         * Compute the time left when a call has started at some timestamp and there is a certain amount of maxmimum
+         * milliseconds to wait
+         *
+         * @param t_start the time in milliseconds as returned by {@linkplain java.lang.System#currentTimeMillis()}
+         * @param millis the amount of milliseconds to wait at most
+         * @return the maximum backoff period when the timeout is zero, or the amount of remaining milliseconds in the
+         *         timeout
+         */
+        protected long timeLeft(final long t_start, final long millis) {
+            return millis == 0 ? SocketConnector.MAXIMUM_BACKOFF_MS
+                    : Math.max(0, millis - (System.currentTimeMillis() - t_start));
+        }
+
     }
 
-    private final class ClientSocketRunner extends SocketRunner {
+    private final class ClientSocketConnector extends SocketConnector {
 
         private final String targetAddress;
         private final int targetPort;
 
         /**
-         * @param address
-         * @param port
+         * Creates a SocketConnector that will initiate a client socket, connecting to the provided host name and port
+         *
+         * @param address the host address to connect to
+         * @param port the remote port to connect to
+         * @see java.net.Socket#Socket(String, int)
          */
-        public ClientSocketRunner(final String address, final int port) {
+        public ClientSocketConnector(final String address, final int port) {
             this.targetAddress = address;
             this.targetPort = port;
         }
 
         @Override
-        protected Socket init() {
-            while (TCPSocket.this.keepOpen) {
+        public Socket connect(final long millis) {
+            final long t_start = System.currentTimeMillis();
+            while (this.timeLeft(t_start, millis) > 0) {
                 try {
                     final Socket client = new Socket(this.targetAddress, this.targetPort);
-                    // client.setTcpNoDelay(false);
-                    // client.setReuseAddress(false);
-                    // client.setOOBInline(false);
-                    // client.setSoLinger(false, 0);
-                    // client.setPerformancePreferences(0, 1, 1);
                     TCPSocket.log.info("Initialized client socket to {}", client.getRemoteSocketAddress());
                     return client;
                 } catch (final IOException e) {
                     TCPSocket.log.trace("Unable to connect ({}), retrying...", e.getMessage());
-                    this.increaseBackOffAndWait();
+                    this.increaseBackOffAndWait(this.timeLeft(t_start, millis));
                 }
             }
             return null;
+        }
+
+        @Override
+        public void close() throws IOException {
+            // Do nothing
         }
 
     }
 
-    private final class ServerSocketRunner extends SocketRunner {
+    private final class ServerSocketConnector extends SocketConnector {
 
-        private final int listenPort;
+        private final int serverPort;
+        private ServerSocket serverSocket;
 
         /**
-         * @param port
+         * Creates a SocketConnector that will initiate a server socket, binding to the provided port
+         *
+         * @param port the local port to bind to
+         * @see java.net.ServerSocket#ServerSocket(int)
          */
-        public ServerSocketRunner(final int port) {
-            this.listenPort = port;
+        public ServerSocketConnector(final int port) {
+            TCPSocket.log.info("Starting server socket at {}", port);
+            this.serverPort = port;
+            this.bindServerSocket();
+        }
+
+        private synchronized boolean bindServerSocket() {
+            if (this.serverSocket != null) {
+                return true;
+            }
+
+            try {
+                TCPSocket.log.trace("Binding to port {}", this.serverPort);
+                this.serverSocket = new ServerSocket(this.serverPort);
+                this.serverSocket.setReuseAddress(true);
+                return true;
+            } catch (final IOException e) {
+                TCPSocket.log.warn("Unable to open server socket at port {}: {}", this.serverPort, e.getMessage());
+                return false;
+            }
         }
 
         @Override
-        protected Socket init() {
-            while (TCPSocket.this.keepOpen) {
-                try {
-                    TCPSocket.log.info("Starting server socket at {}", this.listenPort);
-                    TCPSocket.this.serverSocket = new ServerSocket(this.listenPort);
-                    // TCPSocket.this.serverSocket.setReuseAddress(false);
-                    // TCPSocket.this.serverSocket.setPerformancePreferences(0, 1, 1);
-                    final Socket client = TCPSocket.this.serverSocket.accept();
-                    TCPSocket.log.info("Accepted client socket at {}", client.getRemoteSocketAddress());
-                    return client;
-                } catch (final IOException e) {
-                    TCPSocket.log.trace("Unable to listen ({}), retrying...", e.getMessage());
-                    if (TCPSocket.this.serverSocket != null) {
-                        try {
-                            TCPSocket.this.serverSocket.close();
-                        } catch (final IOException e2) {
-                            // It's okay... just try again in a bit
-                        }
-                        TCPSocket.this.serverSocket = null;
-                    }
-                    this.increaseBackOffAndWait();
+        public Socket connect(final long millis) throws IOException {
+            final long t_start = System.currentTimeMillis();
+            while ((this.serverSocket == null) && (this.timeLeft(t_start, millis) > 0)) {
+                if (!this.bindServerSocket()) {
+                    this.increaseBackOffAndWait(this.timeLeft(t_start, millis));
                 }
             }
-            return null;
+
+            if (this.serverSocket == null) {
+                TCPSocket.log.trace("Server bind timed out");
+                return null;
+            }
+
+            this.serverSocket.setSoTimeout((int) millis);
+            try {
+                final Socket client = this.serverSocket.accept();
+                TCPSocket.log.info("Accepted client socket at {}", client.getRemoteSocketAddress());
+                this.serverSocket.close();
+                return client;
+            } catch (final SocketTimeoutException e) {
+                TCPSocket.log.trace("Server accept timed out");
+                return null;
+            } catch (final IOException e) {
+                this.serverSocket.close();
+                throw e;
+            }
         }
 
+        @Override
+        public void close() throws IOException {
+            if (this.serverSocket != null) {
+                this.serverSocket.close();
+            }
+        }
     }
 
 }

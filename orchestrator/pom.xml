@@ -8,7 +8,7 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>17.11.1</version>
+		<version>17.11.2</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
@@ -20,45 +20,23 @@
 		<docker.imageName>${docker.registry}/defpi/${project.artifactId}</docker.imageName>
 	</properties>
 
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>org.glassfish.jersey</groupId>
-				<artifactId>jersey-bom</artifactId>
-				<version>2.25.1</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
-
 	<dependencies>
-		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>20.0</version>
-		</dependency>
-
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>
 			<artifactId>jersey-container-jetty-http</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.glassfish.jersey.containers</groupId>
-			<artifactId>jersey-container-servlet-core</artifactId>
+			<version>2.25.1</version>
 		</dependency>
 
 		<dependency>
 			<groupId>io.swagger</groupId>
-			<artifactId>swagger-jersey2-jaxrs</artifactId>
-			<version>1.5.16</version>
+			<artifactId>swagger-jaxrs</artifactId>
+			<version>1.5.18</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.fasterxml.jackson.datatype</groupId>
 			<artifactId>jackson-datatype-joda</artifactId>
-			<version>2.8.7</version>
+			<version>${jackson.databind.version}</version>
 			<scope>runtime</scope>
 		</dependency>
 
@@ -70,19 +48,17 @@
 		<dependency>
 			<groupId>org.mongodb</groupId>
 			<artifactId>mongodb-driver</artifactId>
-			<version>3.4.2</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
-			<version>20160212</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.spotify</groupId>
 			<artifactId>docker-client</artifactId>
-			<version>8.9.1-SNAPSHOT</version>
+			<version>8.11.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>ch.qos.logback</groupId>
@@ -105,21 +81,6 @@
 
 	<build>
 		<plugins>
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>license-maven-plugin</artifactId>
-				<version>1.14</version>
-				<executions>
-					<execution>
-					<id>add-third-party</id>
-					<goals>
-						<goal>add-third-party</goal>
-						</goals>
-					<phase>generate-sources</phase>
-					</execution>
-				</executions>
-			</plugin>
-
 			<plugin>
 				<groupId>pl.project13.maven</groupId>
 				<artifactId>git-commit-id-plugin</artifactId>
@@ -237,5 +198,34 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<profile>
+			<id>release</id>
+			<properties>
+				<docker.imageName>flexiblepower/defpi-orchestrator</docker.imageName>
+			</properties>
+
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>license-maven-plugin</artifactId>
+						<version>1.14</version>
+						<executions>
+							<execution>
+								<id>add-third-party</id>
+								<goals>
+									<goal>add-third-party</goal>
+								</goals>
+								<phase>generate-sources</phase>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+	</profiles>
 
 </project>

@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
+import org.flexiblepower.connectors.RegistryConnector;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Service;
@@ -34,6 +35,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.spotify.docker.client.DefaultDockerClient;
@@ -49,6 +51,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since Apr 24, 2017
  */
 @Slf4j
+@Ignore // This test is not supposed to run in CI
 public class ProcessIntegrationTest {
 
     private static final String TEST_USER = "TestUser";
@@ -76,6 +79,12 @@ public class ProcessIntegrationTest {
         } catch (final Exception e) {
             ProcessIntegrationTest.log.warn("Exception while connecting to MongoDb: {}", e.getMessage());
             Assume.assumeNoException("Skipping tests because there is no Mongo service", e);
+        }
+
+        try {
+            RegistryConnector.getInstance().getServices("services");
+        } catch (final Exception e) {
+            Assume.assumeNoException("Skipping tests because there is no registry", e);
         }
     }
 

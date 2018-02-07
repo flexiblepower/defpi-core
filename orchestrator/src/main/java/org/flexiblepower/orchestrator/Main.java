@@ -24,6 +24,7 @@ import java.net.UnknownHostException;
 import java.util.UUID;
 
 import org.apache.http.client.utils.URIBuilder;
+import org.eclipse.jetty.server.Server;
 import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.model.User;
@@ -58,7 +59,7 @@ public class Main {
      * @throws UnknownHostException
      * @throws URISyntaxException
      */
-    public static void startServer() throws UnknownHostException, URISyntaxException {
+    public static Server startServer() throws UnknownHostException, URISyntaxException {
         final URI publishURI = new URIBuilder().setScheme(Main.URI_SCHEME)
                 .setHost(Main.URI_HOST)
                 .setPort(Main.URI_PORT)
@@ -67,13 +68,14 @@ public class Main {
         Main.log.info("Jersey app started with WADL available at {}/application.wadl", publishURI);
         final ResourceConfig rc = ResourceConfig.forApplication(new OrchestratorApplication(publishURI));
 
-        JettyHttpContainerFactory.createServer(publishURI, rc);
+        return JettyHttpContainerFactory.createServer(publishURI, rc);
     }
 
     /**
      *
      */
     private static void ensureAdminUserExists() {
+        Main.log.trace("Ensuring user with name {} exists", Main.ROOT_USER);
         final MongoDbConnector db = MongoDbConnector.getInstance();
         if (db.getUser(Main.ROOT_USER, Main.ROOT_PASSWORD) == null) {
             final User root = new User(Main.ROOT_USER, Main.ROOT_PASSWORD);

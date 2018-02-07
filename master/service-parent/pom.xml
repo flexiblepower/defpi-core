@@ -5,7 +5,7 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>service-parent</artifactId>
-	<version>17.11.1</version>
+	<version>17.11.2</version>
 	<packaging>pom</packaging>
 
 	<name>dEF-Pi service parent POM</name>
@@ -63,7 +63,7 @@
 		<java.source>1.8</java.source>
 		<java.target>1.8</java.target>
 
-		<defpi.version>17.11.1</defpi.version>
+		<defpi.version>17.11.2</defpi.version>
 
 		<defpi.sources.generated>${project.build.directory}/generated-sources/java</defpi.sources.generated>
 		<defpi.resources.generated>${project.build.directory}/generated-resources/defpi</defpi.resources.generated>
@@ -79,10 +79,6 @@
 		<docker.registry>localhost:5000</docker.registry>
 		<docker.imageName>${docker.registry}/services/${project.artifactId}</docker.imageName>
 	</properties>
-
-	<modules>
-		<module>../../dashboard-gateway</module>
-	</modules>
 
 	<!-- Where to push the service parent itself, should not be used by children -->
 	<distributionManagement>
@@ -163,21 +159,6 @@
 								<goals>
 									<goal>generate</goal>
 								</goals>
-							</execution>
-						</executions>
-					</plugin>
-
-					<plugin>
-						<groupId>org.codehaus.mojo</groupId>
-						<artifactId>license-maven-plugin</artifactId>
-						<version>1.14</version>
-						<executions>
-							<execution>
-								<id>add-third-party</id>
-								<goals>
-									<goal>add-third-party</goal>
-								</goals>
-								<phase>generate-sources</phase>
 							</execution>
 						</executions>
 					</plugin>
@@ -387,7 +368,7 @@
 
 		<profile>
 			<id>release</id>
-			
+
 			<distributionManagement>
 				<repository>
 					<id>ossrh</id>
@@ -398,6 +379,21 @@
 
 			<build>
 				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>license-maven-plugin</artifactId>
+						<version>1.14</version>
+						<executions>
+							<execution>
+								<id>add-third-party</id>
+								<goals>
+									<goal>add-third-party</goal>
+								</goals>
+								<phase>generate-sources</phase>
+							</execution>
+						</executions>
+					</plugin>
+
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>

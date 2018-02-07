@@ -1,0 +1,65 @@
+{
+	"name": "Dashboard",
+	"version": "1",
+	"parameters": [
+		{
+			"id": "cemHashPair",
+			"name": "cemHashPair",
+			"type": "string"
+		},
+		{
+			"id": "rmHashPair",
+			"name": "rmHashPair",
+			"type": "string"
+		},
+		{
+			"id": "obsConsumerHashPair",
+			"name": "obsConsumerHashPair",
+			"type": "string"
+		},
+		{
+			"id": "obsPublisherHashPair",
+			"name": "obsPublisherHashPair",
+			"type": "string"
+		}
+	],
+	"interfaces": [
+		{
+			"name": "gateway",
+			"autoConnect": true,
+			"allowMultiple": false,
+			"interfaceVersions": [
+				{
+					"versionName": "HTTP",
+					"type": "proto",
+					"location": "https://raw.githubusercontent.com/defpi/interfaces/master/defpi/HTTP.proto",
+					"sends": [
+						"HTTPResponse"
+					],
+					"receives": [
+						"HTTPRequest"
+					]
+				}
+			]
+		},
+		{
+			"name": "widget",
+			"autoConnect": true,
+			"allowMultiple": true,
+			"interfaceVersions": [
+				{
+					"versionName": "HTTP",
+					"type": "proto",
+					"location": "https://raw.githubusercontent.com/defpi/interfaces/master/defpi/Widget.proto",
+					"sends": [
+						"WidgetHTTPRequest"
+					],
+					"receives": [
+						"WidgetInfo",
+						"WidgetHTTPResponse"
+					]
+				}
+			]
+		}
+	]
+}

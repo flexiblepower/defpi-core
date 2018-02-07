@@ -77,8 +77,19 @@ public class ConnectionManager {
      * @return the connection that has the provided id, or null
      * @throws InvalidObjectIdException
      */
-    public Connection getConnection(final ObjectId connectionId) throws InvalidObjectIdException {
+    public Connection getConnection(final ObjectId connectionId) {
         return MongoDbConnector.getInstance().get(Connection.class, connectionId);
+    }
+
+    /**
+     * Removes the connection that is stored in the database with the provided id
+     *
+     * @param connectionId
+     * @return the connection that has the provided id, or null
+     * @throws InvalidObjectIdException
+     */
+    public void deleteConnection(final Connection connection) {
+        MongoDbConnector.getInstance().delete(connection);
     }
 
     /**
@@ -194,9 +205,9 @@ public class ConnectionManager {
             }
 
             if (!process1.getUserId().equals(process2.getUserId())) {
-                if (!(process1.getServiceId().equals(ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID)
-                        || process2.getServiceId().equals(ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID))) {
-                    // Dashboard-gateway is teh only exception to the rule that processes can only connect if they are
+                if (!(process1.getServiceId().equals(ProcessManager.getDashboardGatewayServiceId())
+                        || process2.getServiceId().equals(ProcessManager.getDashboardGatewayServiceId()))) {
+                    // Dashboard-gateway is the only exception to the rule that processes can only connect if they are
                     // owned by the same user
                     throw new IllegalArgumentException("The two processes are not owned by the same user");
                 }
@@ -258,7 +269,7 @@ public class ConnectionManager {
      * @param process
      * @throws ProcessNotFoundException
      */
-    public void deleteConnectionsForProcess(final Process process) throws ProcessNotFoundException {
+    public synchronized void deleteConnectionsForProcess(final Process process) throws ProcessNotFoundException {
         for (final Connection connection : this.getConnectionsForProcess(process)) {
             this.terminateConnection(connection);
         }
@@ -271,7 +282,14 @@ public class ConnectionManager {
             if (intface.isAutoConnect()) {
                 // search for other processes with that interface
                 final Process dashboardGateway = ProcessManager.getInstance().getDashboardGateway();
-                List<Process> processesToConnectWith = ProcessManager.getInstance().listProcesses(user);
+                List<Process> processesToConnectWith;
+                if (process.getServiceId().equals(ProcessManager.getDashboardGatewayServiceId())) {
+                    // This is the dashboard-gateway. It can connect with the dashboard process from every user.
+                    processesToConnectWith = ProcessManager.getInstance().listProcesses();
+                } else {
+                    // This is a normal process. It can connect with processes of this user.
+                    processesToConnectWith = ProcessManager.getInstance().listProcesses(user);
+                }
                 if (dashboardGateway != null) {
                     // If there is a dashboard-gateway, that is also a process that could be connected
                     final List<Process> newList = new ArrayList<>();

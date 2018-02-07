@@ -31,16 +31,36 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * The connection is how processes communicate with one another. Note that this class is only the model of a
+ * connection, and should not contain any implementation specifics.
+ *
+ * @author coenvl
+ * @version 0.1
+ * @since Mar 20, 2017
+ */
 @Data
 @Entity
 @NoArgsConstructor(force = true)
 public class Connection {
 
+    /**
+     * A connection endpoint, referring to one interface of a running process.
+     *
+     * @version 0.1
+     * @since Dec 6, 2017
+     */
     @Data
     @Embedded
     @NoArgsConstructor(force = true)
     public static class Endpoint {
 
+        /**
+         * Construct a connection endpoint for the specified process and interface Id
+         * 
+         * @param processId
+         * @param interfaceId
+         */
         public Endpoint(final ObjectId processId, final String interfaceId) {
             this.processId = processId;
             this.interfaceId = interfaceId;
@@ -75,19 +95,32 @@ public class Connection {
      */
     @JsonIgnore
     private int port;
-    
+
     @Embedded
     private final Endpoint endpoint1;
 
     @Embedded
     private final Endpoint endpoint2;
 
+    /**
+     * @param oid The objectId of the connection
+     * @param ep1 One endpoint
+     * @param ep2 Second endpoint
+     */
     public Connection(final ObjectId oid, Endpoint ep1, Endpoint ep2) {
         this.id = oid;
         this.endpoint1 = ep1;
         this.endpoint2 = ep2;
     }
-    
+
+    /**
+     * Returns the other endpoint of the connection. More formally it returns the endpoint e2 for which
+     * <code>>e.equals(e2)</code> does <i>not</i> hold.
+     * 
+     * @param e the endpoint which we already have
+     * @return the <b>other</b> endpoint
+     * @throws IllegalArgumentException if the endpoint is not part of the connection at all
+     */
     public Endpoint getOtherEndpoint(final Endpoint e) {
         if (e.equals(this.endpoint1)) {
             return this.endpoint2;
@@ -98,6 +131,14 @@ public class Connection {
         }
     }
 
+    /**
+     * Returns the endpoint of the connection with the provided process. More formally it returns the endpoint e for which
+     * <code>>e.getProcessId().equals(process)</code> holds.
+     * 
+     * @param process the process to look up
+     * @return the endpoint with the provided process
+     * @throws IllegalArgumentException if the process is not part of either endpoint
+     */
     public Endpoint getEndpointForProcess(final Process process) {
         if (process.getId().equals(this.endpoint1.getProcessId())) {
             return this.endpoint1;
