@@ -23,8 +23,11 @@ import org.flexiblepower.connectors.RegistryConnector;
 import org.flexiblepower.exceptions.RepositoryNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Service;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * DockerConnectorTest
@@ -32,6 +35,8 @@ import org.junit.Test;
  * @version 0.1
  * @since May 8, 2017
  */
+@Slf4j
+@SuppressWarnings("javadoc")
 public class RegistryConnectorTest {
 
     private final String repository = "services";
@@ -54,18 +59,22 @@ public class RegistryConnectorTest {
     @Test(timeout = 15000)
     public void testListServices() throws RepositoryNotFoundException, ServiceNotFoundException, InterruptedException {
         final Collection<Service> services = this.connector.getServices(this.repository);
-        System.out.format("Found %d services\n", services.size());
+        Assert.assertNotNull(services);
 
+        RegistryConnectorTest.log.debug("Found {} services", services.size());
         if (!services.isEmpty()) {
-            System.out.println(services.iterator().next().getInterfaces());
+            RegistryConnectorTest.log.info("First service: {}", services.iterator().next().getInterfaces().toString());
         }
 
         Thread.sleep(5000);
         final Collection<Service> services2 = this.connector.getServices(this.repository);
+        Assert.assertFalse(services2.isEmpty());
         System.out.format("Found %d services\n", services2.size());
 
         System.out.println(this.connector.getAllServiceVersions(this.repository));
 
-        System.out.println(this.connector.getService(this.repository, "observations"));
+        if (services2.size() > 0) {
+            System.out.println(this.connector.getService(this.repository, "observations"));
+        }
     }
 }

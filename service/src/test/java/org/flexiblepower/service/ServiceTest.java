@@ -50,6 +50,7 @@ import com.google.protobuf.ByteString;
  * @since May 12, 2017
  */
 @RunWith(Parameterized.class)
+@SuppressWarnings("javadoc")
 public class ServiceTest {
 
     @Parameters
@@ -57,7 +58,6 @@ public class ServiceTest {
         return Arrays.asList(new Object[3][0]);
     }
 
-    // private static final String TEST_HOST = "172.17.0.2";
     private static final String TEST_HOST = "localhost";
     private static final String PROCESS_ID = "null";
 
@@ -111,7 +111,6 @@ public class ServiceTest {
         Assert.assertEquals(ErrorMessage.class, e.getClass());
         Assert.assertTrue(((ErrorMessage) e).getDebugInformation()
                 .startsWith("org.flexiblepower.exceptions.SerializationException"));
-        // this.managementSocket.waitUntilConnected(0);
     }
 
     @Test(timeout = 60000)
@@ -192,18 +191,6 @@ public class ServiceTest {
         Thread.sleep(100);
         Assert.assertEquals("modify", this.testService.getState());
     }
-
-    // public void runRun() throws SerializationException {
-    // Assert.assertTrue(this.managementSocket.send(this.pbSerializer.serialize(GoToProcessStateMessage.newBuilder()
-    // .setProcessId(ServiceTest.PROCESS_ID)
-    // .setTargetState(ProcessState.RUNNING)
-    // .build())));
-    // Assert.assertArrayEquals(
-    // this.pbSerializer.serialize(
-    // ProcessStateUpdateMessage.newBuilder().setProcessId("").setState(ProcessState.RUNNING).build()),
-    // this.managementSocket.recv());
-    // Assert.assertEquals("init", this.testService.getState());
-    // }
 
     public void runSuspend() throws Exception {
         this.managementSocket.send(this.pbSerializer.serialize(GoToProcessStateMessage.newBuilder()

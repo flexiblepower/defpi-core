@@ -52,6 +52,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Ignore // This test is not supposed to run in CI
+@SuppressWarnings("javadoc")
 public class ProcessIntegrationTest {
 
     private static final String TEST_USER = "TestUser";
@@ -147,14 +148,6 @@ public class ProcessIntegrationTest {
 
         Assert.assertFalse(servicesForP1.isEmpty());
         Assert.assertFalse(servicesForP2.isEmpty());
-
-        // Creating a connection can only be done when started as a container. From JUnit test, we cannot access the
-        // user-net
-        // final Connection connection = new Connection(null,
-        // new Endpoint(process1.getId(), "Echo"),
-        // new Endpoint(process1.getId(), "Echo"));
-        // Assert.assertTrue(
-        // ProcessConnector.getInstance().createConnectionEndpoint(connection, connection.getEndpoint1()));
     }
 
     @After

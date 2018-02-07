@@ -36,7 +36,7 @@ import com.spotify.docker.client.messages.swarm.Node;
  * @version 0.1
  * @since May 8, 2017
  */
-@SuppressWarnings("static-method")
+@SuppressWarnings({"static-method", "javadoc"})
 public class DockerConnectorTest {
 
     @Rule

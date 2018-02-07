@@ -27,7 +27,7 @@ import org.junit.Test;
  * @version 0.1
  * @since May 29, 2017
  */
-@SuppressWarnings("static-method")
+@SuppressWarnings({"static-method", "javadoc"})
 public class ManagedConnectionTest {
 
     @Test(timeout = 5000)

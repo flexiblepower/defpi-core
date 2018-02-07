@@ -68,7 +68,7 @@ public class HeartBeatMonitor implements Closeable {
      * @param socket The socket to perform the heartbeat on
      * @param connectionId The id of the connection, mostly used for logging.
      */
-    public HeartBeatMonitor(final TCPSocket socket, final String connectionId) {
+    HeartBeatMonitor(final TCPSocket socket, final String connectionId) {
         final ThreadFactory threadFactory = r -> new Thread(r, "dEF-Pi hbMonThread-" + HeartBeatMonitor.threadCount++);
         this.executor = Executors.newSingleThreadScheduledExecutor(threadFactory);
         this.socket = socket;
@@ -169,7 +169,7 @@ public class HeartBeatMonitor implements Closeable {
      * Stops the monitor from sending bytes or responding in the future. This would be desireable for example when the
      * connection is suspended.
      */
-    public void stop() {
+    void stop() {
         if (this.heartBeatFuture != null) {
             this.heartBeatFuture.cancel(true);
             this.heartBeatFuture = null;

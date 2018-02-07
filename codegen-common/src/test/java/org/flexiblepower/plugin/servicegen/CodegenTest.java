@@ -44,16 +44,13 @@ import com.github.fge.jsonschema.main.JsonSchema;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
 import com.github.fge.jsonschema.processors.syntax.SyntaxValidator;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * CodegenTest
  *
  * @version 0.1
  * @since Oct 4, 2017
  */
-@Slf4j
-@SuppressWarnings("static-method")
+@SuppressWarnings({"static-method", "javadoc"})
 public class CodegenTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -69,10 +66,10 @@ public class CodegenTest {
         final JsonSchemaFactory factory = JsonSchemaFactory.byDefault();
         final JsonSchema schema = factory.getJsonSchema(schemaNode);
         final ProcessingReport report = schema.validate(data);
-        CodegenTest.log.info("report: {}", report);
+        Assert.assertTrue(report.isSuccess());
 
         final SyntaxValidator syntaxValidator = factory.getSyntaxValidator();
-        CodegenTest.log.info("syntax: {}", syntaxValidator.schemaIsValid(schemaNode));
+        Assert.assertTrue(syntaxValidator.schemaIsValid(schemaNode));
     }
 
     @Test
@@ -83,11 +80,12 @@ public class CodegenTest {
         for (final InterfaceDescription i : descr.getInterfaces()) {
             for (final InterfaceVersionDescription v : i.getInterfaceVersions()) {
                 v.setHash("");
-                CodegenTest.log.info(PluginUtils.getHash(v, new HashSet<>(Arrays.asList("Stuff"))));
-                CodegenTest.log.info(PluginUtils.getHash(v, Collections.emptySet()));
+                Assert.assertEquals("c6ea70559295ffc6aba33ea620642d86199bc36521311215a01f19d8dc246721",
+                        PluginUtils.getHash(v, new HashSet<>(Arrays.asList("Stuff"))));
+                Assert.assertEquals("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                        PluginUtils.getHash(v, Collections.emptySet()));
             }
         }
-
     }
 
     @Test
@@ -102,6 +100,8 @@ public class CodegenTest {
     @Test
     public void capsTest() {
         Assert.assertEquals("this_is_a_test", PluginUtils.snakeCaps("This is a Test"));
+        Assert.assertEquals("this_is_a_test", PluginUtils.snakeCaps("Th%iS I=s a &Test.."));
         Assert.assertEquals("ThisIsATest", PluginUtils.camelCaps("This is a Test"));
+        Assert.assertEquals("ThisIsATest", PluginUtils.camelCaps("++thIs i*S A- teST++"));
     }
 }

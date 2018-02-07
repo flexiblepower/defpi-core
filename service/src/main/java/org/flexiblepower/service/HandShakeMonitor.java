@@ -17,6 +17,7 @@
  */
 package org.flexiblepower.service;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 import org.flexiblepower.commons.TCPSocket;
@@ -28,12 +29,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ConnectionMonitor
+ * The handshake monitor adds functionality to a socket to ensure the correct initialization when the socket is started.
+ * When the HandShakeMonitor is built, it will send a HandShake object to the remote side, containing the locally known
+ * connectionId. On the remote side, a handshake monitor will use this to check if they have the same id.
+ * <p>
+ * When both sides acknowledge that they were able to receive and send handshakes, and that both connections are in
+ * the {@link ConnectionState#CONNECTED} state, the waitLock is released and the handshake monitor is considered to be
+ * finished.
  *
  * @version 0.1
  * @since Aug 23, 2017
  */
-public class HandShakeMonitor {
+public class HandShakeMonitor implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(HandShakeMonitor.class);
 
@@ -44,7 +51,13 @@ public class HandShakeMonitor {
     private final Object waitLock = new Object();
     private boolean ready;
 
-    public HandShakeMonitor(final TCPSocket socket, final String connectionId) {
+    /**
+     * Create a HandShakeMonitor for the specified socket.
+     *
+     * @param socket The socket to perform the handshake on
+     * @param connectionId The id of the connection to identify the connection
+     */
+    HandShakeMonitor(final TCPSocket socket, final String connectionId) {
         this.socket = socket;
         this.connectionId = connectionId;
         this.ready = false;
@@ -54,7 +67,13 @@ public class HandShakeMonitor {
         this.serializer.addMessageClass(ConnectionHandshake.class);
     }
 
-    public void sendHandshake(final ConnectionState currentState) {
+    /**
+     * Send a handshake object to the remote side. This handshake will contain information about the connectionId that
+     * was set in the constructor, and the current connection state.
+     *
+     * @param currentState the ConnectionState of the local connection endpoint
+     */
+    void sendHandshake(final ConnectionState currentState) {
         // Send the handshake
         final ConnectionHandshake initHandshakeMessage = ConnectionHandshake.newBuilder()
                 .setConnectionId(this.connectionId)
@@ -71,7 +90,14 @@ public class HandShakeMonitor {
         }
     }
 
-    public boolean handleHandShake(final byte[] recvData) {
+    /**
+     * Interpret a byte array as a incoming handshake object. This object might be a response to a handshake this
+     * monitor sent earlier; if so, this function will return true, and false otherwise.
+     *
+     * @param recvData incoming byte array that may or may not be a response to our handshake
+     * @return true iff the byte array is a valid response
+     */
+    boolean handleHandShake(final byte[] recvData) {
         // Receive the HandShake
         ConnectionHandshake handShakeMessage = null;
 
@@ -111,20 +137,27 @@ public class HandShakeMonitor {
 
     }
 
-    public boolean ready() {
+    /**
+     * @return Whether this monitor object has acknowledged the remote side of the connection is instantiated.
+     */
+    boolean ready() {
         return this.ready;
     }
 
-    public void waitUntilFinished(final long millis) throws InterruptedException {
+    /**
+     * Calling this function will wait until the handshake monitor successfully connected, it is closed in another
+     * thread, or an InterruptedException occurs. If the handshake monitor was already finished, calling this function
+     * will do nothing.
+     *
+     * @throws InterruptedException when the wait functions was interrupted while waiting to finish
+     * @see #close()
+     */
+    void waitUntilFinished() throws InterruptedException {
         if (this.ready()) {
             return;
         } else {
             synchronized (this.waitLock) {
-                if (millis < 1) {
-                    this.waitLock.wait();
-                } else {
-                    this.waitLock.wait(millis);
-                }
+                this.waitLock.wait();
             }
         }
     }
@@ -135,6 +168,11 @@ public class HandShakeMonitor {
         }
     }
 
+    /**
+     * Closes the handshake monitor, releasing any threads that were waiting for it to finish, and also close the socket
+     * that it was attached to.
+     */
+    @Override
     public void close() {
         this.releaseWaitLock();
         this.socket.close();

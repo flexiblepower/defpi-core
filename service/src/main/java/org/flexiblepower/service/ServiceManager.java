@@ -99,7 +99,7 @@ public class ServiceManager<T> implements Closeable {
      * we need its configuration, which we also must get from the orchestrator first. To start the service use
      * {@link #start(Service)}
      */
-    public ServiceManager() {
+    ServiceManager() {
         this.serviceExecutor = ServiceExecutor.getInstance();
 
         this.connectionManager = new ConnectionManager();

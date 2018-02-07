@@ -124,7 +124,7 @@ public class PluginUtils {
     public static String camelCaps(final String str) {
         final StringBuilder ret = new StringBuilder();
 
-        for (final String word : str.split(" ")) {
+        for (final String word : str.replaceAll("[^a-zA-Z0-9_ ]", "").split(" ")) {
             if (!word.isEmpty()) {
                 ret.append(Character.toUpperCase(word.charAt(0)));
                 ret.append(word.substring(1).toLowerCase());
@@ -132,7 +132,7 @@ public class PluginUtils {
         }
 
         // Return a cleaned-up string
-        return ret.toString().replaceAll("[^a-zA-Z0-9_]", "");
+        return ret.toString();
     }
 
     /**

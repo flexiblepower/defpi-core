@@ -52,7 +52,7 @@ public class ServiceExecutor {
     /**
      * @return the singleton instance of ServiceExecutor object.
      */
-    public synchronized static ServiceExecutor getInstance() {
+    synchronized static ServiceExecutor getInstance() {
         if (ServiceExecutor.instance == null) {
             ServiceExecutor.instance = new ServiceExecutor();
         }
@@ -70,7 +70,7 @@ public class ServiceExecutor {
      * @param task the task to run.
      * @see ExecutorService#submit(Runnable)
      */
-    public void submit(final Runnable task) {
+    void submit(final Runnable task) {
         this.executor.submit(() -> {
             try {
                 task.run();
@@ -88,7 +88,7 @@ public class ServiceExecutor {
      * @return a Future that may be used to obtain the result of the Callable object.
      * @see ExecutorService#submit(Callable)
      */
-    public <T> Future<T> submit(final Callable<T> task) {
+    <T> Future<T> submit(final Callable<T> task) {
         return this.executor.submit(() -> {
             try {
                 return task.call();
@@ -104,7 +104,7 @@ public class ServiceExecutor {
      * Shuts down the ServiceExecutor and the corresponding ThreadPool. Also removes the reference to the singleton
      * instance.
      */
-    public void shutDown() {
+    void shutDown() {
         this.executor.shutdownNow();
         ServiceExecutor.instance = null;
     }

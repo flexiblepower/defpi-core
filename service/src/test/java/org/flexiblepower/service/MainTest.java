@@ -20,7 +20,7 @@ package org.flexiblepower.service;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.junit.Assert;
-import org.junit.Ignore;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -30,7 +30,7 @@ import org.junit.Test;
  * @version 0.1
  * @since Nov 8, 2017
  */
-@Ignore // It works nicely on its own, but not integrated in a series... No time to fix now
+@SuppressWarnings({"javadoc"})
 public class MainTest {
 
     /**
@@ -53,36 +53,36 @@ public class MainTest {
          * @param c the Connection to handle
          */
         public MainConnectionHandler(final Connection c) {
-            // TODO Auto-generated constructor stub
+            // Auto-generated constructor stub
         }
 
         @Override
         public void onSuspend() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
         @Override
         public void resumeAfterSuspend() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
         @Override
         public void onInterrupt() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
         @Override
         public void resumeAfterInterrupt() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
         @Override
         public void terminated() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
@@ -101,36 +101,36 @@ public class MainTest {
          * @param c the Connection to handle
          */
         public MainConnectionHandler2(final Connection c) {
-            // TODO Auto-generated constructor stub
+            // Auto-generated constructor stub
         }
 
         @Override
         public void onSuspend() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
         @Override
         public void resumeAfterSuspend() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
         @Override
         public void onInterrupt() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
         @Override
         public void resumeAfterInterrupt() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
         @Override
         public void terminated() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
@@ -140,41 +140,45 @@ public class MainTest {
 
         @Override
         public void send(final Object message) {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
         @Override
         public boolean isConnected() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
             return false;
         }
 
         @Override
         public ConnectionState getState() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
             return null;
         }
 
         @Override
         public String remoteProcessId() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
             return null;
         }
 
         @Override
         public String remoteServiceId() {
-            // TODO Auto-generated method stub
             return null;
         }
 
         @Override
         public String remoteInterfaceId() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
             return null;
         }
 
     };
+
+    @BeforeClass
+    public static void init() {
+        ConnectionManager.clearConnectionHandlerFactories();
+    }
 
     @SuppressWarnings("static-method")
     public static class TestManager implements ConnectionHandlerManager {

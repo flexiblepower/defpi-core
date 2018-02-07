@@ -34,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since Jun 27, 2017
  */
 @Slf4j
-@SuppressWarnings("static-method")
+@SuppressWarnings({"static-method", "javadoc"})
 public class CompilerTest {
 
     @Test

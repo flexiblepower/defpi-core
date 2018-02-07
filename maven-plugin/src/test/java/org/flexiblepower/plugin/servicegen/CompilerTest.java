@@ -33,13 +33,13 @@ import lombok.extern.slf4j.Slf4j;
  * @since Jun 27, 2017
  */
 @Slf4j
-@SuppressWarnings("static-method")
+@SuppressWarnings({"static-method", "javadoc"})
 public class CompilerTest {
 
     @Test
     public void testGetArchitectures() {
-        log.info("Detected  OS name: {}", ProtoCompiler.getOsName());
-        log.info("Detected architecture: {}", ProtoCompiler.getArchitecture());
+        CompilerTest.log.info("Detected  OS name: {}", ProtoCompiler.getOsName());
+        CompilerTest.log.info("Detected architecture: {}", ProtoCompiler.getArchitecture());
     }
 
     @Test

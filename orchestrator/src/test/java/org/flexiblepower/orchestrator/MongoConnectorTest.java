@@ -46,7 +46,7 @@ import org.junit.Test;
  * @version 0.1
  * @since May 8, 2017
  */
-@SuppressWarnings("static-method")
+@SuppressWarnings({"static-method", "javadoc"})
 @Ignore // Don't run this test, it will mess with existing pending changes
 public class MongoConnectorTest {
 

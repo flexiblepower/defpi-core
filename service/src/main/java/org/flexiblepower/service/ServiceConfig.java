@@ -81,7 +81,7 @@ public class ServiceConfig {
          *
          * @param rawValues a key/value map containing the configuration parameters
          */
-        public GeneratedConfigHandler(final Map<String, String> rawValues) {
+        GeneratedConfigHandler(final Map<String, String> rawValues) {
             this.values = new HashMap<>();
             rawValues.forEach((k, v) -> this.values.put(k.toLowerCase(), v));
         }
