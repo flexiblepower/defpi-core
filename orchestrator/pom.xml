@@ -8,7 +8,7 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>17.11.3-SNAPSHOT</version>
+		<version>17.11.2</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
@@ -203,7 +203,7 @@
 		<profile>
 			<id>release</id>
 			<properties>
-				<docker.imageName>flexiblepower:defpi-orchestrator</docker.imageName>
+				<docker.imageName>flexiblepower/defpi-orchestrator</docker.imageName>
 			</properties>
 
 			<build>

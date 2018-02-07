@@ -5,7 +5,7 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>service-parent</artifactId>
-	<version>17.11.3-SNAPSHOT</version>
+	<version>17.11.2</version>
 	<packaging>pom</packaging>
 
 	<name>dEF-Pi service parent POM</name>
@@ -63,7 +63,7 @@
 		<java.source>1.8</java.source>
 		<java.target>1.8</java.target>
 
-		<defpi.version>17.11.3-SNAPSHOT</defpi.version>
+		<defpi.version>17.11.2</defpi.version>
 
 		<defpi.sources.generated>${project.build.directory}/generated-sources/java</defpi.sources.generated>
 		<defpi.resources.generated>${project.build.directory}/generated-resources/defpi</defpi.resources.generated>
@@ -79,11 +79,6 @@
 		<docker.registry>localhost:5000</docker.registry>
 		<docker.imageName>${docker.registry}/services/${project.artifactId}</docker.imageName>
 	</properties>
-
-	<modules>
-		<module>../../dashboard-gateway</module>
-		<module>../../dashboard</module>
-	</modules>
 
 	<!-- Where to push the service parent itself, should not be used by children -->
 	<distributionManagement>
