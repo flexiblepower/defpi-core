@@ -1,13 +1,21 @@
 package org.flexiblepower.defpi.dashboard.controladmin;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 
 import org.flexiblepower.defpi.dashboard.Dashboard;
 import org.flexiblepower.defpi.dashboard.HttpTask;
 import org.flexiblepower.defpi.dashboard.HttpUtils;
 import org.flexiblepower.defpi.dashboard.Widget;
+import org.flexiblepower.defpi.dashboard.controladmin.defpi.CemProcess;
 import org.flexiblepower.defpi.dashboard.controladmin.defpi.DefPiConnectionAdmin;
+import org.flexiblepower.defpi.dashboard.controladmin.defpi.RmProcess;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest.Method;
+import org.flexiblepower.exceptions.AuthorizationException;
+import org.flexiblepower.exceptions.ConnectionException;
+import org.flexiblepower.exceptions.InvalidObjectIdException;
+import org.flexiblepower.exceptions.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +64,52 @@ public class ControlAdminFullWidget implements Widget {
         return uri.substring(begin, end);
     }
 
+    private static boolean efiIsConnected(final DefPiConnectionAdmin connectionAdmin) {
+        for (final CemProcess cem : connectionAdmin.listCems()) {
+            if (cem.getRmProcessIds().isEmpty()) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+        // Als er geen CEMs zijn gaan we er maar vanuit dat er wel EFI connecties zouden
+        // moeten zijn
+        return true;
+    }
+
+    private void connectAllEfiSessions() {
+        // For now we assume there is 0 or 1 CEM
+        if (this.connectionAdmin.listCems().isEmpty()) {
+            return;
+        }
+        try {
+            final CemProcess cem = this.connectionAdmin.listCems().iterator().next();
+            for (final RmProcess rm : this.connectionAdmin.listRms()) {
+                this.connectionAdmin.connect(cem, rm);
+            }
+        } catch (ConnectionException | AuthorizationException | NotFoundException | IOException e) {
+            ControlAdminFullWidget.LOG.error("Could not create EFI connection", e);
+        }
+    }
+
+    private void disconnectAllEfiSessions() {
+        // For now we assumer there is 0 or 1 CEM
+        if (this.connectionAdmin.listCems().isEmpty()) {
+            return;
+        }
+        try {
+            final CemProcess cem = this.connectionAdmin.listCems().iterator().next();
+            for (final RmProcess rm : this.connectionAdmin.listRms()) {
+                this.connectionAdmin.disconnect(cem, rm);
+            }
+        } catch (UnsupportedEncodingException
+                | InvalidObjectIdException
+                | AuthorizationException
+                | NotFoundException e) {
+            ControlAdminFullWidget.LOG.error("Could not remove EFI connection", e);
+        }
+    }
+
     @Override
     public void handle(final HttpTask httpTask) {
         try {
@@ -63,12 +117,7 @@ public class ControlAdminFullWidget implements Widget {
             final String uri = ControlAdminFullWidget.stripURI(httpTask.getUri());
             if (method.equals(Method.GET)) {
                 if ("index.html".equals(uri)) {
-                    this.connectionAdmin.refreshData();
-                    String html = HttpUtils.readTextFile("/dynamic/widgets/ControlAdminFullWidget/index.html");
-                    html = html.replace("@EFITABLE@", new EfiTableModel(this.connectionAdmin).generateTable());
-                    html = html.replace("@OBSTABLE@", new ObsTableModel(this.connectionAdmin).generateTable());
-
-                    HttpUtils.serveDynamicText(httpTask, HttpUtils.TEXT_HTML, html);
+                    this.servePackageOptions(httpTask);
                     return;
                 } else if ("menu.png".equals(uri)) {
                     HttpUtils.serveStaticFile(httpTask, "/dynamic/widgets/ControlAdminFullWidget/menu.png");
@@ -81,17 +130,18 @@ public class ControlAdminFullWidget implements Widget {
 
                     ControlAdminFullWidget.LOG.debug("Received the folling POST data: " + postData);
 
-                    this.connectionAdmin.refreshData();
-                    final EfiTableModel efiTableModel = new EfiTableModel(this.connectionAdmin);
-                    final ObsTableModel obsTableModel = new ObsTableModel(this.connectionAdmin);
-                    efiTableModel.handlePost(postData);
-                    obsTableModel.handlePost(postData);
+                    if (postData.containsKey("option")) {
+                        final String value = postData.get("option");
+                        if ("sympower".equals(value)) {
+                            ControlAdminFullWidget.LOG.info("Creating EFI sessions");
+                            this.connectAllEfiSessions();
+                        } else if ("alleenmeten".equals(value)) {
+                            ControlAdminFullWidget.LOG.info("Removing EFI sessions");
+                            this.disconnectAllEfiSessions();
+                        }
+                    }
 
-                    String html = HttpUtils.readTextFile("/dynamic/widgets/ControlAdminFullWidget/index.html");
-                    html = html.replace("@EFITABLE@", efiTableModel.generateTable());
-                    html = html.replace("@OBSTABLE@", obsTableModel.generateTable());
-
-                    HttpUtils.serveDynamicText(httpTask, HttpUtils.TEXT_HTML, html);
+                    this.servePackageOptions(httpTask);
                     return;
                 }
             }
@@ -102,6 +152,23 @@ public class ControlAdminFullWidget implements Widget {
         }
     }
 
+    private void servePackageOptions(final HttpTask httpTask) throws UnsupportedEncodingException,
+            AuthorizationException,
+            IOException {
+        this.connectionAdmin.refreshData();
+        String html = HttpUtils.readTextFile("/dynamic/widgets/ControlAdminFullWidget/index.html");
+
+        if (ControlAdminFullWidget.efiIsConnected(this.connectionAdmin)) {
+            html = html.replace("@SYMPOWER_STYLE@", "optionactive");
+            html = html.replace("@ALLEENMETEN_STYLE@", "optionnotactive");
+        } else {
+            html = html.replace("@SYMPOWER_STYLE@", "optionnotactive");
+            html = html.replace("@ALLEENMETEN_STYLE@", "optionactive");
+        }
+
+        HttpUtils.serveDynamicText(httpTask, HttpUtils.TEXT_HTML, html);
+    }
+
     @Override
     public String getFullWidgetId() {
         return "controladmin";
@@ -109,7 +176,7 @@ public class ControlAdminFullWidget implements Widget {
 
     @Override
     public String getTitle() {
-        return "Control Administration";
+        return "Aggregator";
     }
 
     @Override
