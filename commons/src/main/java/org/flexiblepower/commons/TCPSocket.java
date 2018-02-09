@@ -442,7 +442,7 @@ public class TCPSocket implements Closeable {
                 return null;
             }
 
-            this.serverSocket.setSoTimeout((int) millis);
+            this.serverSocket.setSoTimeout((int) Math.max(1, this.timeLeft(t_start, millis)));
             try {
                 final Socket client = this.serverSocket.accept();
                 TCPSocket.log.info("Accepted client socket at {}", client.getRemoteSocketAddress());
