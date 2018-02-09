@@ -101,6 +101,14 @@
 	cursor: not-allowed;
 }
 
+.optionactive .selecteer {
+	display: none;
+}
+
+.optionnotactive .geselecteerd {
+	display: none;
+}
+
 strong {
 	font-weight: bold;
 }
@@ -112,19 +120,15 @@ strong {
 
 <div id="options">
 	<div class="option @SYMPOWER_STYLE@">
-		<h1>SymPower</h1>
+		<h1>Sympower</h1>
 		<h2>Aansturen</h2>
-		<p>Wanneer SymPower gekozen is zal SymPower uw apparaten aansturen
-			voor het optimaliseren van het energienet.</p>
-		<h2>Meten</h2>
-		<p>Meetgegevens van up apparaten worden gedeeld met SymPower. Deze
-			gegevens hebben ze nodig om uw apparaten beter aan te kunnen sturen.
-			Ook worden uw gegevens gedeeld met Alliander en TNO. Zij hebben uw
-			gegevens nodig om het experiment te kunnen monitoren.</p>
-		<form method="post">
+		<p>Sympower zal uw apparaten aansturen voor het optimaliseren van
+			het energienet. U krijgt daarvoor een flexibiliteitsvergoeding.</p>
+		<form method="post" onsubmit="return confirm('Weet u het zeker?');">
 			<input type="hidden" name="option" value="sympower" />
 			<button>
-				Selecteer<br />'SymPower'
+				<span class="selecteer">Selecteer<br /></span>'Sympower'<span
+					class="geselecteerd"><br />geselecteerd</span>
 			</button>
 		</form>
 
@@ -133,20 +137,15 @@ strong {
 	<div class="option @ALLEENMETEN_STYLE@" />
 	<h1>Alleen meten</h1>
 	<h2>Aansturen</h2>
-	<p>
-		Wanneer u 'alleen meten' selecteert, wordt uw apparatuur niet ingezet
-		voor het optimaliseren van het energienet.<br /> <strong>Let
-			op:</strong> Wanneer u deze optie selecteert neemt u niet meer deel aan het
-		experiment.
-	</p>
-	<h2>Meten</h2>
-	<p>Meetgegevens van uw apparaten worden alleen gedeeld met
-		Alliander en TNO. Zij hebben uw gegevens nodig om het experiment te
-		kunnen monitoren.</p>
-	<form method="post">
+	<p>Ik wil mijn gegevens niet (meer) delen met een sturende partij.
+		Uw apparaten worden niet meer aangestuurd, daarom ontvangt u ook geen
+		flexibiliteitsvergoeding. Vanaf nu gaat ook uw opzegtermijn in bij de
+		sturende partij.</p>
+	<form method="post" onsubmit="return confirm('Weet u het zeker?');">
 		<input type="hidden" name="option" value="alleenmeten" />
 		<button>
-			Selecteer<br />'Alleen meten'
+			<span class="selecteer">Selecteer<br /></span>'Alleen meten'<span
+				class="geselecteerd"><br />geselecteerd</span>
 		</button>
 	</form>
 

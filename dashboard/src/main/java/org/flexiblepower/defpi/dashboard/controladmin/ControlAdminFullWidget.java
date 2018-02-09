@@ -176,7 +176,7 @@ public class ControlAdminFullWidget implements Widget {
 
     @Override
     public String getTitle() {
-        return "Aggregator";
+        return "Sturende partij";
     }
 
     @Override
