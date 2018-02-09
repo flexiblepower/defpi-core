@@ -205,7 +205,8 @@ public class TCPSocket implements Closeable {
             if (timeout == 0) {
                 this.socket.setSoTimeout(0);
             } else {
-                this.socket.setSoTimeout((int) (timeout - (System.currentTimeMillis() - t_start)));
+                final int newTimeout = (int) Math.max(1, timeout - (System.currentTimeMillis() - t_start));
+                this.socket.setSoTimeout(newTimeout);
             }
 
             // Read 4 bytes that will tell how long the message is
