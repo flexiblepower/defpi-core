@@ -233,8 +233,11 @@ final class TCPConnection implements Connection, Closeable {
                                     e.getTargetException());
                         }
                     });
+                    return;
                 }
             }
+            TCPConnection.log.error("[{}] - Unable to find handler method for message of type {}",
+                    messageType.getSimpleName());
         } catch (final SerializationException e) {
             // Not a user-defined message, so ignore with grace!
             TCPConnection.log
