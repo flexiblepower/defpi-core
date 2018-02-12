@@ -26,7 +26,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 
+import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
@@ -92,7 +94,8 @@ public class DockerConnector {
 
     private static DockerConnector instance = null;
 
-    private final Object createNetLock = new Object();
+    private final Map<ObjectId, Object> netLocks = new ConcurrentHashMap<>();
+    // private final Object createNetLock = new Object();
     private DockerClient client;
 
     public static DockerClient init() throws DockerCertificateException {
@@ -126,7 +129,11 @@ public class DockerConnector {
      */
     public String newProcess(final Process process) throws ServiceNotFoundException {
         try {
-            synchronized (this.createNetLock) {
+            if (!this.netLocks.containsKey(process.getUserId())) {
+                this.netLocks.put(process.getUserId(), new Object());
+            }
+            // Synchronize by user to avoid many deadlocks
+            synchronized (this.netLocks.get(process.getUserId())) {
                 this.ensureProcessNetworkExists(process);
                 this.ensureProcessNetworkIsAttached(process);
             }
