@@ -273,7 +273,7 @@ public class JavaTemplates extends Templates {
         if (platform.equals("x86")) {
             return "java:alpine";
         } else {
-            return "arm32v6/openjre:8-jre-alpine"; // "larmog/armhf-alpine-java:jdk-8u73";
+            return "arm32v6/openjdk:8-jre-alpine"; // "larmog/armhf-alpine-java:jdk-8u73";
         }
     }
 
