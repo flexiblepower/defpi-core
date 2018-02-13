@@ -296,6 +296,7 @@ public class TCPSocket implements Closeable {
 
         if ((this.socket != null) && !this.socket.isClosed()) {
             try {
+                TCPSocket.log.trace("Closing TCP socket");
                 this.socket.close();
             } catch (final IOException e) {
                 TCPSocket.log.warn("Exception while closing socket: {}", e.getMessage());
