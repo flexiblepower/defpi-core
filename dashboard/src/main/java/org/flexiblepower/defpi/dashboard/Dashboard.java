@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
 
 import javax.annotation.Generated;
 
@@ -35,6 +36,7 @@ public class Dashboard implements Service<DashboardConfiguration> {
     private DefPiParameters parameters;
     private ControlAdminFullWidget controlAdminFullWidget;
     private final List<ObservationPublisher_1ConnectionHandlerImpl> observationPublishers = new ArrayList<>();
+    private Queue<Observation> observationQueue;
 
     @Override
     public void resumeFrom(final Serializable state) {
@@ -108,8 +110,11 @@ public class Dashboard implements Service<DashboardConfiguration> {
         return this.parameters;
     }
 
-    public void registerObservationPublisher(final ObservationPublisher_1ConnectionHandlerImpl o) {
-        this.observationPublishers.add(o);
+    public void registerObservationPublisher(final ObservationPublisher_1ConnectionHandlerImpl handler) {
+        this.observationPublishers.add(handler);
+        while (!this.observationQueue.isEmpty()) {
+            this.observationPublishers.forEach((o) -> o.sendObservation(this.observationQueue.poll()));
+        }
     }
 
     public void unregisterObservationPublisher(final ObservationPublisher_1ConnectionHandlerImpl o) {
@@ -118,8 +123,14 @@ public class Dashboard implements Service<DashboardConfiguration> {
 
     public void publishUserDecisionObservation(final String message) {
         final Builder builder = this.createBuilder();
-        builder.addStringDatapoints(StringDatapoint.newBuilder().setName("Decision").setValue(message).build());
-        this.observationPublishers.forEach((o) -> o.sendObservation(builder.build()));
+        final Observation obs = builder
+                .addStringDatapoints(StringDatapoint.newBuilder().setName("Decision").setValue(message).build())
+                .build();
+        if (this.observationPublishers.isEmpty()) {
+            this.observationQueue.add(obs);
+        } else {
+            this.observationPublishers.forEach((o) -> o.sendObservation(obs));
+        }
     }
 
     private Observation.Builder createBuilder() {
