@@ -1,10 +1,17 @@
 package org.flexiblepower.defpi.dashboard;
 
 import java.io.Serializable;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.annotation.Generated;
 
 import org.flexiblepower.defpi.dashboard.controladmin.ControlAdminFullWidget;
+import org.flexiblepower.defpi.dashboard.observation_publisher._1.ObservationPublisher_1ConnectionHandlerImpl;
+import org.flexiblepower.defpi.dashboard.observation_publisher._1.proto.ObservationPublisher_1Proto.Observation;
+import org.flexiblepower.defpi.dashboard.observation_publisher._1.proto.ObservationPublisher_1Proto.Observation.Builder;
+import org.flexiblepower.defpi.dashboard.observation_publisher._1.proto.ObservationPublisher_1Proto.Observation.StringDatapoint;
 import org.flexiblepower.service.DefPiParameters;
 import org.flexiblepower.service.Service;
 
@@ -27,6 +34,7 @@ public class Dashboard implements Service<DashboardConfiguration> {
     private DashboardConfiguration config;
     private DefPiParameters parameters;
     private ControlAdminFullWidget controlAdminFullWidget;
+    private final List<ObservationPublisher_1ConnectionHandlerImpl> observationPublishers = new ArrayList<>();
 
     @Override
     public void resumeFrom(final Serializable state) {
@@ -97,6 +105,41 @@ public class Dashboard implements Service<DashboardConfiguration> {
 
     public DefPiParameters getParameters() {
         return this.parameters;
+    }
+
+    public void registerObservationPublisher(final ObservationPublisher_1ConnectionHandlerImpl o) {
+        this.observationPublishers.add(o);
+    }
+
+    public void unregisterObservationPublisher(final ObservationPublisher_1ConnectionHandlerImpl o) {
+        this.observationPublishers.remove(o);
+    }
+
+    public void publishUserDecisionObservation(final String message) {
+        final Builder builder = this.createBuilder();
+        builder.addStringDatapoints(StringDatapoint.newBuilder().setName("Decision").setValue(message).build());
+        this.observationPublishers.forEach((o) -> o.sendObservation(builder.build()));
+    }
+
+    private Observation.Builder createBuilder() {
+        final Builder builder = Observation.newBuilder()
+                .setProcessId(this.parameters.getProcessId())
+                .setObserverId("userDashboard")
+                .setObservedAt(Instant.now().toString())
+                .addStringDatapoints(StringDatapoint.newBuilder()
+                        .setName("User")
+                        .setValue(this.parameters.getUsername())
+                        .setIndexed(true)
+                        .build())
+                .addStringDatapoints(StringDatapoint.newBuilder()
+                        .setName("UserId")
+                        .setValue(this.parameters.getUserId())
+                        .setIndexed(true)
+                        .build())
+                .addStringDatapoints(
+                        StringDatapoint.newBuilder().setName("message_type").setValue("userDecision").setIndexed(true));
+
+        return builder;
     }
 
 }
