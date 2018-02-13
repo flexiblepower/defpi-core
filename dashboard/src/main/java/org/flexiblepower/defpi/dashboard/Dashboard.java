@@ -51,6 +51,7 @@ public class Dashboard implements Service<DashboardConfiguration> {
         this.controlAdminFullWidget = new ControlAdminFullWidget(this);
         this.fullWidgetManager.registerFullWidget(this.dashboardFullWidget);
         this.fullWidgetManager.registerFullWidget(this.controlAdminFullWidget);
+        this.publishUserDecisionObservation("Sympower");
     }
 
     @Override
@@ -138,7 +139,6 @@ public class Dashboard implements Service<DashboardConfiguration> {
                         .build())
                 .addStringDatapoints(
                         StringDatapoint.newBuilder().setName("message_type").setValue("userDecision").setIndexed(true));
-
         return builder;
     }
 
