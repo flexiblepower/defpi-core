@@ -137,6 +137,7 @@ public class ControlAdminFullWidget implements Widget {
                             this.connectAllEfiSessions();
                         } else if ("alleenmeten".equals(value)) {
                             ControlAdminFullWidget.LOG.info("Removing EFI sessions");
+                            this.service.publishUserDecisionObservation("alleen meten");
                             this.disconnectAllEfiSessions();
                         }
                     }
