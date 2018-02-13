@@ -73,7 +73,7 @@ public class ServiceManager<T> implements Closeable {
      * The receive timeout of the managementsocket also determines how often the thread "checks" if the keepalive
      * boolean is still true
      */
-    private static final long SOCKET_READ_TIMEOUT_MILLIS = Duration.ofSeconds(10).toMillis();
+    private static final long SOCKET_READ_TIMEOUT_MILLIS = Duration.ofMinutes(5).toMillis();
     private static final long SERVICE_IMPL_TIMEOUT_MILLIS = Duration.ofSeconds(5).toMillis();
     private static final Logger log = LoggerFactory.getLogger(ServiceManager.class);
     private static int threadCount = 0;
@@ -117,8 +117,13 @@ public class ServiceManager<T> implements Closeable {
                 try {
                     messageArray = this.managementSocket.read(ServiceManager.SOCKET_READ_TIMEOUT_MILLIS);
                     if (messageArray == null) {
-                        // No message received...
-                        continue;
+                        if (this.keepThreadAlive) {
+                            ServiceManager.log.info("No message received, close thread and wait for new connections");
+                            this.managementSocket.close();
+                            this.managementSocket = TCPSocket.asServer(ServiceManager.MANAGEMENT_PORT);
+                            continue;
+                        }
+                        break;
                     }
                 } catch (final IOException e) {
                     if (this.keepThreadAlive) {
