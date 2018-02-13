@@ -1,0 +1,5 @@
+Service built at: ${maven.build.timestamp}
+Service built by: ${user.name}
+Git branch:       ${git.branch}
+Git commit:       ${git.commit.id}
+Git log:          ${git.commit.message.short}

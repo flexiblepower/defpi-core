@@ -17,6 +17,9 @@
  */
 package org.flexiblepower.service;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.Set;
@@ -142,6 +145,17 @@ public final class ServiceMain {
     }
 
     public static <T> void main(final String[] args) {
+        try (
+                BufferedReader br = new BufferedReader(
+                        new InputStreamReader(ServiceMain.class.getResourceAsStream("/service-version")))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                ServiceMain.log.info(line);
+            }
+        } catch (final IOException e) {
+            ServiceMain.log.info("Unable to detect service version: {}", e.getMessage());
+        }
+
         ServiceMain.reflections = new Reflections();
         // Get service from package
 

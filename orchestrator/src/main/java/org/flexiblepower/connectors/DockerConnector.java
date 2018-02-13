@@ -92,6 +92,8 @@ public class DockerConnector {
     private static final String USER_LABEL_KEY = "user.id";
     private static final String NODE_ID_LABEL_KEY = "node.id";
 
+    private static final long DOCKER_CLIENT_TIMEOUT = 30000;
+
     private static DockerConnector instance = null;
 
     private final Map<ObjectId, Object> netLocks = new ConcurrentHashMap<>();
@@ -101,9 +103,16 @@ public class DockerConnector {
     public static DockerClient init() throws DockerCertificateException {
         final String dockerHost = System.getenv(DockerConnector.DOCKER_HOST_KEY);
         if (dockerHost == null) {
-            return DefaultDockerClient.fromEnv().build();
+            return DefaultDockerClient.fromEnv()
+                    .readTimeoutMillis(DockerConnector.DOCKER_CLIENT_TIMEOUT)
+                    .connectTimeoutMillis(DockerConnector.DOCKER_CLIENT_TIMEOUT)
+                    .build();
         } else {
-            return DefaultDockerClient.builder().uri(dockerHost).build();
+            return DefaultDockerClient.builder()
+                    .uri(dockerHost)
+                    .readTimeoutMillis(DockerConnector.DOCKER_CLIENT_TIMEOUT)
+                    .connectTimeoutMillis(DockerConnector.DOCKER_CLIENT_TIMEOUT)
+                    .build();
         }
     }
 
