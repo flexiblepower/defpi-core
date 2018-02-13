@@ -3,6 +3,7 @@ package org.flexiblepower.defpi.dashboard;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
@@ -36,7 +37,7 @@ public class Dashboard implements Service<DashboardConfiguration> {
     private DefPiParameters parameters;
     private ControlAdminFullWidget controlAdminFullWidget;
     private final List<ObservationPublisher_1ConnectionHandlerImpl> observationPublishers = new ArrayList<>();
-    private Queue<Observation> observationQueue;
+    private final Queue<Observation> observationQueue = new LinkedList<>();
 
     @Override
     public void resumeFrom(final Serializable state) {
