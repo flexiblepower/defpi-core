@@ -107,7 +107,7 @@ public class DockerConnector {
     private final Map<ObjectId, Object> netLocks = new ConcurrentHashMap<>();
     // private final Object createNetLock = new Object();
     private DockerClient client;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
     public static DockerClient init() throws DockerCertificateException {
         final String dockerHost = System.getenv(DockerConnector.DOCKER_HOST_KEY);
