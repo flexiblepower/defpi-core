@@ -21,13 +21,14 @@
 	</properties>
 
 	<dependencyManagement>
-	<dependencies>
-	<dependency>
-			<groupId>org.glassfish.jersey.core</groupId>
-			<artifactId>jersey-client</artifactId>
-			<version>2.26</version>
-		</dependency>
-	</dependencies>
+    <dependencies>
+      <!-- Version 2.26 will break -->
+			<dependency>
+				<groupId>org.glassfish.jersey.core</groupId>
+				<artifactId>jersey-client</artifactId>
+				<version>2.25.1</version>
+			</dependency>
+		</dependencies>
 	</dependencyManagement>
 
 	<dependencies>
