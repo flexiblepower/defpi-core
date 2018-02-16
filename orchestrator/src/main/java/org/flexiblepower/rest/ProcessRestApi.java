@@ -18,6 +18,8 @@
 
 package org.flexiblepower.rest;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
@@ -38,6 +40,7 @@ import org.flexiblepower.model.InterfaceVersion;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.orchestrator.ServiceManager;
+import org.flexiblepower.orchestrator.UserManager;
 import org.flexiblepower.process.ProcessManager;
 import org.json.JSONObject;
 
@@ -56,7 +59,10 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
             final String sortDir,
             final String sortField,
             final String filters) throws AuthorizationException {
-        // TODO Implement pagination
+        if ((page < 1) || (perPage < 1)) {
+            return Collections.emptyList();
+        }
+
         List<Process> processes;
         if (this.sessionUser == null) {
             throw new AuthorizationException();
@@ -65,6 +71,8 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
         } else {
             processes = ProcessManager.getInstance().listProcesses(this.sessionUser);
         }
+
+        // Filters are a bit custom
         if (filters != null) {
             final JSONObject f = new JSONObject(filters);
             if (f.has("hashpair") && f.getString("hashpair").contains(";")) {
@@ -100,7 +108,35 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
                 }
             }
         }
-        return processes;
+
+        // Now do the sorting
+        final Comparator<Process> comparator;
+        switch (sortField) {
+        case "userId":
+            comparator = (one, other) -> UserManager.getInstance().getUser(one.getUserId()).getUsername().compareTo(
+                    UserManager.getInstance().getUser(other.getUserId()).getUsername());
+            break;
+        case "serviceId":
+            comparator = (one, other) -> one.getServiceId().compareTo(other.getServiceId());
+            break;
+        case "state":
+            comparator = (one, other) -> one.getState().toString().compareTo(other.getState().toString());
+            break;
+        case "Id":
+        default:
+            comparator = (one, other) -> one.getId().toString().compareTo(other.getId().toString());
+            break;
+        }
+        Collections.sort(processes, comparator);
+
+        // Order the sorting if necessary
+        if (sortDir.equals("DESC")) {
+            Collections.reverse(processes);
+        }
+
+        // And finally pagination
+        return processes.subList(Math.min(processes.size(), (page - 1) * perPage),
+                Math.min(processes.size(), page * perPage));
     }
 
     @Override
