@@ -23,6 +23,7 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
@@ -31,10 +32,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
@@ -115,6 +112,7 @@ public class ServiceManager<T> implements Closeable {
             while (this.keepThreadAlive) {
                 byte[] messageArray;
                 try {
+                    this.managementSocket.waitUntilConnected(); // block until connected as server
                     messageArray = this.managementSocket.read(ServiceManager.SOCKET_READ_TIMEOUT_MILLIS);
                     if (messageArray == null) {
                         if (this.keepThreadAlive) {
@@ -216,7 +214,6 @@ public class ServiceManager<T> implements Closeable {
      * @throws ServiceInvocationException
      *
      */
-    @SuppressWarnings("resource")
     private void requestConfig() throws ServiceInvocationException {
         try {
             final URI uri = new URI("http",
@@ -228,17 +225,29 @@ public class ServiceManager<T> implements Closeable {
                     null);
             ServiceManager.log.info("Requesting config message from orchestrator at {}", uri);
 
-            final HttpClient client = HttpClientBuilder.create().build();
+            final HttpURLConnection httpCon = (HttpURLConnection) uri.toURL().openConnection();
+            httpCon.setRequestMethod("PUT");
+            httpCon.setRequestProperty("X-Auth-Token", this.defPiParams.getOrchestratorToken());
+            final int response = httpCon.getResponseCode();
+            httpCon.disconnect();
 
-            // Create http request with token in header
-            final HttpPut request = new HttpPut(uri);
-            request.addHeader("X-Auth-Token", this.defPiParams.getOrchestratorToken());
-
-            final HttpResponse response = client.execute(request);
-            if (response.getStatusLine().getStatusCode() != 204) {
-                throw new ServiceInvocationException(
-                        "Unable to request config: " + response.getStatusLine().getReasonPhrase());
+            if (response != 204) {
+                throw new ServiceInvocationException("Unable to request config, received code " + response);
             }
+
+            /*
+             * final HttpClient client = HttpClientBuilder.create().build();
+             *
+             * // Create http request with token in header
+             * final HttpPut request = new HttpPut(uri);
+             * request.addHeader("X-Auth-Token", this.defPiParams.getOrchestratorToken());
+             * final HttpResponse response = client.execute(request);
+             *
+             * if (response.getStatusLine().getStatusCode() != 204) {
+             * throw new ServiceInvocationException(
+             * "Unable to request config: " + response.getStatusLine().getReasonPhrase());
+             * }
+             */
         } catch (final URISyntaxException | IOException e) {
             throw new ServiceInvocationException(
                     "Futile to start service without triggering process config at orchestrator.",
