@@ -24,8 +24,7 @@ import java.io.Serializable;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.URL;
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -216,16 +215,13 @@ public class ServiceManager<T> implements Closeable {
      */
     private void requestConfig() throws ServiceInvocationException {
         try {
-            final URI uri = new URI("http",
-                    null,
+            final URL url = new URL("http",
                     this.defPiParams.getOrchestratorHost(),
                     this.defPiParams.getOrchestratorPort(),
-                    "/process/trigger/" + this.defPiParams.getProcessId(),
-                    null,
-                    null);
-            ServiceManager.log.info("Requesting config message from orchestrator at {}", uri);
+                    "/process/trigger/" + this.defPiParams.getProcessId());
+            ServiceManager.log.info("Requesting config message from orchestrator at {}", url);
 
-            final HttpURLConnection httpCon = (HttpURLConnection) uri.toURL().openConnection();
+            final HttpURLConnection httpCon = (HttpURLConnection) url.openConnection();
             httpCon.setRequestMethod("PUT");
             httpCon.setRequestProperty("X-Auth-Token", this.defPiParams.getOrchestratorToken());
             final int response = httpCon.getResponseCode();
@@ -248,7 +244,7 @@ public class ServiceManager<T> implements Closeable {
              * "Unable to request config: " + response.getStatusLine().getReasonPhrase());
              * }
              */
-        } catch (final URISyntaxException | IOException e) {
+        } catch (final IOException e) {
             throw new ServiceInvocationException(
                     "Futile to start service without triggering process config at orchestrator.",
                     e);
