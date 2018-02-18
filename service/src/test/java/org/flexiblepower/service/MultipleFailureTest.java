@@ -26,6 +26,8 @@ import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 /**
@@ -36,6 +38,7 @@ import org.junit.runners.Parameterized.Parameters;
  * @since Nov 6, 2017
  */
 @SuppressWarnings({"static-method", "javadoc"})
+@RunWith(Parameterized.class)
 public class MultipleFailureTest {
 
     /**

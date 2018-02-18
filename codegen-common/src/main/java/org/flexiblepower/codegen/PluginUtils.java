@@ -195,15 +195,20 @@ public class PluginUtils {
      * @param location
      * @param resources
      * @return
+     * @throws FileNotFoundException
      */
-    public static Path downloadFileOrResolve(final String location, final Path resources) {
-        // First get the hash of the input file
+    public static Path downloadFileOrResolve(final String location, final Path resources) throws FileNotFoundException {
         try {
             final Path tempFile = Files.createTempFile(null, null);
             PluginUtils.downloadFile(location, tempFile.toFile());
             return tempFile;
         } catch (final IOException e) {
-            return resources.resolve(location);
+            final Path ret = resources.resolve(location);
+            if (!ret.toFile().exists()) {
+                throw new FileNotFoundException("Unable to get file from " + location);
+            } else {
+                return ret;
+            }
         }
     }
 

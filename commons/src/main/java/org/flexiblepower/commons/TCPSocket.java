@@ -205,7 +205,8 @@ public class TCPSocket implements Closeable {
             if (timeout == 0) {
                 this.socket.setSoTimeout(0);
             } else {
-                this.socket.setSoTimeout((int) (timeout - (System.currentTimeMillis() - t_start)));
+                final int newTimeout = (int) Math.max(1, timeout - (System.currentTimeMillis() - t_start));
+                this.socket.setSoTimeout(newTimeout);
             }
 
             // Read 4 bytes that will tell how long the message is
@@ -295,6 +296,7 @@ public class TCPSocket implements Closeable {
 
         if ((this.socket != null) && !this.socket.isClosed()) {
             try {
+                TCPSocket.log.trace("Closing TCP socket");
                 this.socket.close();
             } catch (final IOException e) {
                 TCPSocket.log.warn("Exception while closing socket: {}", e.getMessage());
@@ -441,7 +443,12 @@ public class TCPSocket implements Closeable {
                 return null;
             }
 
-            this.serverSocket.setSoTimeout((int) millis);
+            if (millis == 0) {
+                this.serverSocket.setSoTimeout(0);
+            } else {
+                this.serverSocket.setSoTimeout((int) Math.max(1, this.timeLeft(t_start, millis)));
+            }
+
             try {
                 final Socket client = this.serverSocket.accept();
                 TCPSocket.log.info("Accepted client socket at {}", client.getRemoteSocketAddress());

@@ -85,8 +85,10 @@ public class ConnectionTest {
         this.manager = new ServiceManager<>();
         try {
             this.manager.start(this.testService);
-        } catch (final ServiceInvocationException e) {
-            Assert.assertTrue(e.getMessage().startsWith("Futile"));
+        } catch (final Exception e) {
+            Assert.assertEquals(RuntimeException.class, e.getClass());
+            Assert.assertEquals(IllegalArgumentException.class, e.getCause().getClass());
+            Assert.assertTrue(e.getMessage().contains("protocol = http host = null"));
         }
 
         ConnectionManager.registerConnectionHandlerFactory(TestService.class, this.testService);

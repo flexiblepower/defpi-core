@@ -20,6 +20,7 @@ package org.flexiblepower.plugin.servicegen;
 
 import java.io.IOException;
 import java.text.DateFormat;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -273,8 +274,15 @@ public class JavaTemplates extends Templates {
         if (platform.equals("x86")) {
             return "java:alpine";
         } else {
-            return "larmog/armhf-alpine-java:jdk-8u73";
+            return "arm32v6/openjdk:8-jre-alpine"; // "larmog/armhf-alpine-java:jdk-8u73";
         }
+    }
+
+    @Override
+    protected Map<String, String> getAdditionalDockerReplaceMap() {
+        final Map<String, String> ret = new HashMap<>();
+        ret.put("service.package", this.servicePackage);
+        return Collections.unmodifiableMap(ret);
     }
 
 }

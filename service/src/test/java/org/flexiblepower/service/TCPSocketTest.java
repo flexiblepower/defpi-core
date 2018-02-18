@@ -66,6 +66,27 @@ public class TCPSocketTest {
     }
 
     @Test
+    public void doClose() throws Exception {
+        try (
+                final TCPSocket client = TCPSocket.asClient("127.0.0.1", TCPSocketTest.TEST_PORT);
+                final TCPSocket server = TCPSocket.asServer(TCPSocketTest.TEST_PORT)) {
+            client.waitUntilConnected(100);
+            Assert.assertTrue(client.isConnected());
+            client.send("Test data".getBytes());
+            Assert.assertEquals("Test data", new String(server.read(100)));
+            Assert.assertTrue(server.isConnected());
+
+            client.close();
+            try {
+                server.read(100);
+            } catch (final Exception e) {
+                Assert.assertEquals(IOException.class, e.getClass());
+            }
+
+        }
+    }
+
+    @Test
     public void testTimeout() throws Exception {
         try (
                 final TCPSocket client = TCPSocket.asClient("127.0.0.1", TCPSocketTest.TEST_PORT);

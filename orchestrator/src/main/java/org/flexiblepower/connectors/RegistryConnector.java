@@ -433,10 +433,16 @@ public class RegistryConnector {
 
     private static String queryRegistry(final URI uri) throws ServiceNotFoundException {
         RegistryConnector.log.debug("Requesting {}", uri);
-        final Response response = ClientBuilder.newClient().target(uri).request().get();
-        RegistryConnector.validateResponse(response);
-
-        return response.readEntity(String.class);
+        Response response = null;
+        try {
+            response = ClientBuilder.newClient().target(uri).request().get();
+            RegistryConnector.validateResponse(response);
+            return response.readEntity(String.class);
+        } finally {
+            if (response != null) {
+                response.close();
+            }
+        }
     }
 
     /**

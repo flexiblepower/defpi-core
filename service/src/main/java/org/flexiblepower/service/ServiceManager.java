@@ -23,18 +23,14 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.exceptions.SerializationException;
 import org.flexiblepower.proto.ConnectionProto.ConnectionMessage;
@@ -74,7 +70,7 @@ public class ServiceManager<T> implements Closeable {
      * The receive timeout of the managementsocket also determines how often the thread "checks" if the keepalive
      * boolean is still true
      */
-    private static final long SOCKET_READ_TIMEOUT_MILLIS = Duration.ofSeconds(10).toMillis();
+    private static final long SOCKET_READ_TIMEOUT_MILLIS = Duration.ofMinutes(5).toMillis();
     private static final long SERVICE_IMPL_TIMEOUT_MILLIS = Duration.ofSeconds(5).toMillis();
     private static final Logger log = LoggerFactory.getLogger(ServiceManager.class);
     private static int threadCount = 0;
@@ -122,10 +118,16 @@ public class ServiceManager<T> implements Closeable {
             while (this.keepThreadAlive) {
                 byte[] messageArray;
                 try {
+                    this.managementSocket.waitUntilConnected(); // block until connected as server
                     messageArray = this.managementSocket.read(ServiceManager.SOCKET_READ_TIMEOUT_MILLIS);
                     if (messageArray == null) {
-                        // No message received...
-                        continue;
+                        if (this.keepThreadAlive) {
+                            ServiceManager.log.info("No message received, close thread and wait for new connections");
+                            this.managementSocket.close();
+                            this.managementSocket = TCPSocket.asServer(ServiceManager.MANAGEMENT_PORT);
+                            continue;
+                        }
+                        break;
                     }
                 } catch (final IOException e) {
                     if (this.keepThreadAlive) {
@@ -226,30 +228,38 @@ public class ServiceManager<T> implements Closeable {
      * @throws ServiceInvocationException
      *
      */
-    @SuppressWarnings("resource")
     private void requestConfig() throws ServiceInvocationException {
         try {
-            final URI uri = new URI("http",
-                    null,
+            final URL url = new URL("http",
                     this.defPiParams.getOrchestratorHost(),
                     this.defPiParams.getOrchestratorPort(),
-                    "/process/trigger/" + this.defPiParams.getProcessId(),
-                    null,
-                    null);
-            ServiceManager.log.info("Requesting config message from orchestrator at {}", uri);
+                    "/process/trigger/" + this.defPiParams.getProcessId());
+            ServiceManager.log.info("Requesting config message from orchestrator at {}", url);
 
-            final HttpClient client = HttpClientBuilder.create().build();
+            final HttpURLConnection httpCon = (HttpURLConnection) url.openConnection();
+            httpCon.setRequestMethod("PUT");
+            httpCon.setRequestProperty("X-Auth-Token", this.defPiParams.getOrchestratorToken());
+            final int response = httpCon.getResponseCode();
+            httpCon.disconnect();
 
-            // Create http request with token in header
-            final HttpPut request = new HttpPut(uri);
-            request.addHeader("X-Auth-Token", this.defPiParams.getOrchestratorToken());
-
-            final HttpResponse response = client.execute(request);
-            if (response.getStatusLine().getStatusCode() != 204) {
-                throw new ServiceInvocationException(
-                        "Unable to request config: " + response.getStatusLine().getReasonPhrase());
+            if (response != 204) {
+                throw new ServiceInvocationException("Unable to request config, received code " + response);
             }
-        } catch (final URISyntaxException | IOException e) {
+
+            /*
+             * final HttpClient client = HttpClientBuilder.create().build();
+             *
+             * // Create http request with token in header
+             * final HttpPut request = new HttpPut(uri);
+             * request.addHeader("X-Auth-Token", this.defPiParams.getOrchestratorToken());
+             * final HttpResponse response = client.execute(request);
+             *
+             * if (response.getStatusLine().getStatusCode() != 204) {
+             * throw new ServiceInvocationException(
+             * "Unable to request config: " + response.getStatusLine().getReasonPhrase());
+             * }
+             */
+        } catch (final IOException e) {
             throw new ServiceInvocationException(
                     "Futile to start service without triggering process config at orchestrator.",
                     e);
