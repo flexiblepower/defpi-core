@@ -189,10 +189,10 @@ public class PythonCodegen {
         final Path dockerArmFolder = Files.createDirectories(this.resourcePath.resolve(this.dockerArmLocation));
 
         Files.write(dockerFolder.resolve("Dockerfile"),
-                this.templates.generateDockerfile("x86", service, this.dockerEntryPoint).getBytes());
+                this.templates.generateDockerfile("x86", this.dockerEntryPoint).getBytes());
 
         Files.write(dockerArmFolder.resolve("Dockerfile"),
-                this.templates.generateDockerfile("arm", service, this.dockerEntryPoint).getBytes());
+                this.templates.generateDockerfile("arm", this.dockerEntryPoint).getBytes());
     }
 
     /**

@@ -64,7 +64,7 @@ public class PluginTest {
             }
             PluginTest.log.info(t.generateManagerInterface(itf));
         }
-        PluginTest.log.info(t.generateDockerfile("x86", descr, "run-java.sh"));
+        PluginTest.log.info(t.generateDockerfile("x86", "run-java.sh"));
     }
 
     @Test

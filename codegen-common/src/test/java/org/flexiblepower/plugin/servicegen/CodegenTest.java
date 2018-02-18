@@ -22,9 +22,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 
 import org.flexiblepower.codegen.PluginUtils;
 import org.flexiblepower.codegen.model.InterfaceDescription;
@@ -81,9 +78,9 @@ public class CodegenTest {
             for (final InterfaceVersionDescription v : i.getInterfaceVersions()) {
                 v.setHash("");
                 Assert.assertEquals("c6ea70559295ffc6aba33ea620642d86199bc36521311215a01f19d8dc246721",
-                        PluginUtils.getHash(v, new HashSet<>(Arrays.asList("Stuff"))));
+                        PluginUtils.getSendHash(v));
                 Assert.assertEquals("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                        PluginUtils.getHash(v, Collections.emptySet()));
+                        PluginUtils.getReceiveHash(v));
             }
         }
     }

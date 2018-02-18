@@ -11,7 +11,7 @@
           "versionName": "v0.0.1",
           "type": "proto",
           "location": "echoProtocol.proto",
-          "sends": ["Msg"],
+          "sends": ["Stuff"],
           "receives": []
         }
       ]
@@ -25,8 +25,8 @@
           "versionName": "v0.0.2",
           "type": "proto",
           "location": "echoProtocol.proto",
-          "sends": ["Msg"],
-          "receives": ["Msg"]
+          "sends": ["Stuff"],
+          "receives": []
         }
       ]
     }

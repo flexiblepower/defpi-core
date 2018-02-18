@@ -212,8 +212,8 @@ public class JavaTemplates extends Templates {
             replaceMap.put("itf.name", itf.getName());
             replaceMap.put("vitf.version", version.getVersionName());
             replaceMap.put("vitf.package", packageName);
-            replaceMap.put("vitf.receivesHash", PluginUtils.getHash(version, version.getReceives()));
-            replaceMap.put("vitf.sendsHash", PluginUtils.getHash(version, version.getSends()));
+            replaceMap.put("vitf.receivesHash", PluginUtils.getReceiveHash(version));
+            replaceMap.put("vitf.sendsHash", PluginUtils.getSendHash(version));
 
             final Set<String> recvClasses = new HashSet<>();
             for (final String type : version.getReceives()) {
