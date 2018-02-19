@@ -79,7 +79,7 @@ public class RestServerTest {
                 MediaType.APPLICATION_JSON_TYPE));
     }
 
-    @Test
+    // @Test
     public void testListNodes() throws ClientProtocolException, URISyntaxException, IOException {
         this.defaultTests("unidentifiednode", null, 200, MediaType.APPLICATION_JSON_TYPE);
     }
