@@ -20,6 +20,17 @@
 		<docker.imageName>${docker.registry}/defpi/${project.artifactId}</docker.imageName>
 	</properties>
 
+	<dependencyManagement>
+		<dependencies>
+			<!-- Version 2.26 will break -->
+			<dependency>
+				<groupId>org.glassfish.jersey.core</groupId>
+				<artifactId>jersey-client</artifactId>
+				<version>2.25.1</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>
@@ -51,6 +62,11 @@
 		</dependency>
 
 		<dependency>
+			<groupId>org.mongodb.morphia</groupId>
+			<artifactId>morphia</artifactId>
+		</dependency>
+
+		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
 		</dependency>
@@ -58,7 +74,7 @@
 		<dependency>
 			<groupId>com.spotify</groupId>
 			<artifactId>docker-client</artifactId>
-			<version>8.11.1</version>
+			<version>8.11.2-SNAPSHOT</version>
 			<exclusions>
 				<exclusion>
 					<groupId>ch.qos.logback</groupId>

@@ -32,7 +32,6 @@ import org.flexiblepower.serializers.JavaIOSerializer;
 import org.flexiblepower.serializers.MessageSerializer;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.flexiblepower.service.TestService.TestServiceConfiguration;
-import org.flexiblepower.service.exceptions.ServiceInvocationException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -73,8 +72,10 @@ public class ServiceTest {
         this.manager = new ServiceManager<>();
         try {
             this.manager.start(this.testService);
-        } catch (final ServiceInvocationException e) {
-            Assert.assertTrue(e.getMessage().startsWith("Futile"));
+        } catch (final Exception e) {
+            Assert.assertEquals(RuntimeException.class, e.getClass());
+            Assert.assertEquals(IllegalArgumentException.class, e.getCause().getClass());
+            Assert.assertTrue(e.getMessage().contains("protocol = http host = null"));
         }
 
         this.managementSocket = TCPSocket.asClient(ServiceTest.TEST_HOST, ServiceManager.MANAGEMENT_PORT);
@@ -84,6 +85,7 @@ public class ServiceTest {
         this.pbSerializer.addMessageClass(ProcessStateUpdateMessage.class);
         this.pbSerializer.addMessageClass(ResumeProcessMessage.class);
         this.pbSerializer.addMessageClass(ErrorMessage.class);
+
     }
 
     @Test(timeout = 10000)

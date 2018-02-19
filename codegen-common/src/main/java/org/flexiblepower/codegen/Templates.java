@@ -21,6 +21,7 @@ package org.flexiblepower.codegen;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -58,6 +59,11 @@ public abstract class Templates {
     }
 
     protected abstract String getDockerBaseImage(String platform);
+
+    @SuppressWarnings("static-method")
+    protected Map<String, String> getAdditionalDockerReplaceMap() {
+        return Collections.emptyMap();
+    }
 
     /**
      * Generate the docker file for this service
@@ -109,6 +115,8 @@ public abstract class Templates {
         replace.put("interfaces", interfaces.replaceAll("\n", " \\\\ \n"));
 
         replace.put("entrypoint", dockerEntryPoint);
+
+        replace.putAll(this.getAdditionalDockerReplaceMap());
 
         return this.replaceMap(this.getTemplate("Dockerfile"), replace);
     }

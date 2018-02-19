@@ -156,7 +156,13 @@ public final class ServiceMain {
             ServiceMain.log.info("Unable to detect service version: {}", e.getMessage());
         }
 
-        ServiceMain.reflections = new Reflections();
+        final String servicePackage = System.getenv("SERVICE_PACKAGE");
+        if ((servicePackage == null) || servicePackage.isEmpty()) {
+            ServiceMain.reflections = new Reflections();
+        } else {
+            ServiceMain.reflections = new Reflections(servicePackage);
+        }
+
         // Get service from package
 
         @SuppressWarnings("resource")

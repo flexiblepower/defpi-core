@@ -18,6 +18,8 @@
 
 package org.flexiblepower.rest;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
@@ -55,7 +57,10 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
             final String sortDir,
             final String sortField,
             final String filters) throws AuthorizationException {
-        // TODO pagination
+        if ((page < 1) || (perPage < 1)) {
+            return Collections.emptyList();
+        }
+
         List<Connection> connections;
         if (this.sessionUser == null) {
             throw new AuthorizationException();
@@ -64,6 +69,7 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
         } else {
             connections = ConnectionManager.getInstance().getConnectionsForUser(this.sessionUser);
         }
+
         if (filters != null) {
             final JSONObject f = new JSONObject(filters);
             if (f.has("userId")) {
@@ -93,8 +99,36 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
                 }
             }
         }
-        return connections;
 
+        // Now do the sorting
+        Comparator<Connection> comparator;
+        switch (sortField) {
+        case "endpoint1.interfaceId":
+            comparator = (a, b) -> a.getEndpoint1().getInterfaceId().compareTo(b.getEndpoint1().getInterfaceId());
+            break;
+        case "endpoint2.interfaceId":
+            comparator = (a, b) -> a.getEndpoint2().getInterfaceId().compareTo(b.getEndpoint2().getInterfaceId());
+            break;
+        case "endpoint1.processId":
+            comparator = (a, b) -> a.getEndpoint1().getProcessId().compareTo(b.getEndpoint1().getProcessId());
+            break;
+        case "endpoint2.processId":
+            comparator = (a, b) -> a.getEndpoint2().getProcessId().compareTo(b.getEndpoint2().getProcessId());
+            break;
+        case "id":
+        default:
+            comparator = (a, b) -> a.getId().toString().compareTo(b.getId().toString());
+            break;
+        }
+        Collections.sort(connections, comparator);
+
+        // Order the sorting if necessary
+        if (sortDir.equals("DESC")) {
+            Collections.reverse(connections);
+        }
+
+        // And finally pagination
+        return connections.subList((page - 1) * perPage, Math.min(connections.size(), page * perPage));
     }
 
     @Override

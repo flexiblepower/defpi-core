@@ -44,7 +44,9 @@ public class ProtoCompiler implements Compiler {
                 ProtoCompiler.getOsName(),
                 ProtoCompiler.getArchitecture());
 
-        final Path tempPath = Paths.get("target", "protoc");
+        final String tmpfir = System.getProperty("java.io.tmpdir",
+                ProtoCompiler.getOsName().equals("windows") ? "C:/Windows/Temp" : "/tmp");
+        final Path tempPath = Paths.get(tmpfir);
         this.compilerFile = tempPath.resolve(protoFilename).toFile();
 
         ProtoCompiler.ensureCompilerExists(this.compilerFile, protobufVersion);
