@@ -137,10 +137,10 @@ public class DockerConnector {
      * Private destructor, is only closed after docker exception to make sure we will make a new client
      */
     private synchronized void destroy(final String msg, final Throwable cause) {
-        this.client.close();
+        // this.client.close();
         DockerConnector.log.error("{}: {}", msg, cause.getMessage());
         DockerConnector.log.trace(cause.getMessage(), cause);
-        DockerConnector.instance = null;
+        // DockerConnector.instance = null;
     }
 
     public synchronized static DockerConnector getInstance() {
