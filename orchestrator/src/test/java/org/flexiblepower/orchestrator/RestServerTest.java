@@ -16,6 +16,7 @@ import java.nio.charset.Charset;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.http.Header;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -78,6 +79,11 @@ public class RestServerTest {
     }
 
     @Test
+    public void testListNodes() throws ClientProtocolException, URISyntaxException, IOException {
+        this.defaultTests("unidentifiednode", null, 200, MediaType.APPLICATION_JSON_TYPE);
+    }
+
+    @Test
     public void test404() throws ClientProtocolException, URISyntaxException, IOException {
         this.defaultTests("bestaatniet", null, 404, MediaType.APPLICATION_JSON_TYPE);
     }
@@ -131,6 +137,9 @@ public class RestServerTest {
         final HttpClient client = HttpClientBuilder.create().build();
 
         final HttpResponse response = client.execute(request);
+        for (final Header h : response.getAllHeaders()) {
+            System.out.format("Headers: %s - %s\n", h.getName(), h.getValue());
+        }
         Assert.assertEquals(expectedResponse, response.getStatusLine().getStatusCode());
         if (response.getEntity().getContentLength() == 0) {
             return "";

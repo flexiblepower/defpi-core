@@ -43,7 +43,9 @@ public class ServiceRestApi extends BaseApi implements ServiceApi {
             final String filters) throws AuthorizationException {
         // TODO implement
         this.assertUserIsLoggedIn();
-        return ServiceManager.getInstance().listServices();
+        final List<Service> content = ServiceManager.getInstance().listServices();
+        this.addTotalCount(content.size());
+        return content;
     }
 
     @Override

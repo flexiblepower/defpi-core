@@ -38,12 +38,10 @@ import org.mongodb.morphia.Morphia;
 import org.mongodb.morphia.query.FindOptions;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
-import org.mongodb.morphia.query.UpdateResults;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoClient;
-import com.mongodb.WriteResult;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -330,20 +328,22 @@ public final class MongoDbConnector {
     /**
      *
      */
-    public void cleanPendingChanges() {
+    public String cleanPendingChanges() {
         // Remove pending changes that failed permanently
         final Query<PendingChange> failed = this.datastore.createQuery(PendingChange.class).field("state").equal(
                 PendingChange.State.FAILED_PERMANENTLY);
-        final WriteResult deleted = this.datastore.delete(failed);
-        MongoDbConnector.log.info("Deleted {} permanently failed pending changes", deleted.getN());
+        final int deletedFailed = this.datastore.delete(failed).getN();
 
         // Remove any pending changes that haven't been updated for a long time
         final Query<PendingChange> lingering = this.datastore.createQuery(PendingChange.class).filter("obtainedAt <",
                 new Date(System.currentTimeMillis() - MongoDbConnector.PENDING_CHANGE_TIMEOUT_MS));
         final UpdateOperations<PendingChange> update = this.datastore.createUpdateOperations(PendingChange.class)
                 .unset("obtainedAt");
-        final UpdateResults updated = this.datastore.update(lingering, update);
-        MongoDbConnector.log.info("Cleared {} lingering pending changes", updated.getUpdatedCount());
+        final int deletedLingering = this.datastore.update(lingering, update).getUpdatedCount();
+
+        return String.format("Deleted %d permanently failed, and %d lingering pending changes",
+                deletedFailed,
+                deletedLingering);
     }
 
 }

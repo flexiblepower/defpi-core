@@ -95,6 +95,7 @@ public class OrchestratorApplication extends Application {
         resources.add(SwaggerSerializers.class);
         resources.add(JacksonFeature.class);
         resources.add(CORSResponseFilter.class);
+        resources.add(TotalCountFilter.class);
 
         return resources;
     }
