@@ -482,7 +482,7 @@ public interface NodeApi {
                          response = Response.class,
                          responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public Response listNodePools(@QueryParam("_page") @DefaultValue("1") int page,
+    public List<NodePool> listNodePools(@QueryParam("_page") @DefaultValue("1") int page,
             @QueryParam("_perPage") @DefaultValue(OrchestratorApi.DEFAULT_ITEMS_PER_PAGE) int perPage,
             @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
             @QueryParam("_sortField") @DefaultValue("id") String sortField,
