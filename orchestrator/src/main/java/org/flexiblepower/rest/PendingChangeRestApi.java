@@ -114,7 +114,7 @@ public class PendingChangeRestApi extends BaseApi implements PendingChangeApi {
         final List<PendingChangeDescription> realList = new LinkedList<>();
         list.forEach((pcd) -> realList.add(PendingChangeRestApi.buildDescription(pcd)));
 
-        this.addTotalCount(realList.size());
+        this.addTotalCount(PendingChangeManager.getInstance().countPendingChanges(filter));
         return realList;
     }
 

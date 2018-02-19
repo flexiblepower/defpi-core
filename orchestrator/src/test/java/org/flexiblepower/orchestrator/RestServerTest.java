@@ -61,11 +61,12 @@ public class RestServerTest {
 
     @AfterClass
     public static void stop() throws Exception {
+        Thread.sleep(500);
         RestServerTest.server.stop();
     }
 
     @Rule
-    public Timeout globalTimeout = Timeout.seconds(10);
+    public Timeout globalTimeout = Timeout.seconds(20);
 
     public void testListUsers() throws ClientProtocolException, URISyntaxException, IOException {
         this.defaultTests("user", "_perPage=2&_sortDir=DESC", 200, MediaType.APPLICATION_JSON_TYPE);
