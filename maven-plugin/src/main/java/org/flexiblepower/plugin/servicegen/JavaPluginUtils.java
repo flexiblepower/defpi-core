@@ -38,65 +38,144 @@ public class JavaPluginUtils {
     private static final String MANAGER_SUFFIX = "ConnectionManager";
     private static final String MANAGER_IMPL_SUFFIX = "ConnectionManagerImpl";
 
-    public static String getPackageName(final InterfaceDescription itf) {
+    /**
+     * Get the target java package name from a interface description
+     *
+     * @param itf The interface description
+     * @return The endpoint package name for the interface description (i.e. not fully qualified)
+     */
+    static String getPackageName(final InterfaceDescription itf) {
         return JavaPluginUtils.toPackageName(itf.getName());
     }
 
-    public static String getPackageName(final InterfaceVersionDescription vitf) {
+    /**
+     * Get the target java package name from a interface version description
+     *
+     * @param vitf The interface version description
+     * @return The endpoint package name for the interface version description (i.e. not fully qualified)
+     */
+    static String getPackageName(final InterfaceVersionDescription vitf) {
         return JavaPluginUtils.toPackageName(vitf.getVersionName());
     }
 
-    public static String getPackageName(final InterfaceDescription itf, final InterfaceVersionDescription vitf) {
+    /**
+     * Get the java package name from a interface and its version description. This is just a shortcut to:
+     *
+     * <pre>
+     * {@link #getPackageName(InterfaceDescription)} + "." + {@link #getPackageName(InterfaceVersionDescription)}
+     * </pre>
+     *
+     * @param itf The interface description
+     * @param vitf The interface version description
+     * @return The package name for the combined interface and version description.
+     */
+    static String getPackageName(final InterfaceDescription itf, final InterfaceVersionDescription vitf) {
         return JavaPluginUtils.getPackageName(itf) + "." + JavaPluginUtils.getPackageName(vitf);
     }
 
-    public static String getVersion(final InterfaceVersionDescription vitf) {
+    /**
+     * Get the name of the version of the interface
+     *
+     * @param vitf The interface version description
+     * @return The name of the version to use in the code generator
+     */
+    static String getVersion(final InterfaceVersionDescription vitf) {
         return PluginUtils.camelCaps(vitf.getVersionName());
     }
 
-    public static String getVersionedName(final InterfaceDescription itf, final InterfaceVersionDescription vitf) {
+    /**
+     * Get the fully qualified name of the version of the interface, including the name of the interface
+     *
+     * @param itf The interface description
+     * @param vitf The interface version description
+     * @return The fully qualified name of the interface version
+     */
+    static String getVersionedName(final InterfaceDescription itf, final InterfaceVersionDescription vitf) {
         return PluginUtils.camelCaps(itf.getName() + "_" + vitf.getVersionName());
     }
 
-    public static String serviceImplClass(final ServiceDescription d) {
+    /**
+     * Get the java service class name that implements the service
+     *
+     * @param d The service description from the user service.json file
+     * @return A String containing the name of the java class that implements the service
+     */
+    static String serviceImplClass(final ServiceDescription d) {
         return PluginUtils.camelCaps(d.getName()) + JavaPluginUtils.SERVICE_SUFFIX;
     }
 
-    public static String configInterfaceClass(final ServiceDescription d) {
+    /**
+     * Get the java interface name that defines the configuration of the service
+     *
+     * @param d The service description from the user service.json file
+     * @return A String containing the name of the java interface that defines the service configuration
+     */
+    static String configInterfaceClass(final ServiceDescription d) {
         return PluginUtils.camelCaps(d.getName()) + JavaPluginUtils.CONFIG_SUFFIX;
     }
 
-    public static String connectionHandlerInterface(final InterfaceDescription itf,
-            final InterfaceVersionDescription version) {
-        return PluginUtils.camelCaps(itf.getName() + "_" + version.getVersionName()) + JavaPluginUtils.HANDLER_SUFFIX;
+    /**
+     * Get the (java) interface name of the connection handler for the specific version of the (def-pi) interface
+     *
+     * @param itf The interface description
+     * @param vitf The interface version description
+     * @return The type name of the java interface that specifies the ConnectionHandler interface
+     */
+    static String connectionHandlerInterface(final InterfaceDescription itf, final InterfaceVersionDescription vitf) {
+        return PluginUtils.camelCaps(itf.getName() + "_" + vitf.getVersionName()) + JavaPluginUtils.HANDLER_SUFFIX;
     }
 
-    public static String connectionHandlerClass(final InterfaceDescription itf,
-            final InterfaceVersionDescription version) {
-        return PluginUtils.camelCaps(itf.getName() + "_" + version.getVersionName())
-                + JavaPluginUtils.HANDLER_IMPL_SUFFIX;
+    /**
+     * Get the class name of the connection handler for the specific version of the (def-pi) interface
+     *
+     * @param itf The interface description
+     * @param vitf The interface version description
+     * @return The type name of the java class that implements the ConnectionHandler interface
+     */
+    static String connectionHandlerClass(final InterfaceDescription itf, final InterfaceVersionDescription vitf) {
+        return PluginUtils.camelCaps(itf.getName() + "_" + vitf.getVersionName()) + JavaPluginUtils.HANDLER_IMPL_SUFFIX;
     }
 
-    public static String managerInterface(final InterfaceDescription itf) {
+    /**
+     * Get the (java) interface name of the connection manager for the (def-pi) interface
+     *
+     * @param itf The interface description
+     * @return The type name of the java interface that specifies the ConnectionManager interface
+     */
+    static String managerInterface(final InterfaceDescription itf) {
         return PluginUtils.camelCaps(itf.getName()) + JavaPluginUtils.MANAGER_SUFFIX;
     }
 
-    public static String managerClass(final InterfaceDescription itf) {
+    /**
+     * Get the class name of the connection manager for the (def-pi) interface
+     *
+     * @param itf The interface description
+     * @return The type name of the java class that implements the ConnectionManager interface
+     */
+    static String managerClass(final InterfaceDescription itf) {
         return PluginUtils.camelCaps(itf.getName()) + JavaPluginUtils.MANAGER_IMPL_SUFFIX;
     }
 
-    public static Object getParameterId(final Parameter param) {
+    /**
+     * Get the identifier for the service parameter
+     *
+     * @param param The parameter to get the id from
+     * @return A String with the parameter ID to use in the configuration class
+     */
+    static String getParameterId(final Parameter param) {
         return Character.toUpperCase(param.getId().charAt(0)) + param.getId().substring(1);
     }
 
     /**
-     * Create a valid SINGLE package name out of any string. It will also remove all points
+     * Create a valid SINGLE package name out of any string. i.e. it will also remove all intermediate points
      *
-     * @param str
-     * @return
-     * @see {@link http://docs.oracle.com/javase/tutorial/java/package/namingpkgs.html}
+     * @param str The input string to create a package name from
+     * @return A valid java package name
+     * @see <a href=
+     *      "http://docs.oracle.com/javase/tutorial/java/package/namingpkgs.html">
+     *      http://docs.oracle.com/javase/tutorial/java/package/namingpkgs.html</a>
      */
-    public static String toPackageName(final String str) {
+    static String toPackageName(final String str) {
         String ret = str.toLowerCase(); // Make lowercase
         ret = ret.replaceAll("[- ]", "_"); // Replace spaces and hyphens by underscores
         ret = ret.replaceAll("[^a-z0-9_]", ""); // Remove any unexpected characters

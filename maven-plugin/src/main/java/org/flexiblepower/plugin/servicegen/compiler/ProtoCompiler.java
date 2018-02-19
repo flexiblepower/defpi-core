@@ -36,8 +36,15 @@ import org.flexiblepower.codegen.compiler.Compiler;
 public class ProtoCompiler implements Compiler {
 
     private static final Object downloadFileLock = new Object();
-    protected final File compilerFile;
+    private final File compilerFile;
 
+    /**
+     * Create the proto compiler for the specified protobuf version. This will download the compiler from the maven
+     * repository, and put it in a temporary folder.
+     *
+     * @param protobufVersion The protobuf version to get the compiler for
+     * @throws IOException
+     */
     public ProtoCompiler(final String protobufVersion) throws IOException {
         final String protoFilename = String.format("protoc-%s-%s-%s.exe",
                 protobufVersion,
@@ -69,7 +76,12 @@ public class ProtoCompiler implements Compiler {
         }
     }
 
-    public static String getOsName() {
+    /**
+     * The name of the operating system will be used to find the correct version of the compiler on maven central.
+     *
+     * @return The name of the current systems operating system (e.g. windows, linux).
+     */
+    static String getOsName() {
         final String rawName = System.getProperty("os.name").toLowerCase();
         if (rawName.startsWith("windows")) {
             return "windows";
@@ -78,13 +90,21 @@ public class ProtoCompiler implements Compiler {
         }
     }
 
-    public static String getArchitecture() {
+    /**
+     * The name of the system architecture will be used to find the correct version of the compiler on maven central.
+     *
+     * @return The name of the current system architecture (e.g x86_64, x64_32).
+     */
+    static String getArchitecture() {
         return System.getProperty("os.arch").equals("amd64") ? "x86_64" : "x86_32";
     }
 
     /**
-     * @param sourcePath
-     * @throws IOException
+     * Compile the proto file which is at the specified location to java code at a certain destination.
+     *
+     * @param filePath The input .proto file to compile to java code
+     * @param targetPath The target path where the java code should be put
+     * @throws IOException When an exception occurs while reading the proto file, or writing the java code
      */
     @Override
     public void compile(final Path filePath, final Path targetPath) throws IOException {

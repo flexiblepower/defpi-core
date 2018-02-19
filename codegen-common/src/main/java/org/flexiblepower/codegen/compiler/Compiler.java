@@ -28,6 +28,14 @@ import java.nio.file.Path;
  */
 public interface Compiler {
 
+    /**
+     * Compile an interface source file into code at a certain destination.
+     *
+     * @param sourceFile The input file to compile to code. The type of input file depends on the interface descriptor
+     * @param targetPath The target path where the code should be put. The type of code depends on the target service
+     *            language
+     * @throws IOException When an exception occurs while reading the input file, or writing the output code
+     */
     public void compile(Path sourceFile, Path targetPath) throws IOException;
 
 }

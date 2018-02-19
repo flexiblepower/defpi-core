@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.flexiblepower.plugin.servicegen;
+package org.flexiblepower.plugin.servicegen.compiler;
 
 import java.io.IOException;
 import java.nio.file.Paths;
