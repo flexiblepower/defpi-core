@@ -61,7 +61,6 @@ public class RestServerTest {
 
     @AfterClass
     public static void stop() throws Exception {
-        Thread.sleep(500);
         RestServerTest.server.stop();
     }
 
@@ -79,7 +78,6 @@ public class RestServerTest {
                 MediaType.APPLICATION_JSON_TYPE));
     }
 
-    // @Test
     public void testListNodes() throws ClientProtocolException, URISyntaxException, IOException {
         this.defaultTests("unidentifiednode", null, 200, MediaType.APPLICATION_JSON_TYPE);
     }
