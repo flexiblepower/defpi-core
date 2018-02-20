@@ -6,6 +6,8 @@ FROM {{from}}
 
 COPY ${project.artifactId}-${project.version}-jar-with-dependencies.jar defpi-resources/* /
 
+ENV SERVICE_PACKAGE {{service.package}}
+
 LABEL org.flexiblepower.serviceName="{{service.name}}" 
 LABEL org.flexiblepower.parameters='{{parameters}}'
 LABEL org.flexiblepower.interfaces='{{interfaces}}'
