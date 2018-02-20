@@ -18,6 +18,8 @@
 
 package org.flexiblepower.api;
 
+import java.util.List;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -27,7 +29,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
@@ -133,7 +134,7 @@ public interface PendingChangeApi {
                          response = PendingChangeDescription.class,
                          responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public Response listPendingChanges(@QueryParam("_page") @DefaultValue("1") int page,
+    public List<PendingChangeDescription> listPendingChanges(@QueryParam("_page") @DefaultValue("1") int page,
             @QueryParam("_perPage") @DefaultValue("1000") int perPage,
             @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
             @QueryParam("_sortField") @DefaultValue("id") String sortField,
@@ -147,12 +148,13 @@ public interface PendingChangeApi {
      */
     @DELETE
     @Path("/clean")
+    @Produces(MediaType.TEXT_PLAIN)
     @ApiOperation(nickname = "cleanPendingChanges",
                   value = "Clean PendingChange",
                   notes = "Clean up all lingering and permanently failed PendingChanges",
-                  code = 204,
                   authorizations = {@Authorization(value = OrchestratorApi.ADMIN_AUTHENTICATION)})
-    @ApiResponses(value = {@ApiResponse(code = 204, message = "PendingChanges cleaned"),
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Number of PendingChanges cleaned", response = String.class),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public void cleanPendingChanges() throws AuthorizationException;
+    public String cleanPendingChanges() throws AuthorizationException;
 }

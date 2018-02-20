@@ -27,6 +27,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response.Status;
 
+import org.apache.http.HttpResponse;
 import org.bson.types.ObjectId;
 import org.flexiblepower.api.ProcessApi;
 import org.flexiblepower.connectors.MongoDbConnector;
@@ -49,6 +50,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ProcessRestApi extends BaseApi implements ProcessApi {
 
+    @Context
+    HttpResponse response;
+
     protected ProcessRestApi(@Context final HttpHeaders httpHeaders) {
         super(httpHeaders);
     }
@@ -59,7 +63,8 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
             final String sortDir,
             final String sortField,
             final String filters) throws AuthorizationException {
-        if ((page < 1) || (perPage < 1)) {
+        if ((page < 0) || (perPage < 0)) {
+            this.addTotalCount(0);
             return Collections.emptyList();
         }
 
@@ -135,6 +140,10 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
         }
 
         // And finally pagination
+        this.addTotalCount(processes.size());
+        if ((page == 0) || (perPage == 0)) {
+            return processes;
+        }
         return processes.subList(Math.min(processes.size(), (page - 1) * perPage),
                 Math.min(processes.size(), page * perPage));
     }

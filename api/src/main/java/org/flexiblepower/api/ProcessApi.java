@@ -84,7 +84,7 @@ public interface ProcessApi {
                          response = Process.class,
                          responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public List<org.flexiblepower.model.Process> listProcesses(@QueryParam("_page") @DefaultValue("1") int page,
+    public List<Process> listProcesses(@QueryParam("_page") @DefaultValue("1") int page,
             @QueryParam("_perPage") @DefaultValue("1000") int perPage,
             @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
             @QueryParam("_sortField") @DefaultValue("id") String sortField,
