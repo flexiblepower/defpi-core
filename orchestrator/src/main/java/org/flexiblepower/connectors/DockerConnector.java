@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -110,6 +109,8 @@ public class DockerConnector {
     // private final Object createNetLock = new Object();
     private DockerClient client;
     private final ExecutorService executor = Executors.newCachedThreadPool();
+
+    private static int nodepicker = 0;
 
     public static DockerClient init() throws DockerCertificateException {
         final String dockerHost = System.getenv(DockerConnector.DOCKER_HOST_KEY);
@@ -427,8 +428,23 @@ public class DockerConnector {
             // Get node from nodepool
             final NodePool nodePool = nm.getNodePool(process.getNodePoolId());
             final List<PublicNode> nodes = nm.getPublicNodesInNodePool(nodePool);
-            final Random r = new Random();
-            return nodes.get(r.nextInt(nodes.size()));
+
+            // First try to find any process that is already running on one of these nodes
+            final List<Process> otherProcesses = ProcessManager.getInstance()
+                    .listProcesses(UserManager.getInstance().getUser(process.getUserId()));
+            for (final Process p : otherProcesses) {
+                final String dockerNodeId = p.getRunningDockerNodeId();
+                if ((dockerNodeId != null) && !dockerNodeId.isEmpty()) {
+                    for (final PublicNode pn : nodes) {
+                        if (pn.getDockerId().equals(dockerNodeId)) {
+                            return pn;
+                        }
+                    }
+                }
+            }
+
+            // final Random r = new Random();
+            return nodes.get(DockerConnector.nodepicker++ % nodes.size());
         } else {
             // get Private node
             return nm.getPrivateNode(process.getPrivateNodeId());
