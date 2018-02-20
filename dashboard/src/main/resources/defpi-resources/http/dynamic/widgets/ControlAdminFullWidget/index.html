@@ -74,31 +74,45 @@
 }
 
 .option p {
-	height: 150px;
+	height: 250px;
 	line-height: 14px;
 }
 
-.option button {
+.option	button, .option a {
+	cursor: default;
 	display: block;
 	margin: 0 auto;
+	padding: 10px;
 	width: 175px;
-	height: 60px;
-	color: black;
 	-webkit-border-radius: 4px;
 	-moz-border-radius: 4px;
 	border-radius: 4px;
 	background-color: #008CBA;
 	border: 4px solid white;
+	font-family: 'Tahoma', Arial, Helvetica, sans-serif;
+	font-size: 13px;
+	color: #434343;
+	text-align: center;
+	text-decoration: none;
 }
 
-.optionnotactive button {
+.option	button {
+	height: 60px;
+}
+
+.option a {
+	height: 30px;
+}
+
+.optionnotactive button, .optionnotactive a {
 	opacity: 1;
-	cursor: auto;
+	cursor: pointer;
 }
 
-.optionactive button {
+.optionactive button, .optionactive a {
 	opacity: 0.6;
 	cursor: not-allowed;
+	pointer-events: none;
 }
 
 .optionactive .selecteer {
@@ -114,9 +128,8 @@ strong {
 }
 </style>
 
-<div id="explenation">Op deze pagina kunt u selecteren wie uw
-	apparatuur aanstuurt en met wie uw meetgegevens gedeeld worden. Uw
-	keuze wordt direct actief.</div>
+<div id="explenation">Op deze pagina ziet u uw (en in de toekomst
+	andere) sturende partij(en) en kunt u direct de aansturing uitzetten.</div>
 
 <div id="options">
 	<div class="option @SYMPOWER_STYLE@">
@@ -124,31 +137,30 @@ strong {
 		<h2>Aansturen</h2>
 		<p>Sympower zal uw apparaten aansturen voor het optimaliseren van
 			het energienet. U krijgt daarvoor een flexibiliteitsvergoeding.</p>
-		<form method="post" onsubmit="return confirm('Weet u het zeker?');">
-			<input type="hidden" name="option" value="sympower" />
-			<button>
-				<span class="selecteer">Selecteer<br /></span>'Sympower'<span
-					class="geselecteerd"><br />geselecteerd</span>
-			</button>
-		</form>
-
+		<a href="https://www.energiekoplopers.nl/sympower/" target="_blank">
+			<span class="selecteer">Selecteer<br /></span>'Sympower'<span
+			class="geselecteerd"><br />geselecteerd</span>
+		</a>
 	</div>
 
 	<div class="option @ALLEENMETEN_STYLE@" />
 	<h1>Alleen meten</h1>
 	<h2>Aansturen</h2>
-	<p>Ik wil mijn gegevens niet (meer) delen met een sturende partij.
-		Uw apparaten worden niet meer aangestuurd, daarom ontvangt u ook geen
-		flexibiliteitsvergoeding. Vanaf nu gaat ook uw opzegtermijn in bij de
-		sturende partij.</p>
-	<form method="post" onsubmit="return confirm('Weet u het zeker?');">
+	<p>Ik wil mijn gegevens niet (meer) delen met een sturende partij
+		Let op, dit is een noodmaatregel. U verbreekt direct het contact met
+		de sturende partij en uw apparaat wordt niet meer aangestuurd. De
+		flexibiliteitsvergoeding wordt ook direct stopgezet. Wilt u opzeggen
+		met in acht neming van de opzegtermijn (en in de toekomst mogelijk
+		wisselen naar een andere sturende partij) stuur dan een mail naar
+		info@energiekoplopers.nl.</p>
+	<form method="post"
+		onsubmit="return confirm('Weet u het zeker? Deze wijziging wordt direct doorgevoerd en kan alleen worden teruggedraaid door te mailen naar info@energiekoplopers.nl.');">
 		<input type="hidden" name="option" value="alleenmeten" />
 		<button>
 			<span class="selecteer">Selecteer<br /></span>'Alleen meten'<span
 				class="geselecteerd"><br />geselecteerd</span>
 		</button>
 	</form>
-
 </div>
 
 </div>

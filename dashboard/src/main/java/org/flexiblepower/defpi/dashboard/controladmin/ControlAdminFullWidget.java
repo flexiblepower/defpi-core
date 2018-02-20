@@ -8,23 +8,16 @@ import org.flexiblepower.defpi.dashboard.Dashboard;
 import org.flexiblepower.defpi.dashboard.HttpTask;
 import org.flexiblepower.defpi.dashboard.HttpUtils;
 import org.flexiblepower.defpi.dashboard.Widget;
-import org.flexiblepower.defpi.dashboard.controladmin.defpi.CemProcess;
-import org.flexiblepower.defpi.dashboard.controladmin.defpi.DefPiConnectionAdmin;
-import org.flexiblepower.defpi.dashboard.controladmin.defpi.RmProcess;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest.Method;
 import org.flexiblepower.exceptions.AuthorizationException;
-import org.flexiblepower.exceptions.ConnectionException;
-import org.flexiblepower.exceptions.InvalidObjectIdException;
-import org.flexiblepower.exceptions.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ControlAdminFullWidget implements Widget {
 
     public static final Logger LOG = LoggerFactory.getLogger(ControlAdminFullWidget.class);
-    @SuppressWarnings("unused")
     private final Dashboard service;
-    private final DefPiConnectionAdmin connectionAdmin;
+    private final PmUrlAdmin pmUrlAdmin;
 
     /**
      * Auto-generated constructor for the ConnectionHandlers of the provided service
@@ -34,7 +27,7 @@ public class ControlAdminFullWidget implements Widget {
      */
     public ControlAdminFullWidget(final Dashboard service) {
         this.service = service;
-        this.connectionAdmin = new DefPiConnectionAdmin(service.getParameters());
+        this.pmUrlAdmin = new PmUrlAdmin(service.getParameters());
     }
 
     private static HashMap<String, String> parseUpdatePost(final String body) {
@@ -64,52 +57,6 @@ public class ControlAdminFullWidget implements Widget {
         return uri.substring(begin, end);
     }
 
-    private static boolean efiIsConnected(final DefPiConnectionAdmin connectionAdmin) {
-        for (final CemProcess cem : connectionAdmin.listCems()) {
-            if (cem.getRmProcessIds().isEmpty()) {
-                return false;
-            } else {
-                return true;
-            }
-        }
-        // Als er geen CEMs zijn gaan we er maar vanuit dat er wel EFI connecties zouden
-        // moeten zijn
-        return true;
-    }
-
-    private void connectAllEfiSessions() {
-        // For now we assume there is 0 or 1 CEM
-        if (this.connectionAdmin.listCems().isEmpty()) {
-            return;
-        }
-        try {
-            final CemProcess cem = this.connectionAdmin.listCems().iterator().next();
-            for (final RmProcess rm : this.connectionAdmin.listRms()) {
-                this.connectionAdmin.connect(cem, rm);
-            }
-        } catch (ConnectionException | AuthorizationException | NotFoundException | IOException e) {
-            ControlAdminFullWidget.LOG.error("Could not create EFI connection", e);
-        }
-    }
-
-    private void disconnectAllEfiSessions() {
-        // For now we assumer there is 0 or 1 CEM
-        if (this.connectionAdmin.listCems().isEmpty()) {
-            return;
-        }
-        try {
-            final CemProcess cem = this.connectionAdmin.listCems().iterator().next();
-            for (final RmProcess rm : this.connectionAdmin.listRms()) {
-                this.connectionAdmin.disconnect(cem, rm);
-            }
-        } catch (UnsupportedEncodingException
-                | InvalidObjectIdException
-                | AuthorizationException
-                | NotFoundException e) {
-            ControlAdminFullWidget.LOG.error("Could not remove EFI connection", e);
-        }
-    }
-
     @Override
     public void handle(final HttpTask httpTask) {
         try {
@@ -132,17 +79,18 @@ public class ControlAdminFullWidget implements Widget {
 
                     if (postData.containsKey("option")) {
                         final String value = postData.get("option");
-                        if ("sympower".equals(value)) {
-                            ControlAdminFullWidget.LOG.info("Creating EFI sessions");
-                            this.connectAllEfiSessions();
-                        } else if ("alleenmeten".equals(value)) {
+                        if ("alleenmeten".equals(value)) {
                             ControlAdminFullWidget.LOG.info("Removing EFI sessions");
                             this.service.publishUserDecisionObservation("alleen meten");
-                            this.disconnectAllEfiSessions();
+                            this.pmUrlAdmin.setPmUrl("");
+                            this.servePackageOptions(httpTask, false);
+                        } else {
+                            this.servePackageOptions(httpTask);
                         }
+                    } else {
+                        this.servePackageOptions(httpTask);
                     }
 
-                    this.servePackageOptions(httpTask);
                     return;
                 }
             }
@@ -156,10 +104,19 @@ public class ControlAdminFullWidget implements Widget {
     private void servePackageOptions(final HttpTask httpTask) throws UnsupportedEncodingException,
             AuthorizationException,
             IOException {
-        this.connectionAdmin.refreshData();
+        final String pmUrl = this.pmUrlAdmin.getPmUrl();
+        final boolean pmIsEnabled = (pmUrl != null) && !pmUrl.isEmpty();
+        this.servePackageOptions(httpTask, pmIsEnabled);
+    }
+
+    @SuppressWarnings("static-method")
+    private void servePackageOptions(final HttpTask httpTask, final boolean pmIsEnabled)
+            throws UnsupportedEncodingException,
+            AuthorizationException,
+            IOException {
         String html = HttpUtils.readTextFile("/dynamic/widgets/ControlAdminFullWidget/index.html");
 
-        if (ControlAdminFullWidget.efiIsConnected(this.connectionAdmin)) {
+        if (pmIsEnabled) {
             html = html.replace("@SYMPOWER_STYLE@", "optionactive");
             html = html.replace("@ALLEENMETEN_STYLE@", "optionnotactive");
         } else {
