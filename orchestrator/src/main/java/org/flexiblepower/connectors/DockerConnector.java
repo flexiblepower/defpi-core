@@ -180,6 +180,7 @@ public class DockerConnector {
 
             final Service service = ServiceManager.getInstance().getService(process.getServiceId());
             final Node node = DockerConnector.determineRunningNode(process);
+            process.setRunningNodeId(node.getId());
 
             ServiceSpec serviceSpec;
             if (process.getServiceId().equals(ProcessManager.getDashboardGatewayServiceId())) {
@@ -433,17 +434,16 @@ public class DockerConnector {
             final List<Process> otherProcesses = ProcessManager.getInstance()
                     .listProcesses(UserManager.getInstance().getUser(process.getUserId()));
             for (final Process p : otherProcesses) {
-                final String dockerNodeId = p.getRunningDockerNodeId();
-                if ((dockerNodeId != null) && !dockerNodeId.isEmpty()) {
-                    for (final PublicNode pn : nodes) {
-                        if (pn.getDockerId().equals(dockerNodeId)) {
-                            return pn;
-                        }
+                // First check if the process HAS a running node
+                if (p.getRunningNodeId() != null) {
+                    final Node otherNode = nm.getPublicNode(p.getRunningNodeId());
+                    if ((otherNode != null) && nodes.contains(otherNode)) {
+                        return otherNode;
                     }
                 }
             }
 
-            // final Random r = new Random();
+            // If no other process running on a node, do round-robin on all nodes
             return nodes.get(DockerConnector.nodepicker++ % nodes.size());
         } else {
             // get Private node
