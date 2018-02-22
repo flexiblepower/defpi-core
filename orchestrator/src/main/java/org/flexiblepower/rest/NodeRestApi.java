@@ -237,7 +237,7 @@ public class NodeRestApi extends BaseApi implements NodeApi {
         final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
         final List<NodePool> content = NodeManager.getInstance()
                 .listNodePools(page, perPage, sortDir, sortField, filter);
-        this.addTotalCount(content.size());
+        this.addTotalCount(NodeManager.getInstance().countNodePools(filter));
         return content;
     }
 }

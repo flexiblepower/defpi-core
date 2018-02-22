@@ -25,7 +25,6 @@ import java.util.List;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.bson.types.ObjectId;
@@ -58,11 +57,9 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
             final String sortDir,
             final String sortField,
             final String filters) throws AuthorizationException {
-        if ((page < 1) || (perPage < 1)) {
-            Response.status(Status.OK.getStatusCode())
-                    .header("X-Total-Count", "0")
-                    .entity(Collections.emptyList())
-                    .build();
+        if ((page < 0) || (perPage < 0)) {
+            this.addTotalCount(0);
+            return Collections.emptyList();
         }
 
         List<Connection> connections;
@@ -133,6 +130,9 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
 
         // And finally pagination
         this.addTotalCount(connections.size());
+        if ((page == 0) || (perPage == 0)) {
+            return connections;
+        }
         return connections.subList((page - 1) * perPage, Math.min(connections.size(), page * perPage));
     }
 

@@ -136,7 +136,7 @@ public class UserRestApi extends BaseApi implements UserApi {
 
             userList.forEach((u) -> u.clearPasswordHash());
 
-            this.addTotalCount(userList.size());
+            this.addTotalCount(this.db.countUsers(filter));
             return userList;
         } else {
             this.addTotalCount(1);
