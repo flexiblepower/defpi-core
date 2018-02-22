@@ -254,7 +254,8 @@ public class MoveProcess {
                 final ObjectId privateNodeId,
                 final byte[] suspendState) {
             super(process.getUserId());
-            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
+            // Add the userId because making the network, and choosing the running node
+            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId(), this.getUserId()));
             this.process = process;
             this.nodePoolId = nodePoolId;
             this.privateNodeId = privateNodeId;
