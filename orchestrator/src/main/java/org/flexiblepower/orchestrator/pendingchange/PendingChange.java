@@ -18,6 +18,7 @@
 
 package org.flexiblepower.orchestrator.pendingchange;
 
+import java.time.Duration;
 import java.util.Date;
 import java.util.List;
 
@@ -35,8 +36,8 @@ import lombok.Setter;
 @Indexes({@Index(fields = @Field("state")), @Index(fields = @Field("runAt")), @Index(fields = @Field("obtainedAt"))})
 public abstract class PendingChange {
 
-    private static final int DEFAULT_MINIMUM_RETRY_INTERVAL_MILLISECONDS = 5000;
-    private static final int DEFAULT_MAXIMUM_RETRY_INTERVAL_MILLISECONDS = 21600;
+    private static final long DEFAULT_MINIMUM_RETRY_INTERVAL_MILLISECONDS = Duration.ofSeconds(5).toMillis();
+    private static final long DEFAULT_MAXIMUM_RETRY_INTERVAL_MILLISECONDS = Duration.ofHours(36).toMillis();
     private static final int DEFAULT_MAX_RETRY_COUNT = 1000;
     private static final int DEFAULT_DELAY_MILLISECONDS = 0;
 
