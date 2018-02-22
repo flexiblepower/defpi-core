@@ -18,6 +18,8 @@
 
 package org.flexiblepower.api;
 
+import java.util.List;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -29,7 +31,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
@@ -215,7 +216,7 @@ public interface UserApi {
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "An array of Users", response = User.class, responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public Response listUsers(@QueryParam("_page") @DefaultValue("1") int page,
+    public List<User> listUsers(@QueryParam("_page") @DefaultValue("1") int page,
             @QueryParam("_perPage") @DefaultValue("1000") int perPage,
             @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
             @QueryParam("_sortField") @DefaultValue("id") String sortField,

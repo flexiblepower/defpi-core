@@ -38,10 +38,11 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class BaseApi {
 
     private static final String AUTH_PREFIX = "Basic ";
-
+    protected final HttpHeaders headers;
     protected final User sessionUser;
 
     protected BaseApi(final HttpHeaders httpHeaders) {
+        this.headers = httpHeaders;
         String authString = httpHeaders.getHeaderString("Authorization");
         if ((authString == null) || !authString.startsWith(BaseApi.AUTH_PREFIX)) {
             // User did not provide Basic Auth info, so look for token in header
@@ -112,6 +113,10 @@ public abstract class BaseApi {
             throw new AuthorizationException();
         }
 
+    }
+
+    protected void addTotalCount(final int count) {
+        this.headers.getRequestHeaders().add(TotalCountFilter.HEADER_NAME, Integer.toString(count));
     }
 
 }

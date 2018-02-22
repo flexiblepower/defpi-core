@@ -23,8 +23,6 @@ import java.util.Map;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.api.PendingChangeApi;
@@ -95,7 +93,7 @@ public class PendingChangeRestApi extends BaseApi implements PendingChangeApi {
     }
 
     @Override
-    public Response listPendingChanges(final int page,
+    public List<PendingChangeDescription> listPendingChanges(final int page,
             final int perPage,
             final String sortDir,
             final String sortField,
@@ -116,17 +114,14 @@ public class PendingChangeRestApi extends BaseApi implements PendingChangeApi {
         final List<PendingChangeDescription> realList = new LinkedList<>();
         list.forEach((pcd) -> realList.add(PendingChangeRestApi.buildDescription(pcd)));
 
-        return Response.status(Status.OK.getStatusCode())
-                .header("X-Total-Count",
-                        Integer.toString(PendingChangeManager.getInstance().countPendingChanges(filter)))
-                .entity(realList)
-                .build();
+        this.addTotalCount(realList.size());
+        return realList;
     }
 
     @Override
-    public void cleanPendingChanges() throws AuthorizationException {
+    public String cleanPendingChanges() throws AuthorizationException {
         this.assertUserIsAdmin();
-        PendingChangeManager.getInstance().cleanPendingChanges();
+        return PendingChangeManager.getInstance().cleanPendingChanges();
     }
 
 }
