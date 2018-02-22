@@ -128,6 +128,7 @@ public class ServiceTest {
     @Test(timeout = 60000)
     public void runResumeTerminate() throws Exception {
         this.runResume();
+        this.runConfigure();
         this.runTerminate();
     }
 

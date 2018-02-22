@@ -33,6 +33,10 @@
 		</developer>
 	</developers>
 
+	<properties>
+		<docker.imageName>${docker.registry}/services/${project.artifactId}-ek2</docker.imageName>
+	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>commons-io</groupId>

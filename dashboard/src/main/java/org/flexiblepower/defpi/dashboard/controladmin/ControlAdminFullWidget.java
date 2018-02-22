@@ -1,22 +1,23 @@
 package org.flexiblepower.defpi.dashboard.controladmin;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 
 import org.flexiblepower.defpi.dashboard.Dashboard;
 import org.flexiblepower.defpi.dashboard.HttpTask;
 import org.flexiblepower.defpi.dashboard.HttpUtils;
 import org.flexiblepower.defpi.dashboard.Widget;
-import org.flexiblepower.defpi.dashboard.controladmin.defpi.DefPiConnectionAdmin;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest.Method;
+import org.flexiblepower.exceptions.AuthorizationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ControlAdminFullWidget implements Widget {
 
     public static final Logger LOG = LoggerFactory.getLogger(ControlAdminFullWidget.class);
-    @SuppressWarnings("unused")
     private final Dashboard service;
-    private final DefPiConnectionAdmin connectionAdmin;
+    private final PmUrlAdmin pmUrlAdmin;
 
     /**
      * Auto-generated constructor for the ConnectionHandlers of the provided service
@@ -26,7 +27,7 @@ public class ControlAdminFullWidget implements Widget {
      */
     public ControlAdminFullWidget(final Dashboard service) {
         this.service = service;
-        this.connectionAdmin = new DefPiConnectionAdmin(service.getParameters());
+        this.pmUrlAdmin = new PmUrlAdmin(service.getParameters());
     }
 
     private static HashMap<String, String> parseUpdatePost(final String body) {
@@ -63,12 +64,7 @@ public class ControlAdminFullWidget implements Widget {
             final String uri = ControlAdminFullWidget.stripURI(httpTask.getUri());
             if (method.equals(Method.GET)) {
                 if ("index.html".equals(uri)) {
-                    this.connectionAdmin.refreshData();
-                    String html = HttpUtils.readTextFile("/dynamic/widgets/ControlAdminFullWidget/index.html");
-                    html = html.replace("@EFITABLE@", new EfiTableModel(this.connectionAdmin).generateTable());
-                    html = html.replace("@OBSTABLE@", new ObsTableModel(this.connectionAdmin).generateTable());
-
-                    HttpUtils.serveDynamicText(httpTask, HttpUtils.TEXT_HTML, html);
+                    this.servePackageOptions(httpTask);
                     return;
                 } else if ("menu.png".equals(uri)) {
                     HttpUtils.serveStaticFile(httpTask, "/dynamic/widgets/ControlAdminFullWidget/menu.png");
@@ -81,17 +77,20 @@ public class ControlAdminFullWidget implements Widget {
 
                     ControlAdminFullWidget.LOG.debug("Received the folling POST data: " + postData);
 
-                    this.connectionAdmin.refreshData();
-                    final EfiTableModel efiTableModel = new EfiTableModel(this.connectionAdmin);
-                    final ObsTableModel obsTableModel = new ObsTableModel(this.connectionAdmin);
-                    efiTableModel.handlePost(postData);
-                    obsTableModel.handlePost(postData);
+                    if (postData.containsKey("option")) {
+                        final String value = postData.get("option");
+                        if ("alleenmeten".equals(value)) {
+                            ControlAdminFullWidget.LOG.info("Removing EFI sessions");
+                            this.service.publishUserDecisionObservation("alleen meten");
+                            this.pmUrlAdmin.setPmUrl("");
+                            this.servePackageOptions(httpTask, false);
+                        } else {
+                            this.servePackageOptions(httpTask);
+                        }
+                    } else {
+                        this.servePackageOptions(httpTask);
+                    }
 
-                    String html = HttpUtils.readTextFile("/dynamic/widgets/ControlAdminFullWidget/index.html");
-                    html = html.replace("@EFITABLE@", efiTableModel.generateTable());
-                    html = html.replace("@OBSTABLE@", obsTableModel.generateTable());
-
-                    HttpUtils.serveDynamicText(httpTask, HttpUtils.TEXT_HTML, html);
                     return;
                 }
             }
@@ -102,6 +101,32 @@ public class ControlAdminFullWidget implements Widget {
         }
     }
 
+    private void servePackageOptions(final HttpTask httpTask) throws UnsupportedEncodingException,
+            AuthorizationException,
+            IOException {
+        final String pmUrl = this.pmUrlAdmin.getPmUrl();
+        final boolean pmIsEnabled = (pmUrl != null) && !pmUrl.isEmpty();
+        this.servePackageOptions(httpTask, pmIsEnabled);
+    }
+
+    @SuppressWarnings("static-method")
+    private void servePackageOptions(final HttpTask httpTask, final boolean pmIsEnabled)
+            throws UnsupportedEncodingException,
+            AuthorizationException,
+            IOException {
+        String html = HttpUtils.readTextFile("/dynamic/widgets/ControlAdminFullWidget/index.html");
+
+        if (pmIsEnabled) {
+            html = html.replace("@SYMPOWER_STYLE@", "optionactive");
+            html = html.replace("@ALLEENMETEN_STYLE@", "optionnotactive");
+        } else {
+            html = html.replace("@SYMPOWER_STYLE@", "optionnotactive");
+            html = html.replace("@ALLEENMETEN_STYLE@", "optionactive");
+        }
+
+        HttpUtils.serveDynamicText(httpTask, HttpUtils.TEXT_HTML, html);
+    }
+
     @Override
     public String getFullWidgetId() {
         return "controladmin";
@@ -109,7 +134,7 @@ public class ControlAdminFullWidget implements Widget {
 
     @Override
     public String getTitle() {
-        return "Control Administration";
+        return "Sturende partij";
     }
 
     @Override
