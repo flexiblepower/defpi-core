@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -111,6 +110,8 @@ public class DockerConnector {
     private DockerClient client;
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
+    private static int nodepicker = 0;
+
     public static DockerClient init() throws DockerCertificateException {
         final String dockerHost = System.getenv(DockerConnector.DOCKER_HOST_KEY);
         if (dockerHost == null) {
@@ -179,6 +180,7 @@ public class DockerConnector {
 
             final Service service = ServiceManager.getInstance().getService(process.getServiceId());
             final Node node = DockerConnector.determineRunningNode(process);
+            process.setRunningNodeId(node.getId());
 
             ServiceSpec serviceSpec;
             if (process.getServiceId().equals(ProcessManager.getDashboardGatewayServiceId())) {
@@ -427,8 +429,22 @@ public class DockerConnector {
             // Get node from nodepool
             final NodePool nodePool = nm.getNodePool(process.getNodePoolId());
             final List<PublicNode> nodes = nm.getPublicNodesInNodePool(nodePool);
-            final Random r = new Random();
-            return nodes.get(r.nextInt(nodes.size()));
+
+            // First try to find any process that is already running on one of these nodes
+            final List<Process> otherProcesses = ProcessManager.getInstance()
+                    .listProcesses(UserManager.getInstance().getUser(process.getUserId()));
+            for (final Process p : otherProcesses) {
+                // First check if the process HAS a running node
+                if (p.getRunningNodeId() != null) {
+                    final Node otherNode = nm.getPublicNode(p.getRunningNodeId());
+                    if ((otherNode != null) && nodes.contains(otherNode)) {
+                        return otherNode;
+                    }
+                }
+            }
+
+            // If no other process running on a node, do round-robin on all nodes
+            return nodes.get(DockerConnector.nodepicker++ % nodes.size());
         } else {
             // get Private node
             return nm.getPrivateNode(process.getPrivateNodeId());

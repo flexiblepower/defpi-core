@@ -30,6 +30,7 @@ import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Process;
+import org.flexiblepower.model.PublicNode;
 import org.flexiblepower.model.UnidentifiedNode;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange;
@@ -267,6 +268,16 @@ public final class MongoDbConnector {
 
     public UnidentifiedNode getUnidentifiedNodeByDockerId(final String dockerId) {
         final Query<UnidentifiedNode> q = this.datastore.find(UnidentifiedNode.class);
+        q.criteria("dockerId").equal(dockerId);
+        return q.get();
+    }
+
+    /**
+     * @param dockerId
+     * @return
+     */
+    public PublicNode getPublicNodeByDockerId(final String dockerId) {
+        final Query<PublicNode> q = this.datastore.find(PublicNode.class);
         q.criteria("dockerId").equal(dockerId);
         return q.get();
     }
