@@ -270,11 +270,17 @@ public class ProcessManager {
      * @param currentProcess
      */
     public void triggerConfig(final Process process) {
-        final PendingChangeManager pcm = PendingChangeManager.getInstance();
-        pcm.submit(new CreateProcess.SendConfiguration(process));
+        final Process currentProcess = MongoDbConnector.getInstance().get(Process.class, process.getId());
+        currentProcess.setState(ProcessState.INITIALIZING);
+        MongoDbConnector.getInstance().save(currentProcess);
 
-        for (final Connection c : ConnectionManager.getInstance().getConnectionsForProcess(process)) {
-            pcm.submit(new CreateConnectionEndpoint(process.getUserId(), c, c.getEndpointForProcess(process)));
+        final PendingChangeManager pcm = PendingChangeManager.getInstance();
+        pcm.submit(new CreateProcess.SendConfiguration(currentProcess));
+
+        for (final Connection c : ConnectionManager.getInstance().getConnectionsForProcess(currentProcess)) {
+            pcm.submit(new CreateConnectionEndpoint(currentProcess.getUserId(),
+                    c,
+                    c.getEndpointForProcess(currentProcess)));
         }
     }
 
