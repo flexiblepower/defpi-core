@@ -85,6 +85,7 @@ public class ServiceManager<T> implements Closeable {
     private Service<T> managedService;
     private Class<T> configClass;
     private boolean configured;
+    private boolean serviceIsTerminated;
 
     private volatile boolean keepThreadAlive;
 
@@ -106,6 +107,7 @@ public class ServiceManager<T> implements Closeable {
 
         // Because when this exists, it is initializing
         this.configured = false;
+        this.serviceIsTerminated = false;
         this.keepThreadAlive = true;
         this.managerThread = new Thread(() -> {
             while (this.keepThreadAlive) {
@@ -173,11 +175,18 @@ public class ServiceManager<T> implements Closeable {
                 }
             }
 
+            // When we are here keepAlive is set to false, so we can stop gracefully
             ServiceManager.log.trace("End of thread");
+
             this.connectionManager.close();
             this.managementSocket.close();
         }, "dEF-Pi srvManThread-" + ServiceManager.threadCount++);
         this.managerThread.start();
+
+        // Add a nice shutdown when the java runtime is killed (e.g. by stopping the docker container)
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            this.close();
+        }));
     }
 
     /**
@@ -227,23 +236,11 @@ public class ServiceManager<T> implements Closeable {
             final int response = httpCon.getResponseCode();
             httpCon.disconnect();
 
+            ServiceManager.log.debug("Received response code {}", response);
+
             if (response != 204) {
                 throw new ServiceInvocationException("Unable to request config, received code " + response);
             }
-
-            /*
-             * final HttpClient client = HttpClientBuilder.create().build();
-             *
-             * // Create http request with token in header
-             * final HttpPut request = new HttpPut(uri);
-             * request.addHeader("X-Auth-Token", this.defPiParams.getOrchestratorToken());
-             * final HttpResponse response = client.execute(request);
-             *
-             * if (response.getStatusLine().getStatusCode() != 204) {
-             * throw new ServiceInvocationException(
-             * "Unable to request config: " + response.getStatusLine().getReasonPhrase());
-             * }
-             */
         } catch (final IOException e) {
             throw new ServiceInvocationException(
                     "Futile to start service without triggering process config at orchestrator.",
@@ -256,13 +253,13 @@ public class ServiceManager<T> implements Closeable {
      * for the message handler thread to finish. i.e. wait until a nice terminate message has arrived.
      */
     void join() {
-        try {
-            ServiceManager.log.info("Waiting for service thread to stop...");
-            if (this.managerThread.isAlive()) {
+        if ((this.managerThread != null) && this.managerThread.isAlive()) {
+            try {
+                ServiceManager.log.info("Waiting for service thread to stop...");
                 this.managerThread.join();
+            } catch (final InterruptedException e) {
+                ServiceManager.log.info("Interuption exception received, stopping...");
             }
-        } catch (final InterruptedException e) {
-            ServiceManager.log.info("Interuption exception received, stopping...");
         }
     }
 
@@ -270,12 +267,19 @@ public class ServiceManager<T> implements Closeable {
     public void close() {
         this.keepThreadAlive = false;
 
+        if (!this.serviceIsTerminated) {
+            this.terminateManagedService();
+        }
+
         if (this.managementSocket != null) {
             this.managementSocket.close();
         }
 
+        // This is also done by the end of the management thread, but that is okay
         this.connectionManager.close();
         this.serviceExecutor.shutDown();
+
+        this.join();
     }
 
     /**
@@ -354,13 +358,7 @@ public class ServiceManager<T> implements Closeable {
 
             return this.createProcessStateUpdateMessage(ProcessState.SUSPENDED, this.javaIoSerializer.serialize(state));
         case TERMINATED:
-            this.serviceExecutor.submit(() -> {
-                try {
-                    this.managedService.terminate();
-                } catch (final Throwable t) {
-                    ServiceManager.log.error("Error while calling terminate()", t);
-                }
-            });
+            this.terminateManagedService();
 
             // Connections are closed by the manager thread
             this.keepThreadAlive = false;
@@ -371,6 +369,25 @@ public class ServiceManager<T> implements Closeable {
             // The manager should not receive this type of messages
             throw new ServiceInvocationException("Invalid target state: " + message.getTargetState());
         }
+    }
+
+    /**
+     *
+     */
+    private void terminateManagedService() {
+        if (!this.configured) {
+            ServiceManager.log.debug("User service is not configured, so no nee to terminate()");
+            return;
+        }
+        ServiceManager.log.debug("Terminating user service");
+        this.serviceExecutor.submit(() -> {
+            try {
+                this.managedService.terminate();
+            } catch (final Throwable t) {
+                ServiceManager.log.error("Error while calling terminate()", t);
+            }
+        });
+        this.serviceIsTerminated = true;
     }
 
     /**

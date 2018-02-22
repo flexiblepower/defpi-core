@@ -22,6 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,7 +81,12 @@ public class ServiceExecutor {
     }
 
     public void shutDown() {
-        this.executor.shutdownNow();
+        this.executor.shutdown();
+        try {
+            this.executor.awaitTermination(2, TimeUnit.SECONDS);
+        } catch (final InterruptedException e) {
+            this.executor.shutdownNow();
+        }
         ServiceExecutor.instance = null;
     }
 
