@@ -247,7 +247,7 @@ public class DockerConnector {
      * @throws ServiceNotFoundException
      */
     public boolean removeProcess(final Process process) throws ProcessNotFoundException {
-        if (process.getDockerId() != null) {
+        if (process.getDockerId() == null) {
             // Container was probably never created
             return true;
         }
