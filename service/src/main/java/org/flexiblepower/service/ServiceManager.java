@@ -376,7 +376,7 @@ public class ServiceManager<T> implements Closeable {
      */
     private void terminateManagedService() {
         if (!this.configured) {
-            ServiceManager.log.debug("User service is not configured, so no nee to terminate()");
+            ServiceManager.log.debug("User service is not configured, no need to terminate()");
             return;
         }
         ServiceManager.log.debug("Terminating user service");
