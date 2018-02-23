@@ -107,6 +107,7 @@ myApp
 													.field('userId',
 															'reference')
 													.targetEntity(user)
+													.perPage(1000)
 													.targetField(
 															nga
 																	.field('username'))
@@ -124,7 +125,7 @@ myApp
 													.field('userId',
 															'reference')
 													.targetEntity(user)
-                          .perPage(1000)
+                                                    .perPage(1000)
 													.targetField(
 															nga
 																	.field('username'))
@@ -323,7 +324,7 @@ myApp
 											'Interface 2') ]).filters(
 							[
 									nga.field('userId', 'reference')
-											.targetEntity(user).targetField(
+											.targetEntity(user).perPage(1000).targetField(
 													nga.field('username'))
 											.label('User'),
 									nga.field('processId', 'reference')
