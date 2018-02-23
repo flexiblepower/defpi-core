@@ -280,7 +280,7 @@ header {
 }
 header .top {
     background: url("../img/bg_body.png") repeat-x scroll 0 0 #FFFFFF;
-    height: 95px;
+    height: 83px;
 }
 
 header .center {
@@ -294,7 +294,7 @@ header h1 {
 header h1 a {
     background: url("../img/logo_flex.png") no-repeat scroll 0 0 transparent;
     display: block;
-    height: 50px;
+    height: 41px;
     text-indent: -9999em;
     width: 173px;
 }

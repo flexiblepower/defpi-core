@@ -1,166 +1,57 @@
 <style type="text/css">
-#explenation {
-	width: 800px;
-	margin: 5px auto;
-	padding: 8px;
-	-webkit-border-radius: 3px;
-	-moz-border-radius: 3px;
-	border-radius: 3px;
-	background-color: #eee;
-	border: 2px solid white;
+#graph {
+	user-select: none;
+	-moz-user-select: none;
+	-khtml-user-select: none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
+	position: absolute;
+	top: 150px;
+	bottom: 130px;
+	left: 0px;
+	right: 0px;
+	padding: 1em;
+	overflow: auto;
+	background: white;
 }
 
-#options {
-	/*	border: 1px solid white;*/
-	margin: 0;
-	padding: 0;
-	text-align: center;
+#graph h1 {
+	width: 100%;
+	font-size: 150%;
+	padding-top: 1em;
+	padding-bottom: .5em;
+	margin-bottom: .5em;
+	border-bottom: 1px dotted black;
 }
 
-.option {
-	display: inline-block;
-	text-align: left;
-	-webkit-border-radius: 10px;
-	-moz-border-radius: 10px;
-	border-radius: 10px;
-	border: 3px solid #262626;
-	height: 100%;
-	width: 200px;
-	margin: 10px;
-	padding: 6px;
-	-webkit-box-shadow: 0px 0px 28px -3px rgba(255, 255, 255, 0.3);
-	-moz-box-shadow: 0px 0px 28px -3px rgba(255, 255, 255, 0.3);
-	box-shadow: 0px 0px 28px -3px rgba(255, 255, 255, 0.3);
+#properties p {
+	line-height: 1.3em;
 }
 
-.optionactive {
-	/* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#87cf08+0,67a102+100 */
-	background: #87cf08; /* Old browsers */
-	background: -moz-linear-gradient(left, #87cf08 0%, #67a102 100%);
-	/* FF3.6-15 */
-	background: -webkit-linear-gradient(left, #87cf08 0%, #67a102 100%);
-	/* Chrome10-25,Safari5.1-6 */
-	background: linear-gradient(to right, #87cf08 0%, #67a102 100%);
-	/* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#87cf08',
-		endColorstr='#67a102', GradientType=1); /* IE6-9 */
+#navmenu li ul {
+	z-index: 30;
 }
 
-.optionnotactive {
-	/* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#f2f2f2+0,dddddd+100 */
-	background: #f2f2f2; /* Old browsers */
-	background: -moz-linear-gradient(left, #f2f2f2 0%, #dddddd 100%);
-	/* FF3.6-15 */
-	background: -webkit-linear-gradient(left, #f2f2f2 0%, #dddddd 100%);
-	/* Chrome10-25,Safari5.1-6 */
-	background: linear-gradient(to right, #f2f2f2 0%, #dddddd 100%);
-	/* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f2f2f2',
-		endColorstr='#dddddd', GradientType=1); /* IE6-9 */
-}
-
-.option h1 {
-	color: black;
-	font-size: 25px;
-	text-align: center;
-	margin: 5px 0;
-}
-
-.option h2 {
-	color: black;
-	font-size: 18px;
-	text-align: left;
-	margin: 5px 0;
-}
-
-.option p {
-	height: 250px;
-	line-height: 14px;
-}
-
-.option	button, .option a {
-	cursor: default;
-	display: block;
-	margin: 0 auto;
-	padding: 10px;
-	width: 175px;
-	-webkit-border-radius: 4px;
-	-moz-border-radius: 4px;
-	border-radius: 4px;
-	background-color: #008CBA;
-	border: 4px solid white;
-	font-family: 'Tahoma', Arial, Helvetica, sans-serif;
-	font-size: 13px;
-	color: #434343;
-	text-align: center;
-	text-decoration: none;
-}
-
-.option	button {
-	height: 60px;
-}
-
-.option a {
-	height: 30px;
-}
-
-.optionnotactive button, .optionnotactive a {
-	opacity: 1;
-	cursor: pointer;
-}
-
-.optionactive button, .optionactive a {
-	opacity: 0.6;
-	cursor: not-allowed;
-	pointer-events: none;
-}
-
-.optionactive .selecteer {
-	display: none;
-}
-
-.optionnotactive .geselecteerd {
-	display: none;
-}
-
-strong {
+th {
 	font-weight: bold;
+	padding: 5px;
+}
+
+td {
+	padding: 5px;
+}
+
+table, th, td {
+	border: 1px solid black;
 }
 </style>
 
-<div id="explenation">Op deze pagina ziet u uw (en in de toekomst
-	andere) sturende partij(en) en kunt u direct de aansturing uitzetten.</div>
+<div id="graph">
+	<form method="post">
+		<h1>EFI Connections</h1>
+		@EFITABLE@
 
-<div id="options">
-	<div class="option @SYMPOWER_STYLE@">
-		<h1>Sympower</h1>
-		<h2>Aansturen</h2>
-		<p>Sympower zal uw apparaten aansturen voor het optimaliseren van
-			het energienet. U krijgt daarvoor een flexibiliteitsvergoeding.</p>
-		<a href="https://www.energiekoplopers.nl/sympower/" target="_blank">
-			<span class="selecteer">Selecteer<br /></span>'Sympower'<span
-			class="geselecteerd"><br />geselecteerd</span>
-		</a>
-	</div>
-
-	<div class="option @ALLEENMETEN_STYLE@" />
-	<h1>Alleen meten</h1>
-	<h2>Aansturen</h2>
-	<p>Ik wil mijn gegevens niet (meer) delen met een sturende partij
-		Let op, dit is een noodmaatregel. U verbreekt direct het contact met
-		de sturende partij en uw apparaat wordt niet meer aangestuurd. De
-		flexibiliteitsvergoeding wordt ook direct stopgezet. Wilt u opzeggen
-		met in acht neming van de opzegtermijn (en in de toekomst mogelijk
-		wisselen naar een andere sturende partij) stuur dan een mail naar
-		info@energiekoplopers.nl.</p>
-	<form method="post"
-		onsubmit="return confirm('Weet u het zeker? Deze wijziging wordt direct doorgevoerd en kan alleen worden teruggedraaid door te mailen naar info@energiekoplopers.nl.');">
-		<input type="hidden" name="option" value="alleenmeten" />
-		<button>
-			<span class="selecteer">Selecteer<br /></span>'Alleen meten'<span
-				class="geselecteerd"><br />geselecteerd</span>
-		</button>
+		<h1>Observation connections</h1>
+		@OBSTABLE@ <input type="submit" value="Update" />
 	</form>
-</div>
-
 </div>
