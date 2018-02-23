@@ -124,6 +124,7 @@ myApp
 													.field('userId',
 															'reference')
 													.targetEntity(user)
+                          .perPage(1000)
 													.targetField(
 															nga
 																	.field('username'))
@@ -414,6 +415,7 @@ myApp
 									nga.field('userId', 'reference')
 											.targetEntity(user).targetField(
 													nga.field('username'))
+                      .perPage(1000)
 											.label('User').validation({
 												required : true
 											}) ]);
