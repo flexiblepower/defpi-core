@@ -336,6 +336,7 @@ myApp
 							[
 									nga.field('endpoint1.processId',
 											'reference').targetEntity(process)
+											.perPage(1000)
 											.targetField(nga.field('id'))
 											.label('Process 1'),
 									nga.field('endpoint1.interfaceId',
@@ -344,6 +345,7 @@ myApp
 											.label('Interface 1'),
 									nga.field('endpoint2.processId',
 											'reference').targetEntity(process)
+											.perPage(1000)
 											.targetField(nga.field('id'))
 											.label('Process 2'),
 									nga.field('endpoint2.interfaceId',
