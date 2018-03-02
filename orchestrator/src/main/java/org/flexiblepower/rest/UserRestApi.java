@@ -25,7 +25,6 @@ import java.util.UUID;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.bson.types.ObjectId;
@@ -135,7 +134,7 @@ public class UserRestApi extends BaseApi implements UserApi {
     }
 
     @Override
-    public Response listUsers(final int page,
+    public List<User> listUsers(final int page,
             final int perPage,
             final String sortDir,
             final String sortField,
@@ -148,17 +147,13 @@ public class UserRestApi extends BaseApi implements UserApi {
 
             userList.forEach((u) -> u.clearPasswordHash());
 
-            return Response.status(Status.OK.getStatusCode())
-                    .header("X-Total-Count", Integer.toString(this.db.countUsers(filter)))
-                    .entity(userList)
-                    .build();
+            this.addTotalCount(this.db.countUsers(filter));
+            return userList;
         } else {
             final User ret = this.sessionUser;
             ret.clearPasswordHash();
-            return Response.status(Status.OK.getStatusCode())
-                    .header("X-Total-Count", Integer.toString(1))
-                    .entity(Arrays.asList(ret))
-                    .build();
+            this.addTotalCount(1);
+            return Arrays.asList(ret);
         }
     }
 }

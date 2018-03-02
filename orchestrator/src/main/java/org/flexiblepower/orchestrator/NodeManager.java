@@ -167,6 +167,11 @@ public class NodeManager {
         return MongoDbConnector.getInstance().getUnidentifiedNodeByDockerId(dockerId);
     }
 
+    public PublicNode getPublicNodeByDockerId(final String dockerId) {
+        this.syncAllNodes();
+        return MongoDbConnector.getInstance().getPublicNodeByDockerId(dockerId);
+    }
+
     public List<PublicNode> getPublicNodesInNodePool(final NodePool nodePool) {
         final List<PublicNode> result = new ArrayList<>();
         for (final PublicNode pn : this.getPublicNodes()) {

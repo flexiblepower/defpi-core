@@ -30,6 +30,7 @@ import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Process;
+import org.flexiblepower.model.PublicNode;
 import org.flexiblepower.model.UnidentifiedNode;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange;
@@ -38,12 +39,10 @@ import org.mongodb.morphia.Morphia;
 import org.mongodb.morphia.query.FindOptions;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
-import org.mongodb.morphia.query.UpdateResults;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoClient;
-import com.mongodb.WriteResult;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -319,6 +318,16 @@ public final class MongoDbConnector {
     }
 
     /**
+     * @param dockerId
+     * @return
+     */
+    public PublicNode getPublicNodeByDockerId(final String dockerId) {
+        final Query<PublicNode> q = this.datastore.find(PublicNode.class);
+        q.criteria("dockerId").equal(dockerId);
+        return q.get();
+    }
+
+    /**
      * Retrieve the next PendingChange. It uses the findAndModify option to make sure that no tasks gets taken from the
      * queue twice.
      *
@@ -377,20 +386,22 @@ public final class MongoDbConnector {
      * Clean up all pending changes that are either lingering or are in the FAILED_PERMANENTLY state, or inactive for a
      * long period of time.
      */
-    public void cleanPendingChanges() {
+    public String cleanPendingChanges() {
         // Remove pending changes that failed permanently
         final Query<PendingChange> failed = this.datastore.createQuery(PendingChange.class).field("state").equal(
                 PendingChange.State.FAILED_PERMANENTLY);
-        final WriteResult deleted = this.datastore.delete(failed);
-        MongoDbConnector.log.info("Deleted {} permanently failed pending changes", deleted.getN());
+        final int deletedFailed = this.datastore.delete(failed).getN();
 
         // Remove any pending changes that haven't been updated for a long time
         final Query<PendingChange> lingering = this.datastore.createQuery(PendingChange.class).filter("obtainedAt <",
                 new Date(System.currentTimeMillis() - MongoDbConnector.PENDING_CHANGE_TIMEOUT_MS));
         final UpdateOperations<PendingChange> update = this.datastore.createUpdateOperations(PendingChange.class)
                 .unset("obtainedAt");
-        final UpdateResults updated = this.datastore.update(lingering, update);
-        MongoDbConnector.log.info("Cleared {} lingering pending changes", updated.getUpdatedCount());
+        final int deletedLingering = this.datastore.update(lingering, update).getUpdatedCount();
+
+        return String.format("Deleted %d permanently failed, and %d lingering pending changes",
+                deletedFailed,
+                deletedLingering);
     }
 
 }

@@ -46,7 +46,7 @@ import lombok.Value;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@EqualsAndHashCode(exclude = {"runningDockerNodeId", "dockerId"})
+@EqualsAndHashCode(exclude = {"runningNodeId", "dockerId"})
 public class Process {
 
     /**
@@ -145,7 +145,9 @@ public class Process {
     /**
      * The node on which the process is actually running. May be null when the state is not RUNNING.
      */
-    private String runningDockerNodeId;
+    @JsonSerialize(using = ToStringSerializer.class)
+    @JsonDeserialize(using = ObjectIdDeserializer.class)
+    private ObjectId runningNodeId;
 
     private List<ProcessParameter> configuration;
 

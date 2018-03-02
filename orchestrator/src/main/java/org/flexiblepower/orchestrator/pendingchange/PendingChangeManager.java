@@ -146,10 +146,11 @@ public class PendingChangeManager {
     /**
      *
      */
-    public void cleanPendingChanges() {
-        MongoDbConnector.getInstance().cleanPendingChanges();
+    public String cleanPendingChanges() {
+        final String ret = MongoDbConnector.getInstance().cleanPendingChanges();
+        PendingChangeManager.log.info(ret);
         this.lockedResources.clear();
-
+        return ret;
     }
 
     private class PendingChangeRunner implements Runnable {

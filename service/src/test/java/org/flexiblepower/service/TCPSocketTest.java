@@ -91,25 +91,26 @@ public class TCPSocketTest {
         try (
                 final TCPSocket client = TCPSocket.asClient("127.0.0.1", TCPSocketTest.TEST_PORT);
                 final TCPSocket server = TCPSocket.asServer(TCPSocketTest.TEST_PORT)) {
+            final int margin = 25;
             // Test 100 ms
             long t_start = System.currentTimeMillis();
             Assert.assertNull(client.read(100));
             long t_wait = System.currentTimeMillis() - t_start;
-            Assert.assertTrue(Math.abs(t_wait - 100) < 10);
+            Assert.assertTrue(Math.abs(t_wait - 100) < margin);
             Assert.assertTrue(client.isConnected());
 
             // Test 100 ms
             t_start = System.currentTimeMillis();
             Assert.assertNull(server.read(100));
             t_wait = System.currentTimeMillis() - t_start;
-            Assert.assertTrue(Math.abs(t_wait - 100) < 10);
+            Assert.assertTrue(Math.abs(t_wait - 100) < margin);
             Assert.assertTrue("The server should be connected now", server.isConnected());
 
             // Test 200 ms
             t_start = System.currentTimeMillis();
             Assert.assertNull(server.read(200));
             t_wait = System.currentTimeMillis() - t_start;
-            Assert.assertTrue(Math.abs(t_wait - 200) < 10);
+            Assert.assertTrue(Math.abs(t_wait - 200) < margin);
 
             // Test if data still comes through
             client.send("Test data".getBytes());

@@ -68,7 +68,8 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
             final String sortDir,
             final String sortField,
             final String filters) throws AuthorizationException {
-        if ((page < 1) || (perPage < 1)) {
+        if ((page < 0) || (perPage < 0)) {
+            this.addTotalCount(0);
             return Collections.emptyList();
         }
 
@@ -112,7 +113,7 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
         }
 
         // Now do the sorting
-        Comparator<Connection> comparator;
+        final Comparator<Connection> comparator;
         switch (sortField) {
         case "endpoint1.interfaceId":
             comparator = (a, b) -> a.getEndpoint1().getInterfaceId().compareTo(b.getEndpoint1().getInterfaceId());
@@ -139,6 +140,10 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
         }
 
         // And finally pagination
+        this.addTotalCount(connections.size());
+        if ((page == 0) || (perPage == 0)) {
+            return connections;
+        }
         return connections.subList((page - 1) * perPage, Math.min(connections.size(), page * perPage));
     }
 

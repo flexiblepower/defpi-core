@@ -46,12 +46,18 @@ public abstract class BaseApi {
     protected final User sessionUser;
 
     /**
+     * The HTTP headers of the session, which may include headers to add to the response by any filter
+     */
+    protected final HttpHeaders headers;
+
+    /**
      * Create the abstract base class for the REST API. The base API will make sure the user is logged in by taking the
      * authentication headers from the HTTP request.
      *
      * @param httpHeaders The headers of the HTTP request that creates this object
      */
     protected BaseApi(final HttpHeaders httpHeaders) {
+        this.headers = httpHeaders;
         String authString = httpHeaders.getHeaderString("Authorization");
         if ((authString == null) || !authString.startsWith(BaseApi.AUTH_PREFIX)) {
             // User did not provide Basic Auth info, so look for token in header
@@ -127,6 +133,15 @@ public abstract class BaseApi {
             throw new AuthorizationException();
         }
 
+    }
+
+    /**
+     * Add the {@value TotalCountFilter#HEADER_NAME} header to the response with the provided value
+     *
+     * @param count The total number of responses that could have been returned
+     */
+    protected void addTotalCount(final int count) {
+        this.headers.getRequestHeaders().add(TotalCountFilter.HEADER_NAME, Integer.toString(count));
     }
 
 }
