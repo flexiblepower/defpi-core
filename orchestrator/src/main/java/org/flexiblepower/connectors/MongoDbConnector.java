@@ -318,8 +318,10 @@ public final class MongoDbConnector {
     }
 
     /**
-     * @param dockerId
-     * @return
+     * Get a public node by finding its docker id
+     *
+     * @param dockerId the dockerId of the node to look for
+     * @return The PublicNode with the provided id, or null
      */
     public PublicNode getPublicNodeByDockerId(final String dockerId) {
         final Query<PublicNode> q = this.datastore.find(PublicNode.class);
@@ -385,6 +387,9 @@ public final class MongoDbConnector {
     /**
      * Clean up all pending changes that are either lingering or are in the FAILED_PERMANENTLY state, or inactive for a
      * long period of time.
+     *
+     * @return A piece of text containing the report of what was updated in the DB. e.g. "Deleted <i>n</i> permanently
+     *         failed, and <i>m</i> lingering pending changes"
      */
     public String cleanPendingChanges() {
         // Remove pending changes that failed permanently

@@ -109,15 +109,9 @@ public class DockerConnector {
     private DockerClient client;
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
-    <<<<<<<HEAD
-
-    private static DockerClient init() throws DockerCertificateException {
-=======
-
     private static int nodepicker = 0;
 
-    public static DockerClient init() throws DockerCertificateException {
->>>>>>> (origin/list)-more-users
+    private static DockerClient init() throws DockerCertificateException {
         final String dockerHost = System.getenv(DockerConnector.DOCKER_HOST_KEY);
         if (dockerHost == null) {
             return DefaultDockerClient.fromEnv()
@@ -144,7 +138,7 @@ public class DockerConnector {
     /**
      * Private destructor, is only closed after docker exception to make sure we will make a new client
      */
-    private synchronized void destroy(final String msg, final Throwable cause) {
+    private static synchronized void destroy(final String msg, final Throwable cause) {
         // this.client.close();
         DockerConnector.log.error("{}: {}", msg, cause.getMessage());
         DockerConnector.log.trace(cause.getMessage(), cause);
@@ -201,29 +195,13 @@ public class DockerConnector {
 
             return id;
         } catch (DockerException | InterruptedException e) {
-            this.destroy("Exception while starting new process", e);
+            DockerConnector.destroy("Exception while starting new process", e);
             return null;
         }
     }
 
-    /**
-<<<<<<< HEAD
-     * @param process The process to remove
-     * @return Whether the docker service is succesfully removed, or more precise, if by the end of calling this
-     *         function the service is gone
-     */
-    public boolean removeProcess(final Process process) {
-=======
-     * @param service
-     * @param node
-     * @return
-     * @throws InterruptedException
-     * @throws DockerException
-     *
-     */
     private ServiceSpec
-
-    createDashBoardGatewayProcess(final Process process, final Service service, final Node randomNode)
+            createDashBoardGatewayProcess(final Process process, final Service service, final Node randomNode)
                     throws DockerException,
                     InterruptedException {
         // This is the dashboard, it should be added to all user networks
@@ -257,35 +235,15 @@ public class DockerConnector {
     }
 
     /**
-     * @param uuid
-     * @return
-     * @throws ProcessNotFoundException
-     * @throws ServiceNotFoundException
+     * @param process The process to remove
+     * @return Whether the docker service is succesfully removed, or more precise, if by the end of calling this
+     *         function the service is gone
      */
-    public boolean removeProcess(final Process process) throws ProcessNotFoundException {
->>>>>>> (origin/list)-more-users
+    public boolean removeProcess(final Process process) {
         if (process.getDockerId() == null) {
             // Container was probably never created
             return true;
         }
-<<<<<<< HEAD
-        try {
-            return this.executor.submit(() -> {
-                this.client.removeService(process.getDockerId());
-                return true;
-            }).get(DockerConnector.DOCKER_WRITE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
-        } catch (final ExecutionException e) {
-            if ((e.getCause() != null)
-                    && (e.getCause() instanceof com.spotify.docker.client.exceptions.ServiceNotFoundException)) {
-                return true;
-            } else {
-                this.destroy("Error while removing process", e);
-            }
-        } catch (final InterruptedException | TimeoutException e) {
-            this.destroy("Error while removing process", e);
-        }
-        // Otherwise we didn't remove it...
-=======
 
         try {
             return this.runOrTimeout(() -> {
@@ -293,9 +251,9 @@ public class DockerConnector {
                 return true;
             });
         } catch (final InterruptedException | DockerException e) {
-            this.destroy("Error while removing process", e);
+            DockerConnector.destroy("Error while removing process", e);
         }
->>>>>>> origin/list-more-users
+
         return false;
     }
 
@@ -306,7 +264,7 @@ public class DockerConnector {
         try {
             return this.runOrTimeout(() -> this.client.listNodes());
         } catch (DockerException | InterruptedException e) {
-            this.destroy("Error while listing nodes", e);
+            DockerConnector.destroy("Error while listing nodes", e);
             throw new ApiException(e);
         }
     }
@@ -384,7 +342,7 @@ public class DockerConnector {
                 }
             }
         } catch (DockerException | InterruptedException e) {
-            this.destroy("Exception attaching process", e);
+            DockerConnector.destroy("Exception attaching process", e);
             throw e;
         }
     }
@@ -664,7 +622,7 @@ public class DockerConnector {
                     System.getenv(DockerConnector.GIT_LOG),
                     info.created().toInstant());
         } catch (DockerException | InterruptedException e) {
-            this.destroy("Error obtaining running image", e);
+            DockerConnector.destroy("Error obtaining running image", e);
             return "Unknown";
         }
     }
@@ -699,7 +657,7 @@ public class DockerConnector {
             }
 
         } catch (final DockerException | InterruptedException e) {
-            this.destroy("Error obtaining running image", e);
+            DockerConnector.destroy("Error obtaining running image", e);
             return "Unknown";
         }
     }

@@ -29,6 +29,9 @@ import javax.ws.rs.container.ContainerResponseFilter;
  */
 public class TotalCountFilter implements ContainerResponseFilter {
 
+    /**
+     * The name of the header that is updated by this filter, i.e. {@value #HEADER_NAME}
+     */
     public static final String HEADER_NAME = "X-Total-Count";
 
     @Override
