@@ -60,6 +60,7 @@ public class User {
 
     private String password;
 
+    @Setter
     private String passwordHash;
 
     @Setter
@@ -78,10 +79,10 @@ public class User {
         this.setPasswordHash();
     }
 
-    public void setPassword(final String password) {
-        this.password = password;
-        this.setPasswordHash();
-    }
+    // public void setPassword(final String password) {
+    // this.password = password;
+    // this.setPasswordHash();
+    // }
 
     public void setPasswordHash() {
         if (this.password != null) {

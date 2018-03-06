@@ -101,7 +101,7 @@ public interface ProcessApi {
      */
     @GET
     @Path("{processId}")
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "getProcess",
                   value = "Get process data",
@@ -217,7 +217,7 @@ public interface ProcessApi {
      */
     @PUT
     @Path("trigger/{processId}")
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "triggerProcessUpdate",
                   value = "Trigger the process to update",

@@ -112,8 +112,12 @@ public class UserRestApi extends BaseApi implements UserApi {
             throw new ApiException(Status.BAD_REQUEST, "Name cannot be changed");
         }
 
-        if ((updatedUser.getPassword() != null) && !updatedUser.getPassword().isEmpty()) {
-            ret.setPassword(updatedUser.getPassword());
+        // if ((updatedUser.getPassword() != null) && !updatedUser.getPassword().isEmpty()) {
+        // ret.setPassword(updatedUser.getPassword());
+        // }
+        updatedUser.setPasswordHash();
+        if ((updatedUser.getPasswordHash() != null) && !updatedUser.getPasswordHash().isEmpty()) {
+            ret.setPasswordHash(updatedUser.getPasswordHash());
         }
 
         ret.setAdmin(updatedUser.isAdmin());
