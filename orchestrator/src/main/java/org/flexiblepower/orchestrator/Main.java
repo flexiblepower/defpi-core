@@ -24,7 +24,11 @@ import java.util.UUID;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.eclipse.jetty.server.Server;
+<<<<<<< HEAD
 import org.flexiblepower.connectors.MongoDbConnector;
+=======
+import org.flexiblepower.exceptions.AuthorizationException;
+>>>>>>> origin/master
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
 import org.flexiblepower.rest.OrchestratorApplication;
@@ -75,8 +79,8 @@ public class Main {
      */
     private static void ensureAdminUserExists() {
         Main.log.trace("Ensuring user with name {} exists", Main.ROOT_USER);
-        final MongoDbConnector db = MongoDbConnector.getInstance();
-        if (db.getUser(Main.ROOT_USER, Main.ROOT_PASSWORD) == null) {
+        // if (db.getUser(Main.ROOT_USER, Main.ROOT_PASSWORD) == null) {
+        if (UserManager.getInstance().getUser(Main.ROOT_USER) == null) {
             final User root = new User(Main.ROOT_USER, Main.ROOT_PASSWORD);
             root.setAuthenticationToken(UUID.randomUUID().toString());
             // root.setPasswordHash();

@@ -64,6 +64,7 @@ public class User {
 
     private transient String password;
 
+    @Setter
     private String passwordHash;
 
     @Setter
@@ -90,18 +91,7 @@ public class User {
         this.setPasswordHash();
     }
 
-    /**
-     * Set or update the password of a user. Calling this function will result in the password field to be updated, but
-     * immediately erased as the password hash is computed and stored.
-     *
-     * @param password The new password of the user.
-     */
-    public void setPassword(final String password) {
-        this.password = password;
-        this.setPasswordHash();
-    }
-
-    private void setPasswordHash() {
+    public void setPasswordHash() {
         if (this.password != null) {
             this.passwordHash = User.computeUserPass(this.username, this.password);
             this.password = null;

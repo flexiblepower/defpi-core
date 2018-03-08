@@ -105,8 +105,9 @@ public interface ConnectionApi {
      * @throws InvalidObjectIdException When the provided id is not a valid ObjectId
      */
     @GET
-    @Produces(MediaType.APPLICATION_JSON)
     @Path("{connectionId}")
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "getConnection",
                   value = "Get connection data",
                   notes = "Get the connection with the specified Id",

@@ -230,6 +230,7 @@ public interface NodeApi {
      */
     @GET
     @Path("/publicnode/{node_id}")
+    @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "getPublicNode",
                   value = "Find a public node",

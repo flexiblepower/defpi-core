@@ -74,7 +74,7 @@ public class DashboardFullWidget implements Widget {
 
     @Override
     public String getTitle() {
-        return "Apparaten";
+        return "Dashboard";
     }
 
     @Override
