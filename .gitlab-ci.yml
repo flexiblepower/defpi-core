@@ -30,16 +30,16 @@ branch-test:ek2:
   only:
     - ek2
   script:
-    - grep ek2 dashboard/pom.xml
-    - grep ek2 dashboard-gateway/pom.xml
+    - "grep ek2 dashboard/pom.xml"
+    - "grep ek2 dashboard-gateway/pom.xml"
 
 branch-test:other:
   stage: build
   except:
     - ek2
   script:
-    - ! grep ek2 dashboard/pom.xml
-    - ! grep ek2 dashboard-gateway/pom.xml
+    - "! grep ek2 dashboard/pom.xml"
+    - "! grep ek2 dashboard-gateway/pom.xml"
 
 # Validate java code using JDK8; for master this is a sanity check
 java-compile:
