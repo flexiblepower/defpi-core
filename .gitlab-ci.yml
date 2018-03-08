@@ -14,7 +14,6 @@ image: maven:3.5.0-jdk-8
 stages:
   - build
   - test
-  - integrate
   - predeploy
   - deploy
 
@@ -56,15 +55,14 @@ ui-compile:
 # *** TEST JOBS *** #
 
 # Run Junit tests with maven; not on master where we will deploy
-# Going to install will ensure the creation of the docker images, and entering artifacts in cache
 java-test:
   stage: test
   except:
     - master
   script:
-    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install'
+    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml test'
 
-# Plugin template, how test the plugins with the code generator; on master we deploy
+# Plugin template, how test the plugins with the code generator
 .plugin_template: &plugin
   stage: test
   before_script:
@@ -101,30 +99,28 @@ plugin-test:xsd:
 #  after_script:
 #    - 'docker stop ui-test'
 
-# *** INTEGRATION JOBS *** #
+# *** PRE-DEPLOYMENT JOBS *** #
 
 # Deploy the complete project with modules to artifactory and the orchestrator to registry
-java-integrate:
+java-deploy:
+  stage: pre-deploy
   only:
     - master
     - defpici
-  stage: integrate
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy -Ddocker.registry=defpi.hesilab.nl:5000'
 
 # Deploy UI to registry
-ui-integrate:
+ui-deploy:
   image: docker:17.03.2-ce-git
+  stage: pre-deploy
   only:
     - master
     - defpici
-  stage: integrate
   before_script:  
     - 'docker build orchestrator-ui -t defpi.hesilab.nl:5000/defpi/orchestrator-ui'
   script:
     - 'docker push defpi.hesilab.nl:5000/defpi/orchestrator-ui'
-
-# *** PRE-DEPLOYMENT JOBS *** #
 
 # Test the deployment first
 # test-deploy:
@@ -145,27 +141,17 @@ ui-integrate:
 #    - 'wget -q def-pi2.sensorlab.tno.nl:8484/swagger.json -O - | grep "dEF-Pi API"'
 #  after_script:
 #    - 'docker-compose -p test -f orchestrator/docker-compose.test.yml down'
-      
-# How to deploy the ek2 services to the registry
-deploy:dashboard:
-  only:
-    - ek2_ui
-    - master
-    - defpici
-  stage: predeploy
-  script:
-    - 'mvn $MAVEN_CLI_OPTS -f master/service-parent/pom.xml deploy -Ddocker.registry=defpi.hesilab.nl:5000'
 
 # *** FINAL DEPLOY JOBS *** #
 
 # And finally run the orchestrator on hesilab using docker-compose
-deploy:
+deploy-compose:
   image: tmaier/docker-compose:17.06
+  stage: deploy
   tags:
     - hesilab
   only:
     - master
-  stage: deploy
   before_script:
     - 'docker-compose -f orchestrator/docker-compose.test.yml pull'
   script:
