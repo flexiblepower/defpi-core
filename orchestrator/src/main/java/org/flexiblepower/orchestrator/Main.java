@@ -24,11 +24,6 @@ import java.util.UUID;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.eclipse.jetty.server.Server;
-<<<<<<< HEAD
-import org.flexiblepower.connectors.MongoDbConnector;
-=======
-import org.flexiblepower.exceptions.AuthorizationException;
->>>>>>> origin/master
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
 import org.flexiblepower.rest.OrchestratorApplication;

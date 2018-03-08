@@ -91,6 +91,10 @@ public class User {
         this.setPasswordHash();
     }
 
+    /**
+     * Update the user's password hash if the password is not equal to null. i.e. this function can only be used from
+     * the constructor, or if the user is created using reflection and has a password field.
+     */
     public void setPasswordHash() {
         if (this.password != null) {
             this.passwordHash = User.computeUserPass(this.username, this.password);
