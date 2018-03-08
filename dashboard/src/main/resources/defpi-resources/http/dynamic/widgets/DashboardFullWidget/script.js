@@ -98,7 +98,7 @@ $(document).ready(function() {
 			
 			// If there are no slides, then show a temporary widget
 			if(this.slider.numSlides == 1 && this.getWidgets(0).size() == 0) {
-				var widget = $('<div id="widget--1" class="large_tile white"><h3>Geen apparaat-inzicht beschikbaar</h3></div>');
+				var widget = $('<div id="widget--1" class="large_tile white"><h3>No widgets available</h3></div>');
 				widget.insertBefore(this.getSlide(0).children(".clear"));
 			}
 		},
