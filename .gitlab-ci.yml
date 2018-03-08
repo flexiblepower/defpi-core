@@ -27,7 +27,7 @@ cache:
 branch-test:ek2:
   stage: build
   only:
-    - ek2
+    - ek2_ui
   script:
     - "grep ek2 dashboard/pom.xml"
     - "grep ek2 dashboard-gateway/pom.xml"
@@ -35,7 +35,7 @@ branch-test:ek2:
 branch-test:other:
   stage: build
   except:
-    - ek2
+    - ek2_ui
   script:
     - "! grep ek2 dashboard/pom.xml"
     - "! grep ek2 dashboard-gateway/pom.xml"
