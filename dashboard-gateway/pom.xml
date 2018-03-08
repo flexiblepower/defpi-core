@@ -19,10 +19,6 @@
 		<url>http://flexible-energy.eu</url>
 	</organization>
 
-	<properties>
-		<docker.imageName>${docker.registry}/services/${project.artifactId}-ek2</docker.imageName>
-	</properties>
-
 	<developers>
 		<developer>
 			<name>Wilco Wijbrandi</name>

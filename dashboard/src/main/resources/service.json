@@ -60,22 +60,6 @@
 					]
 				}
 			]
-		},
-	    {
-			"name": "Observation publisher",
-			"autoConnect": false,
-			"allowMultiple": true,
-			"interfaceVersions": [
-				{
-					"versionName": "1",
-					"type": "proto",
-					"location": "https://raw.githubusercontent.com/defpi/interfaces/master/defpi-ext/Observation.proto",
-					"sends": [
-						"Observation"
-					],
-					"receives": []
-				}
-			]
 		}
 	]
 }
