@@ -22,7 +22,7 @@ cache:
   paths:
     - /cache/maven.repository
 
-      # *** BUILD JOBS *** #
+# *** BUILD JOBS *** #
 
 # Validate java code using JDK8; for master this is a sanity check
 java-compile:
@@ -36,7 +36,7 @@ ui-compile:
   script:
     - 'docker build orchestrator-ui'
 
-      # *** TEST JOBS *** #
+# *** TEST JOBS *** #
 
 # Run Junit tests with maven; not on master where we will deploy
 # Going to install will ensure the creation of the docker images, and entering artifacts in cache
@@ -50,8 +50,6 @@ java-test:
 # Plugin template, how test the plugins with the code generator; on master we deploy
 .plugin_template: &plugin
   stage: test
-  except:
-    - master
   before_script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
   script:
@@ -86,7 +84,7 @@ plugin-test:xsd:
 #  after_script:
 #    - 'docker stop ui-test'
 
-      # *** INTEGRATION JOBS *** #
+# *** INTEGRATION JOBS *** #
 
 # Deploy the complete project with modules to artifactory and the orchestrator to registry
 java-integrate:
@@ -109,31 +107,7 @@ ui-integrate:
   script:
     - 'docker push defpi.hesilab.nl:5000/defpi/orchestrator-ui'
 
-      # *** PRE-DEPLOYMENT JOBS *** #
-
-# How to deploy the (test)services to the registry
-.integrate_template: &integrate_service
-  only:
-    - master
-    - defpici
-  stage: predeploy
-  before_script:
-    # In this stage the plugin should be available from artifactory
-    - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml defpi:generate'
-  script:
-    - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml clean deploy -Ddocker.registry=defpi.hesilab.nl:5000'
-
-# Deploy the proto skeleton
-integrate:skeleton_proto:
-  variables:
-    TEST_PROJ: skeleton_proto
-  <<: *integrate_service 
-
-# Deploy the XSD skeleton    
-integrate:xsd_proto:
-  variables:
-    TEST_PROJ: skeleton_xsd
-  <<: *integrate_service
+# *** PRE-DEPLOYMENT JOBS *** #
 
 # Test the deployment first
 # test-deploy:
@@ -154,10 +128,20 @@ integrate:xsd_proto:
 #    - 'wget -q def-pi2.sensorlab.tno.nl:8484/swagger.json -O - | grep "dEF-Pi API"'
 #  after_script:
 #    - 'docker-compose -p test -f orchestrator/docker-compose.test.yml down'
+      
+# How to deploy the ek2 services to the registry
+deploy:dashboard:
+  only:
+    - ek2_ui
+    - master
+    - defpici
+  stage: predeploy
+  script:
+    - 'mvn $MAVEN_CLI_OPTS -f master/service-parent/pom.xml deploy -Ddocker.registry=defpi.hesilab.nl:5000'
 
-      # *** FINAL DEPLOY JOBS *** #
+# *** FINAL DEPLOY JOBS *** #
 
-# And finally run the orchestrator on def-pi1 using docker-compose
+# And finally run the orchestrator on hesilab using docker-compose
 deploy:
   image: tmaier/docker-compose:17.06
   tags:
@@ -169,24 +153,4 @@ deploy:
     - 'docker-compose -f orchestrator/docker-compose.test.yml pull'
   script:
     - 'docker-compose -f orchestrator/docker-compose.test.yml up -d'
-
-# How to deploy the ek2 services to the registry
-.integrate_template: &deploy_dashboard
-  only:
-    - ek2_ui
-  stage: deploy
-  script:
-    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml clean deploy -pl ../$TEST_PROJ -am -DskipTests -Ddocker.registry=defpi.hesilab.nl:5000'
-
-# Deploy the dashboard
-deploy:dashboard:
-  variables:
-    TEST_PROJ: dashboard
-  <<: *deploy_dashboard
-
-# Deploy the dashboard gateway
-deploy:dashboard-gateway:
-  variables:
-    TEST_PROJ: dashboard-gateway
-  <<: *deploy_dashboard
 
