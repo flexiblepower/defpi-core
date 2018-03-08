@@ -68,19 +68,19 @@ plugin-test:xsd:
   <<: *plugin
 
 # Validate branch make sure we don't merge ek2 into master
-check:ek2merge:
+branch-test:ek2:
   only:
     - ek2
   script:
-    - grep dashboard/pom.xml ek2
-    - grep dashboard-gateway/pom.xml ek2
+    - grep ek2 dashboard/pom.xml
+    - grep ek2 dashboard-gateway/pom.xml
 
-check:othermerge:
+branch-test:other:
   except:
     - ek2
   script:
-    - ! grep dashboard/pom.xml ek2
-    - ! grep dashboard-gateway/pom.xml ek2
+    - ! grep ek2 dashboard/pom.xml
+    - ! grep ek2 dashboard-gateway/pom.xml
 
 # Test to see if the orchestrator ui does what it is supposed to
 #ui-test:
