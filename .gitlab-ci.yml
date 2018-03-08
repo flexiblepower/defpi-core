@@ -99,11 +99,11 @@ plugin-test:xsd:
 #  after_script:
 #    - 'docker stop ui-test'
 
-# *** PRE-DEPLOYMENT JOBS *** #
+# *** predeployMENT JOBS *** #
 
 # Deploy the complete project with modules to artifactory and the orchestrator to registry
 java-deploy:
-  stage: pre-deploy
+  stage: predeploy
   only:
     - master
     - defpici
@@ -113,7 +113,7 @@ java-deploy:
 # Deploy UI to registry
 ui-deploy:
   image: docker:17.03.2-ce-git
-  stage: pre-deploy
+  stage: predeploy
   only:
     - master
     - defpici
