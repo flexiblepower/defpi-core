@@ -67,6 +67,21 @@ plugin-test:xsd:
     TEST_PROJ: skeleton_xsd
   <<: *plugin
 
+# Validate branch make sure we don't merge ek2 into master
+check:ek2merge:
+  only:
+    - ek2
+  script:
+    - grep dashboard/pom.xml ek2
+    - grep dashboard-gateway/pom.xml ek2
+
+check:othermerge:
+  except:
+    - ek2
+  script:
+    - ! grep dashboard/pom.xml ek2
+    - ! grep dashboard-gateway/pom.xml ek2
+
 # Test to see if the orchestrator ui does what it is supposed to
 #ui-test:
 #  image: docker:17.03.2-ce-git
