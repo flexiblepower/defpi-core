@@ -93,7 +93,7 @@ public interface UserApi {
      */
     @PUT
     @Path("/{user_id}")
-    @Consumes(MediaType.TEXT_PLAIN)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "updateUser",
                   value = "Update user",
@@ -103,7 +103,7 @@ public interface UserApi {
     @ApiResponses(value = {@ApiResponse(code = 200, message = "User updated", response = String.class),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public User updateUser(
-            @ApiParam(value = "The id of the user that needs to be deleted",
+            @ApiParam(value = "The id of the user that needs to be updated",
                       required = true) @PathParam("user_id") final String userId,
             @ApiParam(value = "The user to update", required = true) final User updatedUser)
             throws AuthorizationException,
