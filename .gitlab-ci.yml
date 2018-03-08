@@ -24,6 +24,23 @@ cache:
 
 # *** BUILD JOBS *** #
 
+# Validate branch make sure we don't merge ek2 into master
+branch-test:ek2:
+  stage: build
+  only:
+    - ek2
+  script:
+    - grep ek2 dashboard/pom.xml
+    - grep ek2 dashboard-gateway/pom.xml
+
+branch-test:other:
+  stage: build
+  except:
+    - ek2
+  script:
+    - ! grep ek2 dashboard/pom.xml
+    - ! grep ek2 dashboard-gateway/pom.xml
+
 # Validate java code using JDK8; for master this is a sanity check
 java-compile:
   stage: build
@@ -66,21 +83,6 @@ plugin-test:xsd:
   variables:
     TEST_PROJ: skeleton_xsd
   <<: *plugin
-
-# Validate branch make sure we don't merge ek2 into master
-branch-test:ek2:
-  only:
-    - ek2
-  script:
-    - grep ek2 dashboard/pom.xml
-    - grep ek2 dashboard-gateway/pom.xml
-
-branch-test:other:
-  except:
-    - ek2
-  script:
-    - ! grep ek2 dashboard/pom.xml
-    - ! grep ek2 dashboard-gateway/pom.xml
 
 # Test to see if the orchestrator ui does what it is supposed to
 #ui-test:
