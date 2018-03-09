@@ -36,7 +36,7 @@ import org.flexiblepower.codegen.model.ServiceDescription;
 import org.flexiblepower.model.Parameter;
 
 /**
- * Templates
+ * Templates for the java code generation
  *
  * @version 0.1
  * @since Jun 8, 2017
@@ -45,30 +45,46 @@ public class JavaTemplates extends Templates {
 
     private final String servicePackage;
 
+    /**
+     * Create the object that provides the Templates for the java code generation with a specific target java package
+     * name, and a service description
+     *
+     * @param targetPackage The main service package "parent" this is obtained from the maven group id
+     * @param descr The service description as parsed from the service.json file
+     */
     public JavaTemplates(final String targetPackage, final ServiceDescription descr) {
         super(descr);
         this.servicePackage = targetPackage;
     }
 
     /**
-     * @return
+     * Generate the service implementation code for this project
+     *
+     * @return The code that implements the service for the project.
+     * @throws IOException When an exception occurs while reading the template file
      */
     public String generateServiceImplementation() throws IOException {
         return this.generate("ServiceImplementation", null, null);
     }
 
     /**
-     * @return
-     * @throws IOException
+     * Generate the service configuration interface for this service.
+     *
+     * @return The code of the configuration interface for the service
+     * @throws IOException When an exception occurs while reading the template file
      */
     public String generateConfigInterface() throws IOException {
         return this.generate("ConfigInterface", null, null);
     }
 
     /**
-     * @param itf
-     * @param version
-     * @return
+     * Generate the code of the java interface that defines the connection handler for the specified dEF-Pi interface
+     * version.
+     *
+     * @param itf The interface to generate the handler interface for
+     * @param version The version of the interface to generate the code for
+     * @return The code of the connection handler interface for the specified version of the interface
+     * @throws IOException When an exception occurs while reading the template file
      */
     public String generateHandlerInterface(final InterfaceDescription itf, final InterfaceVersionDescription version)
             throws IOException {
@@ -76,9 +92,12 @@ public class JavaTemplates extends Templates {
     }
 
     /**
-     * @param itf
-     * @param version
-     * @return
+     * Generate the code that implements the connection handler for the specified dEF-Pi interface version.
+     *
+     * @param itf The interface to generate the handler implementation for
+     * @param version The version of the interface to generate the code for
+     * @return The code of the connection handler implementation for the specified version of the interface
+     * @throws IOException When an exception occurs while reading the template file
      */
     public String generateHandlerImplementation(final InterfaceDescription itf,
             final InterfaceVersionDescription version) throws IOException {
@@ -86,18 +105,22 @@ public class JavaTemplates extends Templates {
     }
 
     /**
-     * @param itf
-     * @param version
-     * @return
+     * Generate the code of the java interface that defines the manager for the specified dEF-Pi interface.
+     *
+     * @param itf The interface to generate the manager interface for
+     * @return The code of the connection manager interface for the specified interface
+     * @throws IOException When an exception occurs while reading the template file
      */
     public String generateManagerInterface(final InterfaceDescription itf) throws IOException {
         return this.generate("ManagerInterface", itf, null);
     }
 
     /**
-     * @param itf
-     * @param version
-     * @return
+     * Generate the code that implements the manager for the specified dEF-Pi interface.
+     *
+     * @param itf The interface to generate the manager implementation for
+     * @return The code of the connection manager implementation for the specified interface
+     * @throws IOException When an exception occurs while reading the template file
      */
     public String generateManagerImplementation(final InterfaceDescription itf) throws IOException {
         return this.generate("ManagerClass", itf, null);
@@ -106,10 +129,11 @@ public class JavaTemplates extends Templates {
     /**
      * Generate a file based on the template and the provided interface description and version description
      *
-     * @param templateName
-     * @param itf
-     * @param version
-     * @return
+     * @param templateName The template to use while creating the code
+     * @param itf The interface to generate the code for
+     * @param version The version of the interface to generate the code for
+     * @return The filled-in template, which should provide valid java code
+     * @throws IOException When an exception occurs while reading the template file
      */
     private String generate(final String templateName,
             final InterfaceDescription itf,
