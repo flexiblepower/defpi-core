@@ -153,16 +153,15 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
             ServiceNotFoundException,
             ConnectionException {
         final Process p1 = ProcessManager.getInstance().getProcess(connection.getEndpoint1().getProcessId());
-
-        if (p1 == null) {
-            throw new ProcessNotFoundException(connection.getEndpoint1().getProcessId());
-        }
+        // if (p1 == null) {
+        // throw new ProcessNotFoundException(connection.getEndpoint1().getProcessId());
+        // }
         this.assertUserIsAdminOrEquals(p1.getUserId());
 
         final Process p2 = ProcessManager.getInstance().getProcess(connection.getEndpoint2().getProcessId());
-        if (p2 == null) {
-            throw new ProcessNotFoundException(connection.getEndpoint2().getProcessId());
-        }
+        // if (p2 == null) {
+        // throw new ProcessNotFoundException(connection.getEndpoint2().getProcessId());
+        // }
         this.assertUserIsAdminOrEquals(p2.getUserId());
 
         ConnectionRestApi.log.info("Inserting new Connection {}", connection);
@@ -186,15 +185,15 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
         }
 
         final Process p1 = ProcessManager.getInstance().getProcess(connection.getEndpoint1().getProcessId());
-        if (p1 == null) {
-            throw new ProcessNotFoundException(connection.getEndpoint1().getProcessId());
-        }
+        // if (p1 == null) {
+        // throw new ProcessNotFoundException(connection.getEndpoint1().getProcessId());
+        // }
         this.assertUserIsAdminOrEquals(p1.getUserId());
 
         final Process p2 = ProcessManager.getInstance().getProcess(connection.getEndpoint2().getProcessId());
-        if (p2 == null) {
-            throw new ProcessNotFoundException(connection.getEndpoint2().getProcessId());
-        }
+        // if (p2 == null) {
+        // throw new ProcessNotFoundException(connection.getEndpoint2().getProcessId());
+        // }
         this.assertUserIsAdminOrEquals(p2.getUserId());
 
         return connection;
@@ -207,9 +206,9 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
         final Connection connection = this.getConnection(id);
 
         final Process p1 = ProcessManager.getInstance().getProcess(connection.getEndpoint1().getProcessId());
-        if (p1 == null) {
-            throw new ProcessNotFoundException(connection.getEndpoint1().getProcessId());
-        }
+        // if (p1 == null) {
+        // throw new ProcessNotFoundException(connection.getEndpoint1().getProcessId());
+        // }
         this.assertUserIsAdminOrEquals(p1.getUserId());
 
         final Process p2 = ProcessManager.getInstance().getProcess(connection.getEndpoint2().getProcessId());

@@ -296,10 +296,10 @@ public class ProcessConnector {
             try {
                 final Process process = ProcessManager.getInstance().getProcess(this.processId);
                 DockerConnector.getInstance().ensureProcessNetworkIsAttached(process);
-                if (process == null) {
-                    throw new IllegalArgumentException(
-                            "Provided ObjectId for Process " + this.processId + " does not exist");
-                }
+                // if (process == null) {
+                // throw new IllegalArgumentException(
+                // "Provided ObjectId for Process " + this.processId + " does not exist");
+                // }
 
                 if (this.socket != null) {
                     this.socket.close();

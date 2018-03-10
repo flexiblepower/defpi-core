@@ -86,21 +86,30 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DockerConnector {
 
+    /*
+     * Settings to be used by the docker client itself.
+     */
+    private static final String DOCKER_HOST_KEY = "DOCKER_HOST";
     private static final int DOCKER_WRITE_TIMEOUT_MILLIS = 35000;
     private static final long DOCKER_CLIENT_TIMEOUT = 30000;
 
-    private static final int INTERNAL_DEBUGGING_PORT = 8000;
-
+    /*
+     * The following keys are environment variables that are put in the docker file by the maven build plugin
+     */
     private static final String BUILD_TIMESTAMP_KEY = "BUILD_TIMESTAMP";
     private static final String BUILD_USER_KEY = "BUILD_USER";
     private static final String GIT_BRANCH = "GIT_BRANCH";
     private static final String GIT_COMMIT = "GIT_COMMIT";
     private static final String GIT_LOG = "GIT_LOG";
-    private static final String DOCKER_HOST_KEY = "DOCKER_HOST";
 
+    /*
+     * The following labels are added to the user processes that are built by the orchestrator
+     */
     private static final String SERVICE_LABEL_KEY = "service.name";
     private static final String USER_LABEL_KEY = "user.id";
     private static final String NODE_ID_LABEL_KEY = "node.id";
+
+    private static final int INTERNAL_DEBUGGING_PORT = 8000;
 
     private static DockerConnector instance = null;
 
@@ -505,15 +514,7 @@ public class DockerConnector {
 
         // If this is the dashboard gateway, open up the port that is configured in the environment var
         if (process.getServiceId().equals(ProcessManager.getDashboardGatewayServiceId())) {
-            int port = ProcessManager.DASHBOARD_GATEWAY_PORT_DFLT;
-            final String portFromEnv = System.getenv(ProcessManager.DASHBOARD_GATEWAY_PORT_KEY);
-            if (portFromEnv != null) {
-                try {
-                    port = Integer.parseInt(portFromEnv);
-                } catch (final NumberFormatException e) {
-                    // We keep it at the default
-                }
-            }
+            final int port = ProcessManager.getDashboardGatewayPort();
             endpointSpec.addPort(PortConfig.builder()
                     .publishedPort(port)
                     .targetPort(8080)
