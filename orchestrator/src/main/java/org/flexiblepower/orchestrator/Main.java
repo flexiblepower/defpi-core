@@ -43,10 +43,13 @@ public class Main {
 
     // Base URI the HTTP server will listen on
     // TODO Get publish URI from system environment variables, since they may change per container
-    public static final String URI_SCHEME = Scheme.HTTP.name();
-    public static final String URI_HOST = "localhost";
+    private static final String URI_SCHEME = Scheme.HTTP.name();
+    private static final String URI_HOST = "localhost";
+    /**
+     * The port where the orchestrator listens for REST calls
+     */
     public static final int URI_PORT = 8080;
-    public static final String URI_PATH = "";
+    private static final String URI_PATH = "";
 
     private static final String ROOT_USER = "admin";
     private static final String ROOT_PASSWORD = "admin";
@@ -69,9 +72,6 @@ public class Main {
         return JettyHttpContainerFactory.createServer(publishURI, rc);
     }
 
-    /**
-     *
-     */
     private static void ensureAdminUserExists() {
         Main.log.trace("Ensuring user with name {} exists", Main.ROOT_USER);
         // if (db.getUser(Main.ROOT_USER, Main.ROOT_PASSWORD) == null) {

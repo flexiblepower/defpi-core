@@ -25,7 +25,9 @@ import javax.ws.rs.container.ContainerResponseContext;
 import javax.ws.rs.container.ContainerResponseFilter;
 
 /**
- * Make sure the REST API allows requests from other domains
+ * Add a header to the response that includes the total number of items in the collection. This is relevant for pages
+ * that do "pagination", i.e. request only a subset of the collection, and want to present information to the user on
+ * how many items there are in the full collection.
  */
 public class TotalCountFilter implements ContainerResponseFilter {
 

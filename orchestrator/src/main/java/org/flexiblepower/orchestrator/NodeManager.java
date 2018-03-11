@@ -48,6 +48,9 @@ public class NodeManager {
     private static final long ALLOWED_CACHE_TIME_MS = 60000;
     private static NodeManager instance = null;
 
+    /**
+     * @return The singleton instance of the NodeManager
+     */
     public synchronized static NodeManager getInstance() {
         if (NodeManager.instance == null) {
             NodeManager.instance = new NodeManager();
@@ -55,8 +58,10 @@ public class NodeManager {
         return NodeManager.instance;
     }
 
+    /*
+     * Empty private contructor for singleton design pattern
+     */
     private NodeManager() {
-
     }
 
     private void syncAllNodes() {
@@ -152,26 +157,49 @@ public class NodeManager {
         return node;
     }
 
+    /**
+     * @return The list of {@link UnidentifiedNode}s in the database.
+     */
     public List<UnidentifiedNode> getUnidentifiedNodes() {
         // Always sync
         this.syncAllNodes();
         return MongoDbConnector.getInstance().list(UnidentifiedNode.class);
     }
 
+    /**
+     * Get the {@link UnidentifiedNode} from the database with the provided ObjectId, or {@code null} if no such node
+     * exists.
+     *
+     * @param id The ObjectId to find in the database
+     * @return The node with the given id
+     */
     public UnidentifiedNode getUnidentifiedNode(final ObjectId id) {
         return this.getNodeAndSync(UnidentifiedNode.class, id);
     }
 
+    /**
+     * Get the {@link UnidentifiedNode} that has the provided docker Id, or {@code null} if no such node exists.
+     *
+     * @param dockerId The docker generated id to find the node by
+     * @return The node with the given docker id
+     */
     public UnidentifiedNode getUnidentifiedNodeByDockerId(final String dockerId) {
         this.syncAllNodes();
         return MongoDbConnector.getInstance().getUnidentifiedNodeByDockerId(dockerId);
     }
 
-    public PublicNode getPublicNodeByDockerId(final String dockerId) {
-        this.syncAllNodes();
-        return MongoDbConnector.getInstance().getPublicNodeByDockerId(dockerId);
-    }
+    // public PublicNode getPublicNodeByDockerId(final String dockerId) {
+    // this.syncAllNodes();
+    // return MongoDbConnector.getInstance().getPublicNodeByDockerId(dockerId);
+    // }
 
+    /**
+     * Get the list of all {@link PublicNode}s that are part of the provided node pool. If no nodes are registered in
+     * the node pool, the empty list will be returned.
+     *
+     * @param nodePool The node pool to get the nodes from.
+     * @return A List of all nodes that are in the node pool
+     */
     public List<PublicNode> getPublicNodesInNodePool(final NodePool nodePool) {
         final List<PublicNode> result = new ArrayList<>();
         for (final PublicNode pn : this.getPublicNodes()) {
@@ -182,18 +210,37 @@ public class NodeManager {
         return result;
     }
 
+    /**
+     * @return The list of {@link PublicNode}s in the database.
+     */
     public List<PublicNode> getPublicNodes() {
         return this.getNodesAndSync(PublicNode.class);
     }
 
+    /**
+     * Get the {@link PublicNode} from the database with the provided ObjectId, or {@code null} if no such node exists.
+     *
+     * @param id The ObjectId to find in the database
+     * @return The node with the given id
+     */
     public PublicNode getPublicNode(final ObjectId id) {
         return this.getNodeAndSync(PublicNode.class, id);
     }
 
+    /**
+     * @return The list of {@link PrivateNode}s in the database.
+     */
     public List<PrivateNode> getPrivateNodes() {
         return this.getNodesAndSync(PrivateNode.class);
     }
 
+    /**
+     * Get the list of all {@link PrivateNode}s that are assigned to the provided user. If no nodes are owned by the
+     * user, the empty list will be returned.
+     *
+     * @param owner The User who owns the list of nodes
+     * @return A List of all nodes that are owner by this user
+     */
     public List<PrivateNode> getPrivateNodesForUser(final User owner) {
         final List<PrivateNode> allNodes = this.getPrivateNodes();
         final List<PrivateNode> ret = new ArrayList<>();
@@ -205,10 +252,22 @@ public class NodeManager {
         return ret;
     }
 
+    /**
+     * Get the {@link PrivateNode} from the database with the provided ObjectId, or {@code null} if no such node exists.
+     *
+     * @param id The ObjectId to find in the database
+     * @return The node with the given id
+     */
     public PrivateNode getPrivateNode(final ObjectId id) {
         return this.getNodeAndSync(PrivateNode.class, id);
     }
 
+    /**
+     * Find a node based on its' machine's hostname
+     *
+     * @param hostname The hostname of the node to find
+     * @return The node that represents the machine with the given hostname
+     */
     public org.flexiblepower.model.Node getNodeByHostname(final String hostname) {
         // Most likely it is a public node, so start here
         final List<PublicNode> publicNodes = this.getNodesAndSync(PublicNode.class);
@@ -227,14 +286,31 @@ public class NodeManager {
         return null;
     }
 
+    /**
+     * @return The list of {@link NodePool}s in the database.
+     */
     public List<NodePool> getNodePools() {
         return MongoDbConnector.getInstance().list(NodePool.class);
     }
 
+    /**
+     * Get the {@link NodePool} from the database with the provided ObjectId, or {@code null} if no such node exists.
+     *
+     * @param id The ObjectId to find in the database
+     * @return The node pool with the given id
+     */
     public NodePool getNodePool(final ObjectId id) {
         return MongoDbConnector.getInstance().get(NodePool.class, id);
     }
 
+    /**
+     * Promote the provided {@link UnidentifiedNode} to private, by assigning it an owning user. This makes the node
+     * eligible for running processes, but only processes that are owned by that user.
+     *
+     * @param unidentifiedNode The node to promote to a private node
+     * @param owner The User to assign the node to
+     * @return The private node that is the result of the promotion
+     */
     public PrivateNode makeUnidentifiedNodePrivate(final UnidentifiedNode unidentifiedNode, final User owner) {
         final PrivateNode privateNode = new PrivateNode(unidentifiedNode, owner);
         MongoDbConnector.getInstance().save(privateNode);
@@ -242,6 +318,14 @@ public class NodeManager {
         return privateNode;
     }
 
+    /**
+     * Promote the provided {@link UnidentifiedNode} to public, by assigning it a node pool. This makes the node
+     * eligible for running processes from any user.
+     *
+     * @param unidentifiedNode The node to promote to a public node
+     * @param nodePool The NodePool to assign the node to
+     * @return The public node that is the result of the promotion
+     */
     public PublicNode makeUnidentifiedNodePublic(final UnidentifiedNode unidentifiedNode, final NodePool nodePool) {
         final PublicNode publicNode = new PublicNode(unidentifiedNode, nodePool);
         MongoDbConnector.getInstance().save(publicNode);
@@ -249,16 +333,36 @@ public class NodeManager {
         return publicNode;
     }
 
+    /**
+     * Delete the public node from the database, effectively demoting it to a {@link UnidentifiedNode}. This means the
+     * node will no longer accept processes to run on it. Running processes are not removed by the NodeManager.
+     *
+     * @param publicNode The public node to demote
+     */
     public void deletePublicNode(final PublicNode publicNode) {
         MongoDbConnector.getInstance().delete(publicNode);
         this.syncAllNodes();
     }
 
+    /**
+     * Delete the private node from the database, effectively demoting it to a {@link UnidentifiedNode}. This means the
+     * node will no longer accept processes to run on it. Running processes are not removed by the NodeManager.
+     *
+     * @param privateNode The public node to demote
+     */
     public void deletePrivateNode(final PrivateNode privateNode) {
         MongoDbConnector.getInstance().delete(privateNode);
         this.syncAllNodes();
     }
 
+    /**
+     * Save the node pool to the database, either because it is a new pool, or the updated version of an existing node
+     * pool. If the name of the nodepool is empty or {@code null}, an exception will be thrown.
+     *
+     * @param newNodePool The new or updated node pool to save.
+     * @return The nodepool as it is now stored in the database (with an ObjectId)
+     * @throws IllegalArgumentException When the name of the node pool is null or empty.
+     */
     public NodePool saveNodePool(final NodePool newNodePool) {
         if ((newNodePool.getName() == null) || newNodePool.getName().isEmpty()) {
             throw new IllegalArgumentException("Name cannot be empty");
@@ -267,6 +371,12 @@ public class NodeManager {
         return newNodePool;
     }
 
+    /**
+     * Delete the node pool from the database. This means the node pool will no longer accept public node to be added to
+     * it. Existing public nodes will not be removed by the node manager.
+     *
+     * @param nodePool The node pool to delete
+     */
     public void deleteNodePool(final NodePool nodePool) {
         MongoDbConnector.getInstance().delete(nodePool);
     }

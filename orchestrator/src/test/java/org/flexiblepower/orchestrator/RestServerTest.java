@@ -124,7 +124,7 @@ public class RestServerTest {
                 null,
                 InetAddress.getLocalHost().getHostName(),
                 RestServerTest.TEST_PORT,
-                Main.URI_PATH + "/" + path,
+                "/" + path,
                 query,
                 null);
 
