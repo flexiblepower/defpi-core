@@ -63,17 +63,15 @@ public class PluginUtils {
      *
      * @param inputFile The file that contains the service description in JSON definition
      * @return ServiceDescription object containing the data of the json
-     * @throws ProcessingException
-     * @throws IOException
      * @throws FileNotFoundException
      *             service.yml is not found in the resource directory
      * @throws JsonParseException
      *             file could not be parsed as json file
      * @throws JsonMappingException
      *             Json could not be mapped to a ServiceDescription
+     * @throws IOException When any other IOException occurs during processing the service definition file
      */
-    public static ServiceDescription readServiceDefinition(final File inputFile) throws ProcessingException,
-            IOException {
+    public static ServiceDescription readServiceDefinition(final File inputFile) throws IOException {
         PluginUtils.log.info(String.format("Reading service definition from %s", inputFile));
 
         final ObjectMapper mapper = new ObjectMapper();

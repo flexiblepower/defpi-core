@@ -184,8 +184,9 @@ public class CreateComponentMojo extends AbstractMojo {
     /**
      * Main function of the Maven plugin, will call the several stages of the plugin.
      *
-     * @throws MojoFailureException
-     * @throws MojoExecutionException
+     * @throws MojoFailureException If the input or output to the maven plugin was incorrect. e.g. incorrect
+     *             service.json or a reference to a non-existing file.
+     * @throws MojoExecutionException If any other unexpected exception occured while executing the maven plugin
      */
     @Override
     public void execute() throws MojoFailureException, MojoExecutionException {
