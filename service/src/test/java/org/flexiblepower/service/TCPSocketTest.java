@@ -38,8 +38,8 @@ import org.junit.runners.Parameterized.Parameters;
  * @version 0.1
  * @since May 12, 2017
  */
-@SuppressWarnings("static-method")
 @RunWith(Parameterized.class)
+@SuppressWarnings({"static-method", "javadoc"})
 public class TCPSocketTest {
 
     private static final int TEST_PORT = 5001;

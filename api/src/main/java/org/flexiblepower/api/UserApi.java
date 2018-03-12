@@ -64,7 +64,7 @@ public interface UserApi {
     /**
      * Attempt to create a new user with provided specification.
      *
-     * @param newUser the specification of the new process
+     * @param newUser The specification of the new process
      * @return the created user
      * @throws AuthorizationException if the user is not an admin
      */
@@ -113,11 +113,11 @@ public interface UserApi {
     /**
      * Remove a user. This is only allowed for an administrator.
      *
-     * @param userId the id of the user to remove
-     * @throws AuthorizationException If the user is not and admin
+     * @param userId The id of the user to remove
+     * @throws AuthorizationException If the user is not an admin
      * @throws ProcessNotFoundException When the user is not found
      * @throws InvalidObjectIdException When the argument userId is an invalid ObjectId
-     * @throws NotFoundException
+     * @throws NotFoundException When the referenced user could not be found
      */
     @DELETE
     @Path("/{user_id}")
@@ -200,7 +200,7 @@ public interface UserApi {
      *
      * @param page the current page to view (defaults to 1)
      * @param perPage the amount of users to view per page (defaults to
-     *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     *            {@value org.flexiblepower.api.OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
      * @param sortDir the direction to sort the users (defaults to "ASC")
      * @param sortField the field to sort the users on (defaults to "id")
      * @param filters a list of filters in JSON notation
@@ -216,8 +216,8 @@ public interface UserApi {
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "An array of Users", response = User.class, responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public List<User> listUsers(@QueryParam("_page") @DefaultValue("1") int page,
-            @QueryParam("_perPage") @DefaultValue("1000") int perPage,
+    public List<User> listUsers(@QueryParam("_page") @DefaultValue("1") final int page,
+            @QueryParam("_perPage") @DefaultValue(OrchestratorApi.DEFAULT_ITEMS_PER_PAGE) int perPage,
             @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
             @QueryParam("_sortField") @DefaultValue("id") String sortField,
             @QueryParam("_filters") @DefaultValue("{}") String filters) throws AuthorizationException;

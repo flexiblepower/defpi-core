@@ -25,18 +25,22 @@ package org.flexiblepower.service.exceptions;
  */
 public class ServiceInvocationException extends Exception {
 
-    /**
-     *
-     */
     private static final long serialVersionUID = -1747713538435507438L;
 
+    /**
+     * Create a ServiceInvocationException with a custom message
+     *
+     * @param msg the message to add to the exception {@link Exception#getMessage()}
+     */
     public ServiceInvocationException(final String msg) {
         super(msg);
     }
 
     /**
-     * @param string
-     * @param e
+     * Create a ServiceInvocationException with a custom message
+     *
+     * @param msg the message to add to the exception {@link Exception#getMessage()}
+     * @param cause The underlyting cause Trowable {@link Exception#getCause()}
      */
     public ServiceInvocationException(final String msg, final Throwable cause) {
         super(msg, cause);

@@ -27,7 +27,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response.Status;
 
-import org.apache.http.HttpResponse;
 import org.bson.types.ObjectId;
 import org.flexiblepower.api.ProcessApi;
 import org.flexiblepower.connectors.MongoDbConnector;
@@ -47,12 +46,20 @@ import org.json.JSONObject;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * ProcessRestApi
+ *
+ * @version 0.1
+ * @since Mar 30, 2017
+ */
 @Slf4j
 public class ProcessRestApi extends BaseApi implements ProcessApi {
 
-    @Context
-    HttpResponse response;
-
+    /**
+     * Create the REST API with the headers from the HTTP request (will be injected by the HTTP server)
+     *
+     * @param httpHeaders The headers from the HTTP request for authorization
+     */
     protected ProcessRestApi(@Context final HttpHeaders httpHeaders) {
         super(httpHeaders);
     }
@@ -74,7 +81,7 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
         } else if (this.sessionUser.isAdmin()) {
             processes = ProcessManager.getInstance().listProcesses();
         } else {
-            processes = ProcessManager.getInstance().listProcesses(this.sessionUser);
+            processes = ProcessManager.getInstance().listProcessesForUser(this.sessionUser);
         }
 
         // Filters are a bit custom
@@ -154,9 +161,9 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
             AuthorizationException {
         final ObjectId oid = MongoDbConnector.stringToObjectId(id);
         final Process ret = ProcessManager.getInstance().getProcess(oid);
-        if (ret == null) {
-            throw new ProcessNotFoundException(oid);
-        }
+        // if (ret == null) {
+        // throw new ProcessNotFoundException(oid);
+        // }
 
         this.assertUserIsAdminOrEquals(ret.getUserId());
 

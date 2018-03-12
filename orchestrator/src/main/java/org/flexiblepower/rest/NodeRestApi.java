@@ -43,9 +43,20 @@ import org.flexiblepower.orchestrator.UserManager;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * NodeRestApi
+ *
+ * @version 0.1
+ * @since Mar 30, 2017
+ */
 @Slf4j
 public class NodeRestApi extends BaseApi implements NodeApi {
 
+    /**
+     * Create the REST API with the headers from the HTTP request (will be injected by the HTTP server)
+     *
+     * @param httpHeaders The headers from the HTTP request for authorization
+     */
     protected NodeRestApi(@Context final HttpHeaders httpHeaders) {
         super(httpHeaders);
     }

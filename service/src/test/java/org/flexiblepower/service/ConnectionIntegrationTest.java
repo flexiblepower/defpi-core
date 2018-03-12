@@ -32,7 +32,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 // These tests are useful, but take very long
 @RunWith(Parameterized.class)
-@SuppressWarnings("static-method")
+@SuppressWarnings({"static-method", "javadoc"})
 public class ConnectionIntegrationTest {
 
     private static final int TEST_PORT = 5001;
@@ -77,7 +77,8 @@ public class ConnectionIntegrationTest {
                         "",
                         "",
                         "")) {
-            mc2.waitUntilConnected(0);
+            mc1.waitUntilConnected();
+            mc2.waitUntilConnected();
             Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT); // Make sure at least 1 heartbeat is sent
 
             Assert.assertEquals("connected", TestHandler.handlerMap.get("h1").state);
@@ -114,7 +115,8 @@ public class ConnectionIntegrationTest {
                         "",
                         "")) {
 
-            mc1.waitUntilConnected(0);
+            mc1.waitUntilConnected();
+            mc2.waitUntilConnected();
             Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
 
             Assert.assertNotNull(TestHandler.handlerMap.get("h1"));
@@ -139,7 +141,7 @@ public class ConnectionIntegrationTest {
             mc1.goToResumedState(5002, "");
             mc2.goToResumedState(5002, "localhost");
 
-            mc1.waitUntilConnected(0);
+            mc1.waitUntilConnected();
             Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
 
             Assert.assertNull(TestHandler.handlerMap.get("h1").lastMessage);
@@ -172,7 +174,8 @@ public class ConnectionIntegrationTest {
                             "",
                             "",
                             "")) {
-                mc1.waitUntilConnected(0);
+                mc1.waitUntilConnected();
+                mc2.waitUntilConnected();
                 Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
 
                 Assert.assertNotNull(TestHandler.handlerMap.get("h1"));
@@ -203,7 +206,7 @@ public class ConnectionIntegrationTest {
                             "",
                             "",
                             "")) {
-                mc3.waitUntilConnected(0);
+                mc3.waitUntilConnected();
                 Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
 
                 state1 = TestHandler.handlerMap.get("h1").state;

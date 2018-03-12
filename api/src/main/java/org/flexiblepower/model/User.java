@@ -38,7 +38,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * User
+ * The user is the object that represents the owner of a process the corresponding connections, and/or private nodes. A
+ * user can login to the orchestrator interface and view its process to list/add or remove them.
+ * <p>
+ * A user can be an administrator in which case he can see all processes, including those of other administrators. Also,
+ * as an administrator the user can perform operations to manage the dEF-Pi environment.
  *
  * @version 0.1
  * @since 20 mrt. 2017
@@ -58,7 +62,7 @@ public class User {
     @Indexed(options = @IndexOptions(unique = true))
     private String username;
 
-    private String password;
+    private transient String password;
 
     @Setter
     private String passwordHash;
@@ -73,17 +77,24 @@ public class User {
     @Setter
     private boolean admin = false;
 
+    /**
+     * Create a user with the provided username and password. Note that the password will not be stored in the database,
+     * as it is transient, only the hash is stored persistently. All authorization operations will have to be performed
+     * on the password hash.
+     *
+     * @param userName The name of the user
+     * @param userPass The password the user can identify himself with.
+     */
     public User(final String userName, final String userPass) {
         this.username = userName;
         this.password = userPass;
         this.setPasswordHash();
     }
 
-    // public void setPassword(final String password) {
-    // this.password = password;
-    // this.setPasswordHash();
-    // }
-
+    /**
+     * Update the user's password hash if the password is not equal to null. i.e. this function can only be used from
+     * the constructor, or if the user is created using reflection and has a password field.
+     */
     public void setPasswordHash() {
         if (this.password != null) {
             this.passwordHash = User.computeUserPass(this.username, this.password);
@@ -91,8 +102,11 @@ public class User {
         }
     }
 
+    /**
+     * Clear the password and the hash from the User before we serialize it. This may also be done using JSON
+     * annotations but this way we can know for sure. This is used for instance when listing users via REST
+     */
     public void clearPasswordHash() {
-        // For instance to export it;
         this.password = null;
         this.passwordHash = null;
     }
@@ -103,6 +117,17 @@ public class User {
                 + (this.admin ? " (admin)" : "") + "]";
     }
 
+    /**
+     * Compute the user password hash based on a combination of the user name and a password. This is a one-way
+     * function, meaning that given the name and password we can compute the hash, but it is impossible to do the
+     * reverse.
+     * <p>
+     * This function uses the MD5 algorithm to compute hashes.
+     *
+     * @param name The user name
+     * @param password The user password
+     * @return The hash that can be checked.
+     */
     public static final String computeUserPass(final String name, final String password) {
         if ((name == null) || (password == null)) {
             throw new NullPointerException("Name and password must both be set to compute password hash");
@@ -110,7 +135,7 @@ public class User {
         return User.md5(password + name + User.SALT);
     }
 
-    public static final String md5(final String password) {
+    private static final String md5(final String password) {
         try {
             final MessageDigest mDigest = MessageDigest.getInstance("MD5");
             mDigest.update(password.getBytes(), 0, password.length());

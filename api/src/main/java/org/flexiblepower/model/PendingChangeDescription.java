@@ -27,6 +27,13 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 import lombok.Value;
 
+/**
+ * The pending change description refers to an existing pending change which is an update to the dEF-Pi stack, but is
+ * not yet implemented.
+ *
+ * @version 0.1
+ * @since Aug 24, 2017
+ */
 @Value
 public class PendingChangeDescription {
 

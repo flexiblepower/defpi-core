@@ -65,14 +65,33 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * RegistryConnector
+ *
+ * @version 0.1
+ * @since 20 mrt. 2017
+ */
 @Slf4j
 public class RegistryConnector {
 
+    /**
+     * The key, or system variable name, which holds the registry URL to where the registry is from within the
+     * orchestrator container
+     */
     public static final String REGISTRY_URL_KEY = "REGISTRY_URL";
     private static final String REGISTRY_URL_DFLT = "registry:5000";
 
+    /**
+     * The key, or system variable name, which holds the registry URL to where the registry is from outside the
+     * container. This is required when the registry is local, and hence the docker host needs to find it from
+     * elsewhere.
+     */
     public static final String REGISTRY_EXTERNAL_URL_KEY = "REGISTRY_EXTERNAL_URL";
 
+    /**
+     * The key, or system variable name, which holds a boolean that decides whether we need to use HTTPS to connect to
+     * the registry.
+     */
     public static final String SECURE_REGISTRY_KEY = "USE_SECURE_REGISTRY";
     private static final boolean SECURE_REGISTRY_DFLT = true;
 
@@ -112,6 +131,9 @@ public class RegistryConnector {
         this.registryName = (registryNameFromEnv != null ? registryNameFromEnv : registryURL);
     }
 
+    /**
+     * @return The singleton instance of the ProcessConnector
+     */
     public synchronized static RegistryConnector getInstance() {
         if (RegistryConnector.instance == null) {
             RegistryConnector.instance = new RegistryConnector();
@@ -146,12 +168,15 @@ public class RegistryConnector {
     }
 
     /**
+     * List all service version that are available in the repository. When this takes longer than is allowed, the
+     * remaining services are fetched and added to the cache in the background.
+     * <p>
      * This implementation will cause bug where a REMOVED service will stay in the cache until the orchestrator is
      * restarted...
      *
-     * @param repository
-     * @return
-     * @throws RepositoryNotFoundException
+     * @param repository The repository to look in
+     * @return A collection of services that are in the repository
+     * @throws RepositoryNotFoundException When the whole repository is not found
      */
     public Collection<Service> getAllServiceVersions(final String repository) throws RepositoryNotFoundException {
         synchronized (this.allServiceCacheLock) {
@@ -206,6 +231,17 @@ public class RegistryConnector {
         return this.allServiceCache.values();
     }
 
+    /**
+     * Get the latest version of all services that are available in the repository. When this takes longer than is
+     * allowed, the remaining services are fetched and added to the cache in the background.
+     * <p>
+     * This implementation will cause bug where a REMOVED service will stay in the cache until the orchestrator is
+     * restarted...
+     *
+     * @param repository The repository to look in
+     * @return A collection of services that are in the repository
+     * @throws RepositoryNotFoundException When the whole repository is not found
+     */
     public Collection<Service> getServices(final String repository) throws RepositoryNotFoundException {
         synchronized (this.serviceCacheLock) {
             final long cacheAge = System.currentTimeMillis() - this.serviceCacheLastUpdate;
@@ -309,6 +345,14 @@ public class RegistryConnector {
         }
     }
 
+    /**
+     * Get the service with the provided id from the repository.
+     *
+     * @param repository The repository to search in
+     * @param id The ID of the service to obtain.
+     * @return The service with the specified id
+     * @throws ServiceNotFoundException When the service cannot be found
+     */
     public Service getService(final String repository, final String id) throws ServiceNotFoundException {
         try {
             for (final Service service : this.getServices(repository)) {

@@ -22,8 +22,6 @@ import java.util.Map;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
-import org.flexiblepower.exceptions.AuthorizationException;
-import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.model.User;
 
 /**
@@ -38,10 +36,15 @@ public class UserManager {
 
     private final MongoDbConnector db = MongoDbConnector.getInstance();
 
+    /*
+     * Empty private contructor for singleton design pattern
+     */
     private UserManager() {
-        // Private constructor
     }
 
+    /**
+     * @return The singleton instance of the UserManager
+     */
     public synchronized static UserManager getInstance() {
         if (UserManager.instance == null) {
             UserManager.instance = new UserManager();
@@ -59,15 +62,21 @@ public class UserManager {
     /**
      * Get a user object from the database that has the provided userId, or null if no such user exists.
      *
-     * FIXME This seems to be a security leak isnt it?
-     *
-     * @param userId
+     * @param userId the Id of the user
      * @return the user stored with the provided Id, or null
      */
     public User getUser(final ObjectId userId) {
         return this.db.get(User.class, userId);
     }
 
+    /**
+     * Get the user simply by his username. Caution this function should only be possible from an administrator account
+     *
+     * FIXME This seems to be a security leak isn't it?
+     *
+     * @param username the name of the user to find.
+     * @return The user with the provided name or null
+     */
     public User getUser(final String username) {
         return this.db.getUserByUsername(username);
     }
@@ -75,8 +84,8 @@ public class UserManager {
     /**
      * This is essentially a "login" action, in which the user obtains from the database his user information.
      *
-     * @param username
-     * @param password
+     * @param username the user name
+     * @param password the user password to check against
      * @return the user that is stored in the database that has the provided user name and password
      */
     public User getUser(final String username, final String password) {
@@ -84,30 +93,19 @@ public class UserManager {
     }
 
     /**
-     * @param token
-     * @return
+     * This is essentially a "login" action, in which the user obtains from the database his user information.
+     *
+     * @param token The user authentication token
+     * @return the user that is stored in the database that has the provided user name and password or null
      */
     public User getUserByToken(final String token) {
         return this.db.getUserByToken(token);
     }
 
     /**
-     * This function creates a new user with the provided name and password. This is essentially a "registration"
-     * function.
-     *
-     * @param username
-     * @param password
-     * @return the userId of the newly created user
-     */
-    public ObjectId createNewUser(final String username, final String password) {
-        return this.db.save(new User(username, password));
-    }
-
-    /**
      * Inserts a user object in the database.
      *
-     * @param user
-     * @param newUser
+     * @param newUser the new user to insert into the database
      * @return the userId of the inserted user
      */
     public ObjectId saveUser(final User newUser) {
@@ -117,18 +115,32 @@ public class UserManager {
     /**
      * Deletes a user object from the database that has the provided userId.
      *
-     * @param userId
-     * @throws AuthorizationException
-     * @throws InvalidObjectIdException
+     * @param user the user to remove from the database
      */
     public void deleteUser(final User user) {
         this.db.delete(user);
     }
 
+    /**
+     * Count all users currently stored in the database
+     *
+     * @param filter A filter to count a specific filtered subset of users, may be empty
+     * @return The number of users that match the filter
+     */
     public int countUsers(final Map<String, Object> filter) {
         return this.db.totalCount(User.class, filter);
     }
 
+    /**
+     * List all users in the database
+     *
+     * @param page the current page to view
+     * @param perPage the amount of users to view per page
+     * @param sortDir the direction to sort the users
+     * @param sortField the field to sort the users on
+     * @param filter a map of filters as key/value pairs
+     * @return A list of users in the dEF-Pi environment.
+     */
     public List<User> listUsers(final int page,
             final int perPage,
             final String sortDir,

@@ -53,6 +53,7 @@ import com.google.protobuf.Message;
  * @since May 12, 2017
  */
 @RunWith(Parameterized.class)
+@SuppressWarnings("javadoc")
 public class ConnectionTest {
 
     private static final int WAIT_AFTER_CONNECT = 100;

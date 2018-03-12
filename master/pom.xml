@@ -106,6 +106,7 @@
 
 	<dependencyManagement>
 		<dependencies>
+			<!-- Don't update to lombok 1.16.20; it will break JSON parsing -->
 			<dependency>
 				<groupId>org.projectlombok</groupId>
 				<artifactId>lombok</artifactId>

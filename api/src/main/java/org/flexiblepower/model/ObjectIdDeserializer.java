@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 
 /**
- * ObjectIdDeserializer
+ * The ObjectIdDeserializer is used by Jackson to deserialize a string into an ObjectId as part of a JSON object.
  *
  * @version 0.1
  * @since May 5, 2017
@@ -36,6 +36,9 @@ public class ObjectIdDeserializer extends StdDeserializer<ObjectId> {
 
     private static final long serialVersionUID = 4378710200595473113L;
 
+    /**
+     * Create an ObjectIdSerializer to deserialize an ObjectId
+     */
     public ObjectIdDeserializer() {
         super(ObjectId.class);
     }

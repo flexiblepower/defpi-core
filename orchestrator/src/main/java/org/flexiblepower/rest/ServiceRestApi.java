@@ -29,8 +29,19 @@ import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.orchestrator.ServiceManager;
 
+/**
+ * ServiceRestApi
+ *
+ * @version 0.1
+ * @since Mar 30, 2017
+ */
 public class ServiceRestApi extends BaseApi implements ServiceApi {
 
+    /**
+     * Create the REST API with the headers from the HTTP request (will be injected by the HTTP server)
+     *
+     * @param httpHeaders The headers from the HTTP request for authorization
+     */
     protected ServiceRestApi(@Context final HttpHeaders httpHeaders) {
         super(httpHeaders);
     }
@@ -41,7 +52,7 @@ public class ServiceRestApi extends BaseApi implements ServiceApi {
             final String sortDir,
             final String sortField,
             final String filters) throws AuthorizationException {
-        // TODO implement
+        // TODO implement pagination, sorting and filtering
         this.assertUserIsLoggedIn();
         final List<Service> content = ServiceManager.getInstance().listServices();
         this.addTotalCount(content.size());

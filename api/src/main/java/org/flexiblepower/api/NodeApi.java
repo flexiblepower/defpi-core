@@ -254,7 +254,7 @@ public interface NodeApi {
      *
      * @param page the current page to view (defaults to 1)
      * @param perPage the amount of nodes to view per page (defaults to
-     *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     *            {@value org.flexiblepower.api.OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
      * @param sortDir the direction to sort the nodes (defaults to "ASC")
      * @param sortField the field to sort the nodes on (defaults to "id")
      * @param filters a list of filters in JSON notation
@@ -288,7 +288,7 @@ public interface NodeApi {
      *
      * @param page the current page to view (defaults to 1)
      * @param perPage the amount of nodes to view per page (defaults to
-     *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     *            {@value org.flexiblepower.api.OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
      * @param sortDir the direction to sort the nodes (defaults to "ASC")
      * @param sortField the field to sort the nodes on (defaults to "id")
      * @param filters a list of filters in JSON notation
@@ -321,7 +321,7 @@ public interface NodeApi {
      *
      * @param page the current page to view (defaults to 1)
      * @param perPage the amount of nodes to view per page (defaults to
-     *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     *            {@value org.flexiblepower.api.OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
      * @param sortDir the direction to sort the nodes (defaults to "ASC")
      * @param sortField the field to sort the nodes on (defaults to "id")
      * @param filters a list of filters in JSON notation
@@ -463,7 +463,7 @@ public interface NodeApi {
      *
      * @param page the current page to view (defaults to 1)
      * @param perPage the amount of pools to view per page (defaults to
-     *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     *            {@value org.flexiblepower.api.OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
      * @param sortDir the direction to sort the pools (defaults to "ASC")
      * @param sortField the field to sort the pools on (defaults to "id")
      * @param filters a list of filters in JSON notation

@@ -46,7 +46,7 @@ import org.junit.Test;
  * @version 0.1
  * @since May 8, 2017
  */
-@SuppressWarnings("static-method")
+@SuppressWarnings({"static-method", "javadoc"})
 @Ignore // Don't run this test, it will mess with existing pending changes
 public class MongoConnectorTest {
 
@@ -84,7 +84,8 @@ public class MongoConnectorTest {
     public void nextPendingChangeTest() throws InterruptedException {
         final User testUser = UserManager.getInstance().getUser(MongoConnectorTest.TEST_USER);
         final ObjectId userId = testUser == null
-                ? UserManager.getInstance().createNewUser(MongoConnectorTest.TEST_USER, MongoConnectorTest.TEST_PASS)
+                ? UserManager.getInstance()
+                        .saveUser(new User(MongoConnectorTest.TEST_USER, MongoConnectorTest.TEST_PASS))
                 : testUser.getId();
         final Process testProcess = Process.builder().userId(userId).serviceId(MongoConnectorTest.TEST_SERVICE).build();
 
@@ -111,7 +112,8 @@ public class MongoConnectorTest {
         final User testUser = UserManager.getInstance().getUser(MongoConnectorTest.TEST_USER);
 
         final ObjectId userId = testUser == null
-                ? UserManager.getInstance().createNewUser(MongoConnectorTest.TEST_USER, MongoConnectorTest.TEST_PASS)
+                ? UserManager.getInstance()
+                        .saveUser(new User(MongoConnectorTest.TEST_USER, MongoConnectorTest.TEST_PASS))
                 : testUser.getId();
 
         final Process testProcess1 = Process.builder()

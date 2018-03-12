@@ -30,7 +30,8 @@ import org.junit.Test;
  * @version 0.1
  * @since Nov 8, 2017
  */
-@Ignore // It works nicely on its own, but not integrated in a series... No time to fix now
+@Ignore // Only run this test standalone in Eclipse, not as part of CI
+@SuppressWarnings({"javadoc"})
 public class MainTest {
 
     /**
@@ -50,40 +51,39 @@ public class MainTest {
     public static class MainConnectionHandler implements ConnectionHandler {
 
         /**
-         * @param c
-         * @param s
+         * @param c the Connection to handle
          */
         public MainConnectionHandler(final Connection c) {
-            // TODO Auto-generated constructor stub
+            // Auto-generated constructor stub
         }
 
         @Override
         public void onSuspend() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
         @Override
         public void resumeAfterSuspend() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
         @Override
         public void onInterrupt() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
         @Override
         public void resumeAfterInterrupt() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
         @Override
         public void terminated() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
@@ -99,40 +99,39 @@ public class MainTest {
     public static class MainConnectionHandler2 implements ConnectionHandler {
 
         /**
-         * @param c
-         * @param s
+         * @param c the Connection to handle
          */
         public MainConnectionHandler2(final Connection c) {
-            // TODO Auto-generated constructor stub
+            // Auto-generated constructor stub
         }
 
         @Override
         public void onSuspend() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
         @Override
         public void resumeAfterSuspend() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
         @Override
         public void onInterrupt() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
         @Override
         public void resumeAfterInterrupt() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
         @Override
         public void terminated() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
@@ -142,37 +141,36 @@ public class MainTest {
 
         @Override
         public void send(final Object message) {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
 
         }
 
         @Override
         public boolean isConnected() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
             return false;
         }
 
         @Override
         public ConnectionState getState() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
             return null;
         }
 
         @Override
         public String remoteProcessId() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
             return null;
         }
 
         @Override
         public String remoteServiceId() {
-            // TODO Auto-generated method stub
             return null;
         }
 
         @Override
         public String remoteInterfaceId() {
-            // TODO Auto-generated method stub
+            // Auto-generated method stub
             return null;
         }
 

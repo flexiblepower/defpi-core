@@ -50,6 +50,12 @@ public class ChangeProcessConfiguration extends PendingChange {
         super();
     }
 
+    /**
+     * Create a pending change to update the configuration of a process
+     *
+     * @param process The process to update
+     * @param newConfiguration The new configuration as a list of parameters
+     */
     public ChangeProcessConfiguration(final Process process, final List<ProcessParameter> newConfiguration) {
         super(process.getUserId());
         this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));

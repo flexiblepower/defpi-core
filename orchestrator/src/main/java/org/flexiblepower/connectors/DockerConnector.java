@@ -35,7 +35,6 @@ import java.util.concurrent.TimeoutException;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.ApiException;
-import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Architecture;
 import org.flexiblepower.model.Node;
@@ -87,21 +86,30 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DockerConnector {
 
+    /*
+     * Settings to be used by the docker client itself.
+     */
+    private static final String DOCKER_HOST_KEY = "DOCKER_HOST";
     private static final int DOCKER_WRITE_TIMEOUT_MILLIS = 35000;
     private static final long DOCKER_CLIENT_TIMEOUT = 30000;
 
-    private static final int INTERNAL_DEBUGGING_PORT = 8000;
-
+    /*
+     * The following keys are environment variables that are put in the docker file by the maven build plugin
+     */
     private static final String BUILD_TIMESTAMP_KEY = "BUILD_TIMESTAMP";
     private static final String BUILD_USER_KEY = "BUILD_USER";
     private static final String GIT_BRANCH = "GIT_BRANCH";
     private static final String GIT_COMMIT = "GIT_COMMIT";
     private static final String GIT_LOG = "GIT_LOG";
-    private static final String DOCKER_HOST_KEY = "DOCKER_HOST";
 
+    /*
+     * The following labels are added to the user processes that are built by the orchestrator
+     */
     private static final String SERVICE_LABEL_KEY = "service.name";
     private static final String USER_LABEL_KEY = "user.id";
     private static final String NODE_ID_LABEL_KEY = "node.id";
+
+    private static final int INTERNAL_DEBUGGING_PORT = 8000;
 
     private static DockerConnector instance = null;
 
@@ -112,7 +120,7 @@ public class DockerConnector {
 
     private static int nodepicker = 0;
 
-    public static DockerClient init() throws DockerCertificateException {
+    private static DockerClient init() throws DockerCertificateException {
         final String dockerHost = System.getenv(DockerConnector.DOCKER_HOST_KEY);
         if (dockerHost == null) {
             return DefaultDockerClient.fromEnv()
@@ -139,13 +147,16 @@ public class DockerConnector {
     /**
      * Private destructor, is only closed after docker exception to make sure we will make a new client
      */
-    private synchronized void destroy(final String msg, final Throwable cause) {
+    private static synchronized void destroy(final String msg, final Throwable cause) {
         // this.client.close();
         DockerConnector.log.error("{}: {}", msg, cause.getMessage());
         DockerConnector.log.trace(cause.getMessage(), cause);
         // DockerConnector.instance = null;
     }
 
+    /**
+     * @return The singleton instance of the DockerConnector
+     */
     public synchronized static DockerConnector getInstance() {
         if (DockerConnector.instance == null) {
             DockerConnector.instance = new DockerConnector();
@@ -154,9 +165,9 @@ public class DockerConnector {
     }
 
     /**
-     * @param json
-     * @return
-     * @throws ServiceNotFoundException
+     * @param process The process to create a new docker service for
+     * @return The id of the docker service that is created
+     * @throws ServiceNotFoundException When the docker image cannot be found
      */
     public String newProcess(final Process process) throws ServiceNotFoundException {
         try {
@@ -193,19 +204,11 @@ public class DockerConnector {
 
             return id;
         } catch (DockerException | InterruptedException e) {
-            this.destroy("Exception while starting new process", e);
+            DockerConnector.destroy("Exception while starting new process", e);
             return null;
         }
     }
 
-    /**
-     * @param service
-     * @param node
-     * @return
-     * @throws InterruptedException
-     * @throws DockerException
-     *
-     */
     private ServiceSpec
             createDashBoardGatewayProcess(final Process process, final Service service, final Node randomNode)
                     throws DockerException,
@@ -241,12 +244,11 @@ public class DockerConnector {
     }
 
     /**
-     * @param uuid
-     * @return
-     * @throws ProcessNotFoundException
-     * @throws ServiceNotFoundException
+     * @param process The process to remove
+     * @return Whether the docker service is succesfully removed, or more precise, if by the end of calling this
+     *         function the service is gone
      */
-    public boolean removeProcess(final Process process) throws ProcessNotFoundException {
+    public boolean removeProcess(final Process process) {
         if (process.getDockerId() == null) {
             // Container was probably never created
             return true;
@@ -258,19 +260,20 @@ public class DockerConnector {
                 return true;
             });
         } catch (final InterruptedException | DockerException e) {
-            this.destroy("Error while removing process", e);
+            DockerConnector.destroy("Error while removing process", e);
         }
+
         return false;
     }
 
     /**
-     * @return
+     * @return A list of docker nodes in the swarm
      */
     public List<com.spotify.docker.client.messages.swarm.Node> listNodes() {
         try {
             return this.runOrTimeout(() -> this.client.listNodes());
         } catch (DockerException | InterruptedException e) {
-            this.destroy("Error while listing nodes", e);
+            DockerConnector.destroy("Error while listing nodes", e);
             throw new ApiException(e);
         }
     }
@@ -306,13 +309,14 @@ public class DockerConnector {
     }
 
     /**
-     * And connect to the new network
+     * Make sure the process and the orchestrator share a network. The process belongs to a user, who has a private
+     * network, and the orchestrator is added to this network in runtime.
      *
-     * @param networkName the name of the network to attach to
-     * @throws InterruptedException
-     * @throws DockerException
+     * @param process the process which we want to make sure is in an attached network
+     * @throws InterruptedException If an interruption occurs before the docker client was able to get the required info
+     * @throws DockerException If an exception occurs in the docker client
      */
-    public void ensureProcessNetworkIsAttached(final Process process) throws InterruptedException, DockerException {
+    public void ensureProcessNetworkIsAttached(final Process process) throws DockerException, InterruptedException {
         try {
             final String newProcessNetworkName = DockerConnector.getNetworkNameFromProcess(process);
             final String networkId = this.runOrTimeout(
@@ -347,7 +351,7 @@ public class DockerConnector {
                 }
             }
         } catch (DockerException | InterruptedException e) {
-            this.destroy("Exception attaching process", e);
+            DockerConnector.destroy("Exception attaching process", e);
             throw e;
         }
     }
@@ -432,7 +436,7 @@ public class DockerConnector {
 
             // First try to find any process that is already running on one of these nodes
             final List<Process> otherProcesses = ProcessManager.getInstance()
-                    .listProcesses(UserManager.getInstance().getUser(process.getUserId()));
+                    .listProcessesForUser(UserManager.getInstance().getUser(process.getUserId()));
             for (final Process p : otherProcesses) {
                 // First check if the process HAS a running node
                 if (p.getRunningNodeId() != null) {
@@ -510,15 +514,7 @@ public class DockerConnector {
 
         // If this is the dashboard gateway, open up the port that is configured in the environment var
         if (process.getServiceId().equals(ProcessManager.getDashboardGatewayServiceId())) {
-            int port = ProcessManager.DASHBOARD_GATEWAY_PORT_DFLT;
-            final String portFromEnv = System.getenv(ProcessManager.DASHBOARD_GATEWAY_PORT_KEY);
-            if (portFromEnv != null) {
-                try {
-                    port = Integer.parseInt(portFromEnv);
-                } catch (final NumberFormatException e) {
-                    // We keep it at the default
-                }
-            }
+            final int port = ProcessManager.getDashboardGatewayPort();
             endpointSpec.addPort(PortConfig.builder()
                     .publishedPort(port)
                     .targetPort(8080)
@@ -590,10 +586,6 @@ public class DockerConnector {
                 .build();
     }
 
-    /**
-     * @param process
-     * @return
-     */
     private static String getDockerServiceNameForProcess(final Process process) {
         return process.getId().toString();
     }
@@ -613,6 +605,12 @@ public class DockerConnector {
         }
     }
 
+    /**
+     * Get some diagnostic information about the current running container. Very useful for validating the running
+     * version of the orchestrator
+     *
+     * @return A string with some container info, or "UNKNOWN" if failed to obtain the information
+     */
     public String getContainerInfo() {
         try {
             final ContainerInfo info = this.client.inspectContainer(DockerConnector.getOrchestratorContainerId());
@@ -625,11 +623,19 @@ public class DockerConnector {
                     System.getenv(DockerConnector.GIT_LOG),
                     info.created().toInstant());
         } catch (DockerException | InterruptedException e) {
-            this.destroy("Error obtaining running image", e);
+            DockerConnector.destroy("Error obtaining running image", e);
             return "Unknown";
         }
     }
 
+    /**
+     * Generate a health report as a simple String to show to the user. The health report should equal "Healthy" if
+     * everything is according to the current configuration. Any incongruencies (services that have more or less running
+     * tasks than desired) will show up in a separate line stating as X/Y, where X is the number of running tasks, and Y
+     * is the number of desired instances.
+     *
+     * @return A String stating the running statuses of all current services (Not limited to dEF-Pi services).
+     */
     public String getServiceHealth() {
         try {
             String report = "";
@@ -652,7 +658,7 @@ public class DockerConnector {
             }
 
         } catch (final DockerException | InterruptedException e) {
-            this.destroy("Error obtaining running image", e);
+            DockerConnector.destroy("Error obtaining running image", e);
             return "Unknown";
         }
     }

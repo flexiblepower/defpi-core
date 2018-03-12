@@ -42,8 +42,11 @@ public final class ServiceMain {
 
     private static Reflections reflections;
 
-    protected static int threadCount = 0;
-
+    /**
+     * This is the main entrypoint for the service library, and thus for any dEF-Pi process
+     *
+     * @param args Array of String arguments, which we currently ignore
+     */
     public static <T> void main(final String[] args) {
         ServiceMain.displayVersion();
 
@@ -71,9 +74,6 @@ public final class ServiceMain {
         }
     }
 
-    /**
-     *
-     */
     private static void displayVersion() {
         try (
                 BufferedReader br = new BufferedReader(
@@ -87,10 +87,6 @@ public final class ServiceMain {
         }
     }
 
-    /**
-     * @return
-     *
-     */
     private static Reflections reflectOnService() {
         final String servicePackage = System.getenv(ServiceMain.SERVICE_PACKAGE_KEY);
         if ((servicePackage == null) || servicePackage.isEmpty()) {
@@ -100,10 +96,6 @@ public final class ServiceMain {
         }
     }
 
-    /**
-     * @return
-     * @throws ServiceInvocationException
-     */
     @SuppressWarnings("rawtypes")
     private static Class<? extends Service> getServiceClass() throws ServiceInvocationException {
         final Set<Class<? extends Service>> set = ServiceMain.reflections.getSubTypesOf(Service.class);

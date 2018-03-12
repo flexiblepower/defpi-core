@@ -61,6 +61,12 @@ public class InterfaceDescription {
     @JsonDeserialize(as = java.util.LinkedHashSet.class)
     private final Set<InterfaceVersionDescription> interfaceVersions = null;
 
+    /**
+     * Returns the dEF-Pi identifier of the provided interface, which equals to the name, but with spaces replaces by
+     * dashes.
+     *
+     * @return A indentifier that is, for this service, unique for the interface.
+     */
     @JsonIgnore
     public String getId() {
         return this.name.toLowerCase().replace(" ", "-");

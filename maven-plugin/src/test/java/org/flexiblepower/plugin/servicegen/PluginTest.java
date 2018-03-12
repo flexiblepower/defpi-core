@@ -44,7 +44,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since Jun 8, 2017
  */
 @Slf4j
-@SuppressWarnings("static-method")
+@SuppressWarnings({"static-method", "javadoc"})
 public class PluginTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -64,7 +64,7 @@ public class PluginTest {
             }
             PluginTest.log.info(t.generateManagerInterface(itf));
         }
-        PluginTest.log.info(t.generateDockerfile("x86", descr, "run-java.sh"));
+        PluginTest.log.info(t.generateDockerfile("x86", "run-java.sh"));
     }
 
     @Test

@@ -36,21 +36,40 @@ import org.flexiblepower.serializers.MessageSerializer;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface InterfaceInfo {
 
+    /**
+     * @return The name of the interface this type defines
+     */
     public String name();
 
+    /**
+     * @return The version of this interface that this type defines
+     */
     public String version();
 
+    /**
+     * @return The hash that describes the incoming messages this interface can deal with
+     */
     public String receivesHash();
 
+    /**
+     * @return The hash that describes the outgoing messages this interface can send
+     */
     public String sendsHash();
 
+    /**
+     * @return The array of types that this interface can deal with
+     */
     public Class<?>[] receiveTypes();
 
+    /**
+     * @return The array of types that this interface may send
+     */
     public Class<?>[] sendTypes();
 
+    /**
+     * @return The class that implements the serializer to convert messages from/to raw byte arrays
+     */
     @SuppressWarnings("rawtypes")
     public Class<? extends MessageSerializer> serializer();
-
-    // public Class<? extends ConnectionHandlerManager> manager();
 
 }

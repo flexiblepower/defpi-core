@@ -39,14 +39,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ManagedConnection
+ * The TCPConnection implements the Connection interface with a TCPSocket as the underlying mechanism to send and
+ * receive the raw byte arrays. It utilizes a {@link HeartBeatMonitor} and a {@link HandShakeMonitor} to ensure the
+ * health status of the connection.
  *
  * @version 0.1
  * @since May 12, 2017
  */
 final class TCPConnection implements Connection, Closeable {
 
+    /**
+     * Log for any events in this TCPConnection or subclasses.
+     */
     protected static final Logger log = LoggerFactory.getLogger(TCPConnection.class);
+    /**
+     * Keeps track of how many threads the TCPConnection class has spawned. Very useful for logging
+     */
     private static int threadCounter;
 
     private final ServiceExecutor serviceExecutor = ServiceExecutor.getInstance();
@@ -54,18 +62,59 @@ final class TCPConnection implements Connection, Closeable {
     private final MessageSerializer<Object> userMessageSerializer;
     private final InterfaceInfo info;
 
+    /**
+     * The connection executor is the pool of threads that will run the different services to keep a connection alive,
+     * and read its messages
+     */
     protected final ExecutorService connectionExecutor = Executors.newFixedThreadPool(3,
             r -> new Thread(r, "dEF-Pi connThread" + TCPConnection.threadCounter++));
+
+    /**
+     * A runnable object that will make sure the messages in the queue are given to the responsible ConnectionHandler
+     */
     protected final MessageQueue messageQueue = new MessageQueue();
+
+    /**
+     * A wait/lock object to make sure various functions in the Connection will wait until the connection is
+     * established.
+     */
     protected final Object connectionLock = new Object();
+
+    /**
+     * A string uniquely identifying this specific connection.
+     */
     protected final String connectionId;
 
+    /**
+     * The handler object from user code that handles all incoming messages
+     */
     private ConnectionHandler serviceHandler;
 
+    /**
+     * The port to listen or target remotely (depending on if {@link #targetAddress} is set
+     */
     protected int port;
+
+    /**
+     * The remote host address to target the TCPSocket to
+     */
     protected String targetAddress;
+
+    /**
+     * The socket that provides the underlying message carrying mechanism. This may be closed and reinitialized as the
+     * Connection is interrupted, suspended, or any transient intermediate state
+     */
     protected TCPSocket socket;
+
+    /**
+     * The heartbeat monitor is an external object that periodically checks if the connection is still healthy.
+     */
     protected HeartBeatMonitor heartBeatMonitor;
+
+    /**
+     * The handshake monitor is an external object to make sure the remote side is also initialized and has the correct
+     * protocol, and thus remote ConnectionHAndler
+     */
     protected HandShakeMonitor handShakeMonitor;
 
     private volatile ConnectionState state;
@@ -74,9 +123,15 @@ final class TCPConnection implements Connection, Closeable {
     private final String remoteInterfaceId;
 
     /**
-     * @param listenPort
-     * @param targetAddress
-     * @throws IOException
+     * @param connectionId The unique id if this connection, as specified by the orchestrator
+     * @param port the TCP port to attach to when this endpoint will act as server, or the remote address to
+     *            connect to.
+     * @param targetAddress The host name of the remote endpoint to connect to when this endpoint should act as a
+     *            client, or an empty string when it should act as a server.
+     * @param info the InterfaceInfo the appropriate ConnectionHandler is annotated with.
+     * @param remoteProcessId The process ID of the remote endpoint as specified by the orchestrator
+     * @param remoteServiceId The service ID of the remote process as specified by the orchestrator
+     * @param remoteInterfaceId The interface ID of the remote service
      */
     @SuppressWarnings("unchecked")
     TCPConnection(final String connectionId,
@@ -122,7 +177,9 @@ final class TCPConnection implements Connection, Closeable {
     }
 
     /**
-     * @throws ClosedChannelException when the state is not connected, i.e. when {@link #isConnected()} returns false.
+     * {@inheritDoc}
+     *
+     * @throws ClosedChannelException when the state is not connected.
      * @throws UnsupportedDataTypeException when the type of object is not registered with the serializer or if the
      *             serialization fails
      * @throws IOException when a low level network exception occurs
@@ -165,37 +222,31 @@ final class TCPConnection implements Connection, Closeable {
         }
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see org.flexiblepower.service.Connection#otherProcessId()
-     */
     @Override
     public String remoteProcessId() {
         return this.remoteProcessId;
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see org.flexiblepower.service.Connection#remoteServiceId()
-     */
     @Override
     public String remoteServiceId() {
         return this.remoteServiceId;
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see org.flexiblepower.service.Connection#remoteInterfaceId()
-     */
     @Override
     public String remoteInterfaceId() {
         return this.remoteInterfaceId;
     }
 
-    protected void handleMessage(final byte[] msg) {
+    /**
+     * When a new byte array is read by the underlying TCPSocket, this function is called to make sure the appropriate
+     * handler function is called by the user object implementing the ConnectionHandler.
+     * <p>
+     * If this function is called before the connection is instantiated (for instance because the remote side sent a
+     * message before the handshake was confirmed, this function will block untill the connection is established.
+     *
+     * @param msg the byte array that was received by the underlying transport socket.
+     */
+    void handleMessage(final byte[] msg) {
         // It can only be a user-defined process message!
         try {
             synchronized (this.connectionLock) {
@@ -245,23 +296,28 @@ final class TCPConnection implements Connection, Closeable {
         }
     }
 
-    protected void releaseWaitLock() {
+    private void releaseWaitLock() {
         synchronized (this.connectionLock) {
             this.connectionLock.notifyAll();
         }
     }
 
-    void waitUntilConnected(final long millis) throws InterruptedException, IOException {
+    /**
+     * Calling this function will wait until the Connection successfully connected, it is closed in another
+     * thread, or an InterruptedException occurs. If the connection was already established finished, calling this
+     * function will do nothing.
+     *
+     * @throws InterruptedException when the wait functions was interrupted while waiting to finish
+     * @throws IOException When after the connection succeeded, the for some reason it was closed immediately before it
+     *             was returned
+     */
+    void waitUntilConnected() throws InterruptedException, IOException {
         if (this.isConnected()) {
             return;
         }
 
         synchronized (this.connectionLock) {
-            if (millis < 1) {
-                this.connectionLock.wait();
-            } else {
-                this.connectionLock.wait(millis);
-            }
+            this.connectionLock.wait();
         }
 
         if (!this.isConnected()) {
@@ -269,6 +325,16 @@ final class TCPConnection implements Connection, Closeable {
         }
     }
 
+    /**
+     * Go to the {@link ConnectionState#CONNECTED} state. This is should be done when the HandShakeMonitor detects that
+     * the remote side of the connection is also up an running. If this is the first time the connection is connected,
+     * we can instantiate the appropriate ConnectionHandler from user code.
+     * <p>
+     * When the connection was already in the {@link ConnectionState#CONNECTED} state, nothing happens. Otherwise the
+     * appropriate connection handler function is triggered, and the wait lock is released.
+     *
+     * @see #goToResumedState(int, String)
+     */
     void goToConnectedState() {
         TCPConnection.log.info("[{}] - Going from {} to {}", this.connectionId, this.state, ConnectionState.CONNECTED);
         final ConnectionState previousState = this.state;
@@ -298,6 +364,17 @@ final class TCPConnection implements Connection, Closeable {
         this.serviceExecutor.submit(() -> this.releaseWaitLock());
     }
 
+    /**
+     * Go to the {@link ConnectionState#SUSPENDED} state. This is should be done only when the
+     * {@link ConnectionManager} receives a message from the orchestrator that the connection is should be suspended.
+     * When this happens the Connection will temporarily be closed, and will not attempt to reconnect until the
+     * {@link #goToResumedState(int, String)} is called.
+     * <p>
+     * When the connection is already in the {@link ConnectionState#SUSPENDED} state, nothing happens. Otherwise the
+     * heartbeat monitor is stopped, and the connection state will be updated.
+     *
+     * @see #goToResumedState(int, String)
+     */
     void goToSuspendedState() {
         if (!this.isConnected()) {
             TCPConnection.log.warn("[{}] - Not going to {} state while not connected",
@@ -313,6 +390,20 @@ final class TCPConnection implements Connection, Closeable {
         this.serviceExecutor.submit(() -> this.serviceHandler.onSuspend());
     }
 
+    /**
+     * Resume a connection from the {@link ConnectionState#SUSPENDED} state. This is should be done only when the
+     * {@link ConnectionManager} receives a message from the orchestrator that the connection is ready to be resumed.
+     * When this happens the Connection will attempt to reconnect to the remote side.
+     * <p>
+     * When the connection is not {@link ConnectionState#SUSPENDED} state, nothing will happen. Otherwise the connection
+     * details are updated, and the socket is re-established.
+     *
+     * @param newListenPort the TCP port to attach to when this endpoint will act as server, or the remote address to
+     *            connect to.
+     * @param newTargetAddress The host name of the remote endpoint to connect to when this endpoint should act as a
+     *            client, or an empty string when it should act as a server.
+     * @see #goToSuspendedState()
+     */
     void goToResumedState(final int newListenPort, final String newTargetAddress) {
         if (this.state != ConnectionState.SUSPENDED) {
             TCPConnection.log.warn("[{}] - Unable to resume connection when not in {}",
@@ -329,6 +420,14 @@ final class TCPConnection implements Connection, Closeable {
         this.socket = null;
     }
 
+    /**
+     * Go to the {@link ConnectionState#INTERRUPTED} state. This is typically done when the heartbeat monitor detects a
+     * missed series of responses, or a read or {@link #send(Object)} operation fails. When this happens the Connection
+     * will temporarily be closed, and will automatically attempt to reconnect to the remote side.
+     * <p>
+     * When the connection is not the {@link ConnectionState#CONNECTED} state, nothing will happen. Otherwise the
+     * heartbeat monitor is stopped, and the connection state will be updated.
+     */
     void goToInterruptedState() {
         if (!this.isConnected()) {
             TCPConnection.log.warn("[{}] - Not interrupting when not connected", this.connectionId);
@@ -346,6 +445,12 @@ final class TCPConnection implements Connection, Closeable {
         }
     }
 
+    /**
+     * Go to the {@link ConnectionState#TERMINATED} state. This means that after calling this function the Connection
+     * will be closed, and not able to be reinstantiated.
+     *
+     * @see #close()
+     */
     void goToTerminatedState() {
         this.close();
     }
@@ -443,7 +548,7 @@ final class TCPConnection implements Connection, Closeable {
                     try {
                         TCPConnection.log.debug("[{}] - Initiating handshake", TCPConnection.this.connectionId);
                         TCPConnection.this.handShakeMonitor.sendHandshake(TCPConnection.this.getState());
-                        TCPConnection.this.handShakeMonitor.waitUntilFinished(0);
+                        TCPConnection.this.handShakeMonitor.waitUntilFinished();
                         TCPConnection.log.debug("[{}] - Handshake confirmed, starting heartbeat",
                                 TCPConnection.this.connectionId);
                         TCPConnection.this.heartBeatMonitor.start();
@@ -492,7 +597,7 @@ final class TCPConnection implements Connection, Closeable {
             }
         }
 
-        public void stop() {
+        void stop() {
             this.keepRunning = false;
         }
 
@@ -510,7 +615,7 @@ final class TCPConnection implements Connection, Closeable {
             // Protected constructor for TCPConnection
         }
 
-        public void addMessage(final byte[] msg) {
+        void addMessage(final byte[] msg) {
             try {
                 this.internalQueue.put(msg);
             } catch (final InterruptedException e) {
@@ -535,7 +640,7 @@ final class TCPConnection implements Connection, Closeable {
             }
         }
 
-        public void stop() {
+        void stop() {
             this.keepRunning = false;
         }
 

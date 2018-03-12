@@ -38,9 +38,24 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class BaseApi {
 
     private static final String AUTH_PREFIX = "Basic ";
-    protected final HttpHeaders headers;
+
+    /**
+     * The session user is the user who successfully logged in using Basic authentication or using his authentication
+     * token.
+     */
     protected final User sessionUser;
 
+    /**
+     * The HTTP headers of the session, which may include headers to add to the response by any filter
+     */
+    protected final HttpHeaders headers;
+
+    /**
+     * Create the abstract base class for the REST API. The base API will make sure the user is logged in by taking the
+     * authentication headers from the HTTP request.
+     *
+     * @param httpHeaders The headers of the HTTP request that creates this object
+     */
     protected BaseApi(final HttpHeaders httpHeaders) {
         this.headers = httpHeaders;
         String authString = httpHeaders.getHeaderString("Authorization");
@@ -84,7 +99,7 @@ public abstract class BaseApi {
     /**
      * Protected function that only throws an exception if the current logged in user is not an admin.
      *
-     * @throws AuthorizationException
+     * @throws AuthorizationException If the assertion fails
      */
     protected void assertUserIsAdmin() throws AuthorizationException {
         if ((this.sessionUser == null) || !this.sessionUser.isAdmin()) {
@@ -92,6 +107,11 @@ public abstract class BaseApi {
         }
     }
 
+    /**
+     * Protected function that throws an exception if there is no logged in user.
+     *
+     * @throws AuthorizationException If the assertion fails
+     */
     protected void assertUserIsLoggedIn() throws AuthorizationException {
         if (this.sessionUser == null) {
             throw new AuthorizationException();
@@ -103,7 +123,7 @@ public abstract class BaseApi {
      * provided userId.
      *
      * @param userId The userId that should be logged in
-     * @throws AuthorizationException
+     * @throws AuthorizationException If the assertion fails
      */
     protected void assertUserIsAdminOrEquals(final ObjectId userId) throws AuthorizationException {
         if (this.sessionUser == null) {
@@ -115,6 +135,11 @@ public abstract class BaseApi {
 
     }
 
+    /**
+     * Add the {@value TotalCountFilter#HEADER_NAME} header to the response with the provided value
+     *
+     * @param count The total number of responses that could have been returned
+     */
     protected void addTotalCount(final int count) {
         this.headers.getRequestHeaders().add(TotalCountFilter.HEADER_NAME, Integer.toString(count));
     }

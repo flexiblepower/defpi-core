@@ -48,7 +48,7 @@ import io.swagger.annotations.SwaggerDefinition;
  * @version 0.1
  * @since Nov 23, 2017
  */
-@SuppressWarnings("static-method")
+@SuppressWarnings({"static-method", "javadoc"})
 public class RestServerTest {
 
     private static final int TEST_PORT = Main.URI_PORT;
@@ -124,7 +124,7 @@ public class RestServerTest {
                 null,
                 InetAddress.getLocalHost().getHostName(),
                 RestServerTest.TEST_PORT,
-                Main.URI_PATH + "/" + path,
+                "/" + path,
                 query,
                 null);
 

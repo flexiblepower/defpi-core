@@ -56,6 +56,7 @@ import com.google.protobuf.Message;
  * ServiceManager
  *
  * @version 0.1
+ * @param <T> The type of service this manager will maintain
  * @since May 10, 2017
  */
 public class ServiceManager<T> implements Closeable {
@@ -89,7 +90,13 @@ public class ServiceManager<T> implements Closeable {
 
     private volatile boolean keepThreadAlive;
 
-    public ServiceManager() {
+    /**
+     * Create a new ServiceManager and the corresponding thread to communicate with the orchestrator. This does NOT use
+     * the service implementation to avoid any errors that may occur in its constructor. Moreover, to properly start it,
+     * we need its configuration, which we also must get from the orchestrator first. To start the service use
+     * {@link #start(Service)}
+     */
+    ServiceManager() {
         this.serviceExecutor = ServiceExecutor.getInstance();
 
         this.connectionManager = new ConnectionManager();
@@ -197,8 +204,16 @@ public class ServiceManager<T> implements Closeable {
         return processId != null ? processId : "null";
     }
 
+    /**
+     * Start the servicemanager for the constructed service. This function will initiate the communication with the
+     * orchestrator to obtain the configuration for the service. It uses reflection to determine the exact type of
+     * configuration we need to build and provide to the service.
+     *
+     * @param service The service to manage
+     * @throws ServiceInvocationException if we cannot find the {@link Service#init(Object, DefPiParameters)} method
+     */
     @SuppressWarnings("unchecked")
-    public void start(final Service<T> service) throws ServiceInvocationException {
+    void start(final Service<T> service) throws ServiceInvocationException {
         this.managedService = service;
 
         Class<T> clazz = null;

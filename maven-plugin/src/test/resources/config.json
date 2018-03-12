@@ -13,6 +13,7 @@
       "type": "string",
       "values": ["connected", "disconnected"],
       "labels": ["Connected", "Not connected"],
+      "isOptional": true,
       "default": "disconnected"
     },
 	{
