@@ -79,7 +79,7 @@ public class HeartBeatMonitor implements Closeable {
      * Handle a byte array to see if it is a heartbeat. If it is a ping, it will send back a pong, if it was a pong it
      * will take note that the other side of the connection is alive.
      *
-     * @param data
+     * @param data The byte array to handle as a heartbeat
      * @return whether the data was actually a heartbeat or not
      */
     boolean handleMessage(final byte[] data) {

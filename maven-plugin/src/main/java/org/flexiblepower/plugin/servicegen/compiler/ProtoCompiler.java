@@ -43,7 +43,7 @@ public class ProtoCompiler implements Compiler {
      * repository, and put it in a temporary folder.
      *
      * @param protobufVersion The protobuf version to get the compiler for
-     * @throws IOException
+     * @throws IOException When an exception occurs reading or writing the protobuf compiler to/from disk
      */
     public ProtoCompiler(final String protobufVersion) throws IOException {
         final String protoFilename = String.format("protoc-%s-%s-%s.exe",
