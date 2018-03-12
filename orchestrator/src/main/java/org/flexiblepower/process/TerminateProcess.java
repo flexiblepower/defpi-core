@@ -51,7 +51,7 @@ public class TerminateProcess {
         private Process process;
 
         @Override
-        public long delayMs() {
+        protected long delayMs() {
             return 2000;
         }
 
@@ -78,13 +78,13 @@ public class TerminateProcess {
         }
 
         @Override
-        public int maxRetryCount() {
+        protected int maxRetryCount() {
             // This one does not get that many changes
             return 3;
         }
 
         @Override
-        public long retryIntervalMs() {
+        protected long retryIntervalMs() {
             // This one does not get that many changes
             return 1000;
         }
@@ -146,7 +146,7 @@ public class TerminateProcess {
         }
 
         @Override
-        public long delayMs() {
+        protected long delayMs() {
             // Give it some time to handle the terminate signal first
             return 5000;
         }

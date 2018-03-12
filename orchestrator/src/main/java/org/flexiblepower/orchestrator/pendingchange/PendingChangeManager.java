@@ -30,7 +30,7 @@ import org.flexiblepower.orchestrator.pendingchange.PendingChange.State;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * ChangeManager
+ * PendingChangeManager
  *
  * @version 0.1
  * @since Aug 7, 2017
@@ -41,15 +41,30 @@ public class PendingChangeManager {
 
     private static final int NUM_THREADS = 16;
     private static PendingChangeManager instance;
-    protected final Object waitLock = new Object();
-    protected final List<ObjectId> lockedResources = new LinkedList<>();
 
+    /**
+     * The wait lock is used to wait for new incoming pending changes if there are no pending changes found.
+     */
+    final Object waitLock = new Object();
+
+    /**
+     * The locked resources are the resources that are currently "in use", so that no other pending changes with that
+     * resource will be used.
+     */
+    final List<ObjectId> lockedResources = new LinkedList<>();
+
+    /*
+     * A private constructor as part of the singleton design pattern
+     */
     private PendingChangeManager() {
         for (int i = 0; i < PendingChangeManager.NUM_THREADS; i++) {
             new Thread(new PendingChangeRunner()).start();
         }
     }
 
+    /**
+     * @return The singleton instance of the pending change manager
+     */
     public synchronized static PendingChangeManager getInstance() {
         if (PendingChangeManager.instance == null) {
             PendingChangeManager.instance = new PendingChangeManager();
@@ -57,6 +72,12 @@ public class PendingChangeManager {
         return PendingChangeManager.instance;
     }
 
+    /**
+     * Submit a pending change to the backend, so that it will be executed at some point in the future. At some point it
+     * will be picked up by a runner and be attempted, until it eventually succeeds, or permanently fails.
+     *
+     * @param pendingChange The pending change to execute
+     */
     public void submit(final PendingChange pendingChange) {
         MongoDbConnector.getInstance().save(pendingChange);
         synchronized (this.waitLock) {
@@ -64,7 +85,7 @@ public class PendingChangeManager {
         }
     }
 
-    public void release(final PendingChange pendingChange) {
+    private void release(final PendingChange pendingChange) {
         pendingChange.obtainedAt = null;
         synchronized (this.lockedResources) {
             this.lockedResources.removeAll(pendingChange.getResources());
@@ -89,7 +110,14 @@ public class PendingChangeManager {
         }
     }
 
-    protected void runPendingChange(final PendingChange pc) {
+    /**
+     * Execute the pending change. This function will only be called by the PendingChangeRunner and this function will
+     * make sure any uncaught exceptions are handled appropriately, the try-count is incremented, the state is updated,
+     * the retry period is maintained, and finally the pending change is released.
+     *
+     * @param pc The pending change to execute
+     */
+    void runPendingChange(final PendingChange pc) {
         PendingChangeManager.log.debug("Running PendingChange of type " + pc.getClass().getSimpleName());
 
         Result result;
@@ -122,6 +150,12 @@ public class PendingChangeManager {
         this.release(pc);
     }
 
+    /**
+     * Retrieve the pending change from the database with the provided object id
+     *
+     * @param objectId The objectId to look fo
+     * @return The pending change with the provided id, or {@code null} if no such pending change exists.
+     */
     public PendingChange getPendingChange(final ObjectId objectId) {
         return MongoDbConnector.getInstance().get(PendingChange.class, objectId);
     }
@@ -144,7 +178,11 @@ public class PendingChangeManager {
     }
 
     /**
+     * Clean up all pending changes that are either lingering or are in the FAILED_PERMANENTLY state, or inactive for a
+     * long period of time. Also clean up all locked resources, so that pending changes that are held back because they
+     * are in use, will be released.
      *
+     * @return A String containing information about the results of the cleanup action meant for user interpretation
      */
     public String cleanPendingChanges() {
         final String ret = MongoDbConnector.getInstance().cleanPendingChanges();
@@ -155,8 +193,10 @@ public class PendingChangeManager {
 
     private class PendingChangeRunner implements Runnable {
 
-        public PendingChangeRunner() {
-            // TODO Auto-generated constructor stub
+        /*
+         * Empty package private constructor for enclosing type
+         */
+        PendingChangeRunner() {
         }
 
         /*

@@ -155,13 +155,13 @@ public class MoveProcess {
         }
 
         @Override
-        public long delayMs() {
+        protected long delayMs() {
             // Give it some time to suspend connections
             return 5000;
         }
 
         @Override
-        public long retryIntervalMs() {
+        protected long retryIntervalMs() {
             return 1000;
         }
 
@@ -285,7 +285,7 @@ public class MoveProcess {
         }
 
         @Override
-        public long delayMs() {
+        protected long delayMs() {
             return 5000;
         }
 
