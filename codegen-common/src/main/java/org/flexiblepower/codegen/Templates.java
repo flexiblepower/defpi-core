@@ -141,11 +141,11 @@ public abstract class Templates {
     }
 
     /**
-     * Find a template file
+     * Find a template file by its file name
      *
-     * @param name
-     * @return
-     * @throws IOException
+     * @param name The filename of the template
+     * @return The contents of the file
+     * @throws IOException when any exception occurs while reading the file
      */
     protected String getTemplate(final String name) throws IOException {
         String result = "";
@@ -157,11 +157,12 @@ public abstract class Templates {
     }
 
     /**
-     * Replace all keys in the template with their values
+     * Replace all keys in the template with their values. Any occurrence of "<i>{{KEY}}</i>" in the template text will
+     * be replaced with the corresponding <i>value</i> in the replace map.
      *
-     * @param template
-     * @param replace
-     * @return
+     * @param template The code template as a flat piece of text with placeholders as "<i>{{KEY}}</i>"
+     * @param replace The map of replacement key/value pairs
+     * @return The template with all template markers replaced with the corresponding values from the map
      */
     @SuppressWarnings("static-method")
     protected String replaceMap(final String template, final Map<String, String> replace) {

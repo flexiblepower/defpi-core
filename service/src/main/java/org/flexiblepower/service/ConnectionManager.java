@@ -142,7 +142,7 @@ public class ConnectionManager implements Closeable {
      *
      * @param c The connection object to build a connection handler for
      * @param info The information of the interface, from which we get the info about the type of handler to build
-     * @return
+     * @return The connection handler built for this connection
      */
     static ConnectionHandler buildHandlerForConnection(final Connection c, final InterfaceInfo info) {
         final String key = ConnectionManager.handlerKey(info.receivesHash(), info.sendsHash());

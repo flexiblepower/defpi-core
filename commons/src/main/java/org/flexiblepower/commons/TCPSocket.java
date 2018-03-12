@@ -320,9 +320,9 @@ public class TCPSocket implements Closeable {
          * Set up the connection
          *
          * @param millis the timeout in milliseconds
-         * @return the Socket that is the result of a successfull connection, or null if the timeout has passed before
+         * @return the Socket that is the result of a successful connection, or null if the timeout has passed before
          *         the connection succeeded
-         * @throws IOException
+         * @throws IOException When an exception occurs during communciation with the remote socket
          */
         public abstract Socket connect(final long millis) throws IOException;
 
