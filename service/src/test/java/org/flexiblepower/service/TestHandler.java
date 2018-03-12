@@ -55,7 +55,7 @@ public class TestHandler implements ConnectionHandler {
 
     private final Connection connection;
     private final String name;
-    public ErrorMessage lastMessage;
+    public volatile ErrorMessage lastMessage;
     public String state;
 
     public TestHandler(final String name, final Connection connection) throws Exception {
@@ -65,7 +65,6 @@ public class TestHandler implements ConnectionHandler {
         this.state = "connected";
         this.connection = connection;
         if (this.name.equals("h1")) {
-            // Thread.sleep(100);
             connection.send(
                     ErrorMessage.newBuilder().setDebugInformation("started").setProcessId("Error process").build());
         }

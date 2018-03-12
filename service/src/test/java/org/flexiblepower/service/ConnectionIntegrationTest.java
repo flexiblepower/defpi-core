@@ -77,6 +77,7 @@ public class ConnectionIntegrationTest {
                         "",
                         "",
                         "")) {
+            mc1.waitUntilConnected();
             mc2.waitUntilConnected();
             Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT); // Make sure at least 1 heartbeat is sent
 
@@ -115,6 +116,7 @@ public class ConnectionIntegrationTest {
                         "")) {
 
             mc1.waitUntilConnected();
+            mc2.waitUntilConnected();
             Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
 
             Assert.assertNotNull(TestHandler.handlerMap.get("h1"));
@@ -173,6 +175,7 @@ public class ConnectionIntegrationTest {
                             "",
                             "")) {
                 mc1.waitUntilConnected();
+                mc2.waitUntilConnected();
                 Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
 
                 Assert.assertNotNull(TestHandler.handlerMap.get("h1"));
