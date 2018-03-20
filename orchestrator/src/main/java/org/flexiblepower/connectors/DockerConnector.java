@@ -40,6 +40,7 @@ import org.flexiblepower.model.Architecture;
 import org.flexiblepower.model.Node;
 import org.flexiblepower.model.NodePool;
 import org.flexiblepower.model.Process;
+import org.flexiblepower.model.Process.ExposePort;
 import org.flexiblepower.model.Process.MountPoint;
 import org.flexiblepower.model.PublicNode;
 import org.flexiblepower.model.Service;
@@ -510,6 +511,17 @@ public class DockerConnector {
                     .targetPort(DockerConnector.INTERNAL_DEBUGGING_PORT)
                     .publishMode(PortConfigPublishMode.HOST)
                     .build());
+        }
+
+        // Check if ports need to be exposed
+        if (process.getExposePorts() != null) {
+            for (final ExposePort exposePort : process.getExposePorts()) {
+                endpointSpec.addPort(PortConfig.builder()
+                        .publishedPort(exposePort.getExternal())
+                        .targetPort(exposePort.getInternal())
+                        .publishMode(PortConfigPublishMode.HOST)
+                        .build());
+            }
         }
 
         // If this is the dashboard gateway, open up the port that is configured in the environment var
