@@ -111,6 +111,15 @@ public class Process {
         private String target;
     }
 
+    @Value
+    @AllArgsConstructor
+    @NoArgsConstructor(force = true)
+    public static class ExposePort {
+        
+        private int internal;
+        private int external;
+    }
+
     @Id
     @JsonSerialize(using = ToStringSerializer.class)
     @JsonDeserialize(using = ObjectIdDeserializer.class)
@@ -168,5 +177,7 @@ public class Process {
      * Mount points can be added in order to allow physical devices be used from the java process. e.g. to use a usb device from /dev/usb0
      */
     private List<MountPoint> mountPoints;
+
+    private List<ExposePort> exposePorts;
 
 }

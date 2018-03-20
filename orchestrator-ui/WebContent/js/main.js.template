@@ -163,6 +163,16 @@ myApp
 															'Debugging Port (0 = disabled)')
 													.defaultValue(0),
 											nga
+													.field('exposePorts',
+															'embedded_list')
+													.label('Expose ports')
+													.targetFields(
+															[
+																	nga
+																			.field('internal'),
+																	nga
+																			.field('external') ]),
+											nga
 													.field('maxMemoryBytes')
 													.label(
 															'Max memory usage (bytes, 0 = disabled)')
@@ -181,7 +191,7 @@ myApp
 																	nga
 																			.field('source'),
 																	nga
-																			.field('target') ]) ]);
+																			.field('target') ])	]);
 					process
 							.editionView()
 							.fields(
@@ -232,6 +242,17 @@ myApp
 															'Debugging Port (0 = disabled)')
 													.defaultValue(0).editable(
 															false),
+											nga
+													.field('exposePorts',
+															'embedded_list')
+													.editable(false)
+													.label('Expose ports')
+													.targetFields(
+															[
+																	nga
+																			.field('internal'),
+																	nga
+																			.field('external') ]),
 											nga
 													.field('maxMemoryBytes')
 													.label(
