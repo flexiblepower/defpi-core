@@ -17,4 +17,5 @@ pom.xml.versionsBackup
 # Keep the maven plugin settings to ignore missing m2e plugins
 # !.metadata/.plugins/org.eclipse.m2e.core/lifecycle-mapping-metadata.xml
 
-
+.idea
+*.iml
