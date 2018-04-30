@@ -5,7 +5,7 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>service-parent</artifactId>
-	<version>17.11.4</version>
+	<version>17.11.5-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<name>dEF-Pi service parent POM</name>
@@ -63,7 +63,7 @@
 		<java.source>1.8</java.source>
 		<java.target>1.8</java.target>
 
-		<defpi.version>17.11.4</defpi.version>
+		<defpi.version>17.11.5-SNAPSHOT</defpi.version>
 
 		<defpi.sources.generated>${project.build.directory}/generated-sources/java</defpi.sources.generated>
 		<defpi.resources.generated>${project.build.directory}/generated-resources/defpi</defpi.resources.generated>
