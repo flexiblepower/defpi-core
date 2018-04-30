@@ -233,7 +233,7 @@ public class MoveProcess {
          */
         public RemoveDockerService(final Process process, final ObjectId nodePoolId, final ObjectId privateNodeId) {
             super(process.getUserId());
-            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
+            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId(), this.getUserId()));
             this.process = process;
             if ((nodePoolId != null) && (privateNodeId != null)) {
                 throw new IllegalArgumentException("Either nodePoolId or privateNodeId should be null");

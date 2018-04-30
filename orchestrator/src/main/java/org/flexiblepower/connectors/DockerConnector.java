@@ -26,14 +26,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Architecture;
@@ -114,7 +112,7 @@ public class DockerConnector {
 
     private static DockerConnector instance = null;
 
-    private final Map<ObjectId, Object> netLocks = new ConcurrentHashMap<>();
+    // private final Map<ObjectId, Object> netLocks = new ConcurrentHashMap<>();
     // private final Object createNetLock = new Object();
     private DockerClient client;
     private final ExecutorService executor = Executors.newCachedThreadPool();
@@ -181,14 +179,14 @@ public class DockerConnector {
                 return serviceList.get(0).id();
             }
 
-            if (!this.netLocks.containsKey(process.getUserId())) {
-                this.netLocks.put(process.getUserId(), new Object());
-            }
-            // Synchronize by user to avoid many deadlocks
-            synchronized (this.netLocks.get(process.getUserId())) {
-                this.ensureProcessNetworkExists(process);
-                this.ensureProcessNetworkIsAttached(process);
-            }
+            // if (!this.netLocks.containsKey(process.getUserId())) {
+            // this.netLocks.put(process.getUserId(), new Object());
+            // }
+            // // Synchronize by user to avoid many deadlocks
+            // synchronized (this.netLocks.get(process.getUserId())) {
+            this.ensureProcessNetworkExists(process);
+            this.ensureProcessNetworkIsAttached(process);
+            // }
 
             final Service service = ServiceManager.getInstance().getService(process.getServiceId());
             final Node node = DockerConnector.determineRunningNode(process);
