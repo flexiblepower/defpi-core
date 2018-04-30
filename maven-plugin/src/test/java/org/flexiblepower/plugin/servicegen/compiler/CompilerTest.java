@@ -20,11 +20,9 @@ package org.flexiblepower.plugin.servicegen.compiler;
 import java.io.IOException;
 import java.nio.file.Paths;
 
-import org.flexiblepower.plugin.servicegen.compiler.ProtoCompiler;
-import org.flexiblepower.plugin.servicegen.compiler.XjcCompiler;
 import org.junit.Test;
-
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * CompilerTest
@@ -32,9 +30,10 @@ import lombok.extern.slf4j.Slf4j;
  * @version 0.1
  * @since Jun 27, 2017
  */
-@Slf4j
 @SuppressWarnings({"static-method", "javadoc"})
 public class CompilerTest {
+
+    private final static Logger log = LoggerFactory.getLogger(CompilerTest.class);
 
     @Test
     public void testGetArchitectures() {

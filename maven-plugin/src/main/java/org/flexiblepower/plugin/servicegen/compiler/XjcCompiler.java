@@ -28,8 +28,6 @@ import org.flexiblepower.codegen.compiler.Compiler;
 
 import com.sun.tools.xjc.Driver;
 
-import lombok.Setter;
-
 /**
  * XjcCompiler
  *
@@ -38,8 +36,14 @@ import lombok.Setter;
  */
 public class XjcCompiler implements Compiler {
 
-    @Setter
     private String basePackageName = "";
+
+    /**
+     * @param basePackageName the basePackageName to set
+     */
+    public void setBasePackageName(final String basePackageName) {
+        this.basePackageName = basePackageName;
+    }
 
     /*
      * (non-Javadoc)
