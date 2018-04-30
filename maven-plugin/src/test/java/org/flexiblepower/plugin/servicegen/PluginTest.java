@@ -30,12 +30,12 @@ import org.flexiblepower.codegen.model.ServiceDescription;
 import org.flexiblepower.model.Parameter;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * PluginTest
@@ -43,9 +43,10 @@ import lombok.extern.slf4j.Slf4j;
  * @version 0.1
  * @since Jun 8, 2017
  */
-@Slf4j
 @SuppressWarnings({"static-method", "javadoc"})
 public class PluginTest {
+
+    private final static Logger log = LoggerFactory.getLogger(PluginTest.class);
 
     private final ObjectMapper mapper = new ObjectMapper();
 
