@@ -54,6 +54,8 @@ public class ProtoCompiler implements Compiler {
         final String rawName = System.getProperty("os.name").toLowerCase();
         if (rawName.startsWith("windows")) {
             return "windows";
+        } else if (rawName.startsWith("mac")) {
+            return "osx";
         } else {
             return rawName;
         }
