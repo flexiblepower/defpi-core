@@ -23,27 +23,25 @@ public class FullWidgetAndPageManager implements HttpHandler {
     public void handle(final HttpTask httpTask) {
         final String uri = httpTask.getUri();
         for (final Widget widget : this.widgets) {
-            if (widget.isActive()) {
-                final String prefix = "/" + widget.getWidgetId();
-                if (uri.startsWith(prefix + "/")) {
-                    final String relativeUri = uri.substring(prefix.length(), uri.length());
-                    String path;
-                    try {
-                        path = new URI(relativeUri).getPath();
-                    } catch (final URISyntaxException e) {
-                        HttpUtils.badRequest(httpTask, "URI not in right format");
-                        return;
-                    }
-                    if (path.equals("/index.html") && (widget.getType() == Type.FULL_WIDGET)) {
-                        // We have to add the dEF-Pi look-and-feel and menu
-                        this.handleIndexFullWidget(widget, httpTask);
-                        return;
-                    } else {
-                        widget.handle(new HttpTask(HttpUtils.rewriteUri(httpTask.getRequest(), relativeUri),
-                                (httpTask1, response) -> httpTask1.getOriginalTask().respond(response),
-                                httpTask));
-                        return;
-                    }
+            final String prefix = "/" + widget.getWidgetId();
+            if (uri.startsWith(prefix + "/")) {
+                final String relativeUri = uri.substring(prefix.length(), uri.length());
+                String path;
+                try {
+                    path = new URI(relativeUri).getPath();
+                } catch (final URISyntaxException e) {
+                    HttpUtils.badRequest(httpTask, "URI not in right format");
+                    return;
+                }
+                if (path.equals("/index.html") && (widget.getType() == Type.FULL_WIDGET)) {
+                    // We have to add the dEF-Pi look-and-feel and menu
+                    this.handleIndexFullWidget(widget, httpTask);
+                    return;
+                } else {
+                    widget.handle(new HttpTask(HttpUtils.rewriteUri(httpTask.getRequest(), relativeUri),
+                            (httpTask1, response) -> httpTask1.getOriginalTask().respond(response),
+                            httpTask));
+                    return;
                 }
             }
         }
@@ -58,7 +56,7 @@ public class FullWidgetAndPageManager implements HttpHandler {
             final StringBuilder sb = new StringBuilder();
             sb.append("<div class=\"center\"><nav><ul>");
             for (final Widget reg : this.widgets) {
-                if (reg.isActive() && (reg.getType() == Widget.Type.FULL_WIDGET)) {
+                if (reg.getType() == Widget.Type.FULL_WIDGET) {
                     // Create menu item for full widget (not for a page)
                     if (activeWidget == reg) {
                         sb.append("<li class=\"active\">");
