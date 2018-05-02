@@ -39,7 +39,7 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
     private final Connection connection;
     private final Dashboard service;
     private final Map<Integer, HttpTask> responseList = new ConcurrentHashMap<>();
-    private WidgetInfo widgetInfo;
+    private WidgetInfo widgetInfo = null;
 
     /**
      * Auto-generated constructor for the ConnectionHandlers of the provided service
@@ -50,8 +50,6 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
     public Widget_httpConnectionHandlerImpl(final Connection connection, final Dashboard service) {
         this.connection = connection;
         this.service = service;
-        this.widgetInfo = null;
-        this.service.registerWidget(this);
     }
 
     @Override
@@ -73,7 +71,13 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
 
     @Override
     public void handleWidgetInfoMessage(final WidgetInfo message) {
-        this.widgetInfo = message;
+        if (this.widgetInfo == null) {
+            // Ah, now we're ready to register!
+            Widget_httpConnectionHandlerImpl.LOG
+                    .debug("Received WidgetInfo, registering widegt of type " + message.getType());
+            this.widgetInfo = message;
+            this.service.registerWidget(this);
+        }
     }
 
     @Override
@@ -102,7 +106,10 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
 
     @Override
     public void terminated() {
-        this.service.unregisterWidget(this);
+        if (this.widgetInfo != null) {
+            // if this.widgetInfo == null we never registered
+            this.service.unregisterWidget(this);
+        }
     }
 
     @Override
@@ -148,11 +155,6 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
         } else {
             return Widget.Type.SMALL_WIDGET;
         }
-    }
-
-    @Override
-    public boolean isActive() {
-        return this.widgetInfo != null;
     }
 
 }

@@ -54,9 +54,7 @@ public class DashboardFullWidget implements Widget {
     private HTTPResponse getActiveWidgets(final HTTPRequest request) {
         final JSONObject map = new JSONObject();
         for (final Entry<Integer, Widget> e : this.widgets.entrySet()) {
-            if (e.getValue().isActive()) {
-                map.put(e.getKey().toString(), e.getValue().getTitle());
-            }
+            map.put(e.getKey().toString(), e.getValue().getTitle());
         }
         return HTTPResponse.newBuilder()
                 .setId(request.getId())
@@ -100,11 +98,6 @@ public class DashboardFullWidget implements Widget {
                 break;
             }
         }
-    }
-
-    @Override
-    public boolean isActive() {
-        return true;
     }
 
 }
