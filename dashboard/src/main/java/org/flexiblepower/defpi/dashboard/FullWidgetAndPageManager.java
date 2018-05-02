@@ -9,12 +9,13 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.apache.commons.io.IOUtils;
+import org.flexiblepower.defpi.dashboard.Widget.Type;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPResponse;
 
 import com.google.protobuf.ByteString;
 
-public class FullWidgetManager implements HttpHandler {
+public class FullWidgetAndPageManager implements HttpHandler {
 
     private final List<Widget> widgets = new CopyOnWriteArrayList<>();
 
@@ -22,31 +23,34 @@ public class FullWidgetManager implements HttpHandler {
     public void handle(final HttpTask httpTask) {
         final String uri = httpTask.getUri();
         for (final Widget widget : this.widgets) {
-            final String prefix = "/" + widget.getFullWidgetId();
-            if (uri.startsWith(prefix + "/")) {
-                final String relativeUri = uri.substring(prefix.length(), uri.length());
-                String path;
-                try {
-                    path = new URI(relativeUri).getPath();
-                } catch (final URISyntaxException e) {
-                    HttpUtils.badRequest(httpTask, "URI not in right format");
-                    return;
-                }
-                if (path.equals("/index.html")) {
-                    this.handleIndex(widget, httpTask);
-                    return;
-                } else {
-                    widget.handle(new HttpTask(HttpUtils.rewriteUri(httpTask.getRequest(), relativeUri),
-                            (httpTask1, response) -> httpTask1.getOriginalTask().respond(response),
-                            httpTask));
-                    return;
+            if (widget.isActive()) {
+                final String prefix = "/" + widget.getWidgetId();
+                if (uri.startsWith(prefix + "/")) {
+                    final String relativeUri = uri.substring(prefix.length(), uri.length());
+                    String path;
+                    try {
+                        path = new URI(relativeUri).getPath();
+                    } catch (final URISyntaxException e) {
+                        HttpUtils.badRequest(httpTask, "URI not in right format");
+                        return;
+                    }
+                    if (path.equals("/index.html") && (widget.getType() == Type.FULL_WIDGET)) {
+                        // We have to add the dEF-Pi look-and-feel and menu
+                        this.handleIndexFullWidget(widget, httpTask);
+                        return;
+                    } else {
+                        widget.handle(new HttpTask(HttpUtils.rewriteUri(httpTask.getRequest(), relativeUri),
+                                (httpTask1, response) -> httpTask1.getOriginalTask().respond(response),
+                                httpTask));
+                        return;
+                    }
                 }
             }
         }
         HttpUtils.notFound(httpTask);
     }
 
-    private void handleIndex(final Widget activeWidget, final HttpTask httpTask) {
+    private void handleIndexFullWidget(final Widget activeWidget, final HttpTask httpTask) {
         try (FileInputStream fis = new FileInputStream(new File("/dynamic/index.html"))) {
             final String template = IOUtils.toString(fis, Charset.defaultCharset());
 
@@ -54,15 +58,18 @@ public class FullWidgetManager implements HttpHandler {
             final StringBuilder sb = new StringBuilder();
             sb.append("<div class=\"center\"><nav><ul>");
             for (final Widget reg : this.widgets) {
-                if (activeWidget == reg) {
-                    sb.append("<li class=\"active\">");
-                } else {
-                    sb.append("<li>");
+                if (reg.isActive() && (reg.getType() == Widget.Type.FULL_WIDGET)) {
+                    // Create menu item for full widget (not for a page)
+                    if (activeWidget == reg) {
+                        sb.append("<li class=\"active\">");
+                    } else {
+                        sb.append("<li>");
+                    }
+                    sb.append("<a href=\"/").append(reg.getWidgetId()).append("/index.html\">");
+                    sb.append("<image src=\"/").append(reg.getWidgetId()).append("/menu.png\" />");
+                    sb.append("<span>").append(reg.getTitle()).append("</span>");
+                    sb.append("</a></li>");
                 }
-                sb.append("<a href=\"/").append(reg.getFullWidgetId()).append("/index.html\">");
-                sb.append("<image src=\"/").append(reg.getFullWidgetId()).append("/menu.png\" />");
-                sb.append("<span>").append(reg.getTitle()).append("</span>");
-                sb.append("</a></li>");
             }
             sb.append("</ul></nav></div>");
 
@@ -92,16 +99,16 @@ public class FullWidgetManager implements HttpHandler {
         }
     }
 
-    public void registerFullWidget(final Widget widget) {
-        if (!widget.getType().equals(Widget.Type.FULL)) {
-            throw new IllegalArgumentException("Can only accept full widgets");
+    public void registerFullWidgetOrPage(final Widget widget) {
+        if (!widget.getType().equals(Widget.Type.FULL_WIDGET) && !widget.getType().equals(Widget.Type.PAGE)) {
+            throw new IllegalArgumentException("Can only accept full widgets and pages");
         }
         this.widgets.add(widget);
     }
 
-    public void unregisterFullWidget(final Widget widget) {
-        if (!widget.getType().equals(Widget.Type.FULL)) {
-            throw new IllegalArgumentException("Can only accept full widgets");
+    public void unregisterFullWidgetOrPage(final Widget widget) {
+        if (!widget.getType().equals(Widget.Type.FULL_WIDGET) && !widget.getType().equals(Widget.Type.PAGE)) {
+            throw new IllegalArgumentException("Can only accept full widgets and pages");
         }
         this.widgets.remove(widget);
     }
