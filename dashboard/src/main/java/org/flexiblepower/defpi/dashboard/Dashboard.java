@@ -22,7 +22,7 @@ import org.flexiblepower.service.Service;
 public class Dashboard implements Service<DashboardConfiguration> {
 
     private HttpRouter requestRouter;
-    private final FullWidgetManager fullWidgetManager = new FullWidgetManager();
+    private final FullWidgetAndPageManager fullWidgetManager = new FullWidgetAndPageManager();
     private DashboardFullWidget dashboardFullWidget;
     private DashboardConfiguration config;
     private DefPiParameters parameters;
@@ -41,8 +41,8 @@ public class Dashboard implements Service<DashboardConfiguration> {
         this.requestRouter = new HttpRouter(this.fullWidgetManager);
         this.dashboardFullWidget = new DashboardFullWidget();
         this.controlAdminFullWidget = new ControlAdminFullWidget(this);
-        this.fullWidgetManager.registerFullWidget(this.dashboardFullWidget);
-        this.fullWidgetManager.registerFullWidget(this.controlAdminFullWidget);
+        this.fullWidgetManager.registerFullWidgetOrPage(this.dashboardFullWidget);
+        this.fullWidgetManager.registerFullWidgetOrPage(this.controlAdminFullWidget);
     }
 
     @Override
@@ -63,10 +63,11 @@ public class Dashboard implements Service<DashboardConfiguration> {
 
     public void registerWidget(final Widget widget) {
         switch (widget.getType()) {
-        case FULL:
-            this.fullWidgetManager.registerFullWidget(widget);
+        case FULL_WIDGET:
+        case PAGE:
+            this.fullWidgetManager.registerFullWidgetOrPage(widget);
             break;
-        case SMALL:
+        case SMALL_WIDGET:
             this.dashboardFullWidget.registerSmallWidget(widget);
             break;
         default:
@@ -76,10 +77,11 @@ public class Dashboard implements Service<DashboardConfiguration> {
 
     public void unregisterWidget(final Widget widget) {
         switch (widget.getType()) {
-        case FULL:
-            this.fullWidgetManager.unregisterFullWidget(widget);
+        case FULL_WIDGET:
+        case PAGE:
+            this.fullWidgetManager.unregisterFullWidgetOrPage(widget);
             break;
-        case SMALL:
+        case SMALL_WIDGET:
             this.dashboardFullWidget.unregisterSmallWidget(widget);
             break;
         default:
