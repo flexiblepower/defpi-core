@@ -76,7 +76,7 @@ public class PythonCodegenUtils {
     }
 
     public static String typeHandlerFunction(final String type) {
-        return PythonCodegenUtils.HANDLER_FUNCTION_PREFIX + PythonCodegenUtils.camelToSnakeCaps(type);
+        return PythonCodegenUtils.HANDLER_FUNCTION_PREFIX + PluginUtils.camelCaps(type);
     }
 
     public static String camelToSnakeCaps(final String type) {
