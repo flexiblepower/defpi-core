@@ -4,7 +4,9 @@
 
 FROM {{from}}
 
-COPY service defpi-resources/* /
+COPY service requirements.txt /
+
+RUN pip install --trusted-host pypi.python.org -r requirements.txt
 
 LABEL org.flexiblepower.serviceName="{{service.name}}" 
 LABEL org.flexiblepower.parameters='{{parameters}}'
