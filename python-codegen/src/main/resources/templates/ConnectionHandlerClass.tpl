@@ -1,7 +1,7 @@
 from defpi.Connection import Connection
 from defpi.Service import Service
 
-from . import {{vitf.handler.interface}}
+from .{{vitf.handler.interface}} import {{vitf.handler.interface}}
 {{vitf.handler.imports}}
 
 

@@ -139,7 +139,8 @@ public class PythonCodegen {
         }
 
         for (final InterfaceDescription itf : serviceDescription.getInterfaces()) {
-            final Path interfacePath = Files.createDirectories(dest.resolve(itf.getName()));
+            final Path interfacePath = Files
+                    .createDirectories(dest.resolve(PythonCodegenUtils.getInterfacePackage(itf)));
             if (Files.notExists(interfacePath.resolve(PythonCodegen.PACKAGE_DECLARATION))) {
                 Files.createFile(interfacePath.resolve(PythonCodegen.PACKAGE_DECLARATION));
             }
