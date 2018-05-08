@@ -111,6 +111,12 @@ public class Process {
         private String target;
     }
 
+    /**
+     * Definition of exposed ports to the outside world, for when a process needs to expose a port for a webservice.
+     *
+     * @version 0.1
+     * @since Mar 20, 2018
+     */
     @Value
     @AllArgsConstructor
     @NoArgsConstructor(force = true)

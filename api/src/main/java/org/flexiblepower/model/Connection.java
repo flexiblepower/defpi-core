@@ -115,7 +115,7 @@ public class Connection {
 
     /**
      * Returns the other endpoint of the connection. More formally it returns the endpoint e2 for which
-     * <code>>e.equals(e2)</code> does <i>not</i> hold.
+     * <code>e.equals(e2)</code> does <i>not</i> hold.
      * 
      * @param e the endpoint which we already have
      * @return the <b>other</b> endpoint
