@@ -9,6 +9,7 @@ variables:
   MAVEN_OPTS: "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true -Dmaven.repo.local=/cache/maven.repository"
   MAVEN_CLI_OPTS: "-T 4 --batch-mode --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
   IMAGE_JDK8: maven:3.5.3-jdk-8-slim
+  IMAGE_JDK9: maven:3.5.3-jdk-9-slim
   IMAGE_JDK10: maven:3.5.3-jdk-10-slim
 
 stages:
@@ -51,10 +52,15 @@ branch-test:other:
 java-compile:jdk8:
   <<: *compile
   image: $IMAGE_JDK8
+
+java-compile:jdk9:
+  <<: *compile
+  image: $IMAGE_JDK9
   
 java-compile:jdk10:
   <<: *compile
   image: $IMAGE_JDK10
+  allow_failure: true
 
 ui-compile:
   image: docker:18.04.0-ce-git
@@ -76,9 +82,14 @@ java-test:jdk8:
   <<: *test
   image: $IMAGE_JDK8
   
+java-test:jdk9:
+  <<: *test
+  image: $IMAGE_JDK9
+
 java-test:jdk10:
   <<: *test
   image: $IMAGE_JDK10
+  allow_failure: true
 
 # Plugin template, how test the plugins with the code generator
 .plugin_template: &plugin
