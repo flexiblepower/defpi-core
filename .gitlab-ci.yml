@@ -9,7 +9,7 @@ variables:
   MAVEN_OPTS: "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true -Dmaven.repo.local=/cache/maven.repository"
   MAVEN_CLI_OPTS: "-T 4 --batch-mode --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
 
-image: maven:3.5.0-jdk-8
+image: maven:3.5.3-jdk-8
 
 stages:
   - build
@@ -47,7 +47,7 @@ java-compile:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml clean test-compile'
 
 ui-compile:
-  image: docker:17.03.2-ce-git
+  image: docker:18.04.0-ce-git
   stage: build
   script:
     - 'docker build orchestrator-ui'
@@ -112,7 +112,7 @@ java-deploy:
 
 # Deploy UI to registry
 ui-deploy:
-  image: docker:17.03.2-ce-git
+  image: docker:18.04.0-ce-git
   stage: predeploy
   only:
     - master
@@ -146,7 +146,7 @@ ui-deploy:
 
 # And finally run the orchestrator on hesilab using docker-compose
 deploy-compose:
-  image: tmaier/docker-compose:17.06
+  image: tmaier/docker-compose:18.02
   stage: deploy
   tags:
     - hesilab
