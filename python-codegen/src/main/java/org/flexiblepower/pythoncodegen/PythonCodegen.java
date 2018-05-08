@@ -70,7 +70,7 @@ public class PythonCodegen {
     private final String dockerLocation = "docker";
     private final String dockerArmLocation = "docker-arm";
 
-    private final String dockerEntryPoint = "python ./__main__.py";
+    private final String dockerEntryPoint = "python -m service";
     public static final String REQUIREMENTS_LOCATION = "";
 
     private final Map<String, InterfaceVersionDescription> hashes = new HashMap<>();
@@ -124,7 +124,7 @@ public class PythonCodegen {
         final String ext = ".py";
         Files.createDirectories(dest);
 
-        final Path moduleMain = dest.resolve(MODULE_DECLARATION);
+        final Path moduleMain = dest.resolve(PythonCodegen.MODULE_DECLARATION);
         if (moduleMain.toFile().exists()) {
             PythonCodegen.log.debug("Skipping existing file " + moduleMain.toString());
         } else {
@@ -185,7 +185,7 @@ public class PythonCodegen {
      * Create the Dockerfile
      *
      * @param service
-     *            The current ServiceDescription object
+     *                    The current ServiceDescription object
      * @throws IOException
      * @throws HashComputeException
      */

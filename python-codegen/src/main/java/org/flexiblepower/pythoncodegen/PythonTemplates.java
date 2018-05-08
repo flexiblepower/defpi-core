@@ -50,7 +50,6 @@ public class PythonTemplates extends Templates {
         super(descr);
     }
 
-
     public String generateServiceMain() throws IOException {
         return this.generate("ServiceMain", null, null);
     }
@@ -61,7 +60,6 @@ public class PythonTemplates extends Templates {
     public String generateServiceImplementation() throws IOException {
         return this.generate("ServiceImplementation", null, null);
     }
-
 
     public String generateRequirements() throws IOException {
         return this.generate("PipRequirements", null, null);
@@ -83,7 +81,7 @@ public class PythonTemplates extends Templates {
      * @return
      */
     public String generateHandlerImplementation(final InterfaceDescription itf,
-                                                final InterfaceVersionDescription version) throws IOException {
+            final InterfaceVersionDescription version) throws IOException {
         return this.generate("ConnectionHandlerClass", itf, version);
     }
 
@@ -114,8 +112,8 @@ public class PythonTemplates extends Templates {
      * @return
      */
     private String generate(final String templateName,
-                            final InterfaceDescription itf,
-                            final InterfaceVersionDescription version) throws IOException {
+            final InterfaceDescription itf,
+            final InterfaceVersionDescription version) throws IOException {
         final String template = this.getTemplate(templateName);
 
         final Map<String, String> replaceMap = new HashMap<>();
@@ -156,18 +154,26 @@ public class PythonTemplates extends Templates {
                         interfaceVersionModule,
                         implementationClass,
                         implementationClass));
-                itfitfimports.add(String.format("from .%s.%s import %s",
-                        interfaceVersionModule,
-                        interfaceClass,
-                        interfaceClass));
+                itfitfimports.add(
+                        String.format("from .%s.%s import %s", interfaceVersionModule, interfaceClass, interfaceClass));
             }
 
             replaceMap.put("itf.manager.definitions", String.join("\n\n", definitions));
             replaceMap.put("itf.manager.implementations", String.join("\n\n", implementations));
             replaceMap.put("itf.manager.imports.interface", String.join("\n", itfitfimports));
             replaceMap.put("itf.manager.imports.implementation", String.join("\n", itfimports));
-        }
+        } else {
+            final Set<String> managerImports = new HashSet<>();
+            for (final InterfaceDescription descr : this.serviceDescription.getInterfaces()) {
+                managerImports.add(String.format("from .%s.%s import %s",
+                        PythonCodegenUtils.getInterfacePackage(descr),
+                        PythonCodegenUtils.managerClass(descr),
+                        PythonCodegenUtils.managerClass(descr)));
 
+            }
+            replaceMap.put("service.managerimports", String.join("\n", managerImports));
+
+        }
         // Build replaceMaps for the interface versions
         if ((itf != null) && (version != null)) {
             replaceMap.put("vitf.handler.interface", PythonCodegenUtils.connectionHandlerInterface(itf, version));
@@ -177,8 +183,6 @@ public class PythonTemplates extends Templates {
             replaceMap.put("vitf.version", version.getVersionName());
             replaceMap.put("vitf.receivesHash", PluginUtils.getReceiveHash(version));
             replaceMap.put("vitf.sendsHash", PluginUtils.getSendHash(version));
-
-
 
             final Set<String> recvClasses = new HashSet<>();
             for (final String type : version.getReceives()) {
