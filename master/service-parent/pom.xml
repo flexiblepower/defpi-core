@@ -5,7 +5,7 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>service-parent</artifactId>
-	<version>17.11.3-SNAPSHOT</version>
+	<version>17.11.3</version>
 	<packaging>pom</packaging>
 
 	<name>dEF-Pi service parent POM</name>

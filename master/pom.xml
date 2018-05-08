@@ -4,7 +4,7 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>master</artifactId>
-	<version>17.11.3-SNAPSHOT</version>
+	<version>17.11.3</version>
 	<packaging>pom</packaging>
 
 	<name>dEF-Pi master POM</name>
@@ -205,7 +205,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
-					<version>3.6.1</version>
+					<version>3.7.0</version>
 					<configuration>
 						<source>${java.source}</source>
 						<target>${java.target}</target>
@@ -215,7 +215,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
-					<version>2.20</version>
+					<version>2.21.0</version>
 					<configuration>
 						<systemProperties>
 							<property>
@@ -246,7 +246,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>2.9.1</version>
+				<version>3.0.0</version>
 				<executions>
 					<execution>
 						<id>attach-javadocs</id>

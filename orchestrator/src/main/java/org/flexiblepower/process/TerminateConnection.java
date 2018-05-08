@@ -58,7 +58,10 @@ public class TerminateConnection extends PendingChange {
      */
     public TerminateConnection(final ObjectId userId, final Connection connection, final Connection.Endpoint endpoint) {
         super(userId);
-        this.resources = Collections.unmodifiableList(Arrays.asList(connection.getId(), endpoint.getProcessId()));
+        this.resources = Collections.unmodifiableList(Arrays.asList(connection.getId(),
+                endpoint.getProcessId(),
+                this.getUserId(),
+                connection.getOtherEndpoint(endpoint).getProcessId()));
         this.connection = connection;
         this.endpoint = endpoint;
     }
