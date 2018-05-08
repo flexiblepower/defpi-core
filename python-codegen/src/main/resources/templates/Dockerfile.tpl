@@ -4,12 +4,16 @@
 
 FROM {{from}}
 
-COPY service requirements.txt /
+WORKDIR /usr/local/defpi
+
+COPY requirements.txt .
 
 RUN pip install --trusted-host pypi.python.org -r requirements.txt
 
 LABEL org.flexiblepower.serviceName="{{service.name}}" 
 LABEL org.flexiblepower.parameters='{{parameters}}'
 LABEL org.flexiblepower.interfaces='{{interfaces}}'
+
+COPY service ./service
 
 ENTRYPOINT {{entrypoint}}
