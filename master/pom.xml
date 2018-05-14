@@ -4,7 +4,7 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>master</artifactId>
-	<version>17.11.3</version>
+	<version>17.11.5-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<name>dEF-Pi master POM</name>
@@ -80,11 +80,6 @@
 
 	<!-- Where to push the maven compiled jars -->
 	<distributionManagement>
-		<repository>
-			<id>ossrh</id>
-			<name>Sonatype snapshot repository</name>
-			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
-		</repository>
 		<snapshotRepository>
 			<id>ossrh</id>
 			<name>Sonatype snapshot repository</name>
@@ -262,6 +257,7 @@
 	<profiles>
 		<profile>
 			<id>release</id>
+			
 			<distributionManagement>
 				<repository>
 					<id>ossrh</id>
