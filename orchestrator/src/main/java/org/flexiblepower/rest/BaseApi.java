@@ -85,8 +85,8 @@ public abstract class BaseApi {
                 return;
             }
 
-            this.sessionUser = UserManager.getInstance().getUser(credentials.substring(0, pos),
-                    credentials.substring(pos + 1));
+            this.sessionUser = UserManager.getInstance()
+                    .getUser(credentials.substring(0, pos), credentials.substring(pos + 1));
             if (this.sessionUser == null) {
                 BaseApi.log.debug("Unable to find user with provided credentials");
                 return;
@@ -136,7 +136,7 @@ public abstract class BaseApi {
     }
 
     /**
-     * Add the {@value TotalCountFilter#HEADER_NAME} header to the response with the provided value
+     * Add the header to the response with the provided value
      *
      * @param count The total number of responses that could have been returned
      */

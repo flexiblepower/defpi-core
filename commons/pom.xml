@@ -28,6 +28,7 @@
 
 	<build>
 		<plugins>
+			<!-- Add the generated code to the build path -->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>build-helper-maven-plugin</artifactId>
@@ -43,6 +44,26 @@
 							<sources>
 								<source>${project.basedir}/src/main/generated</source>
 							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			
+			<!-- Just don't generate javadocs for it -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>3.0.0</version>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+						<configuration>
+							<sourceFileExcludes>
+								<sourceFileExclude>${project.basedir}/src/main/generated</sourceFileExclude>
+							</sourceFileExcludes>
 						</configuration>
 					</execution>
 				</executions>

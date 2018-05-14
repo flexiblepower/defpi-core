@@ -56,28 +56,28 @@ public class Process {
      * @since Dec 6, 2017
      */
     public static enum ProcessState {
-        /**
-         * The process is starting, meaning its specification exists somewhere in memory, but the docker container
-         * hasn't started
-         */
-        STARTING,
-        /**
-         * The docker container in which the process will run is running, but the process is still waiting for a
-         * configuration
-         */
-        INITIALIZING,
-        /**
-         * The process is operational and running
-         */
-        RUNNING,
-        /**
-         * The process is suspended, meaning the docker service is removed, but its state still exists in suspended mode
-         */
-        SUSPENDED,
-        /**
-         * The process is terminated and will not be resumed, it is ready to be completely deleted from memory
-         */
-        TERMINATED
+    /**
+     * The process is starting, meaning its specification exists somewhere in memory, but the docker container
+     * hasn't started
+     */
+    STARTING,
+    /**
+     * The docker container in which the process will run is running, but the process is still waiting for a
+     * configuration
+     */
+    INITIALIZING,
+    /**
+     * The process is operational and running
+     */
+    RUNNING,
+    /**
+     * The process is suspended, meaning the docker service is removed, but its state still exists in suspended mode
+     */
+    SUSPENDED,
+    /**
+     * The process is terminated and will not be resumed, it is ready to be completely deleted from memory
+     */
+    TERMINATED
     }
 
     /**
@@ -111,11 +111,17 @@ public class Process {
         private String target;
     }
 
+    /**
+     * Definition of exposed ports to the outside world, for when a process needs to expose a port for a webservice.
+     *
+     * @version 0.1
+     * @since Mar 20, 2018
+     */
     @Value
     @AllArgsConstructor
     @NoArgsConstructor(force = true)
     public static class ExposePort {
-        
+
         private int internal;
         private int external;
     }
@@ -174,7 +180,8 @@ public class Process {
     private boolean suspendOnDebug = true;
 
     /**
-     * Mount points can be added in order to allow physical devices be used from the java process. e.g. to use a usb device from /dev/usb0
+     * Mount points can be added in order to allow physical devices be used from the java process. e.g. to use a usb
+     * device from /dev/usb0
      */
     private List<MountPoint> mountPoints;
 

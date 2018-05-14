@@ -74,7 +74,7 @@ public abstract class PendingChange {
     public static enum State {
         /**
          * The pending change is new, has never been attempted. By definition if the state is new,
-         * {@link PendingChange#getCount()} should equal 0
+         * the count should equal 0
          */
         NEW,
         /**
