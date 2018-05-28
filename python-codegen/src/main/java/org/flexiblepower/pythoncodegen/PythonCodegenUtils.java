@@ -77,7 +77,7 @@ public class PythonCodegenUtils {
     }
 
     public static String typeHandlerFunction(final String type) {
-        return PythonCodegenUtils.HANDLER_FUNCTION_PREFIX + PluginUtils.camelCaps(type);
+        return PythonCodegenUtils.HANDLER_FUNCTION_PREFIX + type;
     }
 
     public static String getInterfacePackage(final InterfaceDescription itf) {

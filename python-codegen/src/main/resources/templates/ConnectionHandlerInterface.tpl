@@ -15,6 +15,7 @@ class {{vitf.handler.interface}}(ConnectionHandler):
     interfaceInfo = InterfaceInfo(name="{{itf.name}}",
                                   version="{{vitf.version}}",
                                   receivesHash="{{vitf.receivesHash}}",
-                                  sendsHash="{{vitf.sendsHash}}")
+                                  sendsHash="{{vitf.sendsHash}}",
+                                  serializer="{{vitf.serializer}}")
 
 {{vitf.handler.definitions}}

@@ -212,9 +212,9 @@ public class PythonTemplates extends Templates {
             replaceMap.put("vitf.handler.implementations", String.join("\n\n", implementations));
 
             if (version.getType().equals(Type.PROTO)) {
-                replaceMap.put("vitf.serializer", "ProtobufMessageSerializer");
+                replaceMap.put("vitf.serializer", "proto");
             } else if (version.getType().equals(Type.XSD)) {
-                replaceMap.put("vitf.serializer", "XSDMessageSerializer");
+                replaceMap.put("vitf.serializer", "xsd");
             }
 
             // Add imports for the handlers
