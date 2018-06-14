@@ -54,6 +54,7 @@ public class PluginTest {
                 vitf.setHash("1234");
             }
         }
+        PluginTest.log.info(t.generateServiceMain());
         PluginTest.log.info(t.generateServiceImplementation());
         PluginTest.log.info(t.generateDockerfile("x86", "run-java.sh"));
     }

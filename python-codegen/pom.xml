@@ -44,7 +44,6 @@
 		<plugins>
 			<plugin>
 				<artifactId>maven-resources-plugin</artifactId>
-				<version>3.0.2</version>
 				<configuration>
 					<resources>
 						<resource>
@@ -55,11 +54,6 @@
 						</resource>
 						<resource>
 							<directory>${project.resourcedir}</directory>
-							<targetPath>${project.build.directory}/docker</targetPath>
-						</resource>
-						<resource>
-							<directory>${project.resourcedir}</directory>
-							<include>log4j2.xml</include>
 						</resource>
 					</resources>
 				</configuration>
