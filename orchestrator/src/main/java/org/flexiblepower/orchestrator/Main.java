@@ -20,7 +20,6 @@ package org.flexiblepower.orchestrator;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.UUID;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.eclipse.jetty.server.Server;
@@ -77,7 +76,6 @@ public class Main {
         // if (db.getUser(Main.ROOT_USER, Main.ROOT_PASSWORD) == null) {
         if (UserManager.getInstance().getUser(Main.ROOT_USER) == null) {
             final User root = new User(Main.ROOT_USER, Main.ROOT_PASSWORD);
-            root.setAuthenticationToken(UUID.randomUUID().toString());
             // root.setPasswordHash();
             root.setAdmin(true);
 

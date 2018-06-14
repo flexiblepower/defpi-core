@@ -565,8 +565,7 @@ public class DockerConnector {
             ProcessConnector.log.error("Could not obtain hostame", e);
         }
         envArgs.put(DefPiParams.ORCHESTRATOR_PORT.name(), Integer.toString(Main.URI_PORT));
-        envArgs.put(DefPiParams.ORCHESTRATOR_TOKEN.name(),
-                UserManager.getInstance().getUser(process.getUserId()).getAuthenticationToken());
+        envArgs.put(DefPiParams.ORCHESTRATOR_TOKEN.name(), process.getToken());
         envArgs.put(DefPiParams.PROCESS_ID.name(), process.getId().toString());
         envArgs.put(DefPiParams.USER_ID.name(), process.getUserId().toString());
         final User user = UserManager.getInstance().getUser(process.getUserId());

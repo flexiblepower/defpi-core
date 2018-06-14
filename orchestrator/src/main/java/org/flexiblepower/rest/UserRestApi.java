@@ -21,7 +21,6 @@ package org.flexiblepower.rest;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -64,10 +63,10 @@ public class UserRestApi extends BaseApi implements UserApi {
         this.assertUserIsAdmin();
 
         // Update the password to store it encrypted
-        // if ((newUser.getPassword() != null) && (newUser.getPasswordHash() == null)) {
-        // newUser.setPasswordHash();
-        // }
-        newUser.setAuthenticationToken(UUID.randomUUID().toString());
+        if ((newUser.getPassword() != null) && (newUser.getPasswordHash() == null)) {
+            newUser.setPasswordHash();
+        }
+
         this.db.saveUser(newUser);
         return newUser;
     }
