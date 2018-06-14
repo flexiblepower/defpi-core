@@ -69,6 +69,7 @@ public class User {
 
     @Setter
     @JsonIgnore
+    @Deprecated
     private String authenticationToken;
 
     @Setter
@@ -122,9 +123,9 @@ public class User {
      * function, meaning that given the name and password we can compute the hash, but it is impossible to do the
      * reverse.
      * <p>
-     * This function uses the MD5 algorithm to compute hashes.
+     * This function uses the SHA256 algorithm to compute hashes.
      *
-     * @param name The user name
+     * @param name     The user name
      * @param password The user password
      * @return The hash that can be checked.
      */
@@ -132,14 +133,14 @@ public class User {
         if ((name == null) || (password == null)) {
             throw new NullPointerException("Name and password must both be set to compute password hash");
         }
-        return User.md5(password + name + User.SALT);
+        return User.sha256(password + name + User.SALT);
     }
 
-    private static final String md5(final String password) {
+    private static final String sha256(final String password) {
         try {
-            final MessageDigest mDigest = MessageDigest.getInstance("MD5");
-            mDigest.update(password.getBytes(), 0, password.length());
-            return new BigInteger(1, mDigest.digest()).toString(16);
+            final MessageDigest md = MessageDigest.getInstance("SHA-256");
+            md.update(password.getBytes());
+            return new BigInteger(1, md.digest()).toString(16);
         } catch (final NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
