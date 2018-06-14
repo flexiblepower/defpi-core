@@ -312,8 +312,8 @@ public class DockerConnector {
      * network, and the orchestrator is added to this network in runtime.
      *
      * @param process the process which we want to make sure is in an attached network
-     * @throws InterruptedException If an interruption occurs before the docker client was able to get the required info
-     * @throws DockerException If an exception occurs in the docker client
+     * @throws InterruptedException If an  interruption occurs before the docker client was able to get the required info
+     * @throws DockerException      If an  exception occurs in the docker client
      */
     public void ensureProcessNetworkIsAttached(final Process process) throws DockerException, InterruptedException {
         try {
@@ -602,8 +602,8 @@ public class DockerConnector {
 
     private <T> T runOrTimeout(final Callable<T> callable) throws DockerException, InterruptedException {
         try {
-            return this.executor.submit(callable).get(DockerConnector.DOCKER_WRITE_TIMEOUT_MILLIS,
-                    TimeUnit.MILLISECONDS);
+            return this.executor.submit(callable)
+                    .get(DockerConnector.DOCKER_WRITE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
         } catch (final ExecutionException e) {
             if ((e.getCause() != null) && (e.getCause() instanceof DockerException)) {
                 throw (DockerException) e.getCause();
