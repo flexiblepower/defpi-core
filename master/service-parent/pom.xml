@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
@@ -220,6 +221,7 @@
 			</activation>
 			<build>
 				<plugins>
+					<!-- Use the def-pi plugin to generate stubs -->
 					<plugin>
 						<groupId>org.flexiblepower.defpi</groupId>
 						<artifactId>defpi-maven-plugin</artifactId>
@@ -235,6 +237,7 @@
 						</executions>
 					</plugin>
 
+					<!-- Add generated code to the build path -->
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>build-helper-maven-plugin</artifactId>
@@ -250,6 +253,27 @@
 									<sources>
 										<source>${defpi.sources.generated}</source>
 									</sources>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+
+					<!-- Create javadoc, but not for generated code -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<version>3.0.0</version>
+						<executions>
+							<execution>
+								<id>attach-javadocs</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+								<configuration>
+									<sourceFileExcludes>
+										<sourceFileExclude>${defpi.resources.generated}</sourceFileExclude>
+									</sourceFileExcludes>
+									<quiet>true</quiet>
 								</configuration>
 							</execution>
 						</executions>
@@ -302,6 +326,21 @@
 								</resources>
 							</resources>
 						</configuration>
+					</plugin>
+
+					<!--Attach sources when packaging -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<version>3.0.1</version>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
 					</plugin>
 
 					<!-- The assembly plugin puts all java code in one jar -->

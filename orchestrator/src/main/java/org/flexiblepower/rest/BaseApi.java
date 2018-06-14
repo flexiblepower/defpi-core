@@ -62,7 +62,7 @@ public abstract class BaseApi {
         this.headers = httpHeaders;
         String authString = httpHeaders.getHeaderString("Authorization");
         if ((authString == null) || !authString.startsWith(BaseApi.AUTH_PREFIX)) {
-            BaseApi.log.warn("Client is not using basic authentication, not authenticated");
+            BaseApi.log.debug("Client is not using basic authentication, not authenticated");
             this.sessionUser = null;
             return;
         }
@@ -82,6 +82,7 @@ public abstract class BaseApi {
         if (this.sessionUser == null) {
             BaseApi.log.debug("Unable to find user with provided credentials");
             return;
+
         }
         // Success!
         BaseApi.log.trace("User {} logged in", this.sessionUser.getUsername());
@@ -150,7 +151,7 @@ public abstract class BaseApi {
     }
 
     /**
-     * Add the {@value TotalCountFilter#HEADER_NAME} header to the response with the provided value
+     * Add the header to the response with the provided value
      *
      * @param count The total number of responses that could have been returned
      */
