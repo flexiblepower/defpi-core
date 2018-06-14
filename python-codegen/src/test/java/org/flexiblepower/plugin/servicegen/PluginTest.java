@@ -39,7 +39,6 @@ import lombok.extern.slf4j.Slf4j;
  * @since Jun 8, 2017
  */
 @Slf4j
-@SuppressWarnings({"static-method"})
 public class PluginTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
