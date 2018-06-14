@@ -116,7 +116,7 @@ public class ProtoCompiler implements Compiler {
         }
 
         // Build and execute the command
-        final String cmd = String.format("\"%s\" --java_out=\"%s\" --proto_path=\"%s\" \"%s\"",
+        final String cmd = String.format("%s --java_out=\"%s\" --proto_path=\"%s\" \"%s\"",
                 ProtoCompiler.this.compilerFile.getAbsolutePath(),
                 targetPath.toString(),
                 filePath.getParent().toString(),
