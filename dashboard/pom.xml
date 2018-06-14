@@ -127,7 +127,7 @@
 			</plugin>
 
 			<plugin>
-				<!-- Althoug this is also defined in the service-parent, it is required 
+				<!-- Although this is also defined in the service-parent, it is required 
 					to make sure docker gets the shaded jar, and not the assembly jar -->
 				<groupId>com.spotify</groupId>
 				<artifactId>docker-maven-plugin</artifactId>

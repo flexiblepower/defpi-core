@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
@@ -13,6 +14,8 @@
 	</parent>
 
 	<properties>
+		<jersey.version>2.25.1</jersey.version>
+
 		<project.resourcedir>${project.basedir}/src/main/resources</project.resourcedir>
 		<mainClass>org.flexiblepower.orchestrator.Main</mainClass>
 
@@ -22,11 +25,10 @@
 
 	<dependencyManagement>
 		<dependencies>
-			<!-- Version 2.26 will break -->
 			<dependency>
 				<groupId>org.glassfish.jersey.core</groupId>
 				<artifactId>jersey-client</artifactId>
-				<version>2.25.1</version>
+				<version>${jersey.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -35,7 +37,7 @@
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>
 			<artifactId>jersey-container-jetty-http</artifactId>
-			<version>2.25.1</version>
+			<version>${jersey.version}</version>
 		</dependency>
 
 		<dependency>
@@ -74,7 +76,7 @@
 		<dependency>
 			<groupId>com.spotify</groupId>
 			<artifactId>docker-client</artifactId>
-			<version>8.11.2-SNAPSHOT</version>
+			<version>8.11.6</version>
 			<exclusions>
 				<exclusion>
 					<groupId>ch.qos.logback</groupId>
@@ -86,7 +88,7 @@
 		<dependency>
 			<groupId>com.google.code.findbugs</groupId>
 			<artifactId>jsr305</artifactId>
-			<version>3.0.1</version>
+			<version>3.0.2</version>
 			<scope>provided</scope>
 		</dependency>
 
@@ -107,7 +109,7 @@
 			<plugin>
 				<groupId>pl.project13.maven</groupId>
 				<artifactId>git-commit-id-plugin</artifactId>
-				<version>2.2.3</version>
+				<version>2.2.4</version>
 				<executions>
 					<execution>
 						<id>get-the-git-infos</id>
@@ -121,7 +123,6 @@
 
 			<plugin>
 				<artifactId>maven-resources-plugin</artifactId>
-				<version>3.0.2</version>
 				<configuration>
 					<resources>
 						<resource>
@@ -145,6 +146,7 @@
 			<!-- The assembly plugin puts all java code in one jar -->
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
+				<!-- Upgrading to version 3.x.x makes it MUCH slower -->
 				<version>2.6</version>
 				<configuration>
 					<archive>
@@ -172,7 +174,7 @@
 			<plugin>
 				<groupId>com.spotify</groupId>
 				<artifactId>docker-maven-plugin</artifactId>
-				<version>1.0.0</version>
+				<version>1.1.1</version>
 				<executions>
 					<execution>
 						<!-- Build x86_64 image -->
@@ -234,7 +236,7 @@
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>license-maven-plugin</artifactId>
-						<version>1.14</version>
+						<version>1.16</version>
 						<executions>
 							<execution>
 								<id>add-third-party</id>
