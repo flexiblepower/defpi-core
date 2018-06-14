@@ -64,11 +64,15 @@
 
 		<!-- The plugin needs the protobuf version to obtain the compiler from 
 			maven central explicitly -->
-		<protobuf.version>3.3.0</protobuf.version>
-		<jackson.databind.version>2.9.5</jackson.databind.version>
+		<protobuf.version>3.5.1</protobuf.version>
+		<jackson.databind.version>2.9.6</jackson.databind.version>
 		<mongodb.version>3.7.1</mongodb.version>
 		<log4j.version>2.11.0</log4j.version>
 	</properties>
+
+	<prerequisites>
+		<maven>3.0</maven>
+	</prerequisites>
 
 	<modules>
 		<module>service-parent</module>
@@ -104,11 +108,10 @@
 
 	<dependencyManagement>
 		<dependencies>
-			<!-- Don't update to lombok 1.16.20; it will break JSON parsing -->
 			<dependency>
 				<groupId>org.projectlombok</groupId>
 				<artifactId>lombok</artifactId>
-				<version>1.16.22</version>
+				<version>1.18.0</version>
 				<scope>provided</scope>
 			</dependency>
 

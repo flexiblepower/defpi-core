@@ -80,6 +80,10 @@
 		<docker.imageName>${docker.registry}/services/${project.artifactId}</docker.imageName>
 	</properties>
 
+	<prerequisites>
+		<maven>3.0</maven>
+	</prerequisites>
+
 	<modules>
 		<module>../../dashboard-gateway</module>
 		<module>../../dashboard</module>
