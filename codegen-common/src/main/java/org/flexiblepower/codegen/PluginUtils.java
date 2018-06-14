@@ -76,6 +76,7 @@ public class PluginUtils {
 
         final ObjectMapper mapper = new ObjectMapper();
         return mapper.readValue(inputFile, ServiceDescription.class);
+
     }
 
     /**

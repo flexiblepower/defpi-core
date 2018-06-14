@@ -50,11 +50,19 @@ public class PythonTemplates extends Templates {
         super(descr);
     }
 
+    public String generateServiceMain() throws IOException {
+        return this.generate("ServiceMain", null, null);
+    }
+
     /**
      * @return
      */
     public String generateServiceImplementation() throws IOException {
         return this.generate("ServiceImplementation", null, null);
+    }
+
+    public String generateRequirements() throws IOException {
+        return this.generate("PipRequirements", null, null);
     }
 
     /**
@@ -127,6 +135,7 @@ public class PythonTemplates extends Templates {
             final Set<String> definitions = new HashSet<>();
             final Set<String> implementations = new HashSet<>();
             final Set<String> itfimports = new HashSet<>();
+            final Set<String> itfitfimports = new HashSet<>();
             for (final InterfaceVersionDescription vitf : itf.getInterfaceVersions()) {
                 final String interfaceClass = PythonCodegenUtils.connectionHandlerInterface(itf, vitf);
                 final String implementationClass = PythonCodegenUtils.connectionHandlerClass(itf, vitf);
@@ -145,13 +154,26 @@ public class PythonTemplates extends Templates {
                         interfaceVersionModule,
                         implementationClass,
                         implementationClass));
+                itfitfimports.add(
+                        String.format("from .%s.%s import %s", interfaceVersionModule, interfaceClass, interfaceClass));
             }
 
             replaceMap.put("itf.manager.definitions", String.join("\n\n", definitions));
             replaceMap.put("itf.manager.implementations", String.join("\n\n", implementations));
+            replaceMap.put("itf.manager.imports.interface", String.join("\n", itfitfimports));
             replaceMap.put("itf.manager.imports.implementation", String.join("\n", itfimports));
-        }
+        } else {
+            final Set<String> managerImports = new HashSet<>();
+            for (final InterfaceDescription descr : this.serviceDescription.getInterfaces()) {
+                managerImports.add(String.format("from .%s.%s import %s",
+                        PythonCodegenUtils.getInterfacePackage(descr),
+                        PythonCodegenUtils.managerClass(descr),
+                        PythonCodegenUtils.managerClass(descr)));
 
+            }
+            replaceMap.put("service.managerimports", String.join("\n", managerImports));
+
+        }
         // Build replaceMaps for the interface versions
         if ((itf != null) && (version != null)) {
             replaceMap.put("vitf.handler.interface", PythonCodegenUtils.connectionHandlerInterface(itf, version));
@@ -190,9 +212,9 @@ public class PythonTemplates extends Templates {
             replaceMap.put("vitf.handler.implementations", String.join("\n\n", implementations));
 
             if (version.getType().equals(Type.PROTO)) {
-                replaceMap.put("vitf.serializer", "ProtobufMessageSerializer");
+                replaceMap.put("vitf.serializer", "proto");
             } else if (version.getType().equals(Type.XSD)) {
-                replaceMap.put("vitf.serializer", "XSDMessageSerializer");
+                replaceMap.put("vitf.serializer", "xsd");
             }
 
             // Add imports for the handlers
@@ -222,9 +244,9 @@ public class PythonTemplates extends Templates {
     @Override
     protected String getDockerBaseImage(final String platform) {
         if (platform.equals("x86")) {
-            return "java:alpine";
+            return "python:3.5-slim";
         } else {
-            return "larmog/armhf-alpine-java:jdk-8u73";
+            return "armhf/python:3.5-alpine";
         }
     }
 
