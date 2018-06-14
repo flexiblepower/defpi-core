@@ -29,7 +29,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
  * The connection is how processes communicate with one another. Note that this class is only the model of a
@@ -41,7 +40,6 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @Entity
-@NoArgsConstructor(force = true)
 public class Connection {
 
     /**
@@ -52,7 +50,6 @@ public class Connection {
      */
     @Data
     @Embedded
-    @NoArgsConstructor(force = true)
     public static class Endpoint {
 
         /**
