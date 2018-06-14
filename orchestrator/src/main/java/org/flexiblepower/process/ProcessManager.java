@@ -18,6 +18,7 @@
 package org.flexiblepower.process;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
@@ -131,6 +132,8 @@ public class ProcessManager {
         }
         this.validateProcess(process);
 
+        // Create a random token for this process
+        process.setToken(UUID.randomUUID().toString());
         // Save with starting state and save
         process.setState(ProcessState.STARTING);
         MongoDbConnector.getInstance().save(process);
@@ -284,7 +287,7 @@ public class ProcessManager {
      *
      * @param newProcess The (description of the) process to update
      * @throws IllegalArgumentException if the updated process is invalid, or has a different user than the original
-     *             process.
+     *                                      process.
      */
     public void updateProcess(final Process newProcess) {
         this.validateProcess(newProcess);
@@ -341,7 +344,7 @@ public class ProcessManager {
     /**
      * Update the configuration for a process
      *
-     * @param process The process to update
+     * @param process          The process to update
      * @param newConfiguration A list of parameters representing the new configuration
      */
     private void updateConfiguration(final Process process, final List<ProcessParameter> newConfiguration) {
@@ -367,6 +370,16 @@ public class ProcessManager {
                     c,
                     c.getEndpointForProcess(currentProcess)));
         }
+    }
+
+    /**
+     * Find a process that is identified by a token.
+     *
+     * @param token the token that should uniquely identify this process
+     * @return The process that is identified by this token.
+     */
+    public Process getProcessByToken(final String token) {
+        return this.mongoDbConnector.getProcessByToken(token);
     }
 
 }
