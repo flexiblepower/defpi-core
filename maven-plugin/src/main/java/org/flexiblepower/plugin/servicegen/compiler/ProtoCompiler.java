@@ -110,13 +110,17 @@ public class ProtoCompiler implements Compiler {
      */
     @Override
     public void compile(final Path filePath, final Path targetPath) throws IOException {
-        // Delay making the target folder to this point so it won't be made unnessecarily
+        // Delay making the target folder to this point so it won't be made unnecessarily
         if (!targetPath.toFile().exists()) {
             Files.createDirectories(targetPath);
         }
 
         // Build and execute the command
-        final String cmd = String.format("%s --java_out=\"%s\" --proto_path=\"%s\" \"%s\"",
+        final String formatString = ProtoCompiler.getOsName().equals("windows")
+                ? "\"%s\" --java_out=\"%s\" --proto_path=\"%s\" \"%s\""
+                : "%s --java_out=%s --proto_path=%s %s";
+
+        final String cmd = String.format(formatString,
                 ProtoCompiler.this.compilerFile.getAbsolutePath(),
                 targetPath.toString(),
                 filePath.getParent().toString(),
