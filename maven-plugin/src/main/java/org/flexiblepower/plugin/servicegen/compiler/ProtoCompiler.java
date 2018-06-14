@@ -104,7 +104,7 @@ public class ProtoCompiler implements Compiler {
     /**
      * Compile the proto file which is at the specified location to java code at a certain destination.
      *
-     * @param filePath The input .proto file to compile to java code
+     * @param filePath   The input .proto file to compile to java code
      * @param targetPath The target path where the java code should be put
      * @throws IOException When an exception occurs while reading the proto file, or writing the java code
      */
@@ -116,7 +116,7 @@ public class ProtoCompiler implements Compiler {
         }
 
         // Build and execute the command
-        final String cmd = String.format("%s --java_out=%s --proto_path=%s %s",
+        final String cmd = String.format("\"%s\" --java_out=\"%s\" --proto_path=\"%s\" \"%s\"",
                 ProtoCompiler.this.compilerFile.getAbsolutePath(),
                 targetPath.toString(),
                 filePath.getParent().toString(),
