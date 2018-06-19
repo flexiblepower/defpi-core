@@ -1,0 +1,34 @@
+{
+  "name": "Test Service",
+  "version": "1",
+  "interfaces": [
+    {
+      "name": "Echo Interface",
+      "autoConnect": false,
+      "allowMultiple": false,
+      "interfaceVersions": [
+        {
+          "versionName": "abc",
+          "type": "proto",
+          "location": "multi-type.proto",
+          "sends": ["A", "B", "C"],
+          "receives": ["B", "C"]
+        },
+        {
+          "versionName": "cba",
+          "type": "proto",
+          "location": "multi-type.proto",
+          "sends": ["C", "B", "A"],
+          "receives": ["C", "B"]
+        },
+        {
+          "versionName": "baaacc",
+          "type": "proto",
+          "location": "multi-type.proto",
+          "sends": ["B", "A", "A", "A", "C", "C"],
+          "receives": ["C", "B"]
+        }
+      ]
+    }
+  ]
+}
