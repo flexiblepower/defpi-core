@@ -40,7 +40,7 @@ import org.flexiblepower.codegen.model.InterfaceDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription.Type;
 import org.flexiblepower.codegen.model.ServiceDescription;
-import org.flexiblepower.plugin.servicegen.compiler.ProtoCompiler;
+import org.flexiblepower.plugin.servicegen.compiler.JavaProtoCompiler;
 import org.flexiblepower.plugin.servicegen.compiler.XjcCompiler;
 import org.sonatype.plexus.build.incremental.BuildContext;
 
@@ -176,7 +176,7 @@ public class CreateComponentMojo extends AbstractMojo {
 
     private final Map<String, InterfaceVersionDescription> hashes = new HashMap<>();
 
-    private ProtoCompiler protoCompiler;
+    private JavaProtoCompiler protoCompiler;
     private XjcCompiler xjcCompiler;
 
     private JavaTemplates templates;
@@ -397,7 +397,7 @@ public class CreateComponentMojo extends AbstractMojo {
     private void compileDescriptors(final ServiceDescription service) throws IOException {
         this.getLog().debug("Compiling descriptors definitions to java code");
 
-        this.protoCompiler = new ProtoCompiler(this.protobufVersion);
+        this.protoCompiler = new JavaProtoCompiler(this.protobufVersion);
         this.xjcCompiler = new XjcCompiler();
 
         for (final InterfaceDescription iface : service.getInterfaces()) {

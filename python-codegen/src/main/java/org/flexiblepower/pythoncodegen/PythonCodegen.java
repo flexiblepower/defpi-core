@@ -34,7 +34,7 @@ import org.flexiblepower.codegen.model.InterfaceDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription.Type;
 import org.flexiblepower.codegen.model.ServiceDescription;
-import org.flexiblepower.pythoncodegen.compiler.ProtoCompiler;
+import org.flexiblepower.pythoncodegen.compiler.PythonProtoCompiler;
 import org.flexiblepower.pythoncodegen.compiler.PyXBCompiler;
 
 import lombok.extern.slf4j.Slf4j;
@@ -75,7 +75,7 @@ public class PythonCodegen {
 
     private final Map<String, InterfaceVersionDescription> hashes = new HashMap<>();
 
-    private ProtoCompiler protoCompiler;
+    private PythonProtoCompiler protoCompiler;
 
     private Path resourcePath;
     private PythonTemplates templates;
@@ -219,7 +219,7 @@ public class PythonCodegen {
     private void compileDescriptors(final ServiceDescription service) throws IOException {
         PythonCodegen.log.debug("Compiling descriptors definitions to java code");
 
-        this.protoCompiler = new ProtoCompiler(PythonCodegen.PROTOBUF_VERSION);
+        this.protoCompiler = new PythonProtoCompiler(PythonCodegen.PROTOBUF_VERSION);
         this.pyXbCompiler = new PyXBCompiler();
 
         for (final InterfaceDescription iface : service.getInterfaces()) {
