@@ -82,7 +82,6 @@ public abstract class BaseApi {
         if (this.sessionUser == null) {
             BaseApi.log.debug("Unable to find user with provided credentials");
             return;
-
         }
         // Success!
         BaseApi.log.trace("User {} logged in", this.sessionUser.getUsername());
@@ -106,7 +105,9 @@ public abstract class BaseApi {
         final Process ret = ProcessManager.getInstance().getProcessByToken(token);
         if (ret == null) { // If no match found, no user found
             BaseApi.log.debug("Unable to find process with provided token");
+            return ret;
         }
+
         BaseApi.log.trace("Process {} logged in", ret.getId());
         return ret;
     }
