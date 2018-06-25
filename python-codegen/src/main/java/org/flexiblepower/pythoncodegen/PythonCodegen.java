@@ -34,7 +34,7 @@ import org.flexiblepower.codegen.model.InterfaceDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription.Type;
 import org.flexiblepower.codegen.model.ServiceDescription;
-import org.flexiblepower.pythoncodegen.compiler.ProtoCompiler;
+import org.flexiblepower.pythoncodegen.compiler.PythonProtoCompiler;
 import org.flexiblepower.pythoncodegen.compiler.PyXBCompiler;
 
 import lombok.extern.slf4j.Slf4j;
@@ -56,6 +56,7 @@ public class PythonCodegen {
     public static final String SOURCE_LOCATION = "service";
     public static final String PROTOBUF_VERSION = "3.3.0";
     public static final String PACKAGE_DECLARATION = "__init__.py";
+    public static final String MODULE_DECLARATION = "__main__.py";
 
     // In what subfolders to put all resources
     public static final String PROTO_INPUT_LOCATION = "";
@@ -69,11 +70,12 @@ public class PythonCodegen {
     private final String dockerLocation = "docker";
     private final String dockerArmLocation = "docker-arm";
 
-    private final String dockerEntryPoint = "python ./service/main.py";
+    private final String dockerEntryPoint = "python -m service";
+    public static final String REQUIREMENTS_LOCATION = "";
 
     private final Map<String, InterfaceVersionDescription> hashes = new HashMap<>();
 
-    private ProtoCompiler protoCompiler;
+    private PythonProtoCompiler protoCompiler;
 
     private Path resourcePath;
     private PythonTemplates templates;
@@ -107,22 +109,27 @@ public class PythonCodegen {
 
         this.createPythonFiles(service, pythonSourceFolder);
         this.createDockerfiles(service);
+        this.createRequirements();
     }
 
     /**
      * Create stubs for the service implementation. By using the templates in
      * the Template object.
      *
-     * @param interfaces
-     *            List of interfaces for which stubs should be created.
      * @throws IOException
-     * @throws HashComputeException
      */
     private void createPythonFiles(final ServiceDescription serviceDescription, final Path dest) throws IOException {
         PythonCodegen.log.debug("Creating stubs");
 
         final String ext = ".py";
         Files.createDirectories(dest);
+
+        final Path moduleMain = dest.resolve(PythonCodegen.MODULE_DECLARATION);
+        if (moduleMain.toFile().exists()) {
+            PythonCodegen.log.debug("Skipping existing file " + moduleMain.toString());
+        } else {
+            Files.write(moduleMain, this.templates.generateServiceMain().getBytes());
+        }
 
         final Path serviceImpl = dest.resolve(PythonCodegenUtils.serviceImplClass(serviceDescription) + ext);
         if (serviceImpl.toFile().exists()) {
@@ -132,7 +139,8 @@ public class PythonCodegen {
         }
 
         for (final InterfaceDescription itf : serviceDescription.getInterfaces()) {
-            final Path interfacePath = Files.createDirectories(dest.resolve(itf.getName()));
+            final Path interfacePath = Files
+                    .createDirectories(dest.resolve(PythonCodegenUtils.getInterfacePackage(itf)));
             if (Files.notExists(interfacePath.resolve(PythonCodegen.PACKAGE_DECLARATION))) {
                 Files.createFile(interfacePath.resolve(PythonCodegen.PACKAGE_DECLARATION));
             }
@@ -178,7 +186,7 @@ public class PythonCodegen {
      * Create the Dockerfile
      *
      * @param service
-     *            The current ServiceDescription object
+     *                    The current ServiceDescription object
      * @throws IOException
      * @throws HashComputeException
      */
@@ -195,6 +203,15 @@ public class PythonCodegen {
                 this.templates.generateDockerfile("arm", this.dockerEntryPoint).getBytes());
     }
 
+    private void createRequirements() throws IOException {
+        final Path requirements = Paths.get(PythonCodegen.REQUIREMENTS_LOCATION).resolve("requirements.txt");
+        if (requirements.toFile().exists()) {
+            PythonCodegen.log.debug("Skipping existing file " + requirements.toString());
+        } else {
+            Files.write(requirements, this.templates.generateRequirements().getBytes());
+        }
+    }
+
     /**
      * @param service
      * @throws IOException
@@ -202,7 +219,7 @@ public class PythonCodegen {
     private void compileDescriptors(final ServiceDescription service) throws IOException {
         PythonCodegen.log.debug("Compiling descriptors definitions to java code");
 
-        this.protoCompiler = new ProtoCompiler(PythonCodegen.PROTOBUF_VERSION);
+        this.protoCompiler = new PythonProtoCompiler(PythonCodegen.PROTOBUF_VERSION);
         this.pyXbCompiler = new PyXBCompiler();
 
         for (final InterfaceDescription iface : service.getInterfaces()) {

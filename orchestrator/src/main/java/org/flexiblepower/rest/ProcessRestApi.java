@@ -125,8 +125,10 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
         final Comparator<Process> comparator;
         switch (sortField) {
         case "userId":
-            comparator = (one, other) -> UserManager.getInstance().getUser(one.getUserId()).getUsername().compareTo(
-                    UserManager.getInstance().getUser(other.getUserId()).getUsername());
+            comparator = (one, other) -> UserManager.getInstance()
+                    .getUser(one.getUserId())
+                    .getUsername()
+                    .compareTo(UserManager.getInstance().getUser(other.getUserId()).getUsername());
             break;
         case "serviceId":
             comparator = (one, other) -> one.getServiceId().compareTo(other.getServiceId());
@@ -161,9 +163,6 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
             AuthorizationException {
         final ObjectId oid = MongoDbConnector.stringToObjectId(id);
         final Process ret = ProcessManager.getInstance().getProcess(oid);
-        // if (ret == null) {
-        // throw new ProcessNotFoundException(oid);
-        // }
 
         this.assertUserIsAdminOrEquals(ret.getUserId());
 
@@ -209,9 +208,18 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
     public void triggerProcessConfig(final String id) throws ProcessNotFoundException,
             InvalidObjectIdException,
             AuthorizationException {
-        // Immediately do all relevant checks...
-        final Process currentProcess = this.getProcess(id);
+        final ObjectId oid = MongoDbConnector.stringToObjectId(id);
+        final Process referencedProcess = ProcessManager.getInstance().getProcess(oid);
 
-        ProcessManager.getInstance().triggerConfig(currentProcess);
+        // See if we can do token-based authentication. This is the most common way to use this function
+        final Process authorizedProcess = this.getTokenProcess();
+        if ((authorizedProcess != null) && authorizedProcess.getId().equals(referencedProcess.getId())) {
+            ProcessManager.getInstance().triggerConfig(referencedProcess);
+            return;
+        }
+
+        // If that was not the case, see if and authorized person is manually trying to update the process
+        this.assertUserIsAdminOrEquals(referencedProcess.getUserId());
+        ProcessManager.getInstance().triggerConfig(referencedProcess);
     }
 }

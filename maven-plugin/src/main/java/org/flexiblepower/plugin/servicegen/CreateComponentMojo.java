@@ -40,7 +40,7 @@ import org.flexiblepower.codegen.model.InterfaceDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription.Type;
 import org.flexiblepower.codegen.model.ServiceDescription;
-import org.flexiblepower.plugin.servicegen.compiler.ProtoCompiler;
+import org.flexiblepower.plugin.servicegen.compiler.JavaProtoCompiler;
 import org.flexiblepower.plugin.servicegen.compiler.XjcCompiler;
 import org.sonatype.plexus.build.incremental.BuildContext;
 
@@ -176,7 +176,7 @@ public class CreateComponentMojo extends AbstractMojo {
 
     private final Map<String, InterfaceVersionDescription> hashes = new HashMap<>();
 
-    private ProtoCompiler protoCompiler;
+    private JavaProtoCompiler protoCompiler;
     private XjcCompiler xjcCompiler;
 
     private JavaTemplates templates;
@@ -184,8 +184,8 @@ public class CreateComponentMojo extends AbstractMojo {
     /**
      * Main function of the Maven plugin, will call the several stages of the plugin.
      *
-     * @throws MojoFailureException If the input or output to the maven plugin was incorrect. e.g. incorrect
-     *             service.json or a reference to a non-existing file.
+     * @throws MojoFailureException   If the input or output to the maven plugin was incorrect. e.g. incorrect
+     *                                    service.json or a reference to a non-existing file.
      * @throws MojoExecutionException If any other unexpected exception occured while executing the maven plugin
      */
     @Override
@@ -244,9 +244,11 @@ public class CreateComponentMojo extends AbstractMojo {
                 .resolve(this.protobufInputLocation)
                 .toFile()
                 .listFiles();
-        for (final File proto : protosourceFiles) {
-            if (this.buildContext.hasDelta(proto)) {
-                return true;
+        if (protosourceFiles != null) {
+            for (final File proto : protosourceFiles) {
+                if (this.buildContext.hasDelta(proto)) {
+                    return true;
+                }
             }
         }
 
@@ -254,9 +256,11 @@ public class CreateComponentMojo extends AbstractMojo {
                 .resolve(this.xsdInputLocation)
                 .toFile()
                 .listFiles();
-        for (final File xsd : xsdsourceFiles) {
-            if (this.buildContext.hasDelta(xsd)) {
-                return true;
+        if (xsdsourceFiles != null) {
+            for (final File xsd : xsdsourceFiles) {
+                if (this.buildContext.hasDelta(xsd)) {
+                    return true;
+                }
             }
         }
         return false;
@@ -369,7 +373,7 @@ public class CreateComponentMojo extends AbstractMojo {
      * Create the Dockerfiles
      *
      * @param service
-     *            The current ServiceDescription object
+     *                    The current ServiceDescription object
      * @throws IOException
      */
     private void createDockerfiles(final ServiceDescription service) throws IOException {
@@ -393,7 +397,7 @@ public class CreateComponentMojo extends AbstractMojo {
     private void compileDescriptors(final ServiceDescription service) throws IOException {
         this.getLog().debug("Compiling descriptors definitions to java code");
 
-        this.protoCompiler = new ProtoCompiler(this.protobufVersion);
+        this.protoCompiler = new JavaProtoCompiler(this.protobufVersion);
         this.xjcCompiler = new XjcCompiler();
 
         for (final InterfaceDescription iface : service.getInterfaces()) {

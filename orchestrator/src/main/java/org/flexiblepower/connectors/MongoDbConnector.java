@@ -149,12 +149,12 @@ public final class MongoDbConnector {
     /**
      * List object; It is possible to paginate, sort and filter all objects depending on the provided arguments.
      *
-     * @param type The type of object to retrieve
-     * @param page The page to view
-     * @param perPage The amount of objects to view per page, and thus the maximum amount of objects returned
-     * @param sortDir The direction to sort
+     * @param type      The type of object to retrieve
+     * @param page      The page to view
+     * @param perPage   The amount of objects to view per page, and thus the maximum amount of objects returned
+     * @param sortDir   The direction to sort
      * @param sortField The field to sort on
-     * @param filter A key/value map of filters
+     * @param filter    A key/value map of filters
      * @return A list all objects that match the filters, or a paginated subset thereof
      */
     public <T> List<T> list(final Class<T> type,
@@ -188,7 +188,7 @@ public final class MongoDbConnector {
      * Get object with a specific object id
      *
      * @param type The type of object to retrieve
-     * @param id The ObjectId to search for
+     * @param id   The ObjectId to search for
      * @return A list of all objects in the mongo db of the specified type
      */
     public <T> T get(final Class<T> type, final ObjectId id) {
@@ -199,7 +199,7 @@ public final class MongoDbConnector {
      * Count all objects of a particular type currently stored in the database; possibly count the subset that match a
      * set of criteria
      *
-     * @param type The type of object to count
+     * @param type   The type of object to count
      * @param filter A filter to count a specific filtered subset of objects, may be empty
      * @return The number of objects that match the filter
      */
@@ -296,12 +296,28 @@ public final class MongoDbConnector {
     /**
      * This is essentially a "login" action, in which the user obtains from the database his user information.
      *
+     * <i>This function is deprecated in favor of using process based token authentication</i>
+     *
      * @param token The user authentication token
      * @return the user that is stored in the database that has the provided user name and password or null
      */
+    @Deprecated
     public User getUserByToken(final String token) {
         final Query<User> q = this.datastore.find(User.class);
         q.criteria("authenticationToken").equal(token);
+        return q.get();
+    }
+
+    /**
+     * This is essentially a "login" action limited to a particular process, in which the user obtains from the database
+     * his process information.
+     *
+     * @param token The process authentication token
+     * @return the process that is stored in the database with the corresponding token
+     */
+    public Process getProcessByToken(final String token) {
+        final Query<Process> q = this.datastore.find(Process.class);
+        q.criteria("token").equal(token);
         return q.get();
     }
 
@@ -393,13 +409,15 @@ public final class MongoDbConnector {
      */
     public String cleanPendingChanges() {
         // Remove pending changes that failed permanently
-        final Query<PendingChange> failed = this.datastore.createQuery(PendingChange.class).field("state").equal(
-                PendingChange.State.FAILED_PERMANENTLY);
+        final Query<PendingChange> failed = this.datastore.createQuery(PendingChange.class)
+                .field("state")
+                .equal(PendingChange.State.FAILED_PERMANENTLY);
         final int deletedFailed = this.datastore.delete(failed).getN();
 
         // Remove any pending changes that haven't been updated for a long time
-        final Query<PendingChange> lingering = this.datastore.createQuery(PendingChange.class).filter("obtainedAt <",
-                new Date(System.currentTimeMillis() - MongoDbConnector.PENDING_CHANGE_TIMEOUT_MS));
+        final Query<PendingChange> lingering = this.datastore.createQuery(PendingChange.class)
+                .filter("obtainedAt <",
+                        new Date(System.currentTimeMillis() - MongoDbConnector.PENDING_CHANGE_TIMEOUT_MS));
         final UpdateOperations<PendingChange> update = this.datastore.createUpdateOperations(PendingChange.class)
                 .unset("obtainedAt");
         final int deletedLingering = this.datastore.update(lingering, update).getUpdatedCount();

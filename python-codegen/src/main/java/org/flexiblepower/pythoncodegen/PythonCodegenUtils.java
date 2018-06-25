@@ -37,9 +37,10 @@ public class PythonCodegenUtils {
     private static final String MANAGER_IMPL_SUFFIX = "ConnectionManagerImpl";
     private static final String BUILDER_FUNCTION_PREFIX = "build";
     private static final String HANDLER_FUNCTION_PREFIX = "handle";
+    private static final String VERSION_PREFIX = "v";
 
     public static String getVersion(final InterfaceVersionDescription vitf) {
-        return PluginUtils.camelCaps(vitf.getVersionName());
+        return PythonCodegenUtils.VERSION_PREFIX + PluginUtils.camelCaps(vitf.getVersionName());
     }
 
     public static String getVersionedName(final InterfaceDescription itf, final InterfaceVersionDescription vitf) {
@@ -76,11 +77,11 @@ public class PythonCodegenUtils {
     }
 
     public static String typeHandlerFunction(final String type) {
-        return PythonCodegenUtils.HANDLER_FUNCTION_PREFIX + PythonCodegenUtils.camelToSnakeCaps(type);
+        return PythonCodegenUtils.HANDLER_FUNCTION_PREFIX + type;
     }
 
-    public static String camelToSnakeCaps(final String type) {
-        return type.replaceAll("([A-Z])", "_$1").toLowerCase();
+    public static String getInterfacePackage(final InterfaceDescription itf) {
+        return PluginUtils.camelCaps(itf.getName());
     }
 
 }

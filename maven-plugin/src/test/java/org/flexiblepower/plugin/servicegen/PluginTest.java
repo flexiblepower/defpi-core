@@ -102,4 +102,20 @@ public class PluginTest {
                 PluginUtils.SHA256(fileHash + ";HTTPRequest"));
     }
 
+    @Test
+    public void sendReceiveOrderIndependentTest() throws JsonParseException, JsonMappingException, IOException {
+        final File inputFile = new File("src/test/resources/send_consistency.json");
+        final ServiceDescription descr = PluginUtils.readServiceDefinition(inputFile);
+        for (final InterfaceDescription itf : descr.getInterfaces()) {
+
+            final InterfaceVersionDescription first = itf.getInterfaceVersions().iterator().next();
+            final String firstRecvHash = PluginUtils.getReceiveHash(first);
+            final String firstSendHash = PluginUtils.getSendHash(first);
+            for (final InterfaceVersionDescription vitf : itf.getInterfaceVersions()) {
+                Assert.assertEquals(firstRecvHash, PluginUtils.getReceiveHash(vitf));
+                Assert.assertEquals(firstSendHash, PluginUtils.getSendHash(vitf));
+            }
+        }
+    }
+
 }

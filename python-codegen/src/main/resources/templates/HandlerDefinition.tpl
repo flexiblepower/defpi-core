@@ -1,2 +1,2 @@
     @abstractmethod
-    def {{handler.function}}_message(self, message): pass
+    def {{handler.function}}Message(self, message): raise NotImplementedError

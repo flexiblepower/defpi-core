@@ -1,0 +1,15 @@
+message A {
+  required string str = 1;
+  required int32 counter = 2;
+}
+
+message B {
+  required string str = 1;
+  required string txt = 2;
+  optional string tst = 3;
+}
+  
+message C {
+  required int16 a = 1;
+  required int32 b = 2;
+}

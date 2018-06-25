@@ -65,14 +65,14 @@ public class InterfaceVersionDescription {
      * (Required)
      */
     @JsonProperty("sends")
-    @JsonDeserialize(as = java.util.LinkedHashSet.class)
+    @JsonDeserialize(as = java.util.TreeSet.class)
     private final Set<String> sends = null;
 
     /**
      * (Required)
      */
     @JsonProperty("receives")
-    @JsonDeserialize(as = java.util.LinkedHashSet.class)
+    @JsonDeserialize(as = java.util.TreeSet.class)
     private final Set<String> receives = null;
 
     @Setter

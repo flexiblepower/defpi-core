@@ -150,6 +150,8 @@ public class Process {
     @JsonSerialize(using = ToStringSerializer.class)
     @JsonDeserialize(using = ObjectIdDeserializer.class)
     private ObjectId privateNodeId;
+    
+    private String token;
 
     private List<Connection> connections;
 

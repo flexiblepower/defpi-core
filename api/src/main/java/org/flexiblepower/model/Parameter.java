@@ -47,60 +47,60 @@ public class Parameter {
      * @since Apr 24, 2017
      */
     public enum Type {
-        /**
-         * A one bit boolean which is either true or false
-         *
-         * @see Boolean
-         */
-        BOOLEAN,
-        /**
-         * One byte with a range of 0x00 (0) to 0xFF (255, or -128 depending on the used application)
-         *
-         * @see Byte
-         */
-        BYTE,
-        /**
-         * Two bytes representing a unicode character like 'a', '5', '€', 'α' or '\n'
-         *
-         * @see Character
-         */
-        CHARACTER,
-        /**
-         * A two byte short integer, with a range of -32,768 to of 32,767
-         *
-         * @see Short
-         */
-        SHORT,
-        /**
-         * A four byte integer, with a range of -2<sup>31</sup> and a maximum value of 2<sup>31</sup>-1
-         *
-         * @see Integer
-         */
-        INTEGER,
-        /**
-         * An eight byte long integer, with a range of -2<sup>63</sup> and a maximum value of 2<sup>63</sup>-1
-         *
-         * @see Long
-         */
-        LONG,
-        /**
-         * A four byte single precision IEEE 754 floating point number.
-         *
-         * @see Float
-         */
-        FLOAT,
-        /**
-         * An eight byte double precision IEEE 754 floating point number
-         *
-         * @see Float
-         */
-        DOUBLE,
-        /**
-         * A variable length String of characters representing a piece of text
-         *
-         * @see String
-         */
-        STRING;
+    /**
+     * A one bit boolean which is either true or false
+     *
+     * @see Boolean
+     */
+    BOOLEAN,
+    /**
+     * One byte with a range of 0x00 (0) to 0xFF (255, or -128 depending on the used application)
+     *
+     * @see Byte
+     */
+    BYTE,
+    /**
+     * Two bytes representing a unicode character like 'a', '5', '€', 'α' or '\n'
+     *
+     * @see Character
+     */
+    CHARACTER,
+    /**
+     * A two byte short integer, with a range of -32,768 to of 32,767
+     *
+     * @see Short
+     */
+    SHORT,
+    /**
+     * A four byte integer, with a range of -2<sup>31</sup> and a maximum value of 2<sup>31</sup>-1
+     *
+     * @see Integer
+     */
+    INTEGER,
+    /**
+     * An eight byte long integer, with a range of -2<sup>63</sup> and a maximum value of 2<sup>63</sup>-1
+     *
+     * @see Long
+     */
+    LONG,
+    /**
+     * A four byte single precision IEEE 754 floating point number.
+     *
+     * @see Float
+     */
+    FLOAT,
+    /**
+     * An eight byte double precision IEEE 754 floating point number
+     *
+     * @see Float
+     */
+    DOUBLE,
+    /**
+     * A variable length String of characters representing a piece of text
+     *
+     * @see String
+     */
+    STRING;
 
         /**
          * @return The key string that is used to identify this parameter in a key/value map
@@ -129,14 +129,25 @@ public class Parameter {
         }
     }
 
+    @JsonProperty("id")
     private String id;
+
+    @JsonProperty("name")
     private String name;
+
+    @JsonProperty("type")
     private Type type;
 
+    @JsonProperty("isArray")
     private boolean isArray;
+
+    @JsonProperty("isOptional")
     private boolean isOptional;
 
+    @JsonProperty("values")
     private String[] values;
+
+    @JsonProperty("labels")
     private String[] labels;
 
     @JsonProperty("default")

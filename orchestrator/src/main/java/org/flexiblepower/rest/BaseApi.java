@@ -23,8 +23,10 @@ import javax.ws.rs.core.HttpHeaders;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.AuthorizationException;
+import org.flexiblepower.model.Process;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.UserManager;
+import org.flexiblepower.process.ProcessManager;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -60,40 +62,54 @@ public abstract class BaseApi {
         this.headers = httpHeaders;
         String authString = httpHeaders.getHeaderString("Authorization");
         if ((authString == null) || !authString.startsWith(BaseApi.AUTH_PREFIX)) {
-            // User did not provide Basic Auth info, so look for token in header
-            BaseApi.log.trace("Client is not using basic authentication! Looking for token header");
-            final String token = httpHeaders.getHeaderString("X-Auth-Token");
-            if (token == null) { // If token is also not present, user is unauthenticated!
-                BaseApi.log.debug("Client is not using token-based authentication either! Unauthenticated!");
-                this.sessionUser = null;
-                return;
-            }
-            // If token is present, try to get a user that matches the token
-            this.sessionUser = UserManager.getInstance().getUserByToken(token);
-            if (this.sessionUser == null) { // If no match found, no user found
-                BaseApi.log.debug("Unable to find user with provided token");
-                return;
-            }
-        } else {
-            // Trim the prefix
-            authString = authString.substring(BaseApi.AUTH_PREFIX.length());
-            final String credentials = new String(Base64.getDecoder().decode(authString));
-            final int pos = credentials.indexOf(':');
-            if ((pos < 1)) {
-                BaseApi.log.debug("Unable to parse authentication string, not authenticated");
-                this.sessionUser = null;
-                return;
-            }
+            BaseApi.log.debug("Client is not using basic authentication, not authenticated");
+            this.sessionUser = null;
+            return;
+        }
 
-            this.sessionUser = UserManager.getInstance()
-                    .getUser(credentials.substring(0, pos), credentials.substring(pos + 1));
-            if (this.sessionUser == null) {
-                BaseApi.log.debug("Unable to find user with provided credentials");
-                return;
-            }
+        // Trim the prefix
+        authString = authString.substring(BaseApi.AUTH_PREFIX.length());
+        final String credentials = new String(Base64.getDecoder().decode(authString));
+        final int pos = credentials.indexOf(':');
+        if (pos < 1) {
+            BaseApi.log.debug("Unable to parse authentication string, not authenticated");
+            this.sessionUser = null;
+            return;
+        }
+
+        this.sessionUser = UserManager.getInstance()
+                .getUser(credentials.substring(0, pos), credentials.substring(pos + 1));
+        if (this.sessionUser == null) {
+            BaseApi.log.debug("Unable to find user with provided credentials");
+            return;
         }
         // Success!
         BaseApi.log.trace("User {} logged in", this.sessionUser.getUsername());
+    }
+
+    /**
+     * Get the process that belongs to the login action. This will only return a process if the client provided a
+     * X-Auth-Token header with a token that was generated while creating a new process.
+     *
+     * @return The process that the token refers to, or null if no such process exists
+     */
+    protected Process getTokenProcess() {
+        // User did not provide Basic Auth info, so look for token in header
+        final String token = this.headers.getHeaderString("X-Auth-Token");
+        if (token == null) {
+            BaseApi.log.debug("Client is not using token-based authentication, no authenticated process!");
+            return null;
+        }
+
+        // If token is present, try to get a process that matches the token
+        final Process ret = ProcessManager.getInstance().getProcessByToken(token);
+        if (ret == null) { // If no match found, no user found
+            BaseApi.log.debug("Unable to find process with provided token");
+            return ret;
+        }
+
+        BaseApi.log.trace("Process {} logged in", ret.getId());
+        return ret;
     }
 
     /**

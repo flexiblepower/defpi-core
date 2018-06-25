@@ -21,8 +21,6 @@ import java.io.IOException;
 import java.nio.file.Paths;
 
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * CompilerTest
@@ -33,14 +31,6 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings({"static-method", "javadoc"})
 public class CompilerTest {
 
-    private final static Logger log = LoggerFactory.getLogger(CompilerTest.class);
-
-    @Test
-    public void testGetArchitectures() {
-        CompilerTest.log.info("Detected  OS name: {}", ProtoCompiler.getOsName());
-        CompilerTest.log.info("Detected architecture: {}", ProtoCompiler.getArchitecture());
-    }
-
     @Test
     public void testXjcCompiler() throws IOException {
         final XjcCompiler compiler = new XjcCompiler();
@@ -50,7 +40,7 @@ public class CompilerTest {
 
     @Test
     public void testProtoCompiler() throws IOException {
-        final ProtoCompiler compiler = new ProtoCompiler("3.3.0");
+        final JavaProtoCompiler compiler = new JavaProtoCompiler("3.3.0");
         compiler.compile(Paths.get("src/test/resources/echoProtocol.proto"), Paths.get("target/protoc-test-results"));
     }
 
