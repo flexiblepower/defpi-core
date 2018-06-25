@@ -23,7 +23,6 @@ import java.util.Map;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.bson.types.ObjectId;
@@ -44,9 +43,20 @@ import org.flexiblepower.orchestrator.UserManager;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * NodeRestApi
+ *
+ * @version 0.1
+ * @since Mar 30, 2017
+ */
 @Slf4j
 public class NodeRestApi extends BaseApi implements NodeApi {
 
+    /**
+     * Create the REST API with the headers from the HTTP request (will be injected by the HTTP server)
+     *
+     * @param httpHeaders The headers from the HTTP request for authorization
+     */
     protected NodeRestApi(@Context final HttpHeaders httpHeaders) {
         super(httpHeaders);
     }
@@ -147,13 +157,16 @@ public class NodeRestApi extends BaseApi implements NodeApi {
             final String sortField,
             final String filters) throws AuthorizationException {
         // TODO implement pagination
+        List<PrivateNode> content;
         if (this.sessionUser == null) {
             throw new AuthorizationException();
         } else if (this.sessionUser.isAdmin()) {
-            return NodeManager.getInstance().getPrivateNodes();
+            content = NodeManager.getInstance().getPrivateNodes();
         } else {
-            return NodeManager.getInstance().getPrivateNodesForUser(this.sessionUser);
+            content = NodeManager.getInstance().getPrivateNodesForUser(this.sessionUser);
         }
+        this.addTotalCount(content.size());
+        return content;
     }
 
     @Override
@@ -164,7 +177,9 @@ public class NodeRestApi extends BaseApi implements NodeApi {
             final String filters) throws AuthorizationException {
         // TODO implement pagination
         this.assertUserIsLoggedIn();
-        return NodeManager.getInstance().getPublicNodes();
+        final List<PublicNode> content = NodeManager.getInstance().getPublicNodes();
+        this.addTotalCount(content.size());
+        return content;
     }
 
     @Override
@@ -175,7 +190,9 @@ public class NodeRestApi extends BaseApi implements NodeApi {
             final String filters) throws AuthorizationException {
         // TODO implement pagination
         this.assertUserIsAdmin();
-        return NodeManager.getInstance().getUnidentifiedNodes();
+        final List<UnidentifiedNode> content = NodeManager.getInstance().getUnidentifiedNodes();
+        this.addTotalCount(content.size());
+        return content;
     }
 
     @Override
@@ -222,16 +239,16 @@ public class NodeRestApi extends BaseApi implements NodeApi {
     }
 
     @Override
-    public Response listNodePools(final int page,
+    public List<NodePool> listNodePools(final int page,
             final int perPage,
             final String sortDir,
             final String sortField,
             final String filters) throws AuthorizationException {
         this.assertUserIsLoggedIn();
         final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
-        return Response.status(Status.OK.getStatusCode())
-                .header("X-Total-Count", Integer.toString(NodeManager.getInstance().countNodePools(filter)))
-                .entity(NodeManager.getInstance().listNodePools(page, perPage, sortDir, sortField, filter))
-                .build();
+        final List<NodePool> content = NodeManager.getInstance()
+                .listNodePools(page, perPage, sortDir, sortField, filter);
+        this.addTotalCount(NodeManager.getInstance().countNodePools(filter));
+        return content;
     }
 }

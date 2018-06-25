@@ -29,7 +29,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
  * The connection is how processes communicate with one another. Note that this class is only the model of a
@@ -41,7 +40,6 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @Entity
-@NoArgsConstructor(force = true)
 public class Connection {
 
     /**
@@ -52,14 +50,13 @@ public class Connection {
      */
     @Data
     @Embedded
-    @NoArgsConstructor(force = true)
     public static class Endpoint {
 
         /**
          * Construct a connection endpoint for the specified process and interface Id
-         * 
-         * @param processId
-         * @param interfaceId
+         *
+         * @param processId   The ObjectId of the process this endpoint will use
+         * @param interfaceId The ID of the interface this endpoint will use
          */
         public Endpoint(final ObjectId processId, final String interfaceId) {
             this.processId = processId;
@@ -88,7 +85,7 @@ public class Connection {
     @Id
     @JsonSerialize(using = ToStringSerializer.class)
     @JsonDeserialize(using = ObjectIdDeserializer.class)
-    private ObjectId id;
+    private final ObjectId id;
 
     /**
      * The port where one endpoint will listen, and the other will target
@@ -107,7 +104,7 @@ public class Connection {
      * @param ep1 One endpoint
      * @param ep2 Second endpoint
      */
-    public Connection(final ObjectId oid, Endpoint ep1, Endpoint ep2) {
+    public Connection(final ObjectId oid, final Endpoint ep1, final Endpoint ep2) {
         this.id = oid;
         this.endpoint1 = ep1;
         this.endpoint2 = ep2;
@@ -115,8 +112,8 @@ public class Connection {
 
     /**
      * Returns the other endpoint of the connection. More formally it returns the endpoint e2 for which
-     * <code>>e.equals(e2)</code> does <i>not</i> hold.
-     * 
+     * <code>e.equals(e2)</code> does <i>not</i> hold.
+     *
      * @param e the endpoint which we already have
      * @return the <b>other</b> endpoint
      * @throws IllegalArgumentException if the endpoint is not part of the connection at all
@@ -132,9 +129,10 @@ public class Connection {
     }
 
     /**
-     * Returns the endpoint of the connection with the provided process. More formally it returns the endpoint e for which
-     * <code>>e.getProcessId().equals(process)</code> holds.
-     * 
+     * Returns the endpoint of the connection with the provided process. More formally it returns the endpoint e for
+     * which
+     * <code>e.getProcessId().equals(process)</code> holds.
+     *
      * @param process the process to look up
      * @return the endpoint with the provided process
      * @throws IllegalArgumentException if the process is not part of either endpoint

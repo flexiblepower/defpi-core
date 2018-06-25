@@ -21,6 +21,7 @@ package org.flexiblepower.codegen;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -41,7 +42,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 
 /**
- * Templates
+ * The Templates objects manages all templates, and filling them in. This abstract base class should be extended by any
+ * plugin that generates code from the service definition.
  *
  * @version 0.1
  * @since Oct 4, 2017
@@ -51,74 +53,99 @@ public abstract class Templates {
     private final static boolean PRETTY_PRINT_JSON = true;
     private final ObjectMapper mapper = new ObjectMapper();
 
+    /**
+     * The service description to fill in templates
+     */
     protected final ServiceDescription serviceDescription;
 
-    public Templates(final ServiceDescription descr) {
+    /**
+     * Create the Templates object according to the specified service description
+     *
+     * @param descr The service description to use to fill in the templates
+     */
+    protected Templates(final ServiceDescription descr) {
         this.serviceDescription = descr;
     }
 
+    /**
+     * Produce the docker base image to use for a service depending on the target platform. Depending on the
+     * implementing code generator, this will return a different docker base image. For instance the service generator
+     * for java services will use a docker image that contains a JRE.
+     *
+     * @param platform The target platform to use as base image (e.g. x64 or ARM)
+     * @return The Docker base image to build the service on
+     */
     protected abstract String getDockerBaseImage(String platform);
 
     /**
-     * Generate the docker file for this service
+     * Depending on the implementing code generator, additional items may be added to the docker template. This function
+     * can be used to extends the templates for the dockerfile.
      *
-     * @param platform
-     * @param service
-     * @param dockerEntryPoint
-     * @return
-     * @throws JsonProcessingException
+     * @return The additional replace map for the docker file.
      */
-    public String
-            generateDockerfile(final String platform, final ServiceDescription service, final String dockerEntryPoint)
-                    throws JsonProcessingException,
-                    IOException {
+    @SuppressWarnings("static-method")
+    protected Map<String, String> getAdditionalDockerReplaceMap() {
+        return Collections.emptyMap();
+    }
+
+    /**
+     * Generate the docker file for this service.
+     *
+     * @param platform The target platform to create the docker file for (e.g. x64 or ARM)
+     * @param dockerEntryPoint The command to use when running the docker container
+     * @return The dockerfile that implements the dEF-Pi service
+     * @throws JsonProcessingException When an exception occurs writing the interfaces to a JSON object
+     * @throws IOException When an exception ocurs obtaining the docker file template
+     */
+    public String generateDockerfile(final String platform, final String dockerEntryPoint)
+            throws JsonProcessingException,
+            IOException {
         final Map<String, String> replace = new HashMap<>();
         replace.put("from", this.getDockerBaseImage(platform));
-        replace.put("service.name", service.getName());
+        replace.put("service.name", this.serviceDescription.getName());
 
         final ObjectWriter writer = Templates.PRETTY_PRINT_JSON ? this.mapper.writerWithDefaultPrettyPrinter()
                 : this.mapper.writer();
 
-        final Set<Parameter> parameters = service.getParameters();
+        final Set<Parameter> parameters = this.serviceDescription.getParameters();
         if (parameters == null) {
             replace.put("parameters", "null");
         } else {
             replace.put("parameters", writer.writeValueAsString(parameters).replaceAll("\n", " \\\\\n"));
         }
 
-        final Set<InterfaceDescription> input = service.getInterfaces();
+        final Set<InterfaceDescription> input = this.serviceDescription.getInterfaces();
 
         final Set<Interface> serviceInterfaces = new HashSet<>();
         for (final InterfaceDescription descr : input) {
             final List<InterfaceVersion> versionList = new ArrayList<>();
             for (final InterfaceVersionDescription ivd : descr.getInterfaceVersions()) {
-                final String sendHash = PluginUtils.getHash(ivd, ivd.getSends());
-                final String recvHash = PluginUtils.getHash(ivd, ivd.getReceives());
+                final String sendHash = PluginUtils.getSendHash(ivd);
+                final String recvHash = PluginUtils.getReceiveHash(ivd);
                 versionList.add(new InterfaceVersion(ivd.getVersionName(), recvHash, sendHash));
             }
-            serviceInterfaces.add(new Interface(service.getId() + "/" + descr.getId(),
+            serviceInterfaces.add(new Interface(this.serviceDescription.getId() + "/" + descr.getId(),
                     descr.getName(),
-                    service.getId(),
+                    this.serviceDescription.getId(),
                     versionList,
                     descr.isAllowMultiple(),
                     descr.isAutoConnect()));
         }
 
         final String interfaces = writer.writeValueAsString(serviceInterfaces);
-        // final String encoded = Base64.getEncoder().encodeToString(interfaces.getBytes());
         replace.put("interfaces", interfaces.replaceAll("\n", " \\\\ \n"));
-
         replace.put("entrypoint", dockerEntryPoint);
+        replace.putAll(this.getAdditionalDockerReplaceMap());
 
         return this.replaceMap(this.getTemplate("Dockerfile"), replace);
     }
 
     /**
-     * Find a template file
+     * Find a template file by its file name
      *
-     * @param name
-     * @return
-     * @throws IOException
+     * @param name The filename of the template
+     * @return The contents of the file
+     * @throws IOException when any exception occurs while reading the file
      */
     protected String getTemplate(final String name) throws IOException {
         String result = "";
@@ -130,11 +157,12 @@ public abstract class Templates {
     }
 
     /**
-     * Replace all keys in the template with their values
+     * Replace all keys in the template with their values. Any occurrence of "<i>{{KEY}}</i>" in the template text will
+     * be replaced with the corresponding <i>value</i> in the replace map.
      *
-     * @param template
-     * @param replace
-     * @return
+     * @param template The code template as a flat piece of text with placeholders as "<i>{{KEY}}</i>"
+     * @param replace The map of replacement key/value pairs
+     * @return The template with all template markers replaced with the corresponding values from the map
      */
     @SuppressWarnings("static-method")
     protected String replaceMap(final String template, final Map<String, String> replace) {

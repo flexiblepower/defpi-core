@@ -29,7 +29,7 @@ import org.junit.Test;
  * @version 0.1
  * @since 24 aug. 2017
  */
-@SuppressWarnings("static-method")
+@SuppressWarnings({"static-method", "javadoc"})
 public class ConfigTest {
 
     @Test

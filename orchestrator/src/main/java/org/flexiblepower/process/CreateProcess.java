@@ -40,20 +40,32 @@ import lombok.extern.slf4j.Slf4j;
  */
 public class CreateProcess {
 
+    /**
+     * CreateDockerService
+     *
+     * @version 0.1
+     * @since Aug 9, 2017
+     */
     @Slf4j
     @Entity("PendingChange")
     public static class CreateDockerService extends PendingChange {
 
         private Process process;
 
-        // Default constructor for morphia
         @SuppressWarnings("unused")
         private CreateDockerService() {
+            // Default constructor for morphia
         }
 
+        /**
+         * Create a pending change to create the docker service of a process
+         *
+         * @param process The process to create
+         */
         public CreateDockerService(final Process process) {
             super(process.getUserId());
-            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
+            // Add the userId because making the network, and choosing the running node
+            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId(), this.getUserId()));
             this.process = process;
         }
 
@@ -91,6 +103,12 @@ public class CreateProcess {
 
     }
 
+    /**
+     * SendConfiguration
+     *
+     * @version 0.1
+     * @since Aug 9, 2017
+     */
     @Slf4j
     @Entity("PendingChange")
     public static class SendConfiguration extends PendingChange {
@@ -102,6 +120,11 @@ public class CreateProcess {
         private SendConfiguration() {
         }
 
+        /**
+         * Create a pending change to send the configuration of a process
+         *
+         * @param process The process to configure
+         */
         public SendConfiguration(final Process process) {
             super(process.getUserId());
             this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));

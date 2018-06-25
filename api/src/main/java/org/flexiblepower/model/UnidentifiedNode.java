@@ -23,16 +23,26 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
- * UnidentifiedNode
+ * A UnidentifiedNode is a node that is neither public or private. This means it is available in the swarm, but as long
+ * as it is not assigned public or private, no process can be run on it.
  *
  * @version 0.1
  * @since 20 mrt. 2017
+ * @see PublicNode
+ * @see PrivateNode
  */
 @Entity
 @ToString
 @NoArgsConstructor
 public class UnidentifiedNode extends Node {
 
+    /**
+     * Create an unidentified node representation with the provided arguments
+     *
+     * @param dockerId The docker id of the node
+     * @param hostname The IP address or hostname of the node
+     * @param architecture The architecture of the node
+     */
     public UnidentifiedNode(final String dockerId, final String hostname, final Architecture architecture) {
         super(dockerId, hostname, architecture);
     }

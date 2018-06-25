@@ -30,12 +30,12 @@ import org.flexiblepower.codegen.model.ServiceDescription;
 import org.flexiblepower.model.Parameter;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * PluginTest
@@ -43,9 +43,10 @@ import lombok.extern.slf4j.Slf4j;
  * @version 0.1
  * @since Jun 8, 2017
  */
-@Slf4j
-@SuppressWarnings("static-method")
+@SuppressWarnings({"static-method", "javadoc"})
 public class PluginTest {
+
+    private final static Logger log = LoggerFactory.getLogger(PluginTest.class);
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -64,7 +65,7 @@ public class PluginTest {
             }
             PluginTest.log.info(t.generateManagerInterface(itf));
         }
-        PluginTest.log.info(t.generateDockerfile("x86", descr, "run-java.sh"));
+        PluginTest.log.info(t.generateDockerfile("x86", "run-java.sh"));
     }
 
     @Test
@@ -99,6 +100,22 @@ public class PluginTest {
                 PluginUtils.SHA256(fileHash + ";HTTPResponse"));
         Assert.assertEquals("c46d5961b42774f80194e8308e4a1bec450881925f8d20a08a1f764acf22ed24",
                 PluginUtils.SHA256(fileHash + ";HTTPRequest"));
+    }
+
+    @Test
+    public void sendReceiveOrderIndependentTest() throws JsonParseException, JsonMappingException, IOException {
+        final File inputFile = new File("src/test/resources/send_consistency.json");
+        final ServiceDescription descr = PluginUtils.readServiceDefinition(inputFile);
+        for (final InterfaceDescription itf : descr.getInterfaces()) {
+
+            final InterfaceVersionDescription first = itf.getInterfaceVersions().iterator().next();
+            final String firstRecvHash = PluginUtils.getReceiveHash(first);
+            final String firstSendHash = PluginUtils.getSendHash(first);
+            for (final InterfaceVersionDescription vitf : itf.getInterfaceVersions()) {
+                Assert.assertEquals(firstRecvHash, PluginUtils.getReceiveHash(vitf));
+                Assert.assertEquals(firstSendHash, PluginUtils.getSendHash(vitf));
+            }
+        }
     }
 
 }

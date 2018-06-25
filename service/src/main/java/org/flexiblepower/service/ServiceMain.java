@@ -17,6 +17,9 @@
  */
 package org.flexiblepower.service;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.Set;
@@ -35,14 +38,64 @@ import org.slf4j.LoggerFactory;
 public final class ServiceMain {
 
     private static final Logger log = LoggerFactory.getLogger(ServiceMain.class);
-    private static final ServiceExecutor serviceExecutor = ServiceExecutor.getInstance();
+    private static final String SERVICE_PACKAGE_KEY = "SERVICE_PACKAGE";
+
     private static Reflections reflections;
-    protected static int threadCount = 0;
 
     /**
-     * @return
-     * @throws ServiceInvocationException
+     * This is the main entrypoint for the service library, and thus for any dEF-Pi process
+     *
+     * @param args Array of String arguments, which we currently ignore
      */
+    public static <T> void main(final String[] args) {
+        ServiceMain.displayVersion();
+
+        // Get service from package
+        try (final ServiceManager<T> manager = new ServiceManager<>()) {
+            ServiceMain.reflections = ServiceMain.reflectOnService();
+
+            @SuppressWarnings("unchecked")
+            final Class<? extends Service<T>> serviceClass = (Class<? extends Service<T>>) ServiceMain
+                    .getServiceClass();
+            ServiceMain.log.debug("Found {} as service type", serviceClass);
+
+            // Call the constructor in the user thread.
+            final Service<T> service = ServiceExecutor.getInstance().submit(() -> serviceClass.newInstance()).get();
+
+            ServiceMain.log.info("Starting service {}", service);
+            ServiceMain.registerMessageHandlers(service);
+            manager.start(service);
+
+            // Wait for the thread to die naturally
+            manager.join();
+        } catch (final Exception e) {
+            ServiceMain.log.error("Error while starting service: {}", e.getMessage());
+            ServiceMain.log.trace(e.getMessage(), e);
+        }
+    }
+
+    private static void displayVersion() {
+        try (
+                BufferedReader br = new BufferedReader(
+                        new InputStreamReader(ServiceMain.class.getResourceAsStream("/service-version")))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                ServiceMain.log.info(line);
+            }
+        } catch (final IOException e) {
+            ServiceMain.log.info("Unable to detect service version: {}", e.getMessage());
+        }
+    }
+
+    private static Reflections reflectOnService() {
+        final String servicePackage = System.getenv(ServiceMain.SERVICE_PACKAGE_KEY);
+        if ((servicePackage == null) || servicePackage.isEmpty()) {
+            return new Reflections();
+        } else {
+            return new Reflections(servicePackage);
+        }
+    }
+
     @SuppressWarnings("rawtypes")
     private static Class<? extends Service> getServiceClass() throws ServiceInvocationException {
         final Set<Class<? extends Service>> set = ServiceMain.reflections.getSubTypesOf(Service.class);
@@ -139,37 +192,5 @@ public final class ServiceMain {
             ServiceMain.log.trace(e.getMessage(), e);
             return null;
         }
-    }
-
-    public static <T> void main(final String[] args) {
-        ServiceMain.reflections = new Reflections();
-        // Get service from package
-
-        @SuppressWarnings("resource")
-        final ServiceManager<T> manager = new ServiceManager<>();
-
-        // The following can run in the user thread, it will call the constructor, which is required anyway, and only
-        // when that succeeds, starts the manager.
-        ServiceMain.serviceExecutor.submit(() -> {
-            try {
-                @SuppressWarnings("unchecked")
-                final Class<? extends Service<T>> serviceClass = (Class<? extends Service<T>>) ServiceMain
-                        .getServiceClass();
-
-                ServiceMain.log.debug("Found {} as service type", serviceClass);
-                final Service<T> service = serviceClass.newInstance();
-
-                ServiceMain.log.info("Starting service {}", service);
-                ServiceMain.registerMessageHandlers(service);
-                manager.start(service);
-            } catch (final Exception e) {
-                // Catch any exception, would be nice to let the manager forward it to the orchestrator when available
-                ServiceMain.log.error("Error while starting service: {}", e.getMessage());
-                ServiceMain.log.trace(e.getMessage(), e);
-                manager.close();
-            }
-        });
-
-        manager.join();
     }
 }

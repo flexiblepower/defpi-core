@@ -20,12 +20,10 @@ package org.flexiblepower.plugin.servicegen;
 import java.io.IOException;
 import java.nio.file.Paths;
 
-import org.flexiblepower.pythoncodegen.compiler.ProtoCompiler;
 import org.flexiblepower.pythoncodegen.compiler.PyXBCompiler;
+import org.flexiblepower.pythoncodegen.compiler.PythonProtoCompiler;
 import org.junit.Assume;
 import org.junit.Test;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * CompilerTest
@@ -33,15 +31,8 @@ import lombok.extern.slf4j.Slf4j;
  * @version 0.1
  * @since Jun 27, 2017
  */
-@Slf4j
-@SuppressWarnings("static-method")
+@SuppressWarnings({"static-method"})
 public class CompilerTest {
-
-    @Test
-    public void testGetArchitectures() {
-        CompilerTest.log.info("Detected  OS name: {}", ProtoCompiler.getOsName());
-        CompilerTest.log.info("Detected architecture: {}", ProtoCompiler.getArchitecture());
-    }
 
     @Test
     public void testXjcCompiler() throws IOException {
@@ -55,7 +46,7 @@ public class CompilerTest {
 
     @Test
     public void testProtoCompiler() throws IOException {
-        final ProtoCompiler compiler = new ProtoCompiler("3.3.0");
+        final PythonProtoCompiler compiler = new PythonProtoCompiler("3.3.0");
         compiler.compile(Paths.get("src/test/resources/echoProtocol.proto"), Paths.get("target/protoc-test-results"));
     }
 

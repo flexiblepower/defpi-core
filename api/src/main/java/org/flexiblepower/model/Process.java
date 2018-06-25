@@ -46,7 +46,7 @@ import lombok.Value;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@EqualsAndHashCode(exclude = {"runningDockerNodeId", "dockerId"})
+@EqualsAndHashCode(exclude = {"runningNodeId", "dockerId"})
 public class Process {
 
     /**
@@ -56,28 +56,28 @@ public class Process {
      * @since Dec 6, 2017
      */
     public static enum ProcessState {
-        /**
-         * The process is starting, meaning its specification exists somewhere in memory, but the docker container
-         * hasn't started
-         */
-        STARTING,
-        /**
-         * The docker container in which the process will run is running, but the process is still waiting for a
-         * configuration
-         */
-        INITIALIZING,
-        /**
-         * The process is operational and running
-         */
-        RUNNING,
-        /**
-         * The process is suspended, meaning the docker service is removed, but its state still exists in suspended mode
-         */
-        SUSPENDED,
-        /**
-         * The process is terminated and will not be resumed, it is ready to be completely deleted from memory
-         */
-        TERMINATED
+    /**
+     * The process is starting, meaning its specification exists somewhere in memory, but the docker container
+     * hasn't started
+     */
+    STARTING,
+    /**
+     * The docker container in which the process will run is running, but the process is still waiting for a
+     * configuration
+     */
+    INITIALIZING,
+    /**
+     * The process is operational and running
+     */
+    RUNNING,
+    /**
+     * The process is suspended, meaning the docker service is removed, but its state still exists in suspended mode
+     */
+    SUSPENDED,
+    /**
+     * The process is terminated and will not be resumed, it is ready to be completely deleted from memory
+     */
+    TERMINATED
     }
 
     /**
@@ -111,6 +111,21 @@ public class Process {
         private String target;
     }
 
+    /**
+     * Definition of exposed ports to the outside world, for when a process needs to expose a port for a webservice.
+     *
+     * @version 0.1
+     * @since Mar 20, 2018
+     */
+    @Value
+    @AllArgsConstructor
+    @NoArgsConstructor(force = true)
+    public static class ExposePort {
+
+        private int internal;
+        private int external;
+    }
+
     @Id
     @JsonSerialize(using = ToStringSerializer.class)
     @JsonDeserialize(using = ObjectIdDeserializer.class)
@@ -123,20 +138,20 @@ public class Process {
     private String serviceId;
 
     /**
-     * The NodePool where this process should be running. Mutually exclusive with
-     * privateNodeId.
+     * The NodePool where this process should be running. Mutually exclusive with privateNodeId.
      */
     @JsonSerialize(using = ToStringSerializer.class)
     @JsonDeserialize(using = ObjectIdDeserializer.class)
     private ObjectId nodePoolId;
 
     /**
-     * The Private Node where this process should be running. Mutually exclusive
-     * with nodePoolId.
+     * The Private Node where this process should be running. Mutually exclusive with nodePoolId.
      */
     @JsonSerialize(using = ToStringSerializer.class)
     @JsonDeserialize(using = ObjectIdDeserializer.class)
     private ObjectId privateNodeId;
+    
+    private String token;
 
     private List<Connection> connections;
 
@@ -145,16 +160,17 @@ public class Process {
     private String dockerId;
 
     /**
-     * The node on which the process is actually running. May be null when the state
-     * is not RUNNING.
+     * The node on which the process is actually running. May be null when the state is not RUNNING.
      */
-    private String runningDockerNodeId;
+    @JsonSerialize(using = ToStringSerializer.class)
+    @JsonDeserialize(using = ObjectIdDeserializer.class)
+    private ObjectId runningNodeId;
 
     private List<ProcessParameter> configuration;
 
     /**
-     * To enable debugging of a process, this number should be set to something else
-     * than 0. Note that this can only be done when serializing a process from JSON.
+     * To enable debugging of a process, this number should be set to something else than 0. Note that this can only be
+     * done when serializing a process from JSON.
      */
     private int debuggingPort;
 
@@ -162,12 +178,15 @@ public class Process {
 
     private long maxNanoCPUs;
 
+    @Builder.Default
     private boolean suspendOnDebug = true;
 
     /**
-     * Mount points can be added in order to allow physical devices be used from the
-     * java process. e.g. to use a usb device from /dev/usb0
+     * Mount points can be added in order to allow physical devices be used from the java process. e.g. to use a usb
+     * device from /dev/usb0
      */
     private List<MountPoint> mountPoints;
+
+    private List<ExposePort> exposePorts;
 
 }

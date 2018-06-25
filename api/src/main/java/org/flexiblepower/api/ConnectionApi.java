@@ -69,7 +69,8 @@ public interface ConnectionApi {
      * connections are returned.
      *
      * @param page the current page to view (defaults to 1)
-     * @param perPage the amount of connections to view per page (defaults to 1000)
+     * @param perPage the amount of connections to view per page (defaults to
+     *            {@value org.flexiblepower.api.OrchestratorApi#DEFAULT_ITEMS_PER_PAGE}})
      * @param sortDir the direction to sort the connections (defaults to "ASC")
      * @param sortField the field to sort the pending changes on (defaults to "id")
      * @param filters a list of filters in JSON notation (defaults to "{}")
@@ -104,8 +105,9 @@ public interface ConnectionApi {
      * @throws InvalidObjectIdException When the provided id is not a valid ObjectId
      */
     @GET
-    @Produces(MediaType.APPLICATION_JSON)
     @Path("{connectionId}")
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "getConnection",
                   value = "Get connection data",
                   notes = "Get the connection with the specified Id",
@@ -129,8 +131,8 @@ public interface ConnectionApi {
      * @param connection The new connection to insert
      * @return The id of the new connection
      * @throws AuthorizationException if the user is not authenticated at all
-     * @throws NotFoundException
-     * @throws ConnectionException
+     * @throws NotFoundException if the process ids that are referred to are not found
+     * @throws ConnectionException if an error occurred that prevents the connection from being created
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
@@ -156,8 +158,8 @@ public interface ConnectionApi {
      *
      * @param connectionId The id of the connection to remove
      * @throws AuthorizationException if the user is not authenticated at all
-     * @throws InvalidObjectIdException
-     * @throws NotFoundException
+     * @throws InvalidObjectIdException When the provided id is not a valid ObjectId
+     * @throws NotFoundException If the referenced connection could not be found
      */
     @DELETE
     @Path("{connectionId}")

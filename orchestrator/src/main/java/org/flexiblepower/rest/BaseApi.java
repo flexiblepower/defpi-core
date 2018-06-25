@@ -23,8 +23,10 @@ import javax.ws.rs.core.HttpHeaders;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.AuthorizationException;
+import org.flexiblepower.model.Process;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.UserManager;
+import org.flexiblepower.process.ProcessManager;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -39,51 +41,81 @@ public abstract class BaseApi {
 
     private static final String AUTH_PREFIX = "Basic ";
 
+    /**
+     * The session user is the user who successfully logged in using Basic authentication or using his authentication
+     * token.
+     */
     protected final User sessionUser;
 
+    /**
+     * The HTTP headers of the session, which may include headers to add to the response by any filter
+     */
+    protected final HttpHeaders headers;
+
+    /**
+     * Create the abstract base class for the REST API. The base API will make sure the user is logged in by taking the
+     * authentication headers from the HTTP request.
+     *
+     * @param httpHeaders The headers of the HTTP request that creates this object
+     */
     protected BaseApi(final HttpHeaders httpHeaders) {
+        this.headers = httpHeaders;
         String authString = httpHeaders.getHeaderString("Authorization");
         if ((authString == null) || !authString.startsWith(BaseApi.AUTH_PREFIX)) {
-            // User did not provide Basic Auth info, so look for token in header
-            BaseApi.log.trace("Client is not using basic authentication! Looking for token header");
-            final String token = httpHeaders.getHeaderString("X-Auth-Token");
-            if (token == null) { // If token is also not present, user is unauthenticated!
-                BaseApi.log.debug("Client is not using token-based authentication either! Unauthenticated!");
-                this.sessionUser = null;
-                return;
-            }
-            // If token is present, try to get a user that matches the token
-            this.sessionUser = UserManager.getInstance().getUserByToken(token);
-            if (this.sessionUser == null) { // If no match found, no user found
-                BaseApi.log.debug("Unable to find user with provided token");
-                return;
-            }
-        } else {
-            // Trim the prefix
-            authString = authString.substring(BaseApi.AUTH_PREFIX.length());
-            final String credentials = new String(Base64.getDecoder().decode(authString));
-            final int pos = credentials.indexOf(':');
-            if ((pos < 1)) {
-                BaseApi.log.debug("Unable to parse authentication string, not authenticated");
-                this.sessionUser = null;
-                return;
-            }
+            BaseApi.log.debug("Client is not using basic authentication, not authenticated");
+            this.sessionUser = null;
+            return;
+        }
 
-            this.sessionUser = UserManager.getInstance().getUser(credentials.substring(0, pos),
-                    credentials.substring(pos + 1));
-            if (this.sessionUser == null) {
-                BaseApi.log.debug("Unable to find user with provided credentials");
-                return;
-            }
+        // Trim the prefix
+        authString = authString.substring(BaseApi.AUTH_PREFIX.length());
+        final String credentials = new String(Base64.getDecoder().decode(authString));
+        final int pos = credentials.indexOf(':');
+        if (pos < 1) {
+            BaseApi.log.debug("Unable to parse authentication string, not authenticated");
+            this.sessionUser = null;
+            return;
+        }
+
+        this.sessionUser = UserManager.getInstance()
+                .getUser(credentials.substring(0, pos), credentials.substring(pos + 1));
+        if (this.sessionUser == null) {
+            BaseApi.log.debug("Unable to find user with provided credentials");
+            return;
         }
         // Success!
         BaseApi.log.trace("User {} logged in", this.sessionUser.getUsername());
     }
 
     /**
+     * Get the process that belongs to the login action. This will only return a process if the client provided a
+     * X-Auth-Token header with a token that was generated while creating a new process.
+     *
+     * @return The process that the token refers to, or null if no such process exists
+     */
+    protected Process getTokenProcess() {
+        // User did not provide Basic Auth info, so look for token in header
+        final String token = this.headers.getHeaderString("X-Auth-Token");
+        if (token == null) {
+            BaseApi.log.debug("Client is not using token-based authentication, no authenticated process!");
+            return null;
+        }
+
+        // If token is present, try to get a process that matches the token
+        final Process ret = ProcessManager.getInstance().getProcessByToken(token);
+        if (ret == null) { // If no match found, no user found
+            BaseApi.log.debug("Unable to find process with provided token");
+            return ret;
+        }
+
+        BaseApi.log.trace("Process {} logged in", ret.getId());
+        return ret;
+    }
+
+    /**
      * Protected function that only throws an exception if the current logged in user is not an admin.
      *
-     * @throws AuthorizationException
+     * @throws AuthorizationException If the assertion fails
      */
     protected void assertUserIsAdmin() throws AuthorizationException {
         if ((this.sessionUser == null) || !this.sessionUser.isAdmin()) {
@@ -91,6 +123,11 @@ public abstract class BaseApi {
         }
     }
 
+    /**
+     * Protected function that throws an exception if there is no logged in user.
+     *
+     * @throws AuthorizationException If the assertion fails
+     */
     protected void assertUserIsLoggedIn() throws AuthorizationException {
         if (this.sessionUser == null) {
             throw new AuthorizationException();
@@ -102,7 +139,7 @@ public abstract class BaseApi {
      * provided userId.
      *
      * @param userId The userId that should be logged in
-     * @throws AuthorizationException
+     * @throws AuthorizationException If the assertion fails
      */
     protected void assertUserIsAdminOrEquals(final ObjectId userId) throws AuthorizationException {
         if (this.sessionUser == null) {
@@ -112,6 +149,15 @@ public abstract class BaseApi {
             throw new AuthorizationException();
         }
 
+    }
+
+    /**
+     * Add the header to the response with the provided value
+     *
+     * @param count The total number of responses that could have been returned
+     */
+    protected void addTotalCount(final int count) {
+        this.headers.getRequestHeaders().add(TotalCountFilter.HEADER_NAME, Integer.toString(count));
     }
 
 }

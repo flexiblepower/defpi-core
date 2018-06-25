@@ -58,7 +58,7 @@ public interface MessageSerializer<T> {
     /**
      * Adds a message class to the set of classes this serializer will convert to/from
      *
-     * @param clazz
+     * @param clazz The type of message to add to the list of serializable classes
      */
     public void addMessageClass(Class<? extends T> clazz);
 
@@ -68,7 +68,7 @@ public interface MessageSerializer<T> {
      *
      * @param data the raw byte array
      * @return A proper deserialized object
-     * @throws SerializationException
+     * @throws SerializationException When an exception occurs during message (de)serialization
      */
     public T deserialize(byte[] data) throws SerializationException;
 
@@ -78,7 +78,7 @@ public interface MessageSerializer<T> {
      *
      * @param object to be serialized
      * @return The raw byte array
-     * @throws SerializationException
+     * @throws SerializationException When an exception occurs during message (de)serialization
      */
     public byte[] serialize(T object) throws SerializationException;
 

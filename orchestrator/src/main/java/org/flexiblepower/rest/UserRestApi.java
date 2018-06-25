@@ -21,11 +21,9 @@ package org.flexiblepower.rest;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.bson.types.ObjectId;
@@ -39,11 +37,22 @@ import org.flexiblepower.orchestrator.UserManager;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * UserRestApi
+ *
+ * @version 0.1
+ * @since Mar 30, 2017
+ */
 @Slf4j
 public class UserRestApi extends BaseApi implements UserApi {
 
     private final UserManager db = UserManager.getInstance();
 
+    /**
+     * Create the REST API with the headers from the HTTP request (will be injected by the HTTP server)
+     *
+     * @param httpHeaders The headers from the HTTP request for authorization
+     */
     protected UserRestApi(@Context final HttpHeaders httpHeaders) {
         super(httpHeaders);
     }
@@ -57,7 +66,7 @@ public class UserRestApi extends BaseApi implements UserApi {
         if ((newUser.getPassword() != null) && (newUser.getPasswordHash() == null)) {
             newUser.setPasswordHash();
         }
-        newUser.setAuthenticationToken(UUID.randomUUID().toString());
+
         this.db.saveUser(newUser);
         return newUser;
     }
@@ -113,8 +122,12 @@ public class UserRestApi extends BaseApi implements UserApi {
             throw new ApiException(Status.BAD_REQUEST, "Name cannot be changed");
         }
 
-        if ((updatedUser.getPassword() != null) && !updatedUser.getPassword().isEmpty()) {
-            ret.setPassword(updatedUser.getPassword());
+        // if ((updatedUser.getPassword() != null) && !updatedUser.getPassword().isEmpty()) {
+        // ret.setPassword(updatedUser.getPassword());
+        // }
+        updatedUser.setPasswordHash();
+        if ((updatedUser.getPasswordHash() != null) && !updatedUser.getPasswordHash().isEmpty()) {
+            ret.setPasswordHash(updatedUser.getPasswordHash());
         }
 
         ret.setAdmin(updatedUser.isAdmin());
@@ -124,7 +137,7 @@ public class UserRestApi extends BaseApi implements UserApi {
     }
 
     @Override
-    public Response listUsers(final int page,
+    public List<User> listUsers(final int page,
             final int perPage,
             final String sortDir,
             final String sortField,
@@ -137,15 +150,13 @@ public class UserRestApi extends BaseApi implements UserApi {
 
             userList.forEach((u) -> u.clearPasswordHash());
 
-            return Response.status(Status.OK.getStatusCode())
-                    .header("X-Total-Count", Integer.toString(this.db.countUsers(filter)))
-                    .entity(userList)
-                    .build();
+            this.addTotalCount(this.db.countUsers(filter));
+            return userList;
         } else {
-            return Response.status(Status.OK.getStatusCode())
-                    .header("X-Total-Count", Integer.toString(1))
-                    .entity(Arrays.asList(this.sessionUser))
-                    .build();
+            final User ret = this.sessionUser;
+            ret.clearPasswordHash();
+            this.addTotalCount(1);
+            return Arrays.asList(ret);
         }
     }
 }

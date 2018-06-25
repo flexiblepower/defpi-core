@@ -18,6 +18,8 @@
 
 package org.flexiblepower.rest;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
@@ -38,14 +40,26 @@ import org.flexiblepower.model.InterfaceVersion;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.orchestrator.ServiceManager;
+import org.flexiblepower.orchestrator.UserManager;
 import org.flexiblepower.process.ProcessManager;
 import org.json.JSONObject;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * ProcessRestApi
+ *
+ * @version 0.1
+ * @since Mar 30, 2017
+ */
 @Slf4j
 public class ProcessRestApi extends BaseApi implements ProcessApi {
 
+    /**
+     * Create the REST API with the headers from the HTTP request (will be injected by the HTTP server)
+     *
+     * @param httpHeaders The headers from the HTTP request for authorization
+     */
     protected ProcessRestApi(@Context final HttpHeaders httpHeaders) {
         super(httpHeaders);
     }
@@ -56,15 +70,21 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
             final String sortDir,
             final String sortField,
             final String filters) throws AuthorizationException {
-        // TODO Implement pagination
+        if ((page < 0) || (perPage < 0)) {
+            this.addTotalCount(0);
+            return Collections.emptyList();
+        }
+
         List<Process> processes;
         if (this.sessionUser == null) {
             throw new AuthorizationException();
         } else if (this.sessionUser.isAdmin()) {
             processes = ProcessManager.getInstance().listProcesses();
         } else {
-            processes = ProcessManager.getInstance().listProcesses(this.sessionUser);
+            processes = ProcessManager.getInstance().listProcessesForUser(this.sessionUser);
         }
+
+        // Filters are a bit custom
         if (filters != null) {
             final JSONObject f = new JSONObject(filters);
             if (f.has("hashpair") && f.getString("hashpair").contains(";")) {
@@ -100,7 +120,41 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
                 }
             }
         }
-        return processes;
+
+        // Now do the sorting
+        final Comparator<Process> comparator;
+        switch (sortField) {
+        case "userId":
+            comparator = (one, other) -> UserManager.getInstance()
+                    .getUser(one.getUserId())
+                    .getUsername()
+                    .compareTo(UserManager.getInstance().getUser(other.getUserId()).getUsername());
+            break;
+        case "serviceId":
+            comparator = (one, other) -> one.getServiceId().compareTo(other.getServiceId());
+            break;
+        case "state":
+            comparator = (one, other) -> one.getState().toString().compareTo(other.getState().toString());
+            break;
+        case "Id":
+        default:
+            comparator = (one, other) -> one.getId().toString().compareTo(other.getId().toString());
+            break;
+        }
+        Collections.sort(processes, comparator);
+
+        // Order the sorting if necessary
+        if (sortDir.equals("DESC")) {
+            Collections.reverse(processes);
+        }
+
+        // And finally pagination
+        this.addTotalCount(processes.size());
+        if ((page == 0) || (perPage == 0)) {
+            return processes;
+        }
+        return processes.subList(Math.min(processes.size(), (page - 1) * perPage),
+                Math.min(processes.size(), page * perPage));
     }
 
     @Override
@@ -109,9 +163,6 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
             AuthorizationException {
         final ObjectId oid = MongoDbConnector.stringToObjectId(id);
         final Process ret = ProcessManager.getInstance().getProcess(oid);
-        if (ret == null) {
-            throw new ProcessNotFoundException(oid);
-        }
 
         this.assertUserIsAdminOrEquals(ret.getUserId());
 
@@ -157,9 +208,18 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
     public void triggerProcessConfig(final String id) throws ProcessNotFoundException,
             InvalidObjectIdException,
             AuthorizationException {
-        // Immediately do all relevant checks...
-        final Process currentProcess = this.getProcess(id);
+        final ObjectId oid = MongoDbConnector.stringToObjectId(id);
+        final Process referencedProcess = ProcessManager.getInstance().getProcess(oid);
 
-        ProcessManager.getInstance().triggerConfig(currentProcess);
+        // See if we can do token-based authentication. This is the most common way to use this function
+        final Process authorizedProcess = this.getTokenProcess();
+        if ((authorizedProcess != null) && authorizedProcess.getId().equals(referencedProcess.getId())) {
+            ProcessManager.getInstance().triggerConfig(referencedProcess);
+            return;
+        }
+
+        // If that was not the case, see if and authorized person is manually trying to update the process
+        this.assertUserIsAdminOrEquals(referencedProcess.getUserId());
+        ProcessManager.getInstance().triggerConfig(referencedProcess);
     }
 }

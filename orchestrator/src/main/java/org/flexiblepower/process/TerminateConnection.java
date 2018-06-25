@@ -31,7 +31,7 @@ import org.mongodb.morphia.annotations.Entity;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * CreateConnection
+ * TerminateConnection
  *
  * @version 0.1
  * @since Aug 14, 2017
@@ -49,9 +49,19 @@ public class TerminateConnection extends PendingChange {
         super();
     }
 
+    /**
+     * Terminate a connection endpoint
+     *
+     * @param userId The user who owns the process to connect
+     * @param connection The Connection to terminate
+     * @param endpoint The endpoint to terminate
+     */
     public TerminateConnection(final ObjectId userId, final Connection connection, final Connection.Endpoint endpoint) {
         super(userId);
-        this.resources = Collections.unmodifiableList(Arrays.asList(connection.getId(), endpoint.getProcessId()));
+        this.resources = Collections.unmodifiableList(Arrays.asList(connection.getId(),
+                endpoint.getProcessId(),
+                this.getUserId(),
+                connection.getOtherEndpoint(endpoint).getProcessId()));
         this.connection = connection;
         this.endpoint = endpoint;
     }

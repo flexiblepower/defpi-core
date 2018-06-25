@@ -1,4 +1,7 @@
-from . import {{vitf.handler.interface}}
+from defpi.Connection import Connection
+from defpi.Service import Service
+
+from .{{vitf.handler.interface}} import {{vitf.handler.interface}}
 {{vitf.handler.imports}}
 
 
@@ -12,29 +15,34 @@ class {{vitf.handler.class}}({{vitf.handler.interface}}):
 
         Template by FAN, 2017 """
  
-    def __init__(self, service, connection):
+    def __init__(self, connection: Connection, service: Service):
         """ Auto-generated constructor building the manager for the provided service """
-        self.__service = service
-        self.__connection = connection
+        self.service = service
+        self.connection = connection
 
-    def on_suspend(self):
+    def onSuspend(self):
         """ Called when the connection is suspended
             Auto-generated method stub """
+        pass
 
-    def resume_after_suspend(self):
+    def resumeAfterSuspend(self):
         """ Called when the connection is being suspended
             Auto-generated method stub """
+        pass
         
-    def on_interrupt(self):
+    def onInterrupt(self):
         """ Called when the connection is interrupted
             Auto-generated method stub """
+        pass
 
-    def resume_after_interrupt(self):
+    def resumeAfterInterrupt(self):
         """ Called when the connection is restored after an interruption
             Auto-generated method stub """
+        pass
 
     def terminated(self):
         """ Called when the connection is terminated
             Auto-generated method stub """
+        pass
 
 {{vitf.handler.implementations}}

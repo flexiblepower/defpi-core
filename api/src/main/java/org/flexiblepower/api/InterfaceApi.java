@@ -21,10 +21,12 @@ package org.flexiblepower.api;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.flexiblepower.exceptions.AuthorizationException;
@@ -56,6 +58,12 @@ public interface InterfaceApi {
     /**
      * List all interfaces that are available
      *
+     * @param page the current page to view (defaults to 1)
+     * @param perPage the amount of interfaces to view per page (defaults to
+     *            {@value org.flexiblepower.api.OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     * @param sortDir the direction to sort the interfaces (defaults to "ASC")
+     * @param sortField the field to sort the interfaces on (defaults to "id")
+     * @param filters a list of filters in JSON notation
      * @return A list of all interfaces
      * @throws AuthorizationException if the user is not authenticated at all
      */
@@ -71,14 +79,18 @@ public interface InterfaceApi {
                          response = Interface.class,
                          responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public List<Interface> listInterfaces() throws AuthorizationException;
+    public List<Interface> listInterfaces(@QueryParam("_page") @DefaultValue("1") int page,
+            @QueryParam("_perPage") @DefaultValue(OrchestratorApi.DEFAULT_ITEMS_PER_PAGE) int perPage,
+            @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
+            @QueryParam("_sortField") @DefaultValue("id") String sortField,
+            @QueryParam("_filters") @DefaultValue("{}") String filters) throws AuthorizationException;
 
     /**
      * Gets the interface with the provided id
      *
      * @param id The id of the interface
      * @return The interface with the provided id
-     * @throws NotFoundException
+     * @throws NotFoundException If the referenced interface could not be found
      * @throws AuthorizationException if the user is not authenticated at all
      */
     @GET

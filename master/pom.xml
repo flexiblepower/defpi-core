@@ -1,10 +1,11 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>master</artifactId>
-	<version>17.11.2</version>
+	<version>18.6-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<name>dEF-Pi master POM</name>
@@ -63,9 +64,15 @@
 
 		<!-- The plugin needs the protobuf version to obtain the compiler from 
 			maven central explicitly -->
-		<protobuf.version>3.3.0</protobuf.version>
-		<jackson.databind.version>2.9.4</jackson.databind.version>
+		<protobuf.version>3.5.1</protobuf.version>
+		<jackson.databind.version>2.9.6</jackson.databind.version>
+		<mongodb.version>3.7.1</mongodb.version>
+		<log4j.version>2.11.0</log4j.version>
 	</properties>
+
+	<prerequisites>
+		<maven>3.0</maven>
+	</prerequisites>
 
 	<modules>
 		<module>service-parent</module>
@@ -80,11 +87,6 @@
 
 	<!-- Where to push the maven compiled jars -->
 	<distributionManagement>
-		<repository>
-			<id>ossrh</id>
-			<name>Sonatype snapshot repository</name>
-			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
-		</repository>
 		<snapshotRepository>
 			<id>ossrh</id>
 			<name>Sonatype snapshot repository</name>
@@ -109,7 +111,7 @@
 			<dependency>
 				<groupId>org.projectlombok</groupId>
 				<artifactId>lombok</artifactId>
-				<version>1.16.18</version>
+				<version>1.18.0</version>
 				<scope>provided</scope>
 			</dependency>
 
@@ -128,19 +130,19 @@
 			<dependency>
 				<groupId>org.mongodb</groupId>
 				<artifactId>bson</artifactId>
-				<version>3.6.2</version>
+				<version>${mongodb.version}</version>
 			</dependency>
 
 			<dependency>
 				<groupId>org.mongodb</groupId>
 				<artifactId>mongodb-driver</artifactId>
-				<version>3.6.2</version>
+				<version>${mongodb.version}</version>
 			</dependency>
 
 			<dependency>
-			    <groupId>org.json</groupId>
-			    <artifactId>json</artifactId>
-			    <version>20180130</version>
+				<groupId>org.json</groupId>
+				<artifactId>json</artifactId>
+				<version>20180130</version>
 			</dependency>
 
 			<dependency>
@@ -173,20 +175,20 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>1.7.24</version>
+			<version>1.7.25</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
-			<version>2.8.2</version>
+			<version>${log4j.version}</version>
 			<scope>runtime</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-slf4j-impl</artifactId>
-			<version>2.8.2</version>
+			<version>${log4j.version}</version>
 			<scope>runtime</scope>
 		</dependency>
 
@@ -204,7 +206,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
-					<version>3.6.1</version>
+					<version>3.7.0</version>
 					<configuration>
 						<source>${java.source}</source>
 						<target>${java.target}</target>
@@ -214,7 +216,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
-					<version>2.20</version>
+					<version>2.21.0</version>
 					<configuration>
 						<systemProperties>
 							<property>
@@ -223,6 +225,43 @@
 							</property>
 						</systemProperties>
 					</configuration>
+				</plugin>
+				
+				<!-- These are just to set the version -->
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-clean-plugin</artifactId>
+					<version>3.1.0</version>
+				</plugin>
+				
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-deploy-plugin</artifactId>
+					<version>2.8.2</version>
+				</plugin>
+				
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-install-plugin</artifactId>
+					<version>2.5.2</version>
+				</plugin>
+				
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-jar-plugin</artifactId>
+					<version>3.1.0</version>
+				</plugin>
+				
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-resources-plugin</artifactId>
+					<version>3.1.0</version>
+				</plugin>
+				
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-site-plugin</artifactId>
+					<version>3.7.1</version>
 				</plugin>
 			</plugins>
 		</pluginManagement>
@@ -243,15 +282,40 @@
 			</plugin>
 
 			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>versions-maven-plugin</artifactId>
+				<version>2.5</version>
+				<executions>
+					<execution>
+						<id>check-dependency-versions</id>
+						<goals>
+							<goal>display-dependency-updates</goal>
+						</goals>
+						<phase>verify</phase>
+					</execution>
+						<execution>
+						<id>check-plugin-versions</id>
+						<goals>
+							<goal>display-plugin-updates</goal>
+						</goals>
+						<phase>verify</phase>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>2.9.1</version>
+				<version>3.0.1</version>
 				<executions>
 					<execution>
 						<id>attach-javadocs</id>
 						<goals>
 							<goal>jar</goal>
 						</goals>
+						<configuration>
+							<quiet>true</quiet>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>
@@ -261,6 +325,7 @@
 	<profiles>
 		<profile>
 			<id>release</id>
+
 			<distributionManagement>
 				<repository>
 					<id>ossrh</id>
@@ -274,7 +339,7 @@
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>license-maven-plugin</artifactId>
-						<version>1.14</version>
+						<version>1.16</version>
 						<executions>
 							<execution>
 								<id>add-third-party</id>
@@ -289,7 +354,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>
-						<version>1.5</version>
+						<version>1.6</version>
 						<executions>
 							<execution>
 								<id>sign-artifacts</id>

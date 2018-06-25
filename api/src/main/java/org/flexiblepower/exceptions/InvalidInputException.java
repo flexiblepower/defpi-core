@@ -30,7 +30,7 @@ public class InvalidInputException extends Exception {
     /**
      * Create an InvalidInputException with the provided message
      *
-     * @param message
+     * @param message The message to add to the exception
      */
     public InvalidInputException(final String message) {
         super(message);

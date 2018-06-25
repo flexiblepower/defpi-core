@@ -24,12 +24,12 @@ import java.util.Map;
 import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
 
+@SuppressWarnings("javadoc")
 @InterfaceInfo(name = "Test",
                version = "1",
                serializer = ProtobufMessageSerializer.class,
                receivesHash = "eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252",
                receiveTypes = {ErrorMessage.class},
-               // manager = TestService.class,
                sendsHash = "eefc3942366e0b12795edb10f5358145694e45a7a6e96144299ff2e1f8f5c252",
                sendTypes = {ErrorMessage.class})
 public class TestHandler implements ConnectionHandler {
@@ -55,7 +55,7 @@ public class TestHandler implements ConnectionHandler {
 
     private final Connection connection;
     private final String name;
-    public ErrorMessage lastMessage;
+    public volatile ErrorMessage lastMessage;
     public String state;
 
     public TestHandler(final String name, final Connection connection) throws Exception {
@@ -65,7 +65,6 @@ public class TestHandler implements ConnectionHandler {
         this.state = "connected";
         this.connection = connection;
         if (this.name.equals("h1")) {
-            // Thread.sleep(100);
             connection.send(
                     ErrorMessage.newBuilder().setDebugInformation("started").setProcessId("Error process").build());
         }

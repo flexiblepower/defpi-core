@@ -20,13 +20,9 @@ package org.flexiblepower.orchestrator;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.UnknownHostException;
-import java.util.UUID;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.eclipse.jetty.server.Server;
-import org.flexiblepower.connectors.MongoDbConnector;
-import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
 import org.flexiblepower.rest.OrchestratorApplication;
@@ -45,10 +41,13 @@ import io.swagger.models.Scheme;
 public class Main {
 
     // Base URI the HTTP server will listen on
-    public static final String URI_SCHEME = Scheme.HTTP.name();
-    public static final String URI_HOST = "localhost";
+    private static final String URI_SCHEME = Scheme.HTTP.name();
+    private static final String URI_HOST = "localhost";
+    /**
+     * The port where the orchestrator listens for REST calls
+     */
     public static final int URI_PORT = 8080;
-    public static final String URI_PATH = "";
+    private static final String URI_PATH = "";
 
     private static final String ROOT_USER = "admin";
     private static final String ROOT_PASSWORD = "admin";
@@ -56,10 +55,10 @@ public class Main {
     /**
      * Starts HTTP server exposing JAX-RS resources defined in this application.
      *
-     * @throws UnknownHostException
-     * @throws URISyntaxException
+     * @return The HTTP server object that was started
+     * @throws URISyntaxException If the created publish URI is invalid.
      */
-    public static Server startServer() throws UnknownHostException, URISyntaxException {
+    public static Server startServer() throws URISyntaxException {
         final URI publishURI = new URIBuilder().setScheme(Main.URI_SCHEME)
                 .setHost(Main.URI_HOST)
                 .setPort(Main.URI_PORT)
@@ -71,16 +70,12 @@ public class Main {
         return JettyHttpContainerFactory.createServer(publishURI, rc);
     }
 
-    /**
-     *
-     */
     private static void ensureAdminUserExists() {
         Main.log.trace("Ensuring user with name {} exists", Main.ROOT_USER);
-        final MongoDbConnector db = MongoDbConnector.getInstance();
-        if (db.getUser(Main.ROOT_USER, Main.ROOT_PASSWORD) == null) {
+        // if (db.getUser(Main.ROOT_USER, Main.ROOT_PASSWORD) == null) {
+        if (UserManager.getInstance().getUser(Main.ROOT_USER) == null) {
             final User root = new User(Main.ROOT_USER, Main.ROOT_PASSWORD);
-            root.setAuthenticationToken(UUID.randomUUID().toString());
-            root.setPasswordHash();
+            // root.setPasswordHash();
             root.setAdmin(true);
 
             UserManager.getInstance().saveUser(root);
@@ -90,13 +85,10 @@ public class Main {
     /**
      * Main method.
      *
-     * @param args
-     * @throws AuthorizationException
-     * @throws URISyntaxException
-     * @throws UnknownHostException
+     * @param args Command line arguments (ignored)
+     * @throws URISyntaxException When the dynamically built URI is invalid
      */
-    public static void
-            main(final String[] args) throws AuthorizationException, UnknownHostException, URISyntaxException {
+    public static void main(final String[] args) throws URISyntaxException {
         Main.ensureAdminUserExists();
         Main.startServer();
         PendingChangeManager.getInstance(); // make sure it starts

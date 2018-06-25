@@ -33,16 +33,11 @@ import org.slf4j.LoggerFactory;
 import com.google.protobuf.Message;
 
 /**
- * ConnectionManager
+ * The connection manager is the object that is responsible for maintaining all connections to and from a process. It is
+ * used by the ServiceManager to handler all ConnectionMessages.
  *
  * @version 0.1
  * @since May 10, 2017
- */
-/**
- * ConnectionManager
- *
- * @version 0.1
- * @since May 18, 2017
  */
 public class ConnectionManager implements Closeable {
 
@@ -53,13 +48,13 @@ public class ConnectionManager implements Closeable {
     private final Map<String, TCPConnection> connections = new HashMap<>();
 
     /**
-     * @param parseFrom
-     * @return
-     * @return
-     * @throws ConnectionModificationException
+     * Handles the connection message to either create, resume, suspend or terminate a connection.
+     *
+     * @param message the message that contains the instruction to perform
+     * @return The resulting confirmation message containing the new connection state
+     * @throws ConnectionModificationException When an error occurs while creating or updating the connection
      */
-    public Message handleConnectionMessage(final ConnectionMessage message) throws IOException,
-            ConnectionModificationException {
+    public Message handleConnectionMessage(final ConnectionMessage message) throws ConnectionModificationException {
         final String connectionId = message.getConnectionId();
         ConnectionManager.log
                 .info("Received ConnectionMessage for connection {} ({})", connectionId, message.getMode());
@@ -107,8 +102,7 @@ public class ConnectionManager implements Closeable {
      * @throws ConnectionModificationException
      * @throws IOException
      */
-    private Message createConnection(final ConnectionMessage message) throws ConnectionModificationException,
-            IOException {
+    private Message createConnection(final ConnectionMessage message) throws ConnectionModificationException {
         // First find the correct handler to attach to the connection
         final String key = ConnectionManager.handlerKey(message.getReceiveHash(), message.getSendHash());
         final ConnectionHandlerManager chf = ConnectionManager.connectionHandlers.get(key);
@@ -138,6 +132,18 @@ public class ConnectionManager implements Closeable {
 
     }
 
+    /**
+     * Build the handler object for the connection and the specified interface info. This function will use reflection
+     * to get the class from user code that implements the ConnectionHandler. It does so by invoking the builder
+     * function in the ConnectionHandlerManager also from the user code.
+     * <p>
+     * In order for the lookup to work, the corresponding ConnectionHandler and ConnectionHandlerManager must be
+     * registered using the {@link #registerConnectionHandlerFactory(Class, ConnectionHandlerManager)} function.
+     *
+     * @param c The connection object to build a connection handler for
+     * @param info The information of the interface, from which we get the info about the type of handler to build
+     * @return The connection handler built for this connection
+     */
     static ConnectionHandler buildHandlerForConnection(final Connection c, final InterfaceInfo info) {
         final String key = ConnectionManager.handlerKey(info.receivesHash(), info.sendsHash());
         final ConnectionHandlerManager chf = ConnectionManager.connectionHandlers.get(key);
@@ -153,7 +159,13 @@ public class ConnectionManager implements Closeable {
     }
 
     /**
-     * @param connectionHandlerManager
+     * Register a ConnectionHandlerManager as a factory for a specific type of ConnectionHandler. This means that in the
+     * future whenever the specified type of ConnectionHandler is required, the object manager is used to build it.
+     *
+     * @param clazz The type of ConnectionHandler to register. This class must have the {@link InterfaceInfo}
+     *            annotation.
+     * @param connectionHandlerManager The object that is capable of building the ConnectionHandler
+     * @throws RuntimeException when the clazz argument class is not annotated with InterfaceInfo
      */
     public static void registerConnectionHandlerFactory(final Class<? extends ConnectionHandler> clazz,
             final ConnectionHandlerManager connectionHandlerManager) {
@@ -195,13 +207,6 @@ public class ConnectionManager implements Closeable {
         for (final TCPConnection conn : this.connections.values()) {
             conn.goToTerminatedState();
         }
-        // for (final ManagedConnection conn : this.connections.values()) {
-        // try {
-        // conn.waitTillFinished();
-        // } catch (final InterruptedException e) {
-        // ConnectionManager.log.warn("Interrupted while waiting for cloning connection", e);
-        // }
-        // }
     }
 
 }

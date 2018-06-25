@@ -29,10 +29,12 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
- * PublicNode
+ * A PublicNode is a piece of hardware in the dEF-Pi environment that any user may deploy process on.
  *
  * @version 0.1
  * @since 20 mrt. 2017
+ * @see UnidentifiedNode
+ * @see PrivateNode
  */
 @Entity
 @Getter
@@ -44,6 +46,12 @@ public class PublicNode extends Node {
     @JsonDeserialize(using = ObjectIdDeserializer.class)
     private ObjectId nodePoolId;
 
+    /**
+     * Create a PrivateNode from an {@link UnidentifiedNode} and a node pool to make it part of
+     *
+     * @param unidentifiedNode The existing node which is unidentified, and should be upgraded to a public node
+     * @param nodePool The node pool to make the public node a member of
+     */
     public PublicNode(final UnidentifiedNode unidentifiedNode, final NodePool nodePool) {
         super(unidentifiedNode.getDockerId(), unidentifiedNode.getHostname(), unidentifiedNode.getArchitecture());
         this.nodePoolId = nodePool.getId();

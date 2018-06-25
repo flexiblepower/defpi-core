@@ -18,6 +18,8 @@
 
 package org.flexiblepower.rest;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
@@ -42,9 +44,20 @@ import org.json.JSONObject;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * ConnectionRestApi
+ *
+ * @version 0.1
+ * @since Mar 30, 2017
+ */
 @Slf4j
 public class ConnectionRestApi extends BaseApi implements ConnectionApi {
 
+    /**
+     * Create the REST API with the headers from the HTTP request (will be injected by the HTTP server)
+     *
+     * @param httpHeaders The headers from the HTTP request for authorization
+     */
     protected ConnectionRestApi(@Context final HttpHeaders httpHeaders) {
         super(httpHeaders);
     }
@@ -55,7 +68,11 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
             final String sortDir,
             final String sortField,
             final String filters) throws AuthorizationException {
-        // TODO pagination
+        if ((page < 0) || (perPage < 0)) {
+            this.addTotalCount(0);
+            return Collections.emptyList();
+        }
+
         List<Connection> connections;
         if (this.sessionUser == null) {
             throw new AuthorizationException();
@@ -64,6 +81,7 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
         } else {
             connections = ConnectionManager.getInstance().getConnectionsForUser(this.sessionUser);
         }
+
         if (filters != null) {
             final JSONObject f = new JSONObject(filters);
             if (f.has("userId")) {
@@ -93,8 +111,40 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
                 }
             }
         }
-        return connections;
 
+        // Now do the sorting
+        final Comparator<Connection> comparator;
+        switch (sortField) {
+        case "endpoint1.interfaceId":
+            comparator = (a, b) -> a.getEndpoint1().getInterfaceId().compareTo(b.getEndpoint1().getInterfaceId());
+            break;
+        case "endpoint2.interfaceId":
+            comparator = (a, b) -> a.getEndpoint2().getInterfaceId().compareTo(b.getEndpoint2().getInterfaceId());
+            break;
+        case "endpoint1.processId":
+            comparator = (a, b) -> a.getEndpoint1().getProcessId().compareTo(b.getEndpoint1().getProcessId());
+            break;
+        case "endpoint2.processId":
+            comparator = (a, b) -> a.getEndpoint2().getProcessId().compareTo(b.getEndpoint2().getProcessId());
+            break;
+        case "id":
+        default:
+            comparator = (a, b) -> a.getId().toString().compareTo(b.getId().toString());
+            break;
+        }
+        Collections.sort(connections, comparator);
+
+        // Order the sorting if necessary
+        if (sortDir.equals("DESC")) {
+            Collections.reverse(connections);
+        }
+
+        // And finally pagination
+        this.addTotalCount(connections.size());
+        if ((page == 0) || (perPage == 0)) {
+            return connections;
+        }
+        return connections.subList((page - 1) * perPage, Math.min(connections.size(), page * perPage));
     }
 
     @Override
@@ -103,16 +153,15 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
             ServiceNotFoundException,
             ConnectionException {
         final Process p1 = ProcessManager.getInstance().getProcess(connection.getEndpoint1().getProcessId());
-
-        if (p1 == null) {
-            throw new ProcessNotFoundException(connection.getEndpoint1().getProcessId());
-        }
+        // if (p1 == null) {
+        // throw new ProcessNotFoundException(connection.getEndpoint1().getProcessId());
+        // }
         this.assertUserIsAdminOrEquals(p1.getUserId());
 
         final Process p2 = ProcessManager.getInstance().getProcess(connection.getEndpoint2().getProcessId());
-        if (p2 == null) {
-            throw new ProcessNotFoundException(connection.getEndpoint2().getProcessId());
-        }
+        // if (p2 == null) {
+        // throw new ProcessNotFoundException(connection.getEndpoint2().getProcessId());
+        // }
         this.assertUserIsAdminOrEquals(p2.getUserId());
 
         ConnectionRestApi.log.info("Inserting new Connection {}", connection);
@@ -136,15 +185,15 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
         }
 
         final Process p1 = ProcessManager.getInstance().getProcess(connection.getEndpoint1().getProcessId());
-        if (p1 == null) {
-            throw new ProcessNotFoundException(connection.getEndpoint1().getProcessId());
-        }
+        // if (p1 == null) {
+        // throw new ProcessNotFoundException(connection.getEndpoint1().getProcessId());
+        // }
         this.assertUserIsAdminOrEquals(p1.getUserId());
 
         final Process p2 = ProcessManager.getInstance().getProcess(connection.getEndpoint2().getProcessId());
-        if (p2 == null) {
-            throw new ProcessNotFoundException(connection.getEndpoint2().getProcessId());
-        }
+        // if (p2 == null) {
+        // throw new ProcessNotFoundException(connection.getEndpoint2().getProcessId());
+        // }
         this.assertUserIsAdminOrEquals(p2.getUserId());
 
         return connection;
@@ -157,9 +206,9 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
         final Connection connection = this.getConnection(id);
 
         final Process p1 = ProcessManager.getInstance().getProcess(connection.getEndpoint1().getProcessId());
-        if (p1 == null) {
-            throw new ProcessNotFoundException(connection.getEndpoint1().getProcessId());
-        }
+        // if (p1 == null) {
+        // throw new ProcessNotFoundException(connection.getEndpoint1().getProcessId());
+        // }
         this.assertUserIsAdminOrEquals(p1.getUserId());
 
         final Process p2 = ProcessManager.getInstance().getProcess(connection.getEndpoint2().getProcessId());
@@ -169,6 +218,6 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
         this.assertUserIsAdminOrEquals(p2.getUserId());
 
         ConnectionRestApi.log.info("Removing connection {}", id);
-        ConnectionManager.getInstance().terminateConnection(connection);
+        ConnectionManager.getInstance().terminateConnection(connection, p1.getUserId());
     }
 }

@@ -32,7 +32,7 @@ public class ConnectionException extends ApiException {
     /**
      * Create a connection exception with the provided error message
      *
-     * @param msg
+     * @param msg The message to add to the exception
      */
     public ConnectionException(final String msg) {
         super(Status.CONFLICT, msg);

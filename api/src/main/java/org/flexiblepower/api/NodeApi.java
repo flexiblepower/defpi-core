@@ -230,6 +230,7 @@ public interface NodeApi {
      */
     @GET
     @Path("/publicnode/{node_id}")
+    @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(nickname = "getPublicNode",
                   value = "Find a public node",
@@ -253,7 +254,7 @@ public interface NodeApi {
      *
      * @param page the current page to view (defaults to 1)
      * @param perPage the amount of nodes to view per page (defaults to
-     *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     *            {@value org.flexiblepower.api.OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
      * @param sortDir the direction to sort the nodes (defaults to "ASC")
      * @param sortField the field to sort the nodes on (defaults to "id")
      * @param filters a list of filters in JSON notation
@@ -287,7 +288,7 @@ public interface NodeApi {
      *
      * @param page the current page to view (defaults to 1)
      * @param perPage the amount of nodes to view per page (defaults to
-     *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     *            {@value org.flexiblepower.api.OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
      * @param sortDir the direction to sort the nodes (defaults to "ASC")
      * @param sortField the field to sort the nodes on (defaults to "id")
      * @param filters a list of filters in JSON notation
@@ -320,7 +321,7 @@ public interface NodeApi {
      *
      * @param page the current page to view (defaults to 1)
      * @param perPage the amount of nodes to view per page (defaults to
-     *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     *            {@value org.flexiblepower.api.OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
      * @param sortDir the direction to sort the nodes (defaults to "ASC")
      * @param sortField the field to sort the nodes on (defaults to "id")
      * @param filters a list of filters in JSON notation
@@ -462,7 +463,7 @@ public interface NodeApi {
      *
      * @param page the current page to view (defaults to 1)
      * @param perPage the amount of pools to view per page (defaults to
-     *            {@value OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     *            {@value org.flexiblepower.api.OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
      * @param sortDir the direction to sort the pools (defaults to "ASC")
      * @param sortField the field to sort the pools on (defaults to "id")
      * @param filters a list of filters in JSON notation
@@ -482,7 +483,7 @@ public interface NodeApi {
                          response = Response.class,
                          responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public Response listNodePools(@QueryParam("_page") @DefaultValue("1") int page,
+    public List<NodePool> listNodePools(@QueryParam("_page") @DefaultValue("1") int page,
             @QueryParam("_perPage") @DefaultValue(OrchestratorApi.DEFAULT_ITEMS_PER_PAGE) int perPage,
             @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
             @QueryParam("_sortField") @DefaultValue("id") String sortField,

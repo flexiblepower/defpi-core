@@ -1,4 +1,8 @@
-from . import {{itf.manager.interface}}
+from defpi.Connection import Connection
+from defpi.Service import Service
+
+from .{{itf.manager.interface}} import {{itf.manager.interface}}
+{{itf.manager.imports.interface}}
 {{itf.manager.imports.implementation}}
 
 
@@ -12,8 +16,8 @@ class {{itf.manager.class}}({{itf.manager.interface}}):
 
         Template by FAN, 2017 """
 
-    def __init__(self, service):
+    def __init__(self, service: Service):
         """ Auto-generated constructor building the manager for the provided service """
-        self.__service = service
+        self.service = service
 
 {{itf.manager.implementations}}

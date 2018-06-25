@@ -107,6 +107,7 @@ myApp
 													.field('userId',
 															'reference')
 													.targetEntity(user)
+													.perPage(1000)
 													.targetField(
 															nga
 																	.field('username'))
@@ -124,6 +125,7 @@ myApp
 													.field('userId',
 															'reference')
 													.targetEntity(user)
+                                                    .perPage(1000)
 													.targetField(
 															nga
 																	.field('username'))
@@ -161,6 +163,16 @@ myApp
 															'Debugging Port (0 = disabled)')
 													.defaultValue(0),
 											nga
+													.field('exposePorts',
+															'embedded_list')
+													.label('Expose ports')
+													.targetFields(
+															[
+																	nga
+																			.field('internal'),
+																	nga
+																			.field('external') ]),
+											nga
 													.field('maxMemoryBytes')
 													.label(
 															'Max memory usage (bytes, 0 = disabled)')
@@ -179,7 +191,7 @@ myApp
 																	nga
 																			.field('source'),
 																	nga
-																			.field('target') ]) ]);
+																			.field('target') ])	]);
 					process
 							.editionView()
 							.fields(
@@ -230,6 +242,17 @@ myApp
 															'Debugging Port (0 = disabled)')
 													.defaultValue(0).editable(
 															false),
+											nga
+													.field('exposePorts',
+															'embedded_list')
+													.editable(false)
+													.label('Expose ports')
+													.targetFields(
+															[
+																	nga
+																			.field('internal'),
+																	nga
+																			.field('external') ]),
 											nga
 													.field('maxMemoryBytes')
 													.label(
@@ -322,7 +345,7 @@ myApp
 											'Interface 2') ]).filters(
 							[
 									nga.field('userId', 'reference')
-											.targetEntity(user).targetField(
+											.targetEntity(user).perPage(1000).targetField(
 													nga.field('username'))
 											.label('User'),
 									nga.field('processId', 'reference')
@@ -334,6 +357,7 @@ myApp
 							[
 									nga.field('endpoint1.processId',
 											'reference').targetEntity(process)
+											.perPage(1000)
 											.targetField(nga.field('id'))
 											.label('Process 1'),
 									nga.field('endpoint1.interfaceId',
@@ -342,6 +366,7 @@ myApp
 											.label('Interface 1'),
 									nga.field('endpoint2.processId',
 											'reference').targetEntity(process)
+											.perPage(1000)
 											.targetField(nga.field('id'))
 											.label('Process 2'),
 									nga.field('endpoint2.interfaceId',
@@ -414,6 +439,7 @@ myApp
 									nga.field('userId', 'reference')
 											.targetEntity(user).targetField(
 													nga.field('username'))
+                      .perPage(1000)
 											.label('User').validation({
 												required : true
 											}) ]);

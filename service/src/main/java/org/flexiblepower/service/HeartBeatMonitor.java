@@ -32,7 +32,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * HeartBeatMonitor
+ * The heartbeat monitor adds functionality to a socket by periodically sending a heartbeat PING byte. A remote socket
+ * with a heartbeat monitor will respond to it with a PONG byte. This PONG signifies that the connection is still alive,
+ * and hence multiple missed PONGs will lead to the monitor to conclude that the connection is interrupted.
  *
  * @version 0.1
  * @since Aug 23, 2017
@@ -61,9 +63,12 @@ public class HeartBeatMonitor implements Closeable {
     private int missedHeartBeats;
 
     /**
-     * @param object
+     * Create a HeartBeatMonitor for the specified socket.
+     *
+     * @param socket The socket to perform the heartbeat on
+     * @param connectionId The id of the connection, mostly used for logging.
      */
-    public HeartBeatMonitor(final TCPSocket socket, final String connectionId) {
+    HeartBeatMonitor(final TCPSocket socket, final String connectionId) {
         final ThreadFactory threadFactory = r -> new Thread(r, "dEF-Pi hbMonThread-" + HeartBeatMonitor.threadCount++);
         this.executor = Executors.newSingleThreadScheduledExecutor(threadFactory);
         this.socket = socket;
@@ -74,7 +79,7 @@ public class HeartBeatMonitor implements Closeable {
      * Handle a byte array to see if it is a heartbeat. If it is a ping, it will send back a pong, if it was a pong it
      * will take note that the other side of the connection is alive.
      *
-     * @param data
+     * @param data The byte array to handle as a heartbeat
      * @return whether the data was actually a heartbeat or not
      */
     boolean handleMessage(final byte[] data) {
@@ -160,7 +165,11 @@ public class HeartBeatMonitor implements Closeable {
         this.socket.close();
     }
 
-    public void stop() {
+    /**
+     * Stops the monitor from sending bytes or responding in the future. This would be desireable for example when the
+     * connection is suspended.
+     */
+    void stop() {
         if (this.heartBeatFuture != null) {
             this.heartBeatFuture.cancel(true);
             this.heartBeatFuture = null;

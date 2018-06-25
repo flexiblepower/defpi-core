@@ -28,7 +28,10 @@ import lombok.Builder;
 import lombok.Value;
 
 /**
- * Service
+ * The service is the type of a {@link Process}, and defines what {@link Interface} the process may have. A service is
+ * defined in a docker image, and correspondingly, a Process is a container that uses that image.
+ * <p>
+ * Comparing dEF-Pi to Java, the Service is a class, and the Process is the object.
  *
  * @version 0.1
  * @since Mar 30, 2017
@@ -40,19 +43,9 @@ public class Service {
     private final String name;
 
     /**
-     * Def-pi interfaces
+     * dEF-Pi interfaces
      */
     private final Set<Interface> interfaces;
-
-    // /**
-    // * Volume mappings
-    // */
-    // private Set<String> mappings;
-    //
-    // /**
-    // * Physical ports to open
-    // */
-    // private Set<String> ports;
 
     private final String registry;
 
@@ -60,47 +53,38 @@ public class Service {
 
     private final String id;
 
-    // private String tag;
-
     private final String version;
 
     private final Date created;
 
     private final Map<Architecture, String> tags;
 
-    // public Service(final String name,
-    // final Set<Interface> interfaces,
-    // final String fullname,
-    // final String version,
-    // final Date created) {
-    // this.name = name;
-    // this.interfaces = interfaces;
-    //
-    // final int pReg = fullname.indexOf('/');
-    // final int pTag = fullname.indexOf(':', pReg);
-    // final int pHash = fullname.indexOf('@', pTag);
-    //
-    // this.registry = fullname.substring(0, pReg);
-    // this.id = fullname.substring(pReg + 1, pTag);
-    // final String tag = fullname.substring(pTag + 1, pHash);
-    // this.tags.put(Service.getArchitectureFromTag(tag), tag);
-    //
-    // this.version = version;
-    //
-    // this.created = created;
-    // }
-
+    /**
+     * Get the full docker image name of this service including the repository and the tag
+     * 
+     * @param architecture The architecture of the system that we want the image name for
+     * @return A string that identifies the docker image that contains this service.
+     */
     @JsonIgnore
     public String getFullImageName(final Architecture architecture) {
         return this.registry + "/" + this.repository + "/" + this.getImageName() + ":"
                 + (this.tags == null ? this.version : this.tags.get(architecture));
     }
 
+    /**
+     * @return The docker image name without the repository or tag
+     */
     @JsonIgnore
     public String getImageName() {
         return this.id.split(":")[0];
     }
 
+    /**
+     * Based on the tag of an image name, deduce the architecture that is used in an image
+     * 
+     * @param tag Only the tag of the image
+     * @return The architecture that was used in the image, or UNKNOWN if we cannot deduce it.
+     */
     public static Architecture getArchitectureFromTag(final String tag) {
         if (tag.endsWith("-arm")) {
             return Architecture.ARM;
@@ -114,7 +98,10 @@ public class Service {
     }
 
     /**
-     * @param interfaceId
+     * Get an interface from this service, based on the interfaceID.
+     * 
+     * @param interfaceId The ID of the interface to look for
+     * @return The Interface with the provided ID, or null if the service does not provide it.
      */
     public final Interface getInterface(final String interfaceId) {
         for (final Interface itf : this.interfaces) {

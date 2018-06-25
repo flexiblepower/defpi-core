@@ -18,6 +18,8 @@
 
 package org.flexiblepower.api;
 
+import java.util.List;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -27,7 +29,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
@@ -114,7 +115,7 @@ public interface PendingChangeApi {
      *
      * @param page the current page to view (defaults to 1)
      * @param perPage the amount of pending changes to view per page (defaults to {@value
-     *            OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
+     *            org.flexiblepower.api.OrchestratorApi#DEFAULT_ITEMS_PER_PAGE})
      * @param sortDir the direction to sort the pending changed (defaults to "ASC")
      * @param sortField the field to sort the pending changes on (defaults to "id")
      * @param filters a list of filters in JSON notation (defaults to "{}")
@@ -133,8 +134,8 @@ public interface PendingChangeApi {
                          response = PendingChangeDescription.class,
                          responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public Response listPendingChanges(@QueryParam("_page") @DefaultValue("1") int page,
-            @QueryParam("_perPage") @DefaultValue("1000") int perPage,
+    public List<PendingChangeDescription> listPendingChanges(@QueryParam("_page") @DefaultValue("1") int page,
+            @QueryParam("_perPage") @DefaultValue(OrchestratorApi.DEFAULT_ITEMS_PER_PAGE) int perPage,
             @QueryParam("_sortDir") @DefaultValue("ASC") String sortDir,
             @QueryParam("_sortField") @DefaultValue("id") String sortField,
             @QueryParam("_filters") @DefaultValue("{}") String filters) throws AuthorizationException;
@@ -143,16 +144,18 @@ public interface PendingChangeApi {
      * Clean up all pending changes that are either lingering or are in the FAILED_PERMANENTLY state, or inactive for a
      * long period of time. The exact criteria on what defines a long period of time depends on the implementation.
      *
+     * @return A String containing information about the results of the cleanup action meant for user interpretation
      * @throws AuthorizationException when the user is not logged in as an administrator
      */
     @DELETE
     @Path("/clean")
+    @Produces(MediaType.TEXT_PLAIN)
     @ApiOperation(nickname = "cleanPendingChanges",
                   value = "Clean PendingChange",
                   notes = "Clean up all lingering and permanently failed PendingChanges",
-                  code = 204,
                   authorizations = {@Authorization(value = OrchestratorApi.ADMIN_AUTHENTICATION)})
-    @ApiResponses(value = {@ApiResponse(code = 204, message = "PendingChanges cleaned"),
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Number of PendingChanges cleaned", response = String.class),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
-    public void cleanPendingChanges() throws AuthorizationException;
+    public String cleanPendingChanges() throws AuthorizationException;
 }

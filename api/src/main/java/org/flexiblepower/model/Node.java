@@ -34,10 +34,13 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * Node
+ * A Node is a piece of hardware in the dEF-Pi environment capable of running processes.
  *
  * @version 0.1
  * @since 20 mrt. 2017
+ * @see UnidentifiedNode
+ * @see PublicNode
+ * @see PrivateNode
  */
 @Getter
 @ToString
@@ -45,13 +48,40 @@ import lombok.ToString;
 @EqualsAndHashCode(exclude = {"lastSync", "status"})
 public abstract class Node {
 
+    /**
+     * DockerNodeStatus incidates what the status of a node is in the docker swarm.
+     *
+     * @version 0.1
+     * @since 20 mrt. 2017
+     */
     public static enum DockerNodeStatus {
+        /**
+         * The other node could not be found
+         */
         MISSING,
+        /**
+         * Unable to determine the node status
+         */
         UNKNOWN,
+        /**
+         * The node is down, i.e. not currently accepting processes
+         */
         DOWN,
+        /**
+         * The node is up and ready to run processes
+         */
         READY,
+        /**
+         * The node is not connected to the swarm, i.e. has switched off or left the swarm
+         */
         DISCONNECTED;
 
+        /**
+         * Build the DockerNodeStatus enum from a piece of text. Useful for during deserialization
+         * 
+         * @param text the textual representation of the node status
+         * @return The enum that represents the text argument
+         */
         public static DockerNodeStatus fromString(final String text) {
             for (final DockerNodeStatus s : DockerNodeStatus.values()) {
                 if (s.toString().equalsIgnoreCase(text)) {
@@ -62,13 +92,22 @@ public abstract class Node {
         }
     }
 
+    /**
+     * 
+     */
     @Id
     @JsonSerialize(using = ToStringSerializer.class)
     @JsonDeserialize(using = ObjectIdDeserializer.class)
     protected ObjectId id;
 
+    /**
+     * 
+     */
     protected String dockerId;
 
+    /**
+     * 
+     */
     @Setter
     protected String hostname;
 
@@ -78,12 +117,25 @@ public abstract class Node {
     @Setter
     protected Date lastSync;
 
+    /**
+     * 
+     */
     @Setter
     protected DockerNodeStatus status;
 
+    /**
+     * 
+     */
     @Setter
     protected Architecture architecture;
 
+    /**
+     * Create a node representation with the provided arguments
+     * 
+     * @param dockerId The docker id of the node
+     * @param hostname The IP address or hostname of the node
+     * @param architecture The architecture of the node
+     */
     public Node(final String dockerId, final String hostname, final Architecture architecture) {
         this.dockerId = dockerId;
         this.hostname = hostname;

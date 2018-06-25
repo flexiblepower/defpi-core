@@ -24,7 +24,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * DefaultValue
+ * DefaultValue is used to mark the default value of a configuration parameter
  *
  * @version 0.1
  * @since 24 aug. 2017
@@ -34,6 +34,8 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DefaultValue {
 
+    /**
+     * @return The value a parameter will get if none is provided
+     */
     String value();
-
 }

@@ -25,50 +25,24 @@ package org.flexiblepower.service;
  */
 public class DefPiParameters {
 
-    /**
-     * The hostname of the orchestrator that created the process.
-     */
     private final String orchestratorHost;
-
-    /**
-     * The port used to connect to the orchestrator to receive management messages.
-     */
     private final int orchestratorPort;
-
-    /**
-     * The authentication token used by the process to authenticate itself by the orchestrator.
-     */
     private final String orchestratorToken;
-
-    /**
-     * The process identifier of the currently running process.
-     */
     private final String processId;
-
-    /**
-     * The user identifier of the user that initiated this process.
-     */
     private final String userId;
-
-    /**
-     * The username of the user that initiated this process.
-     */
     private final String username;
-
-    /**
-     * The email address of the user that initiated this process.
-     */
     private final String userEmail;
 
     /**
      * Constructor of the defpi parameters object. Which sets all private fields
-     * @param orchestratorHost {@link #orchestratorHost}
-     * @param orchestratorPort {@link #orchestratorPort}
-     * @param orchestratorToken {@link #orchestratorToken}
-     * @param processId {@link #processId}
-     * @param userId {@link #userId}
-     * @param username {@link #username}
-     * @param userEmail {@link #userEmail}
+     *
+     * @param orchestratorHost {@link #getOrchestratorHost()}
+     * @param orchestratorPort {@link #getOrchestratorPort()}
+     * @param orchestratorToken {@link #getOrchestratorToken()}
+     * @param processId {@link #getProcessId()}
+     * @param userId {@link #getUserId()}
+     * @param username {@link #getUsername()}
+     * @param userEmail {@link #getUserEmail()}
      */
     public DefPiParameters(final String orchestratorHost,
             final int orchestratorPort,
@@ -87,49 +61,49 @@ public class DefPiParameters {
     }
 
     /**
-     * @return the orchestratorHost {@link #orchestratorHost}
+     * @return The hostname of the orchestrator that created the process.
      */
     public String getOrchestratorHost() {
         return this.orchestratorHost;
     }
 
     /**
-     * @return the orchestratorPort {@link #orchestratorPort}
+     * @return The port used to connect to the orchestrator to receive management messages.
      */
     public int getOrchestratorPort() {
         return this.orchestratorPort;
     }
 
     /**
-     * @return the orchestratorToken {@link #orchestratorToken}
+     * @return The authentication token used by the process to authenticate itself by the orchestrator.
      */
     public String getOrchestratorToken() {
         return this.orchestratorToken;
     }
 
     /**
-     * @return the processId {@link #processId}
+     * @return The process identifier of the currently running process.
      */
     public String getProcessId() {
         return this.processId;
     }
 
     /**
-     * @return the userId {@link #userId}
+     * @return The user identifier of the user who owns this process.
      */
     public String getUserId() {
         return this.userId;
     }
 
     /**
-     * @return the username {@link #username}
+     * @return The name of the user who owns this process.
      */
     public String getUsername() {
         return this.username;
     }
 
     /**
-     * @return the userEmail {@link #userEmail}
+     * @return The email address of the user who owns this process.
      */
     public String getUserEmail() {
         return this.userEmail;

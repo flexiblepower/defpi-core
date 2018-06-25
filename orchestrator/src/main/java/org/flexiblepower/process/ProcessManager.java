@@ -18,6 +18,7 @@
 package org.flexiblepower.process;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
@@ -36,7 +37,7 @@ import org.flexiblepower.orchestrator.UserManager;
 import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
 
 /**
- * ProcessManager
+ * The ProcessManager is used by the orchestrator to create, update and list the processes from different users.
  *
  * @version 0.1
  * @since May 29, 2017
@@ -45,23 +46,37 @@ import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
 public class ProcessManager {
 
     /**
-     *
+     * The environment variable that holds the hostname of the node that should serve the dashboard gateway.
+     * The default hostname is null, which means a random node is chosen.
      */
     public static final String DASHBOARD_GATEWAY_HOSTNAME_KEY = "DASHBOARD_GATEWAY_HOSTNAME";
-    public static final String DASHBOARD_GATEWAY_PORT_KEY = "DASHBOARD_GATEWAY_PORT";
-    public static final int DASHBOARD_GATEWAY_PORT_DFLT = 8080;
 
+    /**
+     * The environment variable that holds the port at which the dashboard gateway should be published
+     */
+    public static final String DASHBOARD_GATEWAY_PORT_KEY = "DASHBOARD_GATEWAY_PORT";
+    private static final int DASHBOARD_GATEWAY_PORT_DFLT = 8080;
+
+    /**
+     * The environment variable that holds service id of the dashboard gateway
+     */
     public static final String DASHBOARD_GATEWAY_SERVICE_ID_KEY = "DASHBOARD_GATEWAY_SERVICE_ID";
-    public static final String DASHBOARD_GATEWAY_SERVICE_ID_DFLT = "dashboard-gateway";
+    private static final String DASHBOARD_GATEWAY_SERVICE_ID_DFLT = "dashboard-gateway";
 
     private static ProcessManager instance = null;
 
     private final MongoDbConnector mongoDbConnector = MongoDbConnector.getInstance();
     private final UserManager userManager = UserManager.getInstance();
 
+    /*
+     * Empty private contructor for singleton design pattern
+     */
     private ProcessManager() {
     }
 
+    /**
+     * @return The singleton instance of the ProcessManager
+     */
     public synchronized static ProcessManager getInstance() {
         if (ProcessManager.instance == null) {
             ProcessManager.instance = new ProcessManager();
@@ -69,6 +84,14 @@ public class ProcessManager {
         return ProcessManager.instance;
     }
 
+    /**
+     * Returns the process that is stored in the database with the provided id, or throws an exception if no such
+     * process exists.
+     *
+     * @param processId The ID of the process to retrieve
+     * @return the process that has the provided id
+     * @throws ProcessNotFoundException When no such process exists
+     */
     public Process getProcess(final ObjectId processId) throws ProcessNotFoundException {
         final Process ret = this.mongoDbConnector.get(Process.class, processId);
         if (ret == null) {
@@ -81,26 +104,36 @@ public class ProcessManager {
      * @return List of processes of all users
      */
     public List<Process> listProcesses() {
-        return this.listProcesses(null);
+        return this.mongoDbConnector.list(Process.class);
     }
 
     /**
+     * @param owner The user who is the owner of the list of processes
      * @return List of processes of a specific user
      */
-    public List<Process> listProcesses(final User owner) {
-        if (owner == null) {
-            return this.mongoDbConnector.list(Process.class);
-        } else {
-            return this.mongoDbConnector.listProcessesForUser(owner);
-        }
+    public List<Process> listProcessesForUser(final User owner) {
+        return this.mongoDbConnector.listProcessesForUser(owner);
     }
 
+    /**
+     * Create a process according to the specified description. It must have at least the following fields:
+     * <ul>
+     * <li>User</li>
+     * <li>Service id</li>
+     * <li>Node allocation (either a private node or a nodepool)</li>
+     * </ul>
+     *
+     * @param process The (description of the) process to create
+     * @return The created process with a valid ObjectId.
+     */
     public Process createProcess(final Process process) {
         if (process.getId() != null) {
             throw new IllegalArgumentException("A new process cannot have an identifier");
         }
         this.validateProcess(process);
 
+        // Create a random token for this process
+        process.setToken(UUID.randomUUID().toString());
         // Save with starting state and save
         process.setState(ProcessState.STARTING);
         MongoDbConnector.getInstance().save(process);
@@ -111,10 +144,40 @@ public class ProcessManager {
         return process;
     }
 
+    /**
+     * Check if a process is created that acts as the dashboard gateway
+     *
+     * @return Whether a process with the service id specified in the {@value #DASHBOARD_GATEWAY_SERVICE_ID_KEY} exists
+     */
     public boolean dashboardGatewayExists() {
         return this.getDashboardGateway() != null;
     }
 
+    /**
+     * Get the port number where the dashboard gateway should be published
+     *
+     * @return The number of the port as specified in {@value #DASHBOARD_GATEWAY_PORT_KEY} or if that is not set, the
+     *         default port
+     */
+    public static int getDashboardGatewayPort() {
+        final String portFromEnv = System.getenv(ProcessManager.DASHBOARD_GATEWAY_PORT_KEY);
+        final int defaultPort = ProcessManager.DASHBOARD_GATEWAY_PORT_DFLT;
+        if (portFromEnv != null) {
+            try {
+                return Integer.parseInt(portFromEnv);
+            } catch (final NumberFormatException e) {
+                // We keep it at the default
+            }
+        }
+        return defaultPort;
+    }
+
+    /**
+     * Get the service id of the dashboard gateway
+     *
+     * @return The id of the service as specified in {@value #DASHBOARD_GATEWAY_SERVICE_ID_KEY} or if that is not set,
+     *         the default service id
+     */
     public static String getDashboardGatewayServiceId() {
         final String gatewayService = System.getenv(ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID_KEY);
         if (gatewayService == null) {
@@ -124,6 +187,11 @@ public class ProcessManager {
         }
     }
 
+    /**
+     * Get the process that currently acts as the dashboard gateway, or null if no such process exists
+     *
+     * @return The process with the service id specified in the {@value #DASHBOARD_GATEWAY_SERVICE_ID_KEY}
+     */
     public Process getDashboardGateway() {
         for (final Process p : this.listProcesses()) {
             if (p.getServiceId().equals(ProcessManager.getDashboardGatewayServiceId())) {
@@ -134,8 +202,11 @@ public class ProcessManager {
     }
 
     /**
-     * @param process
-     * @throws
+     * Make sure the process is validate for creation or updating. Checks the required fields, and throws an exception
+     * if the process is invalid.
+     *
+     * @param process The process to validate
+     * @throws IllegalArgumentException when required fields are missing, or referenced objectIds are not found
      */
     private void validateProcess(final Process process) {
         // Validate user
@@ -195,7 +266,13 @@ public class ProcessManager {
         }
     }
 
-    public void deleteProcess(final Process process) throws ProcessNotFoundException {
+    /**
+     * Delete the process from the dEF-Pi environment. This is done by first removing all connections, then terminating
+     * the process, and finally removing it from the database.
+     *
+     * @param process The process to delete
+     */
+    public void deleteProcess(final Process process) {
         ConnectionManager.getInstance().deleteConnectionsForProcess(process);
 
         // Start two pendingchanges. The first one has a delay of 2000ms and the second one has a delay of 5000ms.
@@ -203,6 +280,15 @@ public class ProcessManager {
         PendingChangeManager.getInstance().submit(new TerminateProcess.RemoveDockerService(process));
     }
 
+    /**
+     * Update a process according to the specified description. It must have an objectId which points to an existing
+     * process. Note that a process cannot be assigned to a different user, and this function will throw an exception if
+     * this is attempted.
+     *
+     * @param newProcess The (description of the) process to update
+     * @throws IllegalArgumentException if the updated process is invalid, or has a different user than the original
+     *                                      process.
+     */
     public void updateProcess(final Process newProcess) {
         this.validateProcess(newProcess);
 
@@ -239,7 +325,6 @@ public class ProcessManager {
     /**
      * @param currentProcess
      * @param newProcess
-     * @return
      */
     private void moveProcess(final Process currentProcess, final Process newProcess) {
         final PendingChangeManager pcm = PendingChangeManager.getInstance();
@@ -257,9 +342,10 @@ public class ProcessManager {
     }
 
     /**
-     * @param process
-     * @param newConfiguration
-     * @return
+     * Update the configuration for a process
+     *
+     * @param process          The process to update
+     * @param newConfiguration A list of parameters representing the new configuration
      */
     private void updateConfiguration(final Process process, final List<ProcessParameter> newConfiguration) {
         final ChangeProcessConfiguration pendingChange = new ChangeProcessConfiguration(process, newConfiguration);
@@ -267,15 +353,33 @@ public class ProcessManager {
     }
 
     /**
-     * @param currentProcess
+     * Trigger a process by sending its configuration and/or connections.
+     *
+     * @param process The process to trigger
      */
     public void triggerConfig(final Process process) {
-        final PendingChangeManager pcm = PendingChangeManager.getInstance();
-        pcm.submit(new CreateProcess.SendConfiguration(process));
+        final Process currentProcess = MongoDbConnector.getInstance().get(Process.class, process.getId());
+        currentProcess.setState(ProcessState.INITIALIZING);
+        MongoDbConnector.getInstance().save(currentProcess);
 
-        for (final Connection c : ConnectionManager.getInstance().getConnectionsForProcess(process)) {
-            pcm.submit(new CreateConnectionEndpoint(process.getUserId(), c, c.getEndpointForProcess(process)));
+        final PendingChangeManager pcm = PendingChangeManager.getInstance();
+        pcm.submit(new CreateProcess.SendConfiguration(currentProcess));
+
+        for (final Connection c : ConnectionManager.getInstance().getConnectionsForProcess(currentProcess)) {
+            pcm.submit(new CreateConnectionEndpoint(currentProcess.getUserId(),
+                    c,
+                    c.getEndpointForProcess(currentProcess)));
         }
+    }
+
+    /**
+     * Find a process that is identified by a token.
+     *
+     * @param token the token that should uniquely identify this process
+     * @return The process that is identified by this token.
+     */
+    public Process getProcessByToken(final String token) {
+        return this.mongoDbConnector.getProcessByToken(token);
     }
 
 }

@@ -26,6 +26,8 @@ import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 /**
@@ -35,7 +37,8 @@ import org.junit.runners.Parameterized.Parameters;
  * @version 0.1
  * @since Nov 6, 2017
  */
-@SuppressWarnings("static-method")
+@SuppressWarnings({"static-method", "javadoc"})
+@RunWith(Parameterized.class)
 public class MultipleFailureTest {
 
     /**
@@ -58,7 +61,6 @@ public class MultipleFailureTest {
         ConnectionIntegrationTest.counter = 1;
         ServiceExecutor.getInstance().shutDown();
         Thread.sleep(MultipleFailureTest.WAIT_AFTER_CONNECT);
-        // System.out.println("Alles weer schoon!");
     }
 
     @Test
@@ -82,7 +84,7 @@ public class MultipleFailureTest {
                             "",
                             "",
                             "")) {
-                mc1.waitUntilConnected(0);
+                mc1.waitUntilConnected();
                 Thread.sleep(MultipleFailureTest.WAIT_AFTER_CONNECT);
 
                 Assert.assertNotNull(TestHandler.handlerMap.get("h1"));
@@ -103,8 +105,8 @@ public class MultipleFailureTest {
 
                     // Should fix itself...
                     Thread.sleep(MultipleFailureTest.WAIT_AFTER_CONNECT);
-                    mc1.waitUntilConnected(0);
-                    mc2.waitUntilConnected(0);
+                    mc1.waitUntilConnected();
+                    mc2.waitUntilConnected();
                     Assert.assertEquals("resume-interrupted", TestHandler.handlerMap.get("h1").state);
                     Assert.assertEquals("resume-interrupted", TestHandler.handlerMap.get("h2").state);
 
@@ -122,8 +124,8 @@ public class MultipleFailureTest {
                         mc2.goToResumedState(MultipleFailureTest.TEST_PORT, "");
                     }
                     Thread.sleep(MultipleFailureTest.WAIT_AFTER_CONNECT);
-                    mc1.waitUntilConnected(0);
-                    mc2.waitUntilConnected(0);
+                    mc1.waitUntilConnected();
+                    mc2.waitUntilConnected();
 
                     Assert.assertEquals("resume-suspended", TestHandler.handlerMap.get("h1").state);
                     Assert.assertEquals("resume-suspended", TestHandler.handlerMap.get("h2").state);

@@ -26,7 +26,7 @@ import javax.ws.rs.container.ContainerResponseFilter;
 import javax.ws.rs.core.MultivaluedMap;
 
 /**
- *         Make sure the REST API allows requests from other domains
+ * Make sure the REST API allows requests from other domains
  */
 public class CORSResponseFilter implements ContainerResponseFilter {
 
@@ -39,6 +39,7 @@ public class CORSResponseFilter implements ContainerResponseFilter {
         headers.add("Access-Control-Allow-Origin", "*");
         headers.add("Access-Control-Allow-Methods", "GET, POST, DELETE, PUT");
         headers.add("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, authorization");
+        headers.add("Access-Control-Expose-Headers", TotalCountFilter.HEADER_NAME);
     }
 
 }

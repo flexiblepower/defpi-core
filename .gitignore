@@ -11,6 +11,8 @@ RemoteSystemsTempFiles
 Servers/
 .project
 .classpath
+.idea
+*.iml
 sandbox
 pom.xml.versionsBackup
 

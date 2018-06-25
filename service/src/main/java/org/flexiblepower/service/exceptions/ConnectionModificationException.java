@@ -25,11 +25,13 @@ package org.flexiblepower.service.exceptions;
  */
 public class ConnectionModificationException extends Exception {
 
-    /**
-     *
-     */
     private static final long serialVersionUID = 958964594712473423L;
 
+    /**
+     * Create a ConnectionModificationException with a custom message
+     *
+     * @param msg the message to add to the exception {@link Exception#getMessage()}
+     */
     public ConnectionModificationException(final String msg) {
         super(msg);
     }

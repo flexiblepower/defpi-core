@@ -17,12 +17,6 @@
  */
 package org.flexiblepower.codegen.model;
 
-/**
- * InterfaceVersionDescription
- *
- * @version 0.1
- * @since May 8, 2017
- */
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +32,12 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * InterfaceVersionDescription
+ *
+ * @version 0.1
+ * @since May 8, 2017
+ */
 @Getter
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({"versionName", "type", "location", "sends", "receives"})
@@ -65,14 +65,14 @@ public class InterfaceVersionDescription {
      * (Required)
      */
     @JsonProperty("sends")
-    @JsonDeserialize(as = java.util.LinkedHashSet.class)
+    @JsonDeserialize(as = java.util.TreeSet.class)
     private final Set<String> sends = null;
 
     /**
      * (Required)
      */
     @JsonProperty("receives")
-    @JsonDeserialize(as = java.util.LinkedHashSet.class)
+    @JsonDeserialize(as = java.util.TreeSet.class)
     private final Set<String> receives = null;
 
     @Setter
@@ -83,9 +83,22 @@ public class InterfaceVersionDescription {
     @JsonIgnore
     private String modelPackageName = null;
 
+    /**
+     * The type of descriptor for the interface version. In the current implementation this is either XSD or PROTO, but
+     * may be extended in the future.
+     *
+     * @version 0.1
+     * @since May 8, 2017
+     */
     public enum Type {
 
+        /**
+         * XML Schema Definition descriptor type
+         */
         XSD("xsd"),
+        /**
+         * Google Protobuf descriptor type
+         */
         PROTO("proto");
 
         private final String value;
@@ -106,11 +119,20 @@ public class InterfaceVersionDescription {
             return this.value;
         }
 
+        /**
+         * @return The value of the type
+         */
         @JsonValue
         public String value() {
             return this.value;
         }
 
+        /**
+         * Get the enum type from a string representation of the value
+         *
+         * @param value The value to get the Type of
+         * @return A enum Type that represents the provided value
+         */
         @JsonCreator
         public static InterfaceVersionDescription.Type fromValue(final String value) {
             final InterfaceVersionDescription.Type constant = Type.CONSTANTS.get(value);

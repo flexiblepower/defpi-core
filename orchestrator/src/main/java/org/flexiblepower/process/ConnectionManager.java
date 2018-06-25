@@ -25,7 +25,6 @@ import java.util.Random;
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.exceptions.ConnectionException;
-import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
@@ -56,6 +55,9 @@ public class ConnectionManager {
         // Private constructor
     }
 
+    /**
+     * @return the singleton instance of the ConnectionManager
+     */
     public synchronized static ConnectionManager getInstance() {
         if (ConnectionManager.instance == null) {
             ConnectionManager.instance = new ConnectionManager();
@@ -73,33 +75,20 @@ public class ConnectionManager {
     /**
      * Returns the connection that is stored in the database with the provided id, or null if no such connection exists.
      *
-     * @param connectionId
+     * @param connectionId The ID of the connection to retrieve
      * @return the connection that has the provided id, or null
-     * @throws InvalidObjectIdException
      */
     public Connection getConnection(final ObjectId connectionId) {
         return MongoDbConnector.getInstance().get(Connection.class, connectionId);
     }
 
     /**
-     * Removes the connection that is stored in the database with the provided id
-     *
-     * @param connectionId
-     * @return the connection that has the provided id, or null
-     * @throws InvalidObjectIdException
-     */
-    public void deleteConnection(final Connection connection) {
-        MongoDbConnector.getInstance().delete(connection);
-    }
-
-    /**
      * Insert the provided connection in the database.
      *
-     * @param connection
-     * @return the id of the newly inserted connection
-     * @throws ServiceNotFoundException
-     * @throws ProcessNotFoundException
-     * @throws ConnectionException
+     * @param connection The connection to create
+     * @throws ServiceNotFoundException If the interface used in the connection cannot be found
+     * @throws ProcessNotFoundException If the process referenced to in the connection cannot be found
+     * @throws ConnectionException If the connection fails to be created, for instance because it already exists
      */
     public void createConnection(final Connection connection) throws ProcessNotFoundException,
             ServiceNotFoundException,
@@ -227,34 +216,32 @@ public class ConnectionManager {
     /**
      * Removes the connection that has the provided id from the database.
      *
-     * @param connection
-     * @throws ProcessNotFoundException
-     * @throws InvalidObjectIdException
+     * @param connection The connection to remove
+     * @param userId The ObjectId of the user that removes the connection
      */
-    public void terminateConnection(final Connection connection) throws ProcessNotFoundException {
-        final Process process1 = ProcessManager.getInstance().getProcess(connection.getEndpoint1().getProcessId());
-
+    public void terminateConnection(final Connection connection, final ObjectId userId) {
         PendingChangeManager.getInstance()
-                .submit(new TerminateConnection(process1.getUserId(), connection, connection.getEndpoint1()));
+                .submit(new TerminateConnection(userId, connection, connection.getEndpoint1()));
         PendingChangeManager.getInstance()
-                .submit(new TerminateConnection(process1.getUserId(), connection, connection.getEndpoint2()));
+                .submit(new TerminateConnection(userId, connection, connection.getEndpoint2()));
 
         MongoDbConnector.getInstance().delete(connection);
     }
 
     /**
-     * @return a list of all connections that are connected to the process with the provided id
+     * @param process The process to get all connections from
+     * @return A list of all connections that are connected to the process with the provided id
      */
     public List<Connection> getConnectionsForProcess(final Process process) {
         return MongoDbConnector.getInstance().getConnectionsForProcess(process);
     }
 
     /**
-     * @param sessionUser
-     * @return
+     * @param user The User to get all connections from
+     * @return A list of all connections that belong to the provided user.
      */
     public List<Connection> getConnectionsForUser(final User user) {
-        final List<Process> processes = ProcessManager.getInstance().listProcesses(user);
+        final List<Process> processes = ProcessManager.getInstance().listProcessesForUser(user);
         final List<Connection> ret = new ArrayList<>();
 
         for (final Process p : processes) {
@@ -266,15 +253,20 @@ public class ConnectionManager {
     /**
      * Removes all connections that are connected to the process with the provided id from the database.
      *
-     * @param process
-     * @throws ProcessNotFoundException
+     * @param process the process to delete all connections from
      */
-    public synchronized void deleteConnectionsForProcess(final Process process) throws ProcessNotFoundException {
+    public synchronized void deleteConnectionsForProcess(final Process process) {
         for (final Connection connection : this.getConnectionsForProcess(process)) {
-            this.terminateConnection(connection);
+            this.terminateConnection(connection, process.getUserId());
         }
     }
 
+    /**
+     * Create automatic connections for a process if there are any.
+     *
+     * @param process The process to automatically connect
+     * @throws ServiceNotFoundException If the service implemented by the process cannot be found
+     */
     public void createAutoConnectConnections(final Process process) throws ServiceNotFoundException {
         final Service service = ServiceManager.getInstance().getService(process.getServiceId());
         final User user = UserManager.getInstance().getUser(process.getUserId());
@@ -288,7 +280,7 @@ public class ConnectionManager {
                     processesToConnectWith = ProcessManager.getInstance().listProcesses();
                 } else {
                     // This is a normal process. It can connect with processes of this user.
-                    processesToConnectWith = ProcessManager.getInstance().listProcesses(user);
+                    processesToConnectWith = ProcessManager.getInstance().listProcessesForUser(user);
                 }
                 if (dashboardGateway != null) {
                     // If there is a dashboard-gateway, that is also a process that could be connected
@@ -322,6 +314,9 @@ public class ConnectionManager {
                                 } catch (final ConnectionException e) {
                                     // This new connection violates one of the constraints. So its not suited for
                                     // autoconnect, no problem...
+                                    ConnectionManager.log.debug("Exception while creating automatic connection: {}",
+                                            e.getMessage());
+                                    ConnectionManager.log.trace(e.getMessage(), e);
                                 }
                             }
                         }

@@ -25,15 +25,20 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.flexiblepower.exceptions.ApiException;
-import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Architecture;
 import org.flexiblepower.model.Node;
 import org.flexiblepower.model.NodePool;
 import org.flexiblepower.model.Process;
+import org.flexiblepower.model.Process.ExposePort;
 import org.flexiblepower.model.Process.MountPoint;
 import org.flexiblepower.model.PublicNode;
 import org.flexiblepower.model.Service;
@@ -51,6 +56,7 @@ import com.spotify.docker.client.DockerClient.ListNetworksParam;
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.ContainerInfo;
+import com.spotify.docker.client.messages.Network;
 import com.spotify.docker.client.messages.NetworkConfig;
 import com.spotify.docker.client.messages.ServiceCreateResponse;
 import com.spotify.docker.client.messages.mount.Mount;
@@ -64,6 +70,8 @@ import com.spotify.docker.client.messages.swarm.PortConfig.PortConfigPublishMode
 import com.spotify.docker.client.messages.swarm.ResourceRequirements;
 import com.spotify.docker.client.messages.swarm.Resources;
 import com.spotify.docker.client.messages.swarm.ServiceSpec;
+import com.spotify.docker.client.messages.swarm.Task;
+import com.spotify.docker.client.messages.swarm.Task.Criteria;
 import com.spotify.docker.client.messages.swarm.TaskSpec;
 
 import lombok.extern.slf4j.Slf4j;
@@ -77,30 +85,53 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DockerConnector {
 
-    private static final int INTERNAL_DEBUGGING_PORT = 8000;
+    /*
+     * Settings to be used by the docker client itself.
+     */
+    private static final String DOCKER_HOST_KEY = "DOCKER_HOST";
+    private static final int DOCKER_WRITE_TIMEOUT_MILLIS = 35000;
+    private static final long DOCKER_CLIENT_TIMEOUT = 30000;
 
+    /*
+     * The following keys are environment variables that are put in the docker file by the maven build plugin
+     */
     private static final String BUILD_TIMESTAMP_KEY = "BUILD_TIMESTAMP";
     private static final String BUILD_USER_KEY = "BUILD_USER";
     private static final String GIT_BRANCH = "GIT_BRANCH";
     private static final String GIT_COMMIT = "GIT_COMMIT";
     private static final String GIT_LOG = "GIT_LOG";
-    private static final String DOCKER_HOST_KEY = "DOCKER_HOST";
 
+    /*
+     * The following labels are added to the user processes that are built by the orchestrator
+     */
     private static final String SERVICE_LABEL_KEY = "service.name";
     private static final String USER_LABEL_KEY = "user.id";
     private static final String NODE_ID_LABEL_KEY = "node.id";
 
+    private static final int INTERNAL_DEBUGGING_PORT = 8000;
+
     private static DockerConnector instance = null;
 
-    private final Object createNetLock = new Object();
+    // private final Map<ObjectId, Object> netLocks = new ConcurrentHashMap<>();
+    // private final Object createNetLock = new Object();
     private DockerClient client;
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
-    public static DockerClient init() throws DockerCertificateException {
+    private static int nodepicker = 0;
+
+    private static DockerClient init() throws DockerCertificateException {
         final String dockerHost = System.getenv(DockerConnector.DOCKER_HOST_KEY);
         if (dockerHost == null) {
-            return DefaultDockerClient.fromEnv().build();
+            return DefaultDockerClient.fromEnv()
+                    .readTimeoutMillis(DockerConnector.DOCKER_CLIENT_TIMEOUT)
+                    .connectTimeoutMillis(DockerConnector.DOCKER_CLIENT_TIMEOUT)
+                    .build();
         } else {
-            return DefaultDockerClient.builder().uri(dockerHost).build();
+            return DefaultDockerClient.builder()
+                    .uri(dockerHost)
+                    .readTimeoutMillis(DockerConnector.DOCKER_CLIENT_TIMEOUT)
+                    .connectTimeoutMillis(DockerConnector.DOCKER_CLIENT_TIMEOUT)
+                    .build();
         }
     }
 
@@ -112,6 +143,19 @@ public class DockerConnector {
         }
     }
 
+    /**
+     * Private destructor, is only closed after docker exception to make sure we will make a new client
+     */
+    private static synchronized void destroy(final String msg, final Throwable cause) {
+        // this.client.close();
+        DockerConnector.log.error("{}: {}", msg, cause.getMessage());
+        DockerConnector.log.trace(cause.getMessage(), cause);
+        // DockerConnector.instance = null;
+    }
+
+    /**
+     * @return The singleton instance of the DockerConnector
+     */
     public synchronized static DockerConnector getInstance() {
         if (DockerConnector.instance == null) {
             DockerConnector.instance = new DockerConnector();
@@ -120,115 +164,137 @@ public class DockerConnector {
     }
 
     /**
-     * @param json
-     * @return
-     * @throws ServiceNotFoundException
+     * @param process The process to create a new docker service for
+     * @return The id of the docker service that is created
+     * @throws ServiceNotFoundException When the docker image cannot be found
      */
     public String newProcess(final Process process) throws ServiceNotFoundException {
         try {
-            synchronized (this.createNetLock) {
-                this.ensureProcessNetworkExists(process);
-                this.ensureProcessNetworkIsAttached(process);
+            final List<com.spotify.docker.client.messages.swarm.Service> serviceList = this.runOrTimeout(
+                    () -> this.client.listServices(com.spotify.docker.client.messages.swarm.Service.Criteria.builder()
+                            .serviceName(DockerConnector.getDockerServiceNameForProcess(process))
+                            .build()));
+            if (!serviceList.isEmpty()) {
+                // It already exists! Apparently we are success
+                return serviceList.get(0).id();
             }
 
+            // if (!this.netLocks.containsKey(process.getUserId())) {
+            // this.netLocks.put(process.getUserId(), new Object());
+            // }
+            // // Synchronize by user to avoid many deadlocks
+            // synchronized (this.netLocks.get(process.getUserId())) {
+            this.ensureProcessNetworkExists(process);
+            this.ensureProcessNetworkIsAttached(process);
+            // }
+
             final Service service = ServiceManager.getInstance().getService(process.getServiceId());
-            Node node = DockerConnector.determineRunningNode(process);
+            final Node node = DockerConnector.determineRunningNode(process);
+            process.setRunningNodeId(node.getId());
 
             ServiceSpec serviceSpec;
             if (process.getServiceId().equals(ProcessManager.getDashboardGatewayServiceId())) {
-                // if this is the dashboard, it should be added to all user networks
-                final List<String> networks = new ArrayList<>();
-
-                final String dashboardNodeName = System.getenv(ProcessManager.DASHBOARD_GATEWAY_HOSTNAME_KEY);
-                if (dashboardNodeName == null) {
-                    DockerConnector.log.warn(
-                            "No dashboard gateway host is specified, running on {}."
-                                    + " To alter this behavior specify the system environment variable {}",
-                            node.getHostname(),
-                            ProcessManager.DASHBOARD_GATEWAY_HOSTNAME_KEY);
-                } else {
-                    final Node manuallySpecifiedNode = NodeManager.getInstance().getNodeByHostname(dashboardNodeName);
-                    if (manuallySpecifiedNode == null) {
-                        DockerConnector.log.warn(
-                                "Could not find node with hostname %s, instead dashboard gateway will run on {}.",
-                                dashboardNodeName,
-                                node.getHostname());
-                    }
-                    node = manuallySpecifiedNode;
-                }
-
-                for (final User u : UserManager.getInstance().getUsers()) {
-                    this.ensureUserNetworkExists(u);
-                    networks.add(DockerConnector.getNetworkNameFromUser(u));
-                }
-                serviceSpec = DockerConnector.createServiceSpec(process, service, node, networks);
+                serviceSpec = this.createDashBoardGatewayProcess(process, service, node);
             } else {
                 serviceSpec = DockerConnector.createServiceSpec(process, service, node);
             }
-            final String id = this.client.createService(serviceSpec).id();
+            final String id = this.runOrTimeout(() -> this.client.createService(serviceSpec).id());
             DockerConnector.log.info("Created process with Id {}", id);
 
             return id;
         } catch (DockerException | InterruptedException e) {
-            DockerConnector.log.error("Exception while starting new process: {}", e.getMessage());
-            DockerConnector.log.trace(e.getMessage(), e);
-            DockerConnector.instance = null;
+            DockerConnector.destroy("Exception while starting new process", e);
             return null;
         }
     }
 
-    /**
-     * @param uuid
-     * @return
-     * @throws ProcessNotFoundException
-     * @throws ServiceNotFoundException
-     */
-    public boolean removeProcess(final Process process) throws ProcessNotFoundException {
-        if (process.getDockerId() != null) {
-            try {
-                this.client.removeService(process.getDockerId());
-                return true;
-            } catch (final com.spotify.docker.client.exceptions.ServiceNotFoundException e) {
-                throw new ProcessNotFoundException(process.getId());
-            } catch (DockerException | InterruptedException e) {
-                DockerConnector.log.error("Error while removing process: {}", e.getMessage());
-                DockerConnector.instance = null;
-            }
+    private ServiceSpec
+            createDashBoardGatewayProcess(final Process process, final Service service, final Node randomNode)
+                    throws DockerException,
+                    InterruptedException {
+        // This is the dashboard, it should be added to all user networks
+        final List<String> networks = new ArrayList<>();
+
+        final String dashboardNodeName = System.getenv(ProcessManager.DASHBOARD_GATEWAY_HOSTNAME_KEY);
+        Node targetNode = randomNode;
+        if (dashboardNodeName == null) {
+            DockerConnector.log.warn(
+                    "No dashboard gateway host is specified, running on {}."
+                            + " To alter this behavior specify the system environment variable {}",
+                    randomNode.getHostname(),
+                    ProcessManager.DASHBOARD_GATEWAY_HOSTNAME_KEY);
         } else {
+            final Node manuallySpecifiedNode = NodeManager.getInstance().getNodeByHostname(dashboardNodeName);
+            if (manuallySpecifiedNode == null) {
+                DockerConnector.log.warn(
+                        "Could not find node with hostname %s, instead dashboard gateway will run on {}.",
+                        dashboardNodeName,
+                        randomNode.getHostname());
+            }
+            targetNode = manuallySpecifiedNode;
+        }
+
+        for (final User u : UserManager.getInstance().getUsers()) {
+            this.ensureUserNetworkExists(u);
+            networks.add(DockerConnector.getNetworkNameFromUser(u));
+        }
+
+        return DockerConnector.createServiceSpec(process, service, targetNode, networks);
+    }
+
+    /**
+     * @param process The process to remove
+     * @return Whether the docker service is succesfully removed, or more precise, if by the end of calling this
+     *         function the service is gone
+     */
+    public boolean removeProcess(final Process process) {
+        if (process.getDockerId() == null) {
             // Container was probably never created
             return true;
         }
+
+        try {
+            return this.runOrTimeout(() -> {
+                this.client.removeService(process.getDockerId());
+                return true;
+            });
+        } catch (final InterruptedException | DockerException e) {
+            DockerConnector.destroy("Error while removing process", e);
+        }
+
         return false;
     }
 
     /**
-     * @return
+     * @return A list of docker nodes in the swarm
      */
     public List<com.spotify.docker.client.messages.swarm.Node> listNodes() {
         try {
-            return this.client.listNodes();
+            return this.runOrTimeout(() -> this.client.listNodes());
         } catch (DockerException | InterruptedException e) {
-            DockerConnector.log.error("Error while listing nodes: {}", e.getMessage());
-            DockerConnector.log.trace("Error while listing nodes", e);
-            DockerConnector.instance = null;
+            DockerConnector.destroy("Error while listing nodes", e);
             throw new ApiException(e);
         }
     }
 
     private void ensureProcessNetworkExists(final Process process) throws DockerException, InterruptedException {
         final String networkName = DockerConnector.getNetworkNameFromProcess(process);
+        final List<Network> networks = this
+                .runOrTimeout(() -> this.client.listNetworks(ListNetworksParam.byNetworkName(networkName)));
+
         // check if it exists
-        if (this.client.listNetworks(ListNetworksParam.byNetworkName(networkName)).isEmpty()) {
-            // if (!this.listNetworks().values().contains(networkName)) {
+        if (networks.isEmpty()) {
             this.newNetwork(networkName);
         }
     }
 
     private void ensureUserNetworkExists(final User user) throws DockerException, InterruptedException {
         final String networkName = DockerConnector.getNetworkNameFromUser(user);
+        final List<Network> networks = this
+                .runOrTimeout(() -> this.client.listNetworks(ListNetworksParam.byNetworkName(networkName)));
+
         // check if it exists
-        if (this.client.listNetworks(ListNetworksParam.byNetworkName(networkName)).isEmpty()) {
-            // if (!this.listNetworks().values().contains(networkName)) {
+        if (networks.isEmpty()) {
             this.newNetwork(networkName);
         }
     }
@@ -242,26 +308,30 @@ public class DockerConnector {
     }
 
     /**
-     * And connect to the new network
+     * Make sure the process and the orchestrator share a network. The process belongs to a user, who has a private
+     * network, and the orchestrator is added to this network in runtime.
      *
-     * @param networkName the name of the network to attach to
-     * @throws InterruptedException
-     * @throws DockerException
+     * @param process the process which we want to make sure is in an attached network
+     * @throws InterruptedException If an  interruption occurs before the docker client was able to get the required info
+     * @throws DockerException      If an  exception occurs in the docker client
      */
-    public void ensureProcessNetworkIsAttached(final Process process) throws InterruptedException, DockerException {
+    public void ensureProcessNetworkIsAttached(final Process process) throws DockerException, InterruptedException {
         try {
             final String newProcessNetworkName = DockerConnector.getNetworkNameFromProcess(process);
-            final String networkId = this.client.listNetworks(ListNetworksParam.byNetworkName(newProcessNetworkName))
-                    .get(0)
-                    .id();
+            final String networkId = this.runOrTimeout(
+                    () -> this.client.listNetworks(ListNetworksParam.byNetworkName(newProcessNetworkName)).get(0).id());
 
             // Connect orchestrator to network
             final String orchestratorContainerId = DockerConnector.getOrchestratorContainerId();
             final ContainerInfo orchestratorInfo = this.client.inspectContainer(orchestratorContainerId);
             if (!orchestratorInfo.networkSettings().networks().containsKey(newProcessNetworkName)) {
                 DockerConnector.log.info("Connecting {} to network {}", orchestratorContainerId, newProcessNetworkName);
-                this.client.connectToNetwork(orchestratorContainerId, newProcessNetworkName);
+                this.runOrTimeout(() -> {
+                    this.client.connectToNetwork(orchestratorContainerId, newProcessNetworkName);
+                    return true;
+                });
             }
+
             // Connect dashboard gateway to network
             final Process dashboardGateway = ProcessManager.getInstance().getDashboardGateway();
             if (dashboardGateway != null) {
@@ -271,7 +341,7 @@ public class DockerConnector {
                             .inspectService(dockerServiceId);
                     for (final NetworkAttachmentConfig network : dashboardInfo.spec().networks()) {
                         if (network.target().equals(networkId)) {
-                            // It is already atteched, we're done here!
+                            // It is already attached, we're done here!
                             return;
                         }
                     }
@@ -280,7 +350,7 @@ public class DockerConnector {
                 }
             }
         } catch (DockerException | InterruptedException e) {
-            DockerConnector.instance = null;
+            DockerConnector.destroy("Exception attaching process", e);
             throw e;
         }
     }
@@ -292,19 +362,20 @@ public class DockerConnector {
         for (final User u : UserManager.getInstance().getUsers()) {
             networks.add(DockerConnector.getNetworkNameFromUser(u));
         }
-        try {
+
+        this.runOrTimeout(() -> {
             this.client.removeService(dashboardGateway.getDockerId());
-            final ServiceCreateResponse newId = this.client
-                    .createService(DockerConnector.createServiceSpec(dashboardGateway,
-                            ServiceManager.getInstance().getService(dashboardGateway.getServiceId()),
-                            DockerConnector.determineRunningNode(process),
-                            networks));
-            dashboardGateway.setDockerId(newId.id());
-            MongoDbConnector.getInstance().save(dashboardGateway);
-        } catch (final ServiceNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+            return true;
+        });
+
+        final ServiceCreateResponse newId = this
+                .runOrTimeout(() -> this.client.createService(DockerConnector.createServiceSpec(dashboardGateway,
+                        ServiceManager.getInstance().getService(dashboardGateway.getServiceId()),
+                        DockerConnector.determineRunningNode(process),
+                        networks)));
+
+        dashboardGateway.setDockerId(newId.id());
+        MongoDbConnector.getInstance().save(dashboardGateway);
     }
 
     /**
@@ -334,7 +405,7 @@ public class DockerConnector {
                 .attachable(true)
                 .name(networkName)
                 .build();
-        return this.client.createNetwork(networkConfig).id();
+        return this.runOrTimeout(() -> this.client.createNetwork(networkConfig).id());
     }
 
     /**
@@ -344,8 +415,15 @@ public class DockerConnector {
      */
     @SuppressWarnings("unused")
     private void removeNetwork(final String networkId) throws DockerException, InterruptedException {
-        this.client.disconnectFromNetwork(DockerConnector.getOrchestratorContainerId(), networkId);
-        this.client.removeNetwork(networkId);
+        this.runOrTimeout(() -> {
+            this.client.disconnectFromNetwork(DockerConnector.getOrchestratorContainerId(), networkId);
+            return true;
+        });
+
+        this.runOrTimeout(() -> {
+            this.client.removeNetwork(networkId);
+            return true;
+        });
     }
 
     private static Node determineRunningNode(final Process process) {
@@ -354,8 +432,22 @@ public class DockerConnector {
             // Get node from nodepool
             final NodePool nodePool = nm.getNodePool(process.getNodePoolId());
             final List<PublicNode> nodes = nm.getPublicNodesInNodePool(nodePool);
-            final Random r = new Random();
-            return nodes.get(r.nextInt(nodes.size()));
+
+            // First try to find any process that is already running on one of these nodes
+            final List<Process> otherProcesses = ProcessManager.getInstance()
+                    .listProcessesForUser(UserManager.getInstance().getUser(process.getUserId()));
+            for (final Process p : otherProcesses) {
+                // First check if the process HAS a running node
+                if (p.getRunningNodeId() != null) {
+                    final Node otherNode = nm.getPublicNode(p.getRunningNodeId());
+                    if ((otherNode != null) && nodes.contains(otherNode)) {
+                        return otherNode;
+                    }
+                }
+            }
+
+            // If no other process running on a node, do round-robin on all nodes
+            return nodes.get(DockerConnector.nodepicker++ % nodes.size());
         } else {
             // get Private node
             return nm.getPrivateNode(process.getPrivateNodeId());
@@ -387,10 +479,7 @@ public class DockerConnector {
             final List<String> networks) {
 
         final Architecture architecture = node.getArchitecture();
-        // Create a name for the service by removing blanks from process name
-        // String serviceName = service.getName() + UUID.randomUUID().getLeastSignificantBits();
-        // serviceName = serviceName.replaceAll("\\h", "");
-        final String serviceName = process.getId().toString();
+        final String serviceName = DockerConnector.getDockerServiceNameForProcess(process);
 
         // Create labels to add to the container
         final Map<String, String> serviceLabels = new HashMap<>();
@@ -422,17 +511,20 @@ public class DockerConnector {
                     .build());
         }
 
+        // Check if ports need to be exposed
+        if (process.getExposePorts() != null) {
+            for (final ExposePort exposePort : process.getExposePorts()) {
+                endpointSpec.addPort(PortConfig.builder()
+                        .publishedPort(exposePort.getExternal())
+                        .targetPort(exposePort.getInternal())
+                        .publishMode(PortConfigPublishMode.HOST)
+                        .build());
+            }
+        }
+
         // If this is the dashboard gateway, open up the port that is configured in the environment var
         if (process.getServiceId().equals(ProcessManager.getDashboardGatewayServiceId())) {
-            int port = ProcessManager.DASHBOARD_GATEWAY_PORT_DFLT;
-            final String portFromEnv = System.getenv(ProcessManager.DASHBOARD_GATEWAY_PORT_KEY);
-            if (portFromEnv != null) {
-                try {
-                    port = Integer.parseInt(portFromEnv);
-                } catch (final NumberFormatException e) {
-                    // We keep it at the default
-                }
-            }
+            final int port = ProcessManager.getDashboardGatewayPort();
             endpointSpec.addPort(PortConfig.builder()
                     .publishedPort(port)
                     .targetPort(8080)
@@ -473,8 +565,7 @@ public class DockerConnector {
             ProcessConnector.log.error("Could not obtain hostame", e);
         }
         envArgs.put(DefPiParams.ORCHESTRATOR_PORT.name(), Integer.toString(Main.URI_PORT));
-        envArgs.put(DefPiParams.ORCHESTRATOR_TOKEN.name(),
-                UserManager.getInstance().getUser(process.getUserId()).getAuthenticationToken());
+        envArgs.put(DefPiParams.ORCHESTRATOR_TOKEN.name(), process.getToken());
         envArgs.put(DefPiParams.PROCESS_ID.name(), process.getId().toString());
         envArgs.put(DefPiParams.USER_ID.name(), process.getUserId().toString());
         final User user = UserManager.getInstance().getUser(process.getUserId());
@@ -504,6 +595,31 @@ public class DockerConnector {
                 .build();
     }
 
+    private static String getDockerServiceNameForProcess(final Process process) {
+        return process.getId().toString();
+    }
+
+    private <T> T runOrTimeout(final Callable<T> callable) throws DockerException, InterruptedException {
+        try {
+            return this.executor.submit(callable)
+                    .get(DockerConnector.DOCKER_WRITE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+        } catch (final ExecutionException e) {
+            if ((e.getCause() != null) && (e.getCause() instanceof DockerException)) {
+                throw (DockerException) e.getCause();
+            } else {
+                throw new DockerException(e);
+            }
+        } catch (final TimeoutException e) {
+            throw new DockerException(e);
+        }
+    }
+
+    /**
+     * Get some diagnostic information about the current running container. Very useful for validating the running
+     * version of the orchestrator
+     *
+     * @return A string with some container info, or "UNKNOWN" if failed to obtain the information
+     */
     public String getContainerInfo() {
         try {
             final ContainerInfo info = this.client.inspectContainer(DockerConnector.getOrchestratorContainerId());
@@ -516,9 +632,42 @@ public class DockerConnector {
                     System.getenv(DockerConnector.GIT_LOG),
                     info.created().toInstant());
         } catch (DockerException | InterruptedException e) {
-            DockerConnector.log.warn("Error obtaining running image: {}", e.getMessage());
-            DockerConnector.log.trace(e.getMessage(), e);
-            DockerConnector.instance = null;
+            DockerConnector.destroy("Error obtaining running image", e);
+            return "Unknown";
+        }
+    }
+
+    /**
+     * Generate a health report as a simple String to show to the user. The health report should equal "Healthy" if
+     * everything is according to the current configuration. Any incongruencies (services that have more or less running
+     * tasks than desired) will show up in a separate line stating as X/Y, where X is the number of running tasks, and Y
+     * is the number of desired instances.
+     *
+     * @return A String stating the running statuses of all current services (Not limited to dEF-Pi services).
+     */
+    public String getServiceHealth() {
+        try {
+            String report = "";
+
+            for (final com.spotify.docker.client.messages.swarm.Service s : this.client.listServices()) {
+                final long desiredAmount = s.spec().mode().replicated().replicas();
+                long runningAmount = 0;
+                for (final Task t : this.client.listTasks(Criteria.builder().serviceName(s.id()).build())) {
+                    runningAmount += t.status().state().equals("running") ? 1 : 0;
+                }
+                if (runningAmount != desiredAmount) {
+                    report += String.format("\t%s: %d/%d\n", s.id(), runningAmount, desiredAmount);
+                }
+            }
+
+            if (report.isEmpty()) {
+                return "Healthy";
+            } else {
+                return "*** Unhealthy! ***\n" + report;
+            }
+
+        } catch (final DockerException | InterruptedException e) {
+            DockerConnector.destroy("Error obtaining running image", e);
             return "Unknown";
         }
     }
