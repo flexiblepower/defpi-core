@@ -2,3 +2,5 @@ resources
 service
 requirements.txt
 .idea
+.generated
+.packaged
