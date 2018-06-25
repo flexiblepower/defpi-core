@@ -4,3 +4,4 @@ requirements.txt
 .idea
 .generated
 .packaged
+.deployed
