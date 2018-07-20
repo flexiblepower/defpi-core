@@ -54,9 +54,7 @@ public class DashboardFullWidget implements Widget {
     private HTTPResponse getActiveWidgets(final HTTPRequest request) {
         final JSONObject map = new JSONObject();
         for (final Entry<Integer, Widget> e : this.widgets.entrySet()) {
-            if (e.getValue().isActive()) {
-                map.put(e.getKey().toString(), e.getValue().getTitle());
-            }
+            map.put(e.getKey().toString(), e.getValue().getTitle());
         }
         return HTTPResponse.newBuilder()
                 .setId(request.getId())
@@ -68,7 +66,7 @@ public class DashboardFullWidget implements Widget {
     }
 
     @Override
-    public String getFullWidgetId() {
+    public String getWidgetId() {
         return "dashboard";
     }
 
@@ -79,18 +77,18 @@ public class DashboardFullWidget implements Widget {
 
     @Override
     public Type getType() {
-        return Type.FULL;
+        return Type.FULL_WIDGET;
     }
 
     public void registerSmallWidget(final Widget widget) {
-        if (!widget.getType().equals(Widget.Type.SMALL)) {
+        if (!widget.getType().equals(Widget.Type.SMALL_WIDGET)) {
             throw new IllegalArgumentException("Can only accept small widgets");
         }
         this.widgets.put(this.idGenerator.getAndIncrement(), widget);
     }
 
     public void unregisterSmallWidget(final Widget widget) {
-        if (!widget.getType().equals(Widget.Type.SMALL)) {
+        if (!widget.getType().equals(Widget.Type.SMALL_WIDGET)) {
             throw new IllegalArgumentException("Can only accept small widgets");
         }
         final Iterator<Entry<Integer, Widget>> it = this.widgets.entrySet().iterator();
@@ -100,11 +98,6 @@ public class DashboardFullWidget implements Widget {
                 break;
             }
         }
-    }
-
-    @Override
-    public boolean isActive() {
-        return true;
     }
 
 }
