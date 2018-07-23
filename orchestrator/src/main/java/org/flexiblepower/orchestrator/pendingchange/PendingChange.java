@@ -178,7 +178,7 @@ public abstract class PendingChange {
      * @return Time to wait before retrying in milliseconds.
      */
     protected long retryIntervalMs() {
-        return Math.min(PendingChange.DEFAULT_MINIMUM_RETRY_INTERVAL_MILLISECONDS + (2 ^ this.getCount()),
+        return Math.min(PendingChange.DEFAULT_MINIMUM_RETRY_INTERVAL_MILLISECONDS + (long) Math.pow(2, this.getCount()),
                 PendingChange.DEFAULT_MAXIMUM_RETRY_INTERVAL_MILLISECONDS);
     }
 

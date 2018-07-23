@@ -110,7 +110,6 @@ public abstract class BaseApi {
         // User did not provide Basic Auth info, so look for token in header
         final String token = this.headers.getHeaderString("X-Auth-Token");
         if (token == null) {
-            BaseApi.log.debug("Client is not using token-based authentication, no authenticated process!");
             return null;
         }
 
