@@ -28,7 +28,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * The connection is how processes communicate with one another. Note that this class is only the model of a
@@ -40,6 +42,7 @@ import lombok.Data;
  */
 @Data
 @Entity
+@NoArgsConstructor(force = true, access = AccessLevel.PROTECTED) // Must be generated for Morphia
 public class Connection {
 
     /**
@@ -50,6 +53,7 @@ public class Connection {
      */
     @Data
     @Embedded
+    @NoArgsConstructor(force = true, access = AccessLevel.PROTECTED) // Must be generated for Morphia
     public static class Endpoint {
 
         /**

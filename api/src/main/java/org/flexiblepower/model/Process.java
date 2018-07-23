@@ -44,7 +44,7 @@ import lombok.Value;
 @Entity
 @Data
 @Builder
-@NoArgsConstructor
+@NoArgsConstructor // Must be generated for Morphia
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EqualsAndHashCode(exclude = {"runningNodeId", "dockerId"})
 public class Process {

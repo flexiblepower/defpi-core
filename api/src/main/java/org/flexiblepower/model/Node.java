@@ -44,7 +44,7 @@ import lombok.ToString;
  */
 @Getter
 @ToString
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor(access = AccessLevel.PROTECTED) // Must be generated for Morphia
 @EqualsAndHashCode(exclude = {"lastSync", "status"})
 public abstract class Node {
 

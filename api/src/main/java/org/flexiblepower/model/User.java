@@ -33,6 +33,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -49,7 +50,7 @@ import lombok.Setter;
  */
 @Getter
 @Entity
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED) // Must be generated for Morphia
 public class User {
 
     private static final String SALT = "$salt@\"[3.c*%t<RBYA?,N\"2%[})X";
@@ -125,7 +126,7 @@ public class User {
      * <p>
      * This function uses the SHA256 algorithm to compute hashes.
      *
-     * @param name     The user name
+     * @param name The user name
      * @param password The user password
      * @return The hash that can be checked.
      */
