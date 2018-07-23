@@ -60,6 +60,18 @@ public abstract class BaseApi {
      */
     protected BaseApi(final HttpHeaders httpHeaders) {
         this.headers = httpHeaders;
+
+        // Allow token based authentication from the dashboard gateway
+        final Process authorizedProcess = this.getTokenProcess();
+        if (authorizedProcess != null) {
+            if (ProcessManager.getDashboardGatewayServiceId().equals(authorizedProcess.getServiceId())) {
+                BaseApi.log.info("User logged in from dashboard-gateway");
+                this.sessionUser = UserManager.getInstance().getUser(authorizedProcess.getUserId());
+                return;
+            }
+            BaseApi.log.warn("User is trying to authenticate using X-Auth-Token from non-dashboard-gateway process!");
+        }
+
         String authString = httpHeaders.getHeaderString("Authorization");
         if ((authString == null) || !authString.startsWith(BaseApi.AUTH_PREFIX)) {
             BaseApi.log.debug("Client is not using basic authentication, not authenticated");
