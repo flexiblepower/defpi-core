@@ -64,7 +64,8 @@ public abstract class BaseApi {
         // Allow token based authentication from the dashboard gateway
         final Process authorizedProcess = this.getTokenProcess();
         if (authorizedProcess != null) {
-            if (ProcessManager.getDashboardGatewayServiceId().equals(authorizedProcess.getServiceId())) {
+            //if (ProcessManager.getDashboardGatewayServiceId().equals(authorizedProcess.getServiceId())) {
+            if (authorizedProcess.getServiceId().startsWith("dashboard")){ {
                 BaseApi.log.info("User logged in from dashboard-gateway");
                 this.sessionUser = UserManager.getInstance().getUser(authorizedProcess.getUserId());
                 return;
