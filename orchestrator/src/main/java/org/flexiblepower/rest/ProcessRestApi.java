@@ -39,6 +39,7 @@ import org.flexiblepower.model.Interface;
 import org.flexiblepower.model.InterfaceVersion;
 import org.flexiblepower.model.Process;
 import org.flexiblepower.model.Service;
+import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.ServiceManager;
 import org.flexiblepower.orchestrator.UserManager;
 import org.flexiblepower.process.ProcessManager;
@@ -164,8 +165,18 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
         final ObjectId oid = MongoDbConnector.stringToObjectId(id);
         final Process ret = ProcessManager.getInstance().getProcess(oid);
 
-        this.assertUserIsAdminOrEquals(ret.getUserId());
+        // See if the user is trying to use X-Authentication, like the dashboard-gateway
+        final Process authorizedProcess = this.getTokenProcess();
+        if (authorizedProcess != null) {
+            final ObjectId userId = authorizedProcess.getUserId();
+            final User user = UserManager.getInstance().getUser(userId);
+            if (user.isAdmin() || userId.equals(ret.getUserId())) {
+                return ret;
+            }
+        }
 
+        // If not, use the logged in user
+        this.assertUserIsAdminOrEquals(ret.getUserId());
         return ret;
     }
 
