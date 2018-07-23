@@ -164,8 +164,8 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
         final ObjectId oid = MongoDbConnector.stringToObjectId(id);
         final Process ret = ProcessManager.getInstance().getProcess(oid);
 
+        // If not, use the logged in user
         this.assertUserIsAdminOrEquals(ret.getUserId());
-
         return ret;
     }
 
