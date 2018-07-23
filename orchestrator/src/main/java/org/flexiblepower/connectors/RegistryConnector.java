@@ -257,13 +257,12 @@ public class RegistryConnector {
                             try {
                                 final Map<Architecture, String> tagsMap = RegistryConnector
                                         .tagsToArchitectureMap(tagsList);
-
+                                System.out.println(serviceName + ": " + tagsMap);
                                 final Service service = this
                                         .getServiceFromRegistry(repository, serviceName, version, tagsMap);
                                 final String key = service.getId() + ":" + service.getVersion();
 
-                                this.serviceCache.put(key,
-                                        this.getServiceFromRegistry(repository, serviceName, version, tagsMap));
+                                this.serviceCache.put(key, service);
                             } catch (final ServiceNotFoundException ex) {
                                 RegistryConnector.log
                                         .error("Could not find service {}: {}", serviceName, ex.getMessage());
@@ -301,7 +300,13 @@ public class RegistryConnector {
     private static Map<Architecture, String> tagsToArchitectureMap(final List<String> tags) {
         final Map<Architecture, String> result = new HashMap<>();
         for (final String tag : tags) {
-            result.put(Service.getArchitectureFromTag(tag), tag);
+            // TODO: When a version contains something that looks like a version, such as: "-SNAPSHOT", it is
+            // misinterpreted as a separate version, which is then loaded, and potentially overwrites an
+            // interfaceversion from latest, which causes incorrect interfaces. This is the best fix for now
+            final Architecture arch = Service.getArchitectureFromTag(tag);
+            if (!arch.equals(Architecture.UNKNOWN)) {
+                result.put(arch, tag);
+            }
         }
         return result;
     }
