@@ -134,7 +134,7 @@ public class RegistryConnector {
     /**
      * @return The singleton instance of the ProcessConnector
      */
-    public synchronized static RegistryConnector getInstance() {
+    public static RegistryConnector getInstance() {
         if (RegistryConnector.instance == null) {
             RegistryConnector.instance = new RegistryConnector();
         }

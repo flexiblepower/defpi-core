@@ -56,7 +56,7 @@ public class ServiceManager {
     /**
      * @return The singleton instance of the ServiceManager
      */
-    public synchronized static ServiceManager getInstance() {
+    public static ServiceManager getInstance() {
         if (ServiceManager.instance == null) {
             ServiceManager.instance = new ServiceManager();
         }

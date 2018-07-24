@@ -45,7 +45,7 @@ public class UserManager {
     /**
      * @return The singleton instance of the UserManager
      */
-    public synchronized static UserManager getInstance() {
+    public static UserManager getInstance() {
         if (UserManager.instance == null) {
             UserManager.instance = new UserManager();
         }
@@ -137,11 +137,11 @@ public class UserManager {
     /**
      * List all users in the database
      *
-     * @param page      the current page to view
-     * @param perPage   the amount of users to view per page
-     * @param sortDir   the direction to sort the users
+     * @param page the current page to view
+     * @param perPage the amount of users to view per page
+     * @param sortDir the direction to sort the users
      * @param sortField the field to sort the users on
-     * @param filter    a map of filters as key/value pairs
+     * @param filter a map of filters as key/value pairs
      * @return A list of users in the dEF-Pi environment.
      */
     public List<User> listUsers(final int page,

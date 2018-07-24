@@ -118,7 +118,7 @@ public final class MongoDbConnector {
     /**
      * @return The singleton instance of the MongoDbConnector
      */
-    public synchronized static MongoDbConnector getInstance() {
+    public static MongoDbConnector getInstance() {
         if (MongoDbConnector.instance == null) {
             MongoDbConnector.instance = new MongoDbConnector();
         }
@@ -149,12 +149,12 @@ public final class MongoDbConnector {
     /**
      * List object; It is possible to paginate, sort and filter all objects depending on the provided arguments.
      *
-     * @param type      The type of object to retrieve
-     * @param page      The page to view
-     * @param perPage   The amount of objects to view per page, and thus the maximum amount of objects returned
-     * @param sortDir   The direction to sort
+     * @param type The type of object to retrieve
+     * @param page The page to view
+     * @param perPage The amount of objects to view per page, and thus the maximum amount of objects returned
+     * @param sortDir The direction to sort
      * @param sortField The field to sort on
-     * @param filter    A key/value map of filters
+     * @param filter A key/value map of filters
      * @return A list all objects that match the filters, or a paginated subset thereof
      */
     public <T> List<T> list(final Class<T> type,
@@ -188,7 +188,7 @@ public final class MongoDbConnector {
      * Get object with a specific object id
      *
      * @param type The type of object to retrieve
-     * @param id   The ObjectId to search for
+     * @param id The ObjectId to search for
      * @return A list of all objects in the mongo db of the specified type
      */
     public <T> T get(final Class<T> type, final ObjectId id) {
@@ -199,7 +199,7 @@ public final class MongoDbConnector {
      * Count all objects of a particular type currently stored in the database; possibly count the subset that match a
      * set of criteria
      *
-     * @param type   The type of object to count
+     * @param type The type of object to count
      * @param filter A filter to count a specific filtered subset of objects, may be empty
      * @return The number of objects that match the filter
      */

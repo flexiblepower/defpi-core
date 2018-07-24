@@ -77,7 +77,7 @@ public class ProcessManager {
     /**
      * @return The singleton instance of the ProcessManager
      */
-    public synchronized static ProcessManager getInstance() {
+    public static ProcessManager getInstance() {
         if (ProcessManager.instance == null) {
             ProcessManager.instance = new ProcessManager();
         }
@@ -287,7 +287,7 @@ public class ProcessManager {
      *
      * @param newProcess The (description of the) process to update
      * @throws IllegalArgumentException if the updated process is invalid, or has a different user than the original
-     *                                      process.
+     *             process.
      */
     public void updateProcess(final Process newProcess) {
         this.validateProcess(newProcess);
@@ -344,7 +344,7 @@ public class ProcessManager {
     /**
      * Update the configuration for a process
      *
-     * @param process          The process to update
+     * @param process The process to update
      * @param newConfiguration A list of parameters representing the new configuration
      */
     private void updateConfiguration(final Process process, final List<ProcessParameter> newConfiguration) {

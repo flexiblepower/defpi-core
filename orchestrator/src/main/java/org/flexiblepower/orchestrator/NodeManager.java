@@ -51,7 +51,7 @@ public class NodeManager {
     /**
      * @return The singleton instance of the NodeManager
      */
-    public synchronized static NodeManager getInstance() {
+    public static NodeManager getInstance() {
         if (NodeManager.instance == null) {
             NodeManager.instance = new NodeManager();
         }
@@ -309,7 +309,7 @@ public class NodeManager {
      * eligible for running processes, but only processes that are owned by that user.
      *
      * @param unidentifiedNode The node to promote to a private node
-     * @param owner            The User to assign the node to
+     * @param owner The User to assign the node to
      * @return The private node that is the result of the promotion
      */
     public PrivateNode makeUnidentifiedNodePrivate(final UnidentifiedNode unidentifiedNode, final User owner) {
@@ -324,7 +324,7 @@ public class NodeManager {
      * eligible for running processes from any user.
      *
      * @param unidentifiedNode The node to promote to a public node
-     * @param nodePool         The NodePool to assign the node to
+     * @param nodePool The NodePool to assign the node to
      * @return The public node that is the result of the promotion
      */
     public PublicNode makeUnidentifiedNodePublic(final UnidentifiedNode unidentifiedNode, final NodePool nodePool) {
@@ -385,11 +385,11 @@ public class NodeManager {
     /**
      * List node pools. It is possible to paginate, sort and filter all node pools depending on the provided arguments.
      *
-     * @param page      The page to view
-     * @param perPage   The amount of node pools to view per page, and thus the maximum amount of node pools returned
-     * @param sortDir   The direction to sort
+     * @param page The page to view
+     * @param perPage The amount of node pools to view per page, and thus the maximum amount of node pools returned
+     * @param sortDir The direction to sort
      * @param sortField The field to sort on
-     * @param filter    A key/value map of filters
+     * @param filter A key/value map of filters
      * @return A list all node pools that match the filters, or a paginated subset thereof
      */
     public List<NodePool> listNodePools(final int page,
