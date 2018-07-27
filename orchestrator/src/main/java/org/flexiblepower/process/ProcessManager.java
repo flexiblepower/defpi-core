@@ -123,6 +123,9 @@ public class ProcessManager {
      * <li>Node allocation (either a private node or a nodepool)</li>
      * </ul>
      *
+     * The ProcessManager will create the representation of the process, and a new pending change to create the docker
+     * service. Eventually the service itself will trigger a new pending change to get the process configuration.
+     *
      * @param process The (description of the) process to create
      * @return The created process with a valid ObjectId.
      */
@@ -134,6 +137,13 @@ public class ProcessManager {
 
         // Create a random token for this process
         process.setToken(UUID.randomUUID().toString());
+
+        // Does the process have a name? If not, think of one
+        if ((process.getName() == null) || process.getName().isEmpty()) {
+            process.setName(process.getServiceId() + "@"
+                    + UserManager.getInstance().getUser(process.getUserId()).getUsername());
+        }
+
         // Save with starting state and save
         process.setState(ProcessState.STARTING);
         MongoDbConnector.getInstance().save(process);
@@ -293,6 +303,11 @@ public class ProcessManager {
         this.validateProcess(newProcess);
 
         final Process currentProcess = MongoDbConnector.getInstance().get(Process.class, newProcess.getId());
+        // Rename the process?
+        if (!newProcess.getName().equals(currentProcess.getName())) {
+            currentProcess.setName(newProcess.getName());
+            MongoDbConnector.getInstance().save(currentProcess);
+        }
 
         if (!newProcess.getUserId().equals(currentProcess.getUserId())) {
             throw new IllegalArgumentException("A process cannot be assigned to a different user");

@@ -87,6 +87,15 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
         // Filters are a bit custom
         if (filters != null) {
             final JSONObject f = new JSONObject(filters);
+            if (f.has("ids[]")) {
+                final List<Object> ids = f.getJSONArray("ids[]").toList();
+                final Iterator<Process> it = processes.iterator();
+                while (it.hasNext()) {
+                    if (!ids.contains(it.next().getId().toString())) {
+                        it.remove();
+                    }
+                }
+            }
             if (f.has("hashpair") && f.getString("hashpair").contains(";")) {
                 final String[] split = f.getString("hashpair").split(";");
                 final Iterator<Process> it = processes.iterator();

@@ -18,6 +18,7 @@
 
 package org.flexiblepower.rest;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +34,7 @@ import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.NodePoolNotFoundException;
+import org.flexiblepower.exceptions.NotFoundException;
 import org.flexiblepower.model.NodePool;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.PublicNode;
@@ -77,6 +79,12 @@ public class NodeRestApi extends BaseApi implements NodeApi {
             throw new ApiException(Status.NOT_FOUND, UserApi.USER_NOT_FOUND_MESSAGE);
         }
 
+        if ((newNode.getName() != null) && !newNode.getName().isEmpty()) {
+            un.setName(newNode.getName());
+        } else {
+            un.setName(un.getHostname());
+        }
+
         NodeRestApi.log.info("Making node " + newNode.getDockerId() + " into a private node");
         return NodeManager.getInstance().makeUnidentifiedNodePrivate(un, owner);
     }
@@ -98,8 +106,44 @@ public class NodeRestApi extends BaseApi implements NodeApi {
             throw new ApiException(Status.NOT_FOUND, NodeApi.NODE_POOL_NOT_FOUND_MESSAGE);
         }
 
+        if ((newNode.getName() != null) && !newNode.getName().isEmpty()) {
+            un.setName(newNode.getName());
+        } else {
+            un.setName(un.getHostname());
+        }
+
         NodeRestApi.log.info("Making node " + newNode.getDockerId() + " into a public node");
         return NodeManager.getInstance().makeUnidentifiedNodePublic(un, nodePool);
+    }
+
+    @Override
+    public PrivateNode updatePrivateNode(final String nodeId, final PrivateNode updatedPrivateNode)
+            throws AuthorizationException,
+            NotFoundException,
+            InvalidObjectIdException {
+        final PrivateNode node = this.getPrivateNode(nodeId);
+
+        if ((node.getName() == null) || !node.getName().equals(updatedPrivateNode.getName())) {
+            node.setName(updatedPrivateNode.getName());
+        }
+
+        MongoDbConnector.getInstance().save(node);
+        return node;
+    }
+
+    @Override
+    public PublicNode updatePublicNode(final String nodeId, final PublicNode updatedPublicNode)
+            throws AuthorizationException,
+            NotFoundException,
+            InvalidObjectIdException {
+        final PublicNode node = this.getPublicNode(nodeId);
+
+        if ((node.getName() == null) || !node.getName().equals(updatedPublicNode.getName())) {
+            node.setName(updatedPublicNode.getName());
+        }
+
+        MongoDbConnector.getInstance().save(node);
+        return node;
     }
 
     @Override
@@ -157,13 +201,31 @@ public class NodeRestApi extends BaseApi implements NodeApi {
             final String sortField,
             final String filters) throws AuthorizationException {
         // TODO implement pagination
+        final NodeManager nm = NodeManager.getInstance();
+
         List<PrivateNode> content;
         if (this.sessionUser == null) {
             throw new AuthorizationException();
         } else if (this.sessionUser.isAdmin()) {
-            content = NodeManager.getInstance().getPrivateNodes();
+
+            final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
+
+            if (filter.containsKey("ids[]")) {
+                @SuppressWarnings("unchecked")
+                final List<String> ids = (List<String>) filter.get("ids[]");
+                content = new LinkedList<>();
+                for (final String id : ids) {
+                    try {
+                        content.add(nm.getPrivateNode(MongoDbConnector.stringToObjectId(id)));
+                    } catch (final InvalidObjectIdException e) {
+                        NodeRestApi.log.debug("Invalid objectId in list: {}", id);
+                    }
+                }
+            } else {
+                content = nm.getPrivateNodes();
+            }
         } else {
-            content = NodeManager.getInstance().getPrivateNodesForUser(this.sessionUser);
+            content = nm.getPrivateNodesForUser(this.sessionUser);
         }
         this.addTotalCount(content.size());
         return content;
@@ -177,7 +239,25 @@ public class NodeRestApi extends BaseApi implements NodeApi {
             final String filters) throws AuthorizationException {
         // TODO implement pagination
         this.assertUserIsLoggedIn();
-        final List<PublicNode> content = NodeManager.getInstance().getPublicNodes();
+        final NodeManager nm = NodeManager.getInstance();
+
+        List<PublicNode> content;
+        final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
+        if (filter.containsKey("ids[]")) {
+            @SuppressWarnings("unchecked")
+            final List<String> ids = (List<String>) filter.get("ids[]");
+            content = new LinkedList<>();
+            for (final String id : ids) {
+                try {
+                    content.add(nm.getPublicNode(MongoDbConnector.stringToObjectId(id)));
+                } catch (final InvalidObjectIdException e) {
+                    NodeRestApi.log.debug("Invalid objectId in list: {}", id);
+                }
+            }
+        } else {
+            content = NodeManager.getInstance().getPublicNodes();
+        }
+
         this.addTotalCount(content.size());
         return content;
     }
@@ -246,9 +326,25 @@ public class NodeRestApi extends BaseApi implements NodeApi {
             final String filters) throws AuthorizationException {
         this.assertUserIsLoggedIn();
         final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
-        final List<NodePool> content = NodeManager.getInstance()
-                .listNodePools(page, perPage, sortDir, sortField, filter);
+        final List<NodePool> content;
+
+        if (filter.containsKey("ids[]")) {
+            content = new LinkedList<>();
+
+            @SuppressWarnings("unchecked")
+            final List<String> ids = (List<String>) filter.get("ids[]");
+            for (final String id : ids) {
+                try {
+                    content.add(NodeManager.getInstance().getNodePool(MongoDbConnector.stringToObjectId(id)));
+                } catch (final InvalidObjectIdException e) {
+                    NodeRestApi.log.debug("Invalid objectId in list: {}", id);
+                }
+            }
+        } else {
+            content = NodeManager.getInstance().listNodePools(page, perPage, sortDir, sortField, filter);
+        }
         this.addTotalCount(NodeManager.getInstance().countNodePools(filter));
         return content;
     }
+
 }

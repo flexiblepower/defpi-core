@@ -314,6 +314,7 @@ public class NodeManager {
      */
     public PrivateNode makeUnidentifiedNodePrivate(final UnidentifiedNode unidentifiedNode, final User owner) {
         final PrivateNode privateNode = new PrivateNode(unidentifiedNode, owner);
+        privateNode.setName(unidentifiedNode.getName());
         MongoDbConnector.getInstance().save(privateNode);
         MongoDbConnector.getInstance().delete(unidentifiedNode);
         return privateNode;
@@ -329,6 +330,7 @@ public class NodeManager {
      */
     public PublicNode makeUnidentifiedNodePublic(final UnidentifiedNode unidentifiedNode, final NodePool nodePool) {
         final PublicNode publicNode = new PublicNode(unidentifiedNode, nodePool);
+        publicNode.setName(unidentifiedNode.getName());
         MongoDbConnector.getInstance().save(publicNode);
         MongoDbConnector.getInstance().delete(unidentifiedNode);
         return publicNode;

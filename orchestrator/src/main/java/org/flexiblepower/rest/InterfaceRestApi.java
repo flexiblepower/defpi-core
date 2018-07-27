@@ -18,6 +18,7 @@
 
 package org.flexiblepower.rest;
 
+import java.util.Collections;
 import java.util.List;
 
 import javax.ws.rs.core.Context;
@@ -53,6 +54,11 @@ public class InterfaceRestApi extends BaseApi implements InterfaceApi {
             final String sortField,
             final String filters) throws AuthorizationException {
         // TODO implement pagination, sorting and filtering
+        if ((page < 0) || (perPage < 0)) {
+            this.addTotalCount(0);
+            return Collections.emptyList();
+        }
+
         this.assertUserIsLoggedIn();
         return ServiceManager.getInstance().listInterfaces();
     }
