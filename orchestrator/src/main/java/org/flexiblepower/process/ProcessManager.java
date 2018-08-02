@@ -140,7 +140,7 @@ public class ProcessManager {
 
         // Does the process have a name? If not, think of one
         if ((process.getName() == null) || process.getName().isEmpty()) {
-            process.setName(process.getServiceId() + "@"
+            process.setName(process.getServiceId() + " @"
                     + UserManager.getInstance().getUser(process.getUserId()).getUsername());
         }
 

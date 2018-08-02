@@ -25,6 +25,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Pattern;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
@@ -163,14 +164,25 @@ public final class MongoDbConnector {
             final String sortDir,
             final String sortField,
             final Map<String, Object> filter) {
-        final String sortSign = ("DESC".equals(sortDir)) ? "-" : "";
         Query<T> query = this.datastore.createQuery(type);
         query.disableValidation();
+
+        // Filter
         for (final Entry<String, Object> e : filter.entrySet()) {
-            query.filter(e.getKey(), e.getValue());
+            final String val = e.getValue().toString();
+            if (val.startsWith("/") && val.endsWith("/")) {
+                query.filter(e.getKey(), Pattern.compile(val.substring(1, val.length() - 1)));
+            } else {
+                query.filter(e.getKey(), e.getValue());
+            }
         }
-        final FindOptions opts = new FindOptions().skip((page - 1) * perPage).limit(perPage);
+
+        // Sort
+        final String sortSign = ("DESC".equals(sortDir)) ? "-" : "";
         query = query.order(sortSign + sortField);
+
+        // Paginate
+        final FindOptions opts = new FindOptions().skip((page - 1) * perPage).limit(perPage);
         return query.asList(opts);
     }
 
