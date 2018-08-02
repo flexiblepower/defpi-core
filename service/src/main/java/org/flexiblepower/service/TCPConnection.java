@@ -204,7 +204,9 @@ final class TCPConnection implements Connection, Closeable {
 
         final byte[] data;
         try {
-            data = this.userMessageSerializer.serialize(message);
+            synchronized (this.userMessageSerializer) {
+                data = this.userMessageSerializer.serialize(message);
+            }
         } catch (final SerializationException e) {
             TCPConnection.log
                     .error("[{}] - Error while serializing message, not sending message.", this.connectionId, e);
@@ -263,7 +265,11 @@ final class TCPConnection implements Connection, Closeable {
                 }
             }
 
-            final Object message = this.userMessageSerializer.deserialize(msg);
+            final Object message;
+            synchronized (this.userMessageSerializer) {
+                message = this.userMessageSerializer.deserialize(msg);
+            }
+
             final Class<?> messageType = message.getClass();
             final Method[] allMethods = this.serviceHandler.getClass().getMethods();
             for (final Method method : allMethods) {
