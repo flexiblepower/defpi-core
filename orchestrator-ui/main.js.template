@@ -14,9 +14,9 @@ myApp.config(function(RestangularProvider) {
 	});
 
 	RestangularProvider.addElementTransformer('connection', function(element) {
-    endpoint1 = element.endpoint1;
-    endpoint2 = element.endpoint2;
-    element.processId1 = endpoint1 === undefined ? undefined : endpoint1.processId;
+		endpoint1 = element.endpoint1;
+		endpoint2 = element.endpoint2;
+		element.processId1 = endpoint1 === undefined ? undefined : endpoint1.processId;
 		element.processId2 = endpoint2 === undefined ? undefined : endpoint2.processId;
 		return element;
 	});
@@ -106,7 +106,10 @@ myApp
 						nga.field('nodePoolId',	'reference')
 							.targetEntity(nodepool)
 							.targetField(nga.field('name'))
-							.label('NodePool'),
+							.label('NodePool')
+							.singleApiCall(function (nodepoolIds) {
+								 return { 'ids[]': nodepoolIds };
+							 }),
 						nga.field('privateNodeId', 'reference')
 							.targetEntity(prno)
 							.targetField(nga.field('name'))
@@ -120,9 +123,11 @@ myApp
 					[
 						nga.field('userId',	'reference')
 							.targetEntity(user)
-							.perPage(1000)
 							.targetField(nga.field('username'))
-							.label('User'),
+							.label('User')
+              .remoteComplete(true, {
+                searchQuery: function(search) { return { username: "/.*" + search + ".*/" }; }
+              }),
 						nga.field('hashpair')
 							.label('Hash-pair (separate using \';\')')
 					]);
@@ -289,15 +294,21 @@ myApp
 				[
 					nga.field('id'),
 					nga.field('processId1', 'reference')
-            .targetEntity(process)
-            .targetField(nga.field('name'))
-						.label('Process 1'),
+						.targetEntity(process)
+						.targetField(nga.field('name'))
+						.label('Process 1')
+						.singleApiCall(function (processIds) {
+							return { 'ids[]': processIds };
+						}),
 					nga.field('endpoint1.interfaceId')
 						.label('Interface 1'),
 					nga.field('processId2', 'reference')
-            .targetEntity(process)
-            .targetField(nga.field('name'))
-						.label('Process 2'),
+						.targetEntity(process)
+						.targetField(nga.field('name'))
+						.label('Process 2')
+						.singleApiCall(function (processIds) {
+							return { 'ids[]': processIds };
+						}),
 					nga.field('endpoint2.interfaceId')
 						.label('Interface 2')
 				])
@@ -357,7 +368,10 @@ myApp
 					nga.field('nodePoolId', 'reference')
 						.targetEntity(nodepool)
 						.targetField(nga.field('name'))
-						.label('Nodepool'),
+						.label('Nodepool')
+						.singleApiCall(function (userIds) {
+							return { 'ids[]': userIds };
+						}),
 					nga.field('id')
 				]);
 
@@ -409,7 +423,10 @@ myApp
 					nga.field('userId', 'reference')
 						.targetEntity(user)
 						.targetField(nga.field('username'))
-						.label('User'),
+						.label('User')
+						.singleApiCall(function (userIds) {
+							return { 'ids[]': userIds };
+						}),
 					nga.field('id'),
 				]);
 
@@ -465,7 +482,10 @@ myApp
 					nga.field('userId', 'reference')
 						.targetEntity(user)
 						.targetField(nga.field('username'))
-						.label('User'),
+						.label('User')
+						.singleApiCall(function (userIds) {
+							return { 'ids[]': userIds };
+						}),
 					nga.field('created', 'datetime'),
 					nga.field('description'),
 					nga.field('count'),
