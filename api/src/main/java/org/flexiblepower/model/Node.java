@@ -101,12 +101,18 @@ public abstract class Node {
     protected ObjectId id;
 
     /**
+     * The name is only for human recognition of the node
+     */
+    @Setter
+    protected String name;
+    
+    /**
      * 
      */
     protected String dockerId;
 
     /**
-     * 
+     * The hostname of the node machine
      */
     @Setter
     protected String hostname;
@@ -118,7 +124,7 @@ public abstract class Node {
     protected Date lastSync;
 
     /**
-     * 
+     * The reported status of the node
      */
     @Setter
     protected DockerNodeStatus status;

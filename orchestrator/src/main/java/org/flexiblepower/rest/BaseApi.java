@@ -70,7 +70,6 @@ public abstract class BaseApi {
                 this.sessionUser = UserManager.getInstance().getUser(authorizedProcess.getUserId());
                 return;
             }
-            BaseApi.log.warn("User is trying to authenticate using X-Auth-Token from non-dashboard-gateway process!");
         }
 
         String authString = httpHeaders.getHeaderString("Authorization");

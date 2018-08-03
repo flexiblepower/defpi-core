@@ -77,7 +77,7 @@ public class ProcessConnector {
     /**
      * @return The singleton instance of the ProcessConnector
      */
-    public synchronized static ProcessConnector getInstance() {
+    public static ProcessConnector getInstance() {
         if (ProcessConnector.instance == null) {
             ProcessConnector.instance = new ProcessConnector();
         }
@@ -117,7 +117,7 @@ public class ProcessConnector {
      * connection message will be sent to the management socket of the owning process to setup the connection.
      *
      * @param connection The connection which contains the endpoint to create
-     * @param endpoint   The endpoint to create
+     * @param endpoint The endpoint to create
      * @return Whether the connection endpoint was successfully created or not
      * @throws ProcessNotFoundException When the process containing the endpoint cannot be found
      */
@@ -140,7 +140,7 @@ public class ProcessConnector {
      * from the provided endpoint.
      *
      * @param connection The connection which contains the endpoint to terminate
-     * @param endpoint   The endpoint to terminate
+     * @param endpoint The endpoint to terminate
      * @return Whether the connection endpoint was successfully terminated or not
      * @throws ProcessNotFoundException When the process containing the endpoint cannot be found
      */
@@ -155,7 +155,7 @@ public class ProcessConnector {
      * of view from the provided endpoint.
      *
      * @param connection The connection which contains the endpoint to suspend
-     * @param endpoint   The endpoint to suspend
+     * @param endpoint The endpoint to suspend
      * @return Whether the connection endpoint was successfully suspended or not
      * @throws ProcessNotFoundException When the process containing the endpoint cannot be found
      * @see #resumeConnectionEndpoint(Connection,Endpoint)
@@ -171,7 +171,7 @@ public class ProcessConnector {
      * provided endpoint.
      *
      * @param connection The connection which contains the endpoint to resume
-     * @param endpoint   The endpoint to resume
+     * @param endpoint The endpoint to resume
      * @return Whether the connection endpoint was successfully resumed or not
      * @throws ProcessNotFoundException When the process containing the endpoint cannot be found
      * @see #suspendConnectionEndpoint(Connection,Endpoint)
@@ -221,7 +221,7 @@ public class ProcessConnector {
     /**
      * Resume a process from the suspended state by sending a RESUME message
      *
-     * @param processId    the ID of the process to resume
+     * @param processId the ID of the process to resume
      * @param suspendState The serialize state that the process should resume with
      * @return Whether the process was successfully resumed or not
      * @throws ProcessNotFoundException If the process is not found by the ProcessManager
@@ -248,7 +248,7 @@ public class ProcessConnector {
     /**
      * Update the configuration of a running process by sending a configuration modification message.
      *
-     * @param processId     the ID of the process to modify
+     * @param processId the ID of the process to modify
      * @param configuration A List of parameters that represent the updated configuration
      * @return Whether the process was successfully updated or not
      * @throws ProcessNotFoundException If the process is not found by the ProcessManager

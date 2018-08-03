@@ -20,8 +20,10 @@ package org.flexiblepower.rest;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -42,7 +44,6 @@ import org.flexiblepower.model.Service;
 import org.flexiblepower.orchestrator.ServiceManager;
 import org.flexiblepower.orchestrator.UserManager;
 import org.flexiblepower.process.ProcessManager;
-import org.json.JSONObject;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -54,6 +55,20 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class ProcessRestApi extends BaseApi implements ProcessApi {
+
+    private static final Map<String, Comparator<Process>> SORT_MAP = new HashMap<>();
+    static {
+        ProcessRestApi.SORT_MAP.put("default", (a, b) -> a.getName().compareTo(b.getName()));
+        ProcessRestApi.SORT_MAP.put("name", (a, b) -> a.getName().compareTo(b.getName()));
+        ProcessRestApi.SORT_MAP.put("id", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
+        ProcessRestApi.SORT_MAP.put("serviceId", (a, b) -> a.getServiceId().compareTo(b.getServiceId()));
+        ProcessRestApi.SORT_MAP.put("state", (a, b) -> a.getState().toString().compareTo(b.getState().toString()));
+        ProcessRestApi.SORT_MAP.put("userId",
+                (a, b) -> UserManager.getInstance()
+                        .getUser(a.getUserId())
+                        .getUsername()
+                        .compareTo(UserManager.getInstance().getUser(b.getUserId()).getUsername()));
+    }
 
     /**
      * Create the REST API with the headers from the HTTP request (will be injected by the HTTP server)
@@ -84,77 +99,43 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
             processes = ProcessManager.getInstance().listProcessesForUser(this.sessionUser);
         }
 
-        // Filters are a bit custom
-        if (filters != null) {
-            final JSONObject f = new JSONObject(filters);
-            if (f.has("hashpair") && f.getString("hashpair").contains(";")) {
-                final String[] split = f.getString("hashpair").split(";");
-                final Iterator<Process> it = processes.iterator();
-                while (it.hasNext()) {
-                    final Process p = it.next();
-                    boolean matches = false;
-                    try {
-                        final Service s = ServiceManager.getInstance().getService(p.getServiceId());
-                        outerloop: for (final Interface itfs : s.getInterfaces()) {
-                            for (final InterfaceVersion itfsv : itfs.getInterfaceVersions()) {
-                                if (itfsv.getSendsHash().equals(split[0]) && itfsv.getReceivesHash().equals(split[1])) {
-                                    matches = true;
-                                    break outerloop;
-                                }
+        final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
+        RestUtils.filterMultiContent(processes, Process::getId, filter, "ids[]");
+        RestUtils.filterContent(processes, Process::getName, filter, "name");
+        RestUtils.filterContent(processes, Process::getUserId, filter, "userId");
+
+        if (filter.containsKey("hashpair") && filter.get("hashpair").toString().contains(";")) {
+            // Select processes with specific hashpairs
+            final String[] split = filter.get("hashpair").toString().split(";");
+            final Iterator<Process> it = processes.iterator();
+            while (it.hasNext()) {
+                final Process p = it.next();
+                boolean matches = false;
+                try {
+                    final Service s = ServiceManager.getInstance().getService(p.getServiceId());
+                    outerloop: for (final Interface itfs : s.getInterfaces()) {
+                        for (final InterfaceVersion itfsv : itfs.getInterfaceVersions()) {
+                            if (itfsv.getSendsHash().equals(split[0]) && itfsv.getReceivesHash().equals(split[1])) {
+                                matches = true;
+                                break outerloop;
                             }
                         }
-                    } catch (final ServiceNotFoundException e) {
-                        // ignore
                     }
-                    if (!matches) {
-                        it.remove();
-                    }
+                } catch (final ServiceNotFoundException e) {
+                    // ignore
                 }
-            }
-            if (f.has("userId")) {
-                final Iterator<Process> it = processes.iterator();
-                while (it.hasNext()) {
-                    if (!it.next().getUserId().toString().equals(f.getString("userId"))) {
-                        it.remove();
-                    }
+                if (!matches) {
+                    it.remove();
                 }
             }
         }
 
         // Now do the sorting
-        final Comparator<Process> comparator;
-        switch (sortField) {
-        case "userId":
-            comparator = (one, other) -> UserManager.getInstance()
-                    .getUser(one.getUserId())
-                    .getUsername()
-                    .compareTo(UserManager.getInstance().getUser(other.getUserId()).getUsername());
-            break;
-        case "serviceId":
-            comparator = (one, other) -> one.getServiceId().compareTo(other.getServiceId());
-            break;
-        case "state":
-            comparator = (one, other) -> one.getState().toString().compareTo(other.getState().toString());
-            break;
-        case "Id":
-        default:
-            comparator = (one, other) -> one.getId().toString().compareTo(other.getId().toString());
-            break;
-        }
-        Collections.sort(processes, comparator);
-
-        // Order the sorting if necessary
-        if (sortDir.equals("DESC")) {
-            Collections.reverse(processes);
-        }
+        RestUtils.orderContent(processes, ProcessRestApi.SORT_MAP, sortField, sortDir);
+        this.addTotalCount(processes.size());
 
         // And finally pagination
-        this.addTotalCount(processes.size());
-        if ((page == 0) || (perPage == 0)) {
-            return processes;
-        }
-        return processes.subList(Math.min(processes.size(), (page - 1) * perPage),
-                Math.min(processes.size(), page * perPage));
+        return RestUtils.paginate(processes, page, perPage);
     }
 
     @Override

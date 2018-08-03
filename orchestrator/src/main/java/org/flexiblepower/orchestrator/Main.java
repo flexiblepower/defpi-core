@@ -23,8 +23,13 @@ import java.net.URISyntaxException;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.eclipse.jetty.server.Server;
+import org.flexiblepower.connectors.DockerConnector;
+import org.flexiblepower.connectors.MongoDbConnector;
+import org.flexiblepower.connectors.ProcessConnector;
+import org.flexiblepower.connectors.RegistryConnector;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
+import org.flexiblepower.process.ProcessManager;
 import org.flexiblepower.rest.OrchestratorApplication;
 import org.glassfish.jersey.jetty.JettyHttpContainerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -93,5 +98,17 @@ public class Main {
         Main.ensureAdminUserExists();
         Main.startServer();
         PendingChangeManager.getInstance(); // make sure it starts
+
+        // Make sure all instances are initialized so we don't have to synchronize them
+        DockerConnector.getInstance();
+        MongoDbConnector.getInstance();
+        ProcessConnector.getInstance();
+        RegistryConnector.getInstance();
+
+        NodeManager.getInstance();
+        ServiceManager.getInstance();
+        UserManager.getInstance();
+        ProcessManager.getInstance();
+
     }
 }

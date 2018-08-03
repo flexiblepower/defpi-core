@@ -20,8 +20,10 @@ package org.flexiblepower.rest;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -52,6 +54,38 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class ConnectionRestApi extends BaseApi implements ConnectionApi {
+
+    private static final Map<String, Comparator<Connection>> SORT_MAP = new HashMap<>();
+    static {
+        ConnectionRestApi.SORT_MAP.put("default", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
+        ConnectionRestApi.SORT_MAP.put("id", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
+        ConnectionRestApi.SORT_MAP.put("interfaceId1",
+                (a, b) -> a.getEndpoint1().getInterfaceId().compareTo(b.getEndpoint1().getInterfaceId()));
+        ConnectionRestApi.SORT_MAP.put("processId1", (a, b) -> {
+            try {
+                return ProcessManager.getInstance()
+                        .getProcess(a.getEndpoint1().getProcessId())
+                        .getName()
+                        .compareTo(ProcessManager.getInstance().getProcess(b.getEndpoint1().getProcessId()).getName());
+            } catch (final ProcessNotFoundException e) {
+                // Ignore
+                return 0;
+            }
+        });
+        ConnectionRestApi.SORT_MAP.put("interfaceId2",
+                (a, b) -> a.getEndpoint2().getInterfaceId().compareTo(b.getEndpoint2().getInterfaceId()));
+        ConnectionRestApi.SORT_MAP.put("processId2", (a, b) -> {
+            try {
+                return ProcessManager.getInstance()
+                        .getProcess(a.getEndpoint2().getProcessId())
+                        .getName()
+                        .compareTo(ProcessManager.getInstance().getProcess(b.getEndpoint2().getProcessId()).getName());
+            } catch (final ProcessNotFoundException e) {
+                // Ignore
+                return 0;
+            }
+        });
+    }
 
     /**
      * Create the REST API with the headers from the HTTP request (will be injected by the HTTP server)
@@ -113,38 +147,11 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
         }
 
         // Now do the sorting
-        final Comparator<Connection> comparator;
-        switch (sortField) {
-        case "endpoint1.interfaceId":
-            comparator = (a, b) -> a.getEndpoint1().getInterfaceId().compareTo(b.getEndpoint1().getInterfaceId());
-            break;
-        case "endpoint2.interfaceId":
-            comparator = (a, b) -> a.getEndpoint2().getInterfaceId().compareTo(b.getEndpoint2().getInterfaceId());
-            break;
-        case "endpoint1.processId":
-            comparator = (a, b) -> a.getEndpoint1().getProcessId().compareTo(b.getEndpoint1().getProcessId());
-            break;
-        case "endpoint2.processId":
-            comparator = (a, b) -> a.getEndpoint2().getProcessId().compareTo(b.getEndpoint2().getProcessId());
-            break;
-        case "id":
-        default:
-            comparator = (a, b) -> a.getId().toString().compareTo(b.getId().toString());
-            break;
-        }
-        Collections.sort(connections, comparator);
-
-        // Order the sorting if necessary
-        if (sortDir.equals("DESC")) {
-            Collections.reverse(connections);
-        }
+        RestUtils.orderContent(connections, ConnectionRestApi.SORT_MAP, sortField, sortDir);
+        this.addTotalCount(connections.size());
 
         // And finally pagination
-        this.addTotalCount(connections.size());
-        if ((page == 0) || (perPage == 0)) {
-            return connections;
-        }
-        return connections.subList((page - 1) * perPage, Math.min(connections.size(), page * perPage));
+        return RestUtils.paginate(connections, page, perPage);
     }
 
     @Override

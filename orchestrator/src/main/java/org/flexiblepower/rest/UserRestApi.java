@@ -146,7 +146,11 @@ public class UserRestApi extends BaseApi implements UserApi {
             throw new AuthorizationException();
         } else if (this.sessionUser.isAdmin()) {
             final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
-            final List<User> userList = this.db.listUsers(page, perPage, sortDir, sortField, filter);
+
+            @SuppressWarnings("unchecked")
+            final List<User> userList = filter.containsKey("ids[]")
+                    ? this.db.getUsers((List<String>) filter.get("ids[]"))
+                    : this.db.listUsers(page, perPage, sortDir, sortField, filter);
 
             userList.forEach((u) -> u.clearPasswordHash());
 

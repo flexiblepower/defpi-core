@@ -28,8 +28,6 @@ import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Interface;
 import org.flexiblepower.model.Service;
 
-import com.google.common.collect.ImmutableList;
-
 /**
  * ServiceManager
  *
@@ -56,7 +54,7 @@ public class ServiceManager {
     /**
      * @return The singleton instance of the ServiceManager
      */
-    public synchronized static ServiceManager getInstance() {
+    public static ServiceManager getInstance() {
         if (ServiceManager.instance == null) {
             ServiceManager.instance = new ServiceManager();
         }
@@ -82,7 +80,7 @@ public class ServiceManager {
      */
     public List<Service> listServices() {
         try {
-            return ImmutableList.copyOf(RegistryConnector.getInstance().getServices(ServiceManager.SERVICE_REPOSITORY));
+            return RegistryConnector.getInstance().getServices(ServiceManager.SERVICE_REPOSITORY);
         } catch (final RepositoryNotFoundException e) {
             // Can't happen
             return Collections.emptyList();

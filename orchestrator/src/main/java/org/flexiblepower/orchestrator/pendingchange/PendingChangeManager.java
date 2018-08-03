@@ -65,7 +65,7 @@ public class PendingChangeManager {
     /**
      * @return The singleton instance of the pending change manager
      */
-    public synchronized static PendingChangeManager getInstance() {
+    public static PendingChangeManager getInstance() {
         if (PendingChangeManager.instance == null) {
             PendingChangeManager.instance = new PendingChangeManager();
         }
