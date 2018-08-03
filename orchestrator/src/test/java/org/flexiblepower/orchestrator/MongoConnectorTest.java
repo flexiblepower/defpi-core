@@ -20,7 +20,9 @@ package org.flexiblepower.orchestrator;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
@@ -31,13 +33,13 @@ import org.flexiblepower.orchestrator.pendingchange.PendingChange;
 import org.flexiblepower.process.ChangeProcessConfiguration;
 import org.flexiblepower.process.CreateConnectionEndpoint;
 import org.flexiblepower.process.CreateProcess.CreateDockerService;
+import org.flexiblepower.process.ProcessManager;
 import org.flexiblepower.process.TerminateProcess.RemoveDockerService;
 import org.flexiblepower.process.TerminateProcess.SendTerminateSignal;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -47,7 +49,7 @@ import org.junit.Test;
  * @since May 8, 2017
  */
 @SuppressWarnings({"static-method", "javadoc"})
-@Ignore // Don't run this test, it will mess with existing pending changes
+// @Ignore // Don't run this test, it will mess with existing pending changes
 public class MongoConnectorTest {
 
     private static final String TEST_USER = "TEST_USER";
@@ -105,6 +107,20 @@ public class MongoConnectorTest {
                 MongoDbConnector.getInstance().getNextPendingChange().getClass());
         Assert.assertEquals(RemoveDockerService.class,
                 MongoDbConnector.getInstance().getNextPendingChange().getClass());
+    }
+
+    @Test
+    public void findUser() {
+        final String processName = "/.*een.*/";
+        final Pattern pattern = Pattern.compile(processName.substring(1, processName.length() - 1));
+        final Iterator<Process> it = ProcessManager.getInstance().listProcesses().iterator();
+
+        while (it.hasNext()) {
+            final String name = it.next().getName();
+            if (pattern.matcher(name).matches()) {
+                System.out.println(name);
+            }
+        }
     }
 
     @Test

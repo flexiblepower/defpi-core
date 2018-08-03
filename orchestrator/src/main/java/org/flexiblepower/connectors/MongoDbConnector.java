@@ -164,22 +164,24 @@ public final class MongoDbConnector {
             final String sortDir,
             final String sortField,
             final Map<String, Object> filter) {
-        Query<T> query = this.datastore.createQuery(type);
+        final Query<T> query = this.datastore.createQuery(type);
         query.disableValidation();
 
         // Filter
-        for (final Entry<String, Object> e : filter.entrySet()) {
-            final String val = e.getValue().toString();
-            if (val.startsWith("/") && val.endsWith("/")) {
-                query.filter(e.getKey(), Pattern.compile(val.substring(1, val.length() - 1)));
+        for (final Entry<String, Object> entry : filter.entrySet()) {
+            final String pattern = entry.getValue().toString();
+            if ((pattern.charAt(0) == '/') && (pattern.charAt(pattern.length() - 1) == '/')) {
+                query.filter(entry.getKey(), Pattern.compile(pattern.substring(1, pattern.length() - 1)));
             } else {
-                query.filter(e.getKey(), e.getValue());
+                query.filter(entry.getKey(), entry.getValue());
             }
         }
 
         // Sort
-        final String sortSign = ("DESC".equals(sortDir)) ? "-" : "";
-        query = query.order(sortSign + sortField);
+        if ((sortField != null) && !sortField.isEmpty()) {
+            final String sortSign = ((sortDir != null) && "DESC".equals(sortDir)) ? "-" : "";
+            query.order(sortSign + sortField);
+        }
 
         // Paginate
         final FindOptions opts = new FindOptions().skip((page - 1) * perPage).limit(perPage);
@@ -205,6 +207,17 @@ public final class MongoDbConnector {
      */
     public <T> T get(final Class<T> type, final ObjectId id) {
         return this.datastore.get(type, id);
+    }
+
+    /**
+     * Get a list of objects with thea specific object ids
+     *
+     * @param type The type of object to retrieve
+     * @param ids The ObjectIds to search for
+     * @return A list of the specified objects in the mongo db
+     */
+    public <T> List<T> get(final Class<T> type, final List<ObjectId> ids) {
+        return this.datastore.get(type, ids).asList();
     }
 
     /**

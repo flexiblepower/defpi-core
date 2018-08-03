@@ -25,11 +25,11 @@ import java.net.URLEncoder;
 import java.text.ParseException;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -178,7 +178,7 @@ public class RegistryConnector {
      * @return A collection of services that are in the repository
      * @throws RepositoryNotFoundException When the whole repository is not found
      */
-    public Collection<Service> getAllServiceVersions(final String repository) throws RepositoryNotFoundException {
+    public List<Service> getAllServiceVersions(final String repository) throws RepositoryNotFoundException {
         synchronized (this.allServiceCacheLock) {
             final long cacheAge = System.currentTimeMillis() - this.allServiceCacheLastUpdate;
             if (cacheAge > RegistryConnector.MAX_CACHE_AGE_MS) {
@@ -228,7 +228,7 @@ public class RegistryConnector {
                 this.allServiceCacheLastUpdate = System.currentTimeMillis();
             }
         }
-        return this.allServiceCache.values();
+        return new LinkedList<>(this.allServiceCache.values());
     }
 
     /**
@@ -242,7 +242,7 @@ public class RegistryConnector {
      * @return A collection of services that are in the repository
      * @throws RepositoryNotFoundException When the whole repository is not found
      */
-    public Collection<Service> getServices(final String repository) throws RepositoryNotFoundException {
+    public List<Service> getServices(final String repository) throws RepositoryNotFoundException {
         synchronized (this.serviceCacheLock) {
             final long cacheAge = System.currentTimeMillis() - this.serviceCacheLastUpdate;
             if (cacheAge > RegistryConnector.MAX_CACHE_AGE_MS) {
@@ -290,7 +290,7 @@ public class RegistryConnector {
                 this.serviceCacheLastUpdate = System.currentTimeMillis();
             }
         }
-        return this.serviceCache.values();
+        return new LinkedList<>(this.serviceCache.values());
     }
 
     /**
