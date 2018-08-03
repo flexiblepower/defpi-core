@@ -1,534 +1,553 @@
+/*global
+    angular, window, logout
+*/
+
 // declare a new module called 'myApp', and make it require the `ng-admin` module as a dependency
-var myApp = angular.module('myApp', [ 'ng-admin' ]);
+var myApp = angular.module('myApp', ['ng-admin']);
 // declare a function to run when the module bootstraps (during the 'config'
 // phase)
 
-myApp.config(function(RestangularProvider) {
-	var username = window.localStorage.getItem('efpi_orchestrator_username');
-	var password = window.localStorage.getItem('efpi_orchestrator_password');
+myApp.config(function (RestangularProvider) {
+    'use strict';
+    var username = window.localStorage.getItem('efpi_orchestrator_username');
+    var password = window.localStorage.getItem('efpi_orchestrator_password');
 
-	var token = window.btoa(username + ':' + password);
-	RestangularProvider.setDefaultHeaders({
-		'Accept' : 'application/json',
-		'Authorization' : 'Basic ' + token
-	});
+    var token = window.btoa(username + ':' + password);
+    RestangularProvider.setDefaultHeaders({
+        Accept: 'application/json',
+        Authorization: 'Basic ' + token
+    });
 
-	RestangularProvider.addElementTransformer('connection', function(element) {
-		endpoint1 = element.endpoint1;
-		endpoint2 = element.endpoint2;
-		element.processId1 = endpoint1 === undefined ? undefined : endpoint1.processId;
-		element.processId2 = endpoint2 === undefined ? undefined : endpoint2.processId;
-		return element;
-	});
+    RestangularProvider.addElementTransformer('connection', function (element) {
+        var endpoint1 = element.endpoint1;
+        var endpoint2 = element.endpoint2;
+        element.processId1 = endpoint1 === undefined
+            ? undefined
+            : endpoint1.processId;
+        element.processId2 = endpoint2 === undefined
+            ? undefined
+            : endpoint2.processId;
+        return element;
+    });
 
-	RestangularProvider.setErrorInterceptor(function(response) {
-		if (response.status == 401 && !response.config.url.endsWith("unidentifiednode")) {
-			logout();
-		} else {
-			return true;
-		}
-	});
+    RestangularProvider.setErrorInterceptor(function (response) {
+        if (response.status === 401 && !response.config.url.endsWith("unidentifiednode")) {
+            logout();
+        } else {
+            return true;
+        }
+    });
 });
 
 myApp
-	.config([
-		'NgAdminConfigurationProvider',
-		function(nga) {
-			var admin = nga.application('EF-Pi Orchestrator').baseApiUrl('$ORCHESTRATOR_URL');
+    .config([
+        'NgAdminConfigurationProvider',
+        function (nga) {
+            'use strict';
+            var admin = nga.application('EF-Pi Orchestrator').baseApiUrl('$ORCHESTRATOR_URL');
 
-			// Entities
-			var user = nga.entity('user');
-			var service = nga.entity('service').readOnly();
-			var intface = nga.entity('interface').readOnly();
-			var process = nga.entity('process');
-			var connection = nga.entity('connection');
-			var nodepool = nga.entity('nodepool');
-			var puno = nga.entity('publicnode').label('Public Nodes');
-			var prno = nga.entity('privatenode').label('Private Nodes');
-			var un = nga.entity('unidentifiednode').label('Unidentified Nodes').readOnly();
-			var pendingchange = nga.entity('pendingchange').label('Pending Changes');
+            // Entities
+            var user = nga.entity('user');
+            var service = nga.entity('service').readOnly();
+            var intface = nga.entity('interface').readOnly();
+            var process = nga.entity('process');
+            var connection = nga.entity('connection');
+            var nodepool = nga.entity('nodepool');
+            var puno = nga.entity('publicnode').label('Public Nodes');
+            var prno = nga.entity('privatenode').label('Private Nodes');
+            var un = nga.entity('unidentifiednode').label('Unidentified Nodes').readOnly();
+            var pendingchange = nga.entity('pendingchange').label('Pending Changes');
 
-			// Views
-			user.listView().fields(
-				[
-					nga.field('username').isDetailLink(true),
-					nga.field('email', 'email'),
-					nga.field('admin', 'boolean')
-				]);
+            // Views
+            user.listView().fields(
+                [
+                    nga.field('username').isDetailLink(true),
+                    nga.field('email', 'email'),
+                    nga.field('admin', 'boolean')
+                ]
+            );
 
-			user.creationView().fields(
-				[ 
-					nga.field('username'),
-					nga.field('email', 'email'),
-					nga.field('password', 'password'),
-					nga.field('admin', 'boolean').choices(
-						[
-							{
-								value : true,
-								label : 'true'
-							}, {
-								value : false,
-								label : 'false'
-							}
-						])
-				]);
+            user.creationView().fields([
+                nga.field('username')
+                    .validation({required: true}),
+                nga.field('email', 'email'),
+                nga.field('password', 'password'),
+                nga.field('admin', 'boolean')
+                    .validation({required: true})
+                    .choices([{
+                        value: true,
+                        label: 'true'
+                    }, {
+                        value: false,
+                        label: 'false'
+                    }])
+            ]);
 
-			user.editionView().title('Edit user "{{ entry.values.username }}"').fields(
-				[ 
-					nga.field('id').label('dEF-Pi Id').editable(false).isDetailLink(false),
-					nga.field('username').editable(false),
-					nga.field('email', 'email'),
-					nga.field('password', 'password'),
-					nga.field('admin', 'boolean').choices(
-						[
-							{
-								value : true,
-								label : 'true'
-							}, {
-								value : false,
-								label : 'false'
-							}
-						])
-					]);
+            user.editionView().title('Edit user "{{ entry.values.username }}"').fields([
+                nga.field('id').label('dEF-Pi Id').editable(false).isDetailLink(false),
+                nga.field('username').editable(false),
+                nga.field('email', 'email'),
+                nga.field('password', 'password'),
+                nga.field('admin', 'boolean')
+                    .validation({required: true})
+                    .choices([{
+                        value: true,
+                        label: 'true'
+                    }, {
+                        value: false,
+                        label: 'false'
+                    }])
+            ]);
 
-			process.listView().fields(
-					[
-						nga.field('name').isDetailLink(true),
-						nga.field('state'),
-						nga.field('userId',	'reference')
-							.targetEntity(user)
-							.targetField(nga.field('username'))
-							.label('User')
-							.singleApiCall(function (userIds) {
-								 return { 'ids[]': userIds };
-							 }),
-						nga.field('serviceId'),
-						nga.field('nodePoolId',	'reference')
-							.targetEntity(nodepool)
-							.targetField(nga.field('name'))
-							.label('NodePool')
-							.singleApiCall(function (nodepoolIds) {
-								 return { 'ids[]': nodepoolIds };
-							 }),
-						nga.field('privateNodeId', 'reference')
-							.targetEntity(prno)
-							.targetField(nga.field('name'))
-							.label('PrivateNode')
-							.singleApiCall(function (nodeIds) {
-								 return { 'ids[]': nodeIds };
-							 }),
-						nga.field('id')
-					])
-				.filters(
-					[
-						nga.field('userId',	'reference')
-							.targetEntity(user)
-							.targetField(nga.field('username'))
-							.label('User')
-              .remoteComplete(true, {
-                searchQuery: function(search) { return { username: "/.*" + search + ".*/" }; }
-              }),
-						nga.field('hashpair')
-							.label('Hash-pair (separate using \';\')')
-					]);
+            process.listView().fields([
+                nga.field('name').isDetailLink(true),
+                nga.field('state'),
+                nga.field('userId', 'reference')
+                    .targetEntity(user)
+                    .targetField(nga.field('username'))
+                    .label('User')
+                    .singleApiCall(function (userIds) {
+                        return {'ids[]': userIds};
+                    }),
+                nga.field('serviceId'),
+                nga.field('nodePoolId', 'reference')
+                    .targetEntity(nodepool)
+                    .targetField(nga.field('name'))
+                    .label('NodePool')
+                    .singleApiCall(function (nodepoolIds) {
+                        return {'ids[]': nodepoolIds};
+                    }),
+                nga.field('privateNodeId', 'reference')
+                    .targetEntity(prno)
+                    .targetField(nga.field('name'))
+                    .label('PrivateNode')
+                    .singleApiCall(function (nodeIds) {
+                        return {'ids[]': nodeIds};
+                    }),
+                nga.field('id')
+            ])
+                .filters([
+                    nga.field('userId', 'reference')
+                        .targetEntity(user)
+                        .targetField(nga.field('username'))
+                        .remoteComplete(true, {
+                            searchQuery: function (search) {
+                                return {username: "/" + search + "/"};
+                            }
+                        })
+                        .label('User'),
+                    nga.field('hashpair')
+                        .label('Hash-pair (separate using \';\')')
+                ]);
 
-			process.creationView().fields(
-					[
-						nga.field('userId','reference')
-							.targetEntity(user)
-							.perPage(1000)
-							.targetField(nga.field('username'))
-							.label('User'),
-						nga.field('serviceId', 'reference')
-							.targetEntity(service)
-							.targetField(nga.field('id'))
-							.label('Service'),
-						nga.field('name'),
-						nga.field('nodePoolId', 'reference')
-							.targetEntity(nodepool)
-							.targetField(nga.field('name'))
-							.label('NodePool'),
-						nga.field('privateNodeId', 'reference')
-							.targetEntity(prno)
-							.targetField(nga.field('name'))
-							.label('PrivateNode'),
-						nga.field('configuration','embedded_list')
-							.label('Configuration')
-							.targetFields(
-								[
-									nga.field('key'),
-									nga.field('value')
-								]),
-						nga.field('debuggingPort')
-							.label('Debugging Port (0 = disabled)')
-							.defaultValue(0),
-						nga.field('exposePorts','embedded_list')
-							.label('Expose ports')
-							.targetFields(
-								[
-									nga.field('internal'),
-									nga.field('external') 
-								]),
-						nga.field('maxMemoryBytes')
-							.label('Max memory usage (bytes, 0 = disabled)')
-							.defaultValue(0),
-						nga.field('maxNanoCPUs')
-							.label('Max nano CPUs (0 = disabled)')
-							.defaultValue(0),
-						nga.field('mountPoints', 'embedded_list')
-							.label('Mount Points')
-							.targetFields(
-								[
-									nga.field('source'),
-									nga.field('target')
-								])
-						]);
+            process.creationView().fields([
+                nga.field('userId', 'reference')
+                    .targetEntity(user)
+                    .targetField(nga.field('username'))
+                    .remoteComplete(true, {
+                        searchQuery: function (search) {
+                            return {username: "/" + search + "/"};
+                        }
+                    })
+                    .validation({required: true})
+                    .label('User'),
+                nga.field('serviceId', 'reference')
+                    .targetEntity(service)
+                    .targetField(nga.field('id'))
+                    .validation({required: true})
+                    .label('Service'),
+                nga.field('name'),
+                nga.field('nodePoolId', 'reference')
+                    .targetEntity(nodepool)
+                    .targetField(nga.field('name'))
+                    .remoteComplete(true, {
+                        searchQuery: function (search) {
+                            return {name: "/" + search + "/"};
+                        }
+                    })
+                    .label('NodePool'),
+                nga.field('privateNodeId', 'reference')
+                    .targetEntity(prno)
+                    .targetField(nga.field('name'))
+                    .remoteComplete(true, {
+                        searchQuery: function (search) {
+                            return {name: "/" + search + "/"};
+                        }
+                    })
+                    .label('PrivateNode'),
+                nga.field('configuration', 'embedded_list')
+                    .label('Configuration')
+                    .targetFields([
+                        nga.field('key'),
+                        nga.field('value')
+                    ]),
+                nga.field('debuggingPort')
+                    .label('Debugging Port (0 = disabled)')
+                    .defaultValue(0),
+                nga.field('exposePorts', 'embedded_list')
+                    .label('Expose ports')
+                    .targetFields([
+                        nga.field('internal'),
+                        nga.field('external')
+                    ]),
+                nga.field('maxMemoryBytes')
+                    .label('Max memory usage (bytes, 0 = disabled)')
+                    .defaultValue(0),
+                nga.field('maxNanoCPUs')
+                    .label('Max nano CPUs (0 = disabled)')
+                    .defaultValue(0),
+                nga.field('mountPoints', 'embedded_list')
+                    .label('Mount Points')
+                    .targetFields([
+                        nga.field('source'),
+                        nga.field('target')
+                    ])
+            ]);
 
-			process.editionView().title('Edit process "{{entry.values.name}}"').fields(
-					[
-						nga.field('id').label('dEF-Pi Id').editable(false),
-						nga.field('userId',	'reference')
-							.targetEntity(user)
-							.targetField(nga.field('username'))
-							.label('User')
-							.editable(false),
-						nga.field('serviceId', 'reference')
-							.targetEntity(service)
-							.targetField(nga.field('id'))
-							.label('Service')
-							.editable(false),
-						nga.field('name'),
-						nga.field('dockerId')
-							.label('Docker Service ID')
-							.editable(false),
-						nga.field('nodePoolId',	'reference')
-							.targetEntity(nodepool)
-							.targetField(nga.field('name'))
-							.label('NodePool'),
-						nga.field('privateNodeId','reference')
-							.targetEntity(prno)
-							.targetField(nga.field('name'))
-							.label('PrivateNode'),
-						nga.field('configuration', 'embedded_list')
-							.label('Configuration')
-							.targetFields(
-								[
-									nga.field('key'),
-									nga.field('value')
-								]),
-						nga.field('debuggingPort')
-							.label('Debugging Port (0 = disabled)')
-							.defaultValue(0)
-							.editable(false),
-						nga.field('exposePorts',	'embedded_list')
-							.editable(false)
-							.label('Expose ports')
-							.targetFields(
-								[
-									nga.field('internal'),
-									nga.field('external')
-								]),
-						nga.field('maxMemoryBytes')
-							.label('Max memory usage (bytes, 0 = disabled)')
-							.defaultValue(0)
-							.editable(false),
-						nga.field('maxNanoCPUs')
-							.label('Max nano CPUs (0 = disabled)')
-							.defaultValue(0)
-							.editable(false),
-						nga.field('mountPoints', 'embedded_list')
-							.editable(false)
-							.label('Mount Points')
-							.targetFields(
-								[
-									nga.field('source'),
-									nga.field('target')
-								])
-							]);
+            process.editionView().title('Edit process "{{entry.values.name}}"').fields([
+                nga.field('id').label('dEF-Pi Id').editable(false),
+                nga.field('userId', 'reference')
+                    .targetEntity(user)
+                    .targetField(nga.field('username'))
+                    .label('User')
+                    .editable(false),
+                nga.field('serviceId', 'reference')
+                    .targetEntity(service)
+                    .targetField(nga.field('id'))
+                    .label('Service')
+                    .editable(false),
+                nga.field('name'),
+                nga.field('dockerId')
+                    .label('Docker Service ID')
+                    .editable(false),
+                nga.field('nodePoolId', 'reference')
+                    .targetEntity(nodepool)
+                    .targetField(nga.field('name'))
+                    .remoteComplete(true, {
+                        searchQuery: function (search) {
+                            return {name: "/" + search + "/"};
+                        }
+                    })
+                    .label('NodePool'),
+                nga.field('privateNodeId', 'reference')
+                    .targetEntity(prno)
+                    .targetField(nga.field('name'))
+                    .remoteComplete(true, {
+                        searchQuery: function (search) {
+                            return {name: "/" + search + "/"};
+                        }
+                    })
+                    .label('PrivateNode'),
+                nga.field('configuration', 'embedded_list')
+                    .label('Configuration')
+                    .targetFields([
+                        nga.field('key'),
+                        nga.field('value')
+                    ]),
+                nga.field('debuggingPort')
+                    .label('Debugging Port (0 = disabled)')
+                    .defaultValue(0)
+                    .editable(false),
+                nga.field('exposePorts', 'embedded_list')
+                    .editable(false)
+                    .label('Expose ports')
+                    .targetFields([
+                        nga.field('internal'),
+                        nga.field('external')
+                    ]),
+                nga.field('maxMemoryBytes')
+                    .label('Max memory usage (bytes, 0 = disabled)')
+                    .defaultValue(0)
+                    .editable(false),
+                nga.field('maxNanoCPUs')
+                    .label('Max nano CPUs (0 = disabled)')
+                    .defaultValue(0)
+                    .editable(false),
+                nga.field('mountPoints', 'embedded_list')
+                    .editable(false)
+                    .label('Mount Points')
+                    .targetFields([
+                        nga.field('source'),
+                        nga.field('target')
+                    ])
+            ]);
 
-			service.listView().fields(
-				[ 
-					nga.field('id').isDetailLink(true),
-					nga.field('name'),
-					nga.field('version'),
-					nga.field('created', 'datetime')
-				]);
+            service.listView().fields([
+                nga.field('id').isDetailLink(true),
+                nga.field('name'),
+                nga.field('version'),
+                nga.field('created', 'datetime')
+            ]);
 
-			service.showView().title('dEF-Pi service: {{ entry.values.name }}').fields(
-					[
-						nga.field('id').isDetailLink(false),
-						nga.field('name'),
-						nga.field('version'),
-						nga.field('created', 'datetime'),
-						nga.field('interfaces',	'embedded_list').targetFields(
-								[
-									nga.field('name'),
-									nga.field('allowMultiple', 'boolean'),
-									nga.field('autoConnect', 'boolean')
-								])
-					]);
+            service.showView().title('dEF-Pi service: {{ entry.values.name }}').fields([
+                nga.field('id').isDetailLink(false),
+                nga.field('name'),
+                nga.field('version'),
+                nga.field('created', 'datetime'),
+                nga.field('interfaces', 'embedded_list').targetFields([
+                    nga.field('name'),
+                    nga.field('allowMultiple', 'boolean'),
+                    nga.field('autoConnect', 'boolean')
+                ])
+            ]);
 
-			intface.listView().fields(
-				[ 
-					nga.field('id'),
-					nga.field('name'),
-					nga.field('serviceId')
-				]);
+            intface.listView().fields([
+                nga.field('id'),
+                nga.field('name'),
+                nga.field('serviceId')
+            ]);
 
-			intface.showView().title('dEF-Pi interface: {{ entry.values.name }}').fields(
-					[
-						nga.field('id').isDetailLink(false),
-						nga.field('name'),
-						nga.field('serviceId'),
-						nga.field('allowMultiple', 'boolean'),
-						nga.field('autoConnect', 'boolean'),
-						nga.field('interfaceVersions', 'embedded_list').targetFields(
-								[
-									nga.field('versionName'),
-									nga.field('sendsHash'),
-									nga.field('receivesHash')
-								])
-					]);
+            intface.showView().title('dEF-Pi interface: {{ entry.values.name }}').fields([
+                nga.field('id').isDetailLink(false),
+                nga.field('name'),
+                nga.field('serviceId'),
+                nga.field('allowMultiple', 'boolean'),
+                nga.field('autoConnect', 'boolean'),
+                nga.field('interfaceVersions', 'embedded_list').targetFields([
+                    nga.field('versionName'),
+                    nga.field('sendsHash'),
+                    nga.field('receivesHash')
+                ])
+            ]);
 
-			connection.listView().fields(
-				[
-					nga.field('id'),
-					nga.field('processId1', 'reference')
-						.targetEntity(process)
-						.targetField(nga.field('name'))
-						.label('Process 1')
-						.singleApiCall(function (processIds) {
-							return { 'ids[]': processIds };
-						}),
-					nga.field('endpoint1.interfaceId')
-						.label('Interface 1'),
-					nga.field('processId2', 'reference')
-						.targetEntity(process)
-						.targetField(nga.field('name'))
-						.label('Process 2')
-						.singleApiCall(function (processIds) {
-							return { 'ids[]': processIds };
-						}),
-					nga.field('endpoint2.interfaceId')
-						.label('Interface 2')
-				])
-				.filters(
-					[
-						nga.field('userId', 'reference')
-							.targetEntity(user)
-							.perPage(1000)
-							.targetField(nga.field('username'))
-							.label('User'),
-						nga.field('processId', 'reference')
-							.targetEntity(process)
-							.targetField(nga.field('id'))
-							.label('Process')
-					]);
+            connection.listView().fields([
+                nga.field('id'),
+                nga.field('processId1', 'reference')
+                    .targetEntity(process)
+                    .targetField(nga.field('name'))
+                    .label('Process 1')
+                    .singleApiCall(function (processIds) {
+                        return {'ids[]': processIds};
+                    }),
+                nga.field('endpoint1.interfaceId')
+                    .label('Interface 1'),
+                nga.field('processId2', 'reference')
+                    .targetEntity(process)
+                    .targetField(nga.field('name'))
+                    .label('Process 2')
+                    .singleApiCall(function (processIds) {
+                        return {'ids[]': processIds};
+                    }),
+                nga.field('endpoint2.interfaceId')
+                    .label('Interface 2')
+            ])
+                .filters([
+                    nga.field('userId', 'reference')
+                        .targetEntity(user)
+                        .targetField(nga.field('username'))
+                        .remoteComplete(true, {
+                            searchQuery: function (search) {
+                                return {username: "/" + search + "/"};
+                            }
+                        })
+                        .label('User'),
+                    nga.field('processId', 'reference')
+                        .targetEntity(process)
+                        .targetField(nga.field('id'))
+                        .label('Process')
+                ]);
 
-			connection.creationView().fields(
-				[
-					nga.field('endpoint1.processId', 'reference')
-						.targetEntity(process)
-						.perPage(1000)
-						.targetField(nga.field('name'))
-						.label('Process 1'),
-					nga.field('endpoint1.interfaceId', 'reference')
-						.targetEntity(intface)
-						.targetField(nga.field('id'))
-						.label('Interface 1'),
-					nga.field('endpoint2.processId', 'reference')
-						.targetEntity(process)
-						.perPage(-1)
-						.targetField(nga.field('name'))
-						.label('Process 2'),
-					nga.field('endpoint2.interfaceId', 'reference')
-						.targetEntity(intface)
-						.perPage(-1)
-						.targetField(nga.field('id'))
-						.label('Interface 2')
-				]);
+            connection.creationView().fields([
+                nga.field('endpoint1.processId', 'reference')
+                    .targetEntity(process)
+                    .targetField(nga.field('name'))
+                    .remoteComplete(true, {
+                        searchQuery: function (search) {
+                            return {name: "/" + search + "/"};
+                        }
+                    })
+                    .label('Process 1'),
+                nga.field('endpoint1.interfaceId', 'reference')
+                    .targetEntity(intface)
+                    .targetField(nga.field('id'))
+                    .label('Interface 1'),
+                nga.field('endpoint2.processId', 'reference')
+                    .targetEntity(process)
+                    .targetField(nga.field('name'))
+                    .remoteComplete(true, {
+                        searchQuery: function (search) {
+                            return {name: "/" + search + "/"};
+                        }
+                    })
+                    .label('Process 2'),
+                nga.field('endpoint2.interfaceId', 'reference')
+                    .targetEntity(intface)
+                    .perPage(-1)
+                    .targetField(nga.field('id'))
+                    .label('Interface 2')
+            ]);
 
-			nodepool.listView().fields(
-				[
-					nga.field('name').isDetailLink(true)
-				]);
+            nodepool.listView().fields([
+                nga.field('name').isDetailLink(true)
+            ]);
 
-			nodepool.creationView().fields(nga.field('name'));
+            nodepool.creationView().fields(nga.field('name').validation({required: true}));
 
-			nodepool.editionView().fields(nga.field('name'));
+            nodepool.editionView().fields(nga.field('name').validation({required: true}));
 
-			puno.listView().fields(
-				[
-					nga.field('name').isDetailLink(true),
-					nga.field('dockerId'),
-					nga.field('hostname'),
-					nga.field('architecture'),
-					nga.field('status'),
-					nga.field('lastSync', 'datetime'),
-					nga.field('nodePoolId', 'reference')
-						.targetEntity(nodepool)
-						.targetField(nga.field('name'))
-						.label('Nodepool')
-						.singleApiCall(function (userIds) {
-							return { 'ids[]': userIds };
-						}),
-					nga.field('id')
-				]);
+            puno.listView().fields([
+                nga.field('name').isDetailLink(true),
+                nga.field('dockerId'),
+                nga.field('hostname'),
+                nga.field('architecture'),
+                nga.field('status'),
+                nga.field('lastSync', 'datetime'),
+                nga.field('nodePoolId', 'reference')
+                    .targetEntity(nodepool)
+                    .targetField(nga.field('name'))
+                    .label('Nodepool')
+                    .singleApiCall(function (userIds) {
+                        return {'ids[]': userIds};
+                    }),
+                nga.field('id')
+            ]);
 
-			puno.creationView().fields(
-				[
-					nga.field('name'),
-					nga.field('dockerId', 'reference')
-						.targetEntity(un)
-						.targetField(nga.field('dockerId'))
-						.label('Unidentified Node')
-						.validation(
-							{
-								required : true
-							}),
-					nga.field('nodePoolId', 'reference')
-						.targetEntity(nodepool)
-						.targetField(nga.field('name'))
-						.label('NodePool')
-						.validation(
-							{
-								required : true
-							})
-				]);
+            puno.creationView().fields([
+                nga.field('name'),
+                nga.field('dockerId', 'reference')
+                    .targetEntity(un)
+                    .targetField(nga.field('dockerId'))
+                    .validation({required: true})
+                    .label('Unidentified Node'),
+                nga.field('nodePoolId', 'reference')
+                    .targetEntity(nodepool)
+                    .targetField(nga.field('name'))
+                    .remoteComplete(true, {
+                        searchQuery: function (search) {
+                            return {name: "/" + search + "/"};
+                        }
+                    })
+                    .validation({required: true})
+                    .label('NodePool')
+            ]);
 
-			puno.editionView().title('Edit public node "{{ entry.values.name }}"').fields(
-				[
-					nga.field('name'),
-					nga.field('id').label('dEF-Pi Id').editable(false),
-					nga.field('dockerId').editable(false),
-					nga.field('hostname').editable(false),
-					nga.field('architecture').editable(false),
-					nga.field('status').editable(false),
-					nga.field('lastSync', 'datetime').editable(false),
-					nga.field('nodePoolId', 'reference')
-						.targetEntity(nodepool)
-						.targetField(nga.field('name'))
-						.label('Nodepool')
-						.editable(false),
-				]);
+            puno.editionView().title('Edit public node "{{ entry.values.name }}"').fields([
+                nga.field('name'),
+                nga.field('id').label('dEF-Pi Id').editable(false),
+                nga.field('dockerId').editable(false),
+                nga.field('hostname').editable(false),
+                nga.field('architecture').editable(false),
+                nga.field('status').editable(false),
+                nga.field('lastSync', 'datetime').editable(false),
+                nga.field('nodePoolId', 'reference')
+                    .targetEntity(nodepool)
+                    .targetField(nga.field('name'))
+                    .label('Nodepool')
+                    .editable(false)
+            ]);
 
-			prno.listView().fields(
-				[
-					nga.field('name').isDetailLink(true),
-					nga.field('dockerId'),
-					nga.field('hostname'),
-					nga.field('architecture'),
-					nga.field('status'),
-					nga.field('lastSync', 'datetime'),
-					nga.field('userId', 'reference')
-						.targetEntity(user)
-						.targetField(nga.field('username'))
-						.label('User')
-						.singleApiCall(function (userIds) {
-							return { 'ids[]': userIds };
-						}),
-					nga.field('id'),
-				]);
+            prno.listView().fields([
+                nga.field('name').isDetailLink(true),
+                nga.field('dockerId'),
+                nga.field('hostname'),
+                nga.field('architecture'),
+                nga.field('status'),
+                nga.field('lastSync', 'datetime'),
+                nga.field('userId', 'reference')
+                    .targetEntity(user)
+                    .targetField(nga.field('username'))
+                    .label('User')
+                    .singleApiCall(function (userIds) {
+                        return {'ids[]': userIds};
+                    }),
+                nga.field('id')
+            ]);
 
-			prno.creationView().fields(
-				[
-					nga.field('name'),
-					nga.field('dockerId', 'reference')
-						.targetEntity(un)
-						.targetField(nga.field('dockerId'))
-						.label('Unidentified Node')
-						.validation(
-							{
-								required : true
-							}),
-					nga.field('userId', 'reference')
-						.targetEntity(user)
-						.targetField(nga.field('username'))
-						.perPage(1000)
-						.label('User').validation(
-							{
-								required : true
-							})
-				]);
+            prno.creationView().fields([
+                nga.field('name'),
+                nga.field('dockerId', 'reference')
+                    .targetEntity(un)
+                    .targetField(nga.field('dockerId'))
+                    .validation({required: true})
+                    .label('Unidentified Node'),
+                nga.field('userId', 'reference')
+                    .targetEntity(user)
+                    .targetField(nga.field('username'))
+                    .remoteComplete(true, {
+                        searchQuery: function (search) {
+                            return {username: "/" + search + "/"};
+                        }
+                    })
+                    .validation({required: true})
+                    .label('User')
+            ]);
 
-			prno.editionView().title('Edit private node "{{ entry.values.name }}"').fields(
-				[
-					nga.field('name'),
-					nga.field('id').label('dEF-Pi Id').editable(false),
-					nga.field('dockerId').editable(false),
-					nga.field('hostname').editable(false),
-					nga.field('architecture').editable(false),
-					nga.field('status').editable(false),
-					nga.field('lastSync', 'datetime').editable(false),
-					nga.field('userId', 'reference')
-						.targetEntity(user)
-						.targetField(nga.field('username'))
-						.label('User')
-						.editable(false),
-				]);
+            prno.editionView().title('Edit private node "{{ entry.values.name }}"').fields([
+                nga.field('name'),
+                nga.field('id').label('dEF-Pi Id').editable(false),
+                nga.field('dockerId').editable(false),
+                nga.field('hostname').editable(false),
+                nga.field('architecture').editable(false),
+                nga.field('status').editable(false),
+                nga.field('lastSync', 'datetime').editable(false),
+                nga.field('userId', 'reference')
+                    .targetEntity(user)
+                    .targetField(nga.field('username'))
+                    .label('User')
+                    .editable(false)
+            ]);
 
-			un.listView().fields(
-				[
-					nga.field('dockerId'),
-					nga.field('hostname'),
-					nga.field('architecture'),
-					nga.field('status'),
-					nga.field('lastSync', 'datetime')
-				]);
+            un.listView().fields([
+                nga.field('dockerId'),
+                nga.field('hostname'),
+                nga.field('architecture'),
+                nga.field('status'),
+                nga.field('lastSync', 'datetime')
+            ]);
 
-			pendingchange.listView().fields(
-				[
-					nga.field('type'),
-					nga.field('userId', 'reference')
-						.targetEntity(user)
-						.targetField(nga.field('username'))
-						.label('User')
-						.singleApiCall(function (userIds) {
-							return { 'ids[]': userIds };
-						}),
-					nga.field('created', 'datetime'),
-					nga.field('description'),
-					nga.field('count'),
-					nga.field('state').cssClasses(
-						function(entry) {
-							if (!entry)
-								return "";
-							return entry.values.state
-								+ "-td"
-						}),
-				]);
+            pendingchange.listView().fields([
+                nga.field('type'),
+                nga.field('userId', 'reference')
+                    .targetEntity(user)
+                    .targetField(nga.field('username'))
+                    .label('User')
+                    .singleApiCall(function (userIds) {
+                        return {'ids[]': userIds};
+                    }),
+                nga.field('created', 'datetime'),
+                nga.field('description'),
+                nga.field('count'),
+                nga.field('state').cssClasses(
+                    function (entry) {
+                        if (!entry) {
+                            return "";
+                        }
+                        return entry.values.state + "-td";
+                    }
+                )
+            ]);
 
-			// Add entities
-			admin.addEntity(user);
-			admin.addEntity(service);
-			admin.addEntity(intface);
-			admin.addEntity(process);
-			admin.addEntity(connection);
-			admin.addEntity(nodepool);
-			admin.addEntity(un);
-			admin.addEntity(puno);
-			admin.addEntity(prno);
-			admin.addEntity(pendingchange);
+            // Add entities
+            admin.addEntity(user);
+            admin.addEntity(service);
+            admin.addEntity(intface);
+            admin.addEntity(process);
+            admin.addEntity(connection);
+            admin.addEntity(nodepool);
+            admin.addEntity(un);
+            admin.addEntity(puno);
+            admin.addEntity(prno);
+            admin.addEntity(pendingchange);
 
-			// Menu
-			admin.menu(
-				nga.menu()
-					.addChild(nga.menu(user).icon('<span class="glyphicon glyphicon-user"></span>'))
-					.addChild(nga.menu(service).icon('<span class="glyphicon glyphicon-play-circle"></span>'))
-					.addChild(nga.menu(intface).icon('<span class="glyphicon glyphicon-flash"></span>'))
-					.addChild(nga.menu(process).icon('<span class="glyphicon glyphicon-repeat"></span>'))
-					.addChild(nga.menu(connection).icon('<span class="glyphicon glyphicon-resize-small"></span>'))
-					.addChild(nga.menu(nodepool).icon('<span class="glyphicon glyphicon-cloud"></span>'))
-					.addChild(nga.menu(puno).icon('<span class="glyphicon glyphicon-hdd"></span>'))
-					.addChild(nga.menu(prno).icon('<span class="glyphicon glyphicon-hdd"></span>'))
-					.addChild(nga.menu(un).icon('<span class="glyphicon glyphicon-hdd"></span>'))
-					.addChild(nga.menu(pendingchange).icon('<span class="glyphicon glyphicon-retweet"></span>'))
-				);
+            // Menu
+            admin.menu(
+                nga.menu()
+                    .addChild(nga.menu(user).icon('<span class="glyphicon glyphicon-user"></span>'))
+                    .addChild(nga.menu(service).icon('<span class="glyphicon glyphicon-play-circle"></span>'))
+                    .addChild(nga.menu(intface).icon('<span class="glyphicon glyphicon-flash"></span>'))
+                    .addChild(nga.menu(process).icon('<span class="glyphicon glyphicon-repeat"></span>'))
+                    .addChild(nga.menu(connection).icon('<span class="glyphicon glyphicon-resize-small"></span>'))
+                    .addChild(nga.menu(nodepool).icon('<span class="glyphicon glyphicon-cloud"></span>'))
+                    .addChild(nga.menu(puno).icon('<span class="glyphicon glyphicon-hdd"></span>'))
+                    .addChild(nga.menu(prno).icon('<span class="glyphicon glyphicon-hdd"></span>'))
+                    .addChild(nga.menu(un).icon('<span class="glyphicon glyphicon-hdd"></span>'))
+                    .addChild(nga.menu(pendingchange).icon('<span class="glyphicon glyphicon-retweet"></span>'))
+            );
 
-			var customHeaderTemplate = '<div class="navbar-header"><button type="button" class="navbar-toggle"ng-click="isCollapsed = !isCollapsed"><span class="icon-bar"></span> <span class="icon-bar"></span> <spanclass="icon-bar"></span></button><a class="navbar-brand" href="#" ng-click="appController.displayHome()">EF-Pi Orchestrator</a></div><ul class="nav navbar-top-links navbar-right hidden-xs"><li><a href="#" onclick="logout()"><iclass="fa fa-sign-out fa-fw"></i>Logout</a></li></ul>';
+            var customHeaderTemplate = '<div class="navbar-header"><button type="button" class="navbar-toggle"ng-click="isCollapsed = !isCollapsed"><span class="icon-bar"></span> <span class="icon-bar"></span> <spanclass="icon-bar"></span></button><a class="navbar-brand" href="#" ng-click="appController.displayHome()">EF-Pi Orchestrator</a></div><ul class="nav navbar-top-links navbar-right hidden-xs"><li><a href="#" onclick="logout()"><iclass="fa fa-sign-out fa-fw"></i>Logout</a></li></ul>';
 
-			admin.header(customHeaderTemplate);
+            admin.header(customHeaderTemplate);
 
-			nga.configure(admin);
-		}
-	]);
+            nga.configure(admin);
+        }
+    ]);
