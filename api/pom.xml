@@ -8,7 +8,7 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>18.6.1-SNAPSHOT</version>
+		<version>18.6.1</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
