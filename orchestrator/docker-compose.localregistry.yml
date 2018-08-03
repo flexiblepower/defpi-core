@@ -1,3 +1,5 @@
+# This environment runs everything on the local machine, also debugging is enabled for the orchestrator
+
 version: "3"
 networks:
   management:
@@ -5,24 +7,26 @@ networks:
 services:
   orchestrator:
     image: localhost:5000/defpi/orchestrator:latest
+    restart: always
     ports:
-      - 8484:8080
-      - 9999:9999
+      - 0.0.0.0:8484:8080
+      - 0.0.0.0:9999:9999
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     links:
-      - mongo_test
+      - mongo
     networks:
       - management
     environment:
       - JVM_ARGUMENTS=-Xdebug -agentlib:jdwp=transport=dt_socket,address=9999,server=y,suspend=n
-      - MONGO_HOST=mongo_test
+      - MONGO_HOST=mongo
       - MONGO_DATABASE=def-pi
       - MONGO_PORT=27017
       - REGISTRY_URL=registry:5000
       - REGISTRY_EXTERNAL_URL=localhost:5000
       - USE_SECURE_REGISTRY=false
   orchestrator-ui:
+    build: ../orchestrator-ui
     image: localhost:5000/defpi/orchestrator-ui
     ports:
       - 84:80
@@ -34,7 +38,7 @@ services:
      - management
     ports:
       - 5000:5000
-  mongo_test:
+  mongo:
     image: mvertes/alpine-mongo
     ports:
       - 0.0.0.0:27017:27017
