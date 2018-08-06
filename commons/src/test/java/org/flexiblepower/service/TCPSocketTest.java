@@ -96,21 +96,24 @@ public class TCPSocketTest {
             long t_start = System.currentTimeMillis();
             Assert.assertNull(client.read(100));
             long t_wait = System.currentTimeMillis() - t_start;
-            Assert.assertTrue(Math.abs(t_wait - 100) < margin);
+            Assert.assertTrue(String.format("Timeout was %d (expected %d)", t_wait, 100),
+                    Math.abs(t_wait - 100) < margin);
             Assert.assertTrue(client.isConnected());
 
             // Test 100 ms
             t_start = System.currentTimeMillis();
             Assert.assertNull(server.read(100));
             t_wait = System.currentTimeMillis() - t_start;
-            Assert.assertTrue(Math.abs(t_wait - 100) < margin);
+            Assert.assertTrue(String.format("Timeout was %d (expected %d)", t_wait, 100),
+                    Math.abs(t_wait - 100) < margin);
             Assert.assertTrue("The server should be connected now", server.isConnected());
 
             // Test 200 ms
             t_start = System.currentTimeMillis();
             Assert.assertNull(server.read(200));
             t_wait = System.currentTimeMillis() - t_start;
-            Assert.assertTrue(Math.abs(t_wait - 200) < margin);
+            Assert.assertTrue(String.format("Timeout was %d (expected %d)", t_wait, 200),
+                    Math.abs(t_wait - 200) < margin);
 
             // Test if data still comes through
             client.send("Test data".getBytes());
