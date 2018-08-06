@@ -221,7 +221,7 @@
 		<profile>
 			<id>release</id>
 			<properties>
-				<docker.imageName>flexiblepower:defpi-orchestrator</docker.imageName>
+				<docker.imageName>docker.io/flexiblepower/defpi-orchestrator</docker.imageName>
 			</properties>
 
 			<build>
