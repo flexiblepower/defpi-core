@@ -70,10 +70,6 @@
 		<log4j.version>2.11.0</log4j.version>
 	</properties>
 
-	<prerequisites>
-		<maven>3.0</maven>
-	</prerequisites>
-
 	<modules>
 		<module>service-parent</module>
 		<module>../api</module>
