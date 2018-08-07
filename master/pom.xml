@@ -70,6 +70,10 @@
 		<log4j.version>2.11.0</log4j.version>
 	</properties>
 
+	<prerequisites>
+		<maven>3.0</maven>
+	</prerequisites>
+
 	<modules>
 		<module>service-parent</module>
 		<module>../api</module>
@@ -266,6 +270,28 @@
 						<goals>
 							<goal>jar</goal>
 						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>versions-maven-plugin</artifactId>
+				<version>2.5</version>
+				<executions>
+					<execution>
+						<id>check-dependency-versions</id>
+						<goals>
+							<goal>display-dependency-updates</goal>
+						</goals>
+						<phase>verify</phase>
+					</execution>
+						<execution>
+						<id>check-plugin-versions</id>
+						<goals>
+							<goal>display-plugin-updates</goal>
+						</goals>
+						<phase>verify</phase>
 					</execution>
 				</executions>
 			</plugin>
