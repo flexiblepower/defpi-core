@@ -78,7 +78,7 @@ public class ConnectionTest {
 
     @Parameters
     public static List<Object[]> data() {
-        return Arrays.asList(new Object[300][0]);
+        return Arrays.asList(new Object[3][0]);
     }
 
     @Before

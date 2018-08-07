@@ -50,7 +50,7 @@ public class MultipleFailureTest {
 
     @Parameters
     public static List<Object[]> data() {
-        return Arrays.asList(new Object[3000][0]);
+        return Arrays.asList(new Object[3][0]);
     }
 
     @Rule
