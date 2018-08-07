@@ -17,12 +17,6 @@ stages:
   - predeploy
   - deploy
 
-cache:
-  paths:
-    - cache/maven.repository
-
-# *** BUILD JOBS *** #
-
 # Validate branch make sure we don't merge ek2 into master
 branch-test:ek2:
   stage: build
@@ -45,6 +39,11 @@ java-compile:
   stage: build
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml clean test-compile'
+  cache:
+    paths:
+      - cache/maven.repository
+
+# *** BUILD JOBS *** #
 
 ui-compile:
   image: docker:18.04.0-ce-git
@@ -61,6 +60,9 @@ java-test:
     - master
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml test'
+  cache:
+    paths:
+      - cache/maven.repository
 
 # Plugin template, how test the plugins with the code generator
 .plugin_template: &plugin
@@ -69,6 +71,9 @@ java-test:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
   script:
     - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml defpi:generate'
+  cache:
+    paths:
+      - cache/maven.repository
 
 # Test plugin on xsd
 plugin-test:proto:
@@ -109,6 +114,9 @@ java-deploy:
     - defpici
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy -Ddocker.registry=defpi.hesilab.nl:5000'
+  cache:
+    paths:
+      - cache/maven.repository
 
 # Deploy UI to registry
 ui-deploy:
