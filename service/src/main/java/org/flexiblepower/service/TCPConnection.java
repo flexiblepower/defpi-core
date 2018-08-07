@@ -542,12 +542,23 @@ final class TCPConnection implements Connection, Closeable {
                     }
                 }
 
-                // Create the monitors
-                TCPConnection.log.debug("[{}] - Creating connection monitors", TCPConnection.this.connectionId);
-                TCPConnection.this.handShakeMonitor = new HandShakeMonitor(TCPConnection.this.socket,
-                        TCPConnection.this.connectionId);
-                TCPConnection.this.heartBeatMonitor = new HeartBeatMonitor(TCPConnection.this.socket,
-                        TCPConnection.this.connectionId);
+                try {
+                    // Create the monitors
+                    TCPConnection.log.debug("[{}] - Creating connection monitors", TCPConnection.this.connectionId);
+                    TCPConnection.this.handShakeMonitor = new HandShakeMonitor(TCPConnection.this.socket,
+                            TCPConnection.this.connectionId);
+                    TCPConnection.this.heartBeatMonitor = new HeartBeatMonitor(TCPConnection.this.socket,
+                            TCPConnection.this.connectionId);
+                } catch (final Exception e) {
+                    if (this.keepRunning) {
+                        TCPConnection.log.warn(
+                                "[{}] - Exception while instantiating connection monitors. Aborting setup",
+                                TCPConnection.this.connectionId);
+                        continue;
+                    } else {
+                        break;
+                    }
+                }
 
                 // Now we have a functioning socket, make sure that as soon as there is a handshake, go connected
                 TCPConnection.this.connectionExecutor.submit(() -> {
@@ -590,6 +601,13 @@ final class TCPConnection implements Connection, Closeable {
                             TCPConnection.log.trace(e.getMessage(), e);
                             TCPConnection.this.goToInterruptedState();
                         }
+                        break;
+                    } catch (final Exception e) {
+                        TCPConnection.log.error("[{}] - Unexpected exception while operating on socket: {}",
+                                TCPConnection.this.connectionId,
+                                e.getMessage());
+                        TCPConnection.log.trace(e.getMessage(), e);
+                        TCPConnection.this.goToInterruptedState();
                         break;
                     }
                 }
