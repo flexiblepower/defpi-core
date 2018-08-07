@@ -19,10 +19,12 @@ package org.flexiblepower.service;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.flexiblepower.service.TestHandler.TestHandlerBuilder;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -30,30 +32,32 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-// These tests are useful, but take very long
 @RunWith(Parameterized.class)
 @SuppressWarnings({"static-method", "javadoc"})
 public class ConnectionIntegrationTest {
 
     private static final int TEST_PORT = 5001;
-    private static final int WAIT_AFTER_CONNECT = 100;
     protected static int counter = 1;
 
     @Parameters
     public static List<Object[]> data() {
-        return Arrays.asList(new Object[3][0]);
+        return Arrays.asList(new Object[300][0]);
     }
 
     @Rule
     public Timeout globalTimeout = Timeout.seconds(5);
 
-    @After
-    public void reset() throws InterruptedException {
+    @Before
+    public void before() throws InterruptedException {
         TestHandler.handlerMap.clear();
+        TestHandler.messageQueue.clear();
+        TestHandler.stateQueue.clear();
         ConnectionIntegrationTest.counter = 1;
+    }
+
+    @After
+    public void after() {
         ServiceExecutor.getInstance().shutDown();
-        System.gc();
-        Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
     }
 
     @Test
@@ -77,21 +81,13 @@ public class ConnectionIntegrationTest {
                         "",
                         "",
                         "")) {
-            mc1.waitUntilConnected();
-            mc2.waitUntilConnected();
-            Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT); // Make sure at least 1 heartbeat is sent
-
-            Assert.assertEquals("connected", TestHandler.handlerMap.get("h1").state);
-            Assert.assertEquals("connected", TestHandler.handlerMap.get("h2").state);
-
-            Assert.assertNull(TestHandler.handlerMap.get("h1").lastMessage);
-            Assert.assertNotNull(TestHandler.handlerMap.get("h2").lastMessage);
-            Assert.assertEquals("started", TestHandler.handlerMap.get("h2").lastMessage.getDebugInformation());
-
+            Assert.assertEquals("connected", TestHandler.stateQueue.take());
+            Assert.assertEquals("connected", TestHandler.stateQueue.take());
+            Assert.assertEquals("started", TestHandler.messageQueue.take());
+            Assert.assertEquals("started", TestHandler.messageQueue.take());
         }
-        Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
-        Assert.assertEquals("terminated", TestHandler.handlerMap.get("h1").state);
-        Assert.assertEquals("terminated", TestHandler.handlerMap.get("h2").state);
+        TestHandler.stateQueue.poll(100, TimeUnit.MILLISECONDS);
+        TestHandler.stateQueue.poll(100, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -115,42 +111,28 @@ public class ConnectionIntegrationTest {
                         "",
                         "")) {
 
-            mc1.waitUntilConnected();
-            mc2.waitUntilConnected();
-            Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
-
-            Assert.assertNotNull(TestHandler.handlerMap.get("h1"));
-            Assert.assertNotNull(TestHandler.handlerMap.get("h2"));
-
-            Assert.assertEquals("connected", TestHandler.handlerMap.get("h1").state);
-            Assert.assertEquals("connected", TestHandler.handlerMap.get("h2").state);
-
-            Assert.assertNull(TestHandler.handlerMap.get("h1").lastMessage);
-            Assert.assertNotNull(TestHandler.handlerMap.get("h2").lastMessage);
-            Assert.assertEquals("started", TestHandler.handlerMap.get("h2").lastMessage.getDebugInformation());
+            Assert.assertEquals("connected", TestHandler.stateQueue.take());
+            Assert.assertEquals("connected", TestHandler.stateQueue.take());
+            Assert.assertEquals("started", TestHandler.messageQueue.take());
+            Assert.assertEquals("started", TestHandler.messageQueue.take());
 
             mc1.goToSuspendedState();
             mc2.goToSuspendedState();
-
-            Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
-
-            Assert.assertEquals("suspended", TestHandler.handlerMap.get("h1").state);
-            Assert.assertEquals("suspended", TestHandler.handlerMap.get("h2").state);
+            Assert.assertEquals("suspended", TestHandler.stateQueue.take());
+            Assert.assertEquals("suspended", TestHandler.stateQueue.take());
 
             // Now we move mc2 to port 5002
             mc1.goToResumedState(5002, "");
             mc2.goToResumedState(5002, "localhost");
 
-            mc1.waitUntilConnected();
-            Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
+            Assert.assertEquals("resumed from suspend", TestHandler.messageQueue.take());
+            Assert.assertEquals("resumed from suspend", TestHandler.messageQueue.take());
+            Assert.assertEquals("resume-suspended", TestHandler.stateQueue.take());
+            Assert.assertEquals("resume-suspended", TestHandler.stateQueue.take());
 
-            Assert.assertNull(TestHandler.handlerMap.get("h1").lastMessage);
-            Assert.assertEquals("resumed from suspend",
-                    TestHandler.handlerMap.get("h2").lastMessage.getDebugInformation());
-
-            Assert.assertEquals("resume-suspended", TestHandler.handlerMap.get("h1").state);
-            Assert.assertEquals("resume-suspended", TestHandler.handlerMap.get("h2").state);
         }
+        TestHandler.stateQueue.poll(100, TimeUnit.MILLISECONDS);
+        TestHandler.stateQueue.poll(100, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -174,26 +156,17 @@ public class ConnectionIntegrationTest {
                             "",
                             "",
                             "")) {
-                mc1.waitUntilConnected();
-                mc2.waitUntilConnected();
-                Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
+                Assert.assertEquals("connected", TestHandler.stateQueue.take());
+                Assert.assertEquals("connected", TestHandler.stateQueue.take());
+                Assert.assertEquals("started", TestHandler.messageQueue.take());
+                Assert.assertEquals("started", TestHandler.messageQueue.take());
 
                 Assert.assertNotNull(TestHandler.handlerMap.get("h1"));
                 Assert.assertNotNull(TestHandler.handlerMap.get("h2"));
-                Assert.assertEquals("connected", TestHandler.handlerMap.get("h1").state);
-                Assert.assertEquals("connected", TestHandler.handlerMap.get("h2").state);
-
-                Assert.assertNull(TestHandler.handlerMap.get("h1").lastMessage);
-                Assert.assertNotNull(TestHandler.handlerMap.get("h2").lastMessage);
-                Assert.assertEquals("started", TestHandler.handlerMap.get("h2").lastMessage.getDebugInformation());
             }
 
-            Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
-
-            String state1 = TestHandler.handlerMap.get("h1").state;
-            String state2 = TestHandler.handlerMap.get("h2").state;
-            System.out.println("State 1 : " + state1);
-            System.out.println("State 2 : " + state2);
+            String state1 = TestHandler.stateQueue.take();
+            String state2 = TestHandler.stateQueue.take();
 
             Assert.assertTrue(("terminated".equals(state1) && "interrupted".equals(state2))
                     || ("terminated".equals(state2) && "interrupted".equals(state1)));
@@ -206,28 +179,23 @@ public class ConnectionIntegrationTest {
                             "",
                             "",
                             "")) {
-                mc3.waitUntilConnected();
-                Thread.sleep(ConnectionIntegrationTest.WAIT_AFTER_CONNECT);
-
-                state1 = TestHandler.handlerMap.get("h1").state;
-                state2 = TestHandler.handlerMap.get("h2").state;
+                final String recv1 = TestHandler.messageQueue.take();
+                final String recv2 = TestHandler.messageQueue.take();
+                Assert.assertTrue(("started".equals(recv1) && "resumed from interrupt".equals(recv2))
+                        || ("started".equals(recv2) && "resumed from interrupt".equals(recv1)));
                 Assert.assertNotNull(TestHandler.handlerMap.get("h3"));
-                final String state3 = TestHandler.handlerMap.get("h3").state;
-                System.out.println("State 1 : " + state1);
-                System.out.println("State 2 : " + state2);
-                System.out.println("State 3 : " + state3);
 
-                Assert.assertTrue(("connected".equals(state3) && "resume-interrupted".equals(state2))
-                        || ("connected".equals(state3) && "resume-interrupted".equals(state1)));
+                state1 = TestHandler.stateQueue.take();
+                state2 = TestHandler.stateQueue.take();
+                System.out.println(state1 + ", " + state2);
+                Assert.assertTrue(("connected".equals(state2) && "resume-interrupted".equals(state1))
+                        || ("connected".equals(state1) && "resume-interrupted".equals(state2)));
 
-                Assert.assertNull(TestHandler.handlerMap.get("h1").lastMessage);
-                Assert.assertNotNull(TestHandler.handlerMap.get("h3").lastMessage);
                 Assert.assertEquals("resumed from interrupt",
                         TestHandler.handlerMap.get("h3").lastMessage.getDebugInformation());
             }
-
-            // Assert.assertEquals("connected", ConnectionIntegrationTest.handlerMap.get("h1").state);
-            // Assert.assertEquals("resume-interrupted", ConnectionIntegrationTest.handlerMap.get("h2").state);
         }
+        TestHandler.stateQueue.poll(100, TimeUnit.MILLISECONDS);
+        TestHandler.stateQueue.poll(100, TimeUnit.MILLISECONDS);
     }
 }

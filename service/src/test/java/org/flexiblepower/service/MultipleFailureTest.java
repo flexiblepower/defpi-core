@@ -19,10 +19,12 @@ package org.flexiblepower.service;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.flexiblepower.service.TestHandler.TestHandlerBuilder;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -45,22 +47,26 @@ public class MultipleFailureTest {
      *
      */
     private static final int TEST_PORT = 5001;
-    private static final int WAIT_AFTER_CONNECT = 200;
 
     @Parameters
     public static List<Object[]> data() {
-        return Arrays.asList(new Object[3][0]);
+        return Arrays.asList(new Object[3000][0]);
     }
 
     @Rule
     public Timeout globalTimeout = Timeout.seconds(10);
 
-    @After
-    public void reset() throws InterruptedException {
+    @Before
+    public void before() throws InterruptedException {
+        TestHandler.messageQueue.clear();
+        TestHandler.stateQueue.clear();
         TestHandler.handlerMap.clear();
         ConnectionIntegrationTest.counter = 1;
+    }
+
+    @After
+    public void after() {
         ServiceExecutor.getInstance().shutDown();
-        Thread.sleep(MultipleFailureTest.WAIT_AFTER_CONNECT);
     }
 
     @Test
@@ -84,17 +90,10 @@ public class MultipleFailureTest {
                             "",
                             "",
                             "")) {
-                mc1.waitUntilConnected();
-                Thread.sleep(MultipleFailureTest.WAIT_AFTER_CONNECT);
-
-                Assert.assertNotNull(TestHandler.handlerMap.get("h1"));
-                Assert.assertNotNull(TestHandler.handlerMap.get("h2"));
-                Assert.assertEquals("connected", TestHandler.handlerMap.get("h1").state);
-                Assert.assertEquals("connected", TestHandler.handlerMap.get("h2").state);
-
-                Assert.assertNull(TestHandler.handlerMap.get("h1").lastMessage);
-                Assert.assertNotNull(TestHandler.handlerMap.get("h2").lastMessage);
-                Assert.assertEquals("started", TestHandler.handlerMap.get("h2").lastMessage.getDebugInformation());
+                Assert.assertEquals("connected", TestHandler.stateQueue.take());
+                Assert.assertEquals("connected", TestHandler.stateQueue.take());
+                Assert.assertEquals("started", TestHandler.messageQueue.take());
+                Assert.assertEquals("started", TestHandler.messageQueue.take());
 
                 for (int i = 0; i < 3; i++) {
                     if (Math.random() < 0.5) {
@@ -103,18 +102,27 @@ public class MultipleFailureTest {
                         mc2.socket.close();
                     }
 
-                    // Should fix itself...
-                    Thread.sleep(MultipleFailureTest.WAIT_AFTER_CONNECT);
-                    mc1.waitUntilConnected();
-                    mc2.waitUntilConnected();
-                    Assert.assertEquals("resume-interrupted", TestHandler.handlerMap.get("h1").state);
-                    Assert.assertEquals("resume-interrupted", TestHandler.handlerMap.get("h2").state);
+                    final String stateA = TestHandler.stateQueue.take();
+                    final String stateB = TestHandler.stateQueue.take();
+
+                    Assert.assertEquals("resumed from interrupt", TestHandler.messageQueue.take());
+                    if (stateA.equals("interrupted")) {
+                        Assert.assertEquals("resume-interrupted", TestHandler.stateQueue.take());
+                    } else {
+                        Assert.assertEquals("resume-interrupted", stateA);
+                    }
+
+                    Assert.assertEquals("resumed from interrupt", TestHandler.messageQueue.take());
+                    if (stateB.equals("interrupted")) {
+                        Assert.assertEquals("resume-interrupted", TestHandler.stateQueue.take());
+                    } else {
+                        Assert.assertEquals("resume-interrupted", stateB);
+                    }
 
                     mc1.goToSuspendedState();
                     mc2.goToSuspendedState();
-                    Thread.sleep(MultipleFailureTest.WAIT_AFTER_CONNECT);
-                    Assert.assertEquals("suspended", TestHandler.handlerMap.get("h1").state);
-                    Assert.assertEquals("suspended", TestHandler.handlerMap.get("h2").state);
+                    Assert.assertEquals("suspended", TestHandler.stateQueue.take());
+                    Assert.assertEquals("suspended", TestHandler.stateQueue.take());
 
                     if (Math.random() < 0.5) {
                         mc1.goToResumedState(MultipleFailureTest.TEST_PORT, "");
@@ -123,15 +131,15 @@ public class MultipleFailureTest {
                         mc1.goToResumedState(MultipleFailureTest.TEST_PORT, "localhost");
                         mc2.goToResumedState(MultipleFailureTest.TEST_PORT, "");
                     }
-                    Thread.sleep(MultipleFailureTest.WAIT_AFTER_CONNECT);
-                    mc1.waitUntilConnected();
-                    mc2.waitUntilConnected();
 
-                    Assert.assertEquals("resume-suspended", TestHandler.handlerMap.get("h1").state);
-                    Assert.assertEquals("resume-suspended", TestHandler.handlerMap.get("h2").state);
+                    Assert.assertEquals("resumed from suspend", TestHandler.messageQueue.take());
+                    Assert.assertEquals("resumed from suspend", TestHandler.messageQueue.take());
+                    Assert.assertEquals("resume-suspended", TestHandler.stateQueue.take());
+                    Assert.assertEquals("resume-suspended", TestHandler.stateQueue.take());
                 }
             }
-
+            TestHandler.stateQueue.poll(100, TimeUnit.MILLISECONDS);
+            TestHandler.stateQueue.poll(100, TimeUnit.MILLISECONDS);
         }
     }
 

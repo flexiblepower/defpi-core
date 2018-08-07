@@ -66,8 +66,8 @@ final class TCPConnection implements Connection, Closeable {
      * The connection executor is the pool of threads that will run the different services to keep a connection alive,
      * and read its messages
      */
-    protected final ExecutorService connectionExecutor = Executors.newFixedThreadPool(3,
-            r -> new Thread(r, "dEF-Pi connThread" + TCPConnection.threadCounter++));
+    protected final ExecutorService connectionExecutor = Executors
+            .newCachedThreadPool(r -> new Thread(r, "dEF-Pi connThread" + TCPConnection.threadCounter++));
 
     /**
      * A runnable object that will make sure the messages in the queue are given to the responsible ConnectionHandler
@@ -104,7 +104,7 @@ final class TCPConnection implements Connection, Closeable {
      * The socket that provides the underlying message carrying mechanism. This may be closed and reinitialized as the
      * Connection is interrupted, suspended, or any transient intermediate state
      */
-    protected TCPSocket socket;
+    protected volatile TCPSocket socket;
 
     /**
      * The heartbeat monitor is an external object that periodically checks if the connection is still healthy.
@@ -567,7 +567,7 @@ final class TCPConnection implements Connection, Closeable {
                     }
                 });
 
-                while (this.keepRunning && TCPConnection.this.socket.isConnected()) {
+                while (this.keepRunning && (TCPConnection.this.socket != null)) {
                     try {
                         final byte[] data = TCPConnection.this.socket.read();
 
@@ -575,7 +575,9 @@ final class TCPConnection implements Connection, Closeable {
                             continue;
                         }
 
-                        if (!TCPConnection.this.heartBeatMonitor.handleMessage(data)
+                        // Check the socket again, since it may have changed since we started read()
+                        if ((TCPConnection.this.socket != null)
+                                && !TCPConnection.this.heartBeatMonitor.handleMessage(data)
                                 && !TCPConnection.this.handShakeMonitor.handleHandShake(data)) {
                             TCPConnection.this.messageQueue.addMessage(data);
                         }

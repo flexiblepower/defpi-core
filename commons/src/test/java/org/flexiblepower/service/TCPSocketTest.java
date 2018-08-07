@@ -1,3 +1,4 @@
+package org.flexiblepower.service;
 /**
  * File TCPSocketTest.java
  *
@@ -15,7 +16,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.flexiblepower.service;
 
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
@@ -138,7 +138,7 @@ public class TCPSocketTest {
             Assert.assertNotNull(server.read());
             Assert.assertTrue(server.isConnected());
 
-            Thread.sleep(100);
+            // Thread.sleep(100);
 
             // Setup the second server which should not work!
             Assert.assertFalse(server2.isConnected());
@@ -265,10 +265,10 @@ public class TCPSocketTest {
 
             if (Math.random() < 0.5) {
                 client1.interrupt(); // Will make sure clientSocket1 is closed
-                Thread.sleep(100);
             } else {
                 clientSocket.close(); // Same effect
             }
+            client1.join(); // Wait until the thread completes
             Assert.assertFalse(clientSocket.isConnected());
             Assert.assertTrue(clientSocket.isClosed());
 
@@ -283,7 +283,7 @@ public class TCPSocketTest {
             Assert.assertTrue(clientSocket2.isConnected());
             client2.interrupt(); // Will make sure clientSocket2 is closed
             serverThread.interrupt();
-            Thread.sleep(200);
+            serverThread.join(); // Wait until the thread completes
 
             Assert.assertFalse(clientSocket2.isConnected());
             Assert.assertTrue(clientSocket2.isClosed());

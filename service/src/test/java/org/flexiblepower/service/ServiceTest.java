@@ -97,16 +97,11 @@ public class ServiceTest {
         Assert.assertTrue(((ErrorMessage) e).getDebugInformation()
                 .startsWith("org.flexiblepower.exceptions.SerializationException"));
 
-        Thread.sleep(200);
         this.managementSocket.close();
-
-        Thread.sleep(100);
-
         this.managementSocket = TCPSocket.asClient(ServiceTest.TEST_HOST, ServiceManager.MANAGEMENT_PORT);
 
         data = this.managementSocket.read(200);
         Assert.assertNull(data);
-        Thread.sleep(100);
         this.managementSocket.send("nog iets".getBytes());
         data = this.managementSocket.read();
         e = this.pbSerializer.deserialize(data);
@@ -146,8 +141,7 @@ public class ServiceTest {
                         .setStateData(ByteString.copyFrom("".getBytes()))
                         .build(),
                 this.pbSerializer.deserialize(received));
-        Thread.sleep(100);
-        Assert.assertEquals("resumed", this.testService.getState());
+        Assert.assertEquals("resumed", this.testService.stateQueue.take());
     }
 
     public void runConfigure() throws Exception {
@@ -163,8 +157,7 @@ public class ServiceTest {
                 .setState(ProcessState.RUNNING)
                 .setStateData(ByteString.EMPTY)
                 .build()), received);
-        Thread.sleep(100);
-        Assert.assertEquals("init", this.testService.getState());
+        Assert.assertEquals("init", this.testService.stateQueue.take());
     }
 
     public void runWithError() throws Exception {
@@ -191,8 +184,7 @@ public class ServiceTest {
                 .setState(ProcessState.RUNNING)
                 .setStateData(ByteString.EMPTY)
                 .build()), this.managementSocket.read());
-        Thread.sleep(100);
-        Assert.assertEquals("modify", this.testService.getState());
+        Assert.assertEquals("modify", this.testService.stateQueue.take());
     }
 
     public void runSuspend() throws Exception {
@@ -206,8 +198,7 @@ public class ServiceTest {
                 .setState(ProcessState.SUSPENDED)
                 .setStateData(ByteString.copyFrom(this.serializer.serialize(TestService.class)))
                 .build()), barr);
-        Thread.sleep(100);
-        Assert.assertEquals("suspend", this.testService.getState());
+        Assert.assertEquals("suspend", this.testService.stateQueue.take());
     }
 
     public void runTerminate() throws Exception {
@@ -220,8 +211,7 @@ public class ServiceTest {
                 .setState(ProcessState.TERMINATED)
                 .setStateData(ByteString.EMPTY)
                 .build()), this.managementSocket.read());
-        Thread.sleep(100);
-        Assert.assertEquals("terminate", this.testService.getState());
+        Assert.assertEquals("terminate", this.testService.stateQueue.take());
     }
 
     @After
@@ -230,7 +220,6 @@ public class ServiceTest {
             this.manager.close();
             this.manager = null;
         }
-        Thread.sleep(100);
     }
 
 }
