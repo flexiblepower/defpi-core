@@ -217,6 +217,7 @@
 								<value>src/test/resources/log4j2.xml</value>
 							</property>
 						</systemProperties>
+						<rerunFailingTestsCount>2</rerunFailingTestsCount>
 					</configuration>
 				</plugin>
 
