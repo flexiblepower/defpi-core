@@ -11,7 +11,7 @@ all: generate
 generate: .generated
 .generated: service.json
 	@echo "Generating code for $(SERVICE)"
-	docker run --rm -u$(shell id -u) -v$(shell pwd):/usr/local/defpi $(CODEGEN_IMAGE)
+	docker run --rm -u$(shell id -u) -e"USER=$(shell id -un)" -v$(shell pwd):/usr/local/defpi $(CODEGEN_IMAGE)
 	@touch $@
 
 package: .packaged
