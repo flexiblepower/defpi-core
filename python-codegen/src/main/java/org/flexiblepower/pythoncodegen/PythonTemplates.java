@@ -145,7 +145,7 @@ public class PythonTemplates extends Templates {
                 handlerReplace.put("vitf.handler.interface", interfaceClass);
                 handlerReplace.put("vitf.handler.class", implementationClass);
                 handlerReplace.put("vitf.version", interfaceVersionModule);
-                handlerReplace.put("vitf.version.builder", PythonCodegenUtils.builderFunctionName(itf, vitf));
+                handlerReplace.put("vitf.version.builder", PythonCodegenUtils.builderFunctionName(vitf));
 
                 definitions.add(this.replaceMap(this.getTemplate("BuilderDefinition"), handlerReplace));
                 implementations.add(this.replaceMap(this.getTemplate("BuilderImplementation"), handlerReplace));
