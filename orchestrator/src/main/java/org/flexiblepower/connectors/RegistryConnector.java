@@ -25,11 +25,11 @@ import java.net.URLEncoder;
 import java.text.ParseException;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -134,7 +134,7 @@ public class RegistryConnector {
     /**
      * @return The singleton instance of the ProcessConnector
      */
-    public synchronized static RegistryConnector getInstance() {
+    public static RegistryConnector getInstance() {
         if (RegistryConnector.instance == null) {
             RegistryConnector.instance = new RegistryConnector();
         }
@@ -178,7 +178,7 @@ public class RegistryConnector {
      * @return A collection of services that are in the repository
      * @throws RepositoryNotFoundException When the whole repository is not found
      */
-    public Collection<Service> getAllServiceVersions(final String repository) throws RepositoryNotFoundException {
+    public List<Service> getAllServiceVersions(final String repository) throws RepositoryNotFoundException {
         synchronized (this.allServiceCacheLock) {
             final long cacheAge = System.currentTimeMillis() - this.allServiceCacheLastUpdate;
             if (cacheAge > RegistryConnector.MAX_CACHE_AGE_MS) {
@@ -228,7 +228,7 @@ public class RegistryConnector {
                 this.allServiceCacheLastUpdate = System.currentTimeMillis();
             }
         }
-        return this.allServiceCache.values();
+        return new LinkedList<>(this.allServiceCache.values());
     }
 
     /**
@@ -242,7 +242,7 @@ public class RegistryConnector {
      * @return A collection of services that are in the repository
      * @throws RepositoryNotFoundException When the whole repository is not found
      */
-    public Collection<Service> getServices(final String repository) throws RepositoryNotFoundException {
+    public List<Service> getServices(final String repository) throws RepositoryNotFoundException {
         synchronized (this.serviceCacheLock) {
             final long cacheAge = System.currentTimeMillis() - this.serviceCacheLastUpdate;
             if (cacheAge > RegistryConnector.MAX_CACHE_AGE_MS) {
@@ -257,13 +257,12 @@ public class RegistryConnector {
                             try {
                                 final Map<Architecture, String> tagsMap = RegistryConnector
                                         .tagsToArchitectureMap(tagsList);
-
+                                System.out.println(serviceName + ": " + tagsMap);
                                 final Service service = this
                                         .getServiceFromRegistry(repository, serviceName, version, tagsMap);
                                 final String key = service.getId() + ":" + service.getVersion();
 
-                                this.serviceCache.put(key,
-                                        this.getServiceFromRegistry(repository, serviceName, version, tagsMap));
+                                this.serviceCache.put(key, service);
                             } catch (final ServiceNotFoundException ex) {
                                 RegistryConnector.log
                                         .error("Could not find service {}: {}", serviceName, ex.getMessage());
@@ -291,7 +290,7 @@ public class RegistryConnector {
                 this.serviceCacheLastUpdate = System.currentTimeMillis();
             }
         }
-        return this.serviceCache.values();
+        return new LinkedList<>(this.serviceCache.values());
     }
 
     /**
@@ -301,7 +300,13 @@ public class RegistryConnector {
     private static Map<Architecture, String> tagsToArchitectureMap(final List<String> tags) {
         final Map<Architecture, String> result = new HashMap<>();
         for (final String tag : tags) {
-            result.put(Service.getArchitectureFromTag(tag), tag);
+            // TODO: When a version contains something that looks like a version, such as: "-SNAPSHOT", it is
+            // misinterpreted as a separate version, which is then loaded, and potentially overwrites an
+            // interfaceversion from latest, which causes incorrect interfaces. This is the best fix for now
+            final Architecture arch = Service.getArchitectureFromTag(tag);
+            if (!arch.equals(Architecture.UNKNOWN)) {
+                result.put(arch, tag);
+            }
         }
         return result;
     }

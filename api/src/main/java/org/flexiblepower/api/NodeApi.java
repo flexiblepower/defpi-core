@@ -137,6 +137,66 @@ public interface NodeApi {
             InvalidObjectIdException;
 
     /**
+     * Update the information of the private node with the provided specification.
+     *
+     * @param nodeId the ObjectId of the node to update
+     * @param updatedPrivateNode the updated information of the node
+     * @return the updated node
+     * @throws AuthorizationException if the user is not logged in as an administrator.
+     * @throws NotFoundException if the node could not be found
+     * @throws InvalidObjectIdException if the provided ObjectId is not valid
+     */
+    @PUT
+    @Path("/privatenode/{node_id}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @ApiOperation(nickname = "updatePrivateNode",
+                  value = "Update Private Node",
+                  notes = "Update a Private Node",
+                  authorizations = {@Authorization(value = OrchestratorApi.ADMIN_AUTHENTICATION)})
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "Node updated", response = PrivateNode.class),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE),
+            @ApiResponse(code = 400, message = InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE),
+            @ApiResponse(code = 404, message = NodeApi.PRIVATE_NODE_NOT_FOUND_MESSAGE)})
+    public PrivateNode updatePrivateNode(
+            @ApiParam(value = "The id of the node that should be updated",
+                      required = true) @PathParam("node_id") final String nodeId,
+            @ApiParam(value = "The PrivateNode to update", required = true) final PrivateNode updatedPrivateNode)
+            throws AuthorizationException,
+            NotFoundException,
+            InvalidObjectIdException;
+
+    /**
+     * Update the information of the public node with the provided specification.
+     *
+     * @param nodeId the ObjectId of the node to update
+     * @param updatedPublicNode the updated information of the node
+     * @return the updated node
+     * @throws AuthorizationException if the user is not logged in as an administrator.
+     * @throws NotFoundException if the node could not be found
+     * @throws InvalidObjectIdException if the provided ObjectId is not valid
+     */
+    @PUT
+    @Path("/publicnode/{node_id}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @ApiOperation(nickname = "updatePublicNode",
+                  value = "Update Publc Node",
+                  notes = "Update a Publc Node",
+                  authorizations = {@Authorization(value = OrchestratorApi.ADMIN_AUTHENTICATION)})
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "Node updated", response = PublicNode.class),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE),
+            @ApiResponse(code = 400, message = InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE),
+            @ApiResponse(code = 404, message = NodeApi.PUBLIC_NODE_NOT_FOUND_MESSAGE)})
+    public PublicNode updatePublicNode(
+            @ApiParam(value = "The id of the node that should be updated",
+                      required = true) @PathParam("node_id") final String nodeId,
+            @ApiParam(value = "The PublicNode to update", required = true) final PublicNode updatedPublicNode)
+            throws AuthorizationException,
+            NotFoundException,
+            InvalidObjectIdException;
+
+    /**
      * Remove a private node, and return it to being an unidentified node
      *
      * @param nodeId the id of the node to remove
@@ -388,14 +448,13 @@ public interface NodeApi {
     @ApiOperation(nickname = "updateNodePool",
                   value = "Update NodePool",
                   notes = "Update a NodePool",
-                  response = String.class,
                   authorizations = {@Authorization(value = OrchestratorApi.ADMIN_AUTHENTICATION)})
     @ApiResponses(value = {@ApiResponse(code = 200, message = "NodePool updated", response = NodePool.class),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE),
             @ApiResponse(code = 400, message = InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE),
             @ApiResponse(code = 404, message = NodeApi.NODE_POOL_NOT_FOUND_MESSAGE)})
     public NodePool updateNodePool(
-            @ApiParam(value = "The id of the NodePool that needs to be deleted",
+            @ApiParam(value = "The id of the NodePool that needs to be updated",
                       required = true) @PathParam("nodepool_id") final String nodePoolId,
             @ApiParam(value = "The NodePool to update", required = true) final NodePool updatedNodePool)
             throws AuthorizationException,

@@ -44,7 +44,7 @@ import lombok.Value;
 @Entity
 @Data
 @Builder
-@NoArgsConstructor
+@NoArgsConstructor // Must be generated for Morphia
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EqualsAndHashCode(exclude = {"runningNodeId", "dockerId"})
 public class Process {
@@ -131,6 +131,9 @@ public class Process {
     @JsonDeserialize(using = ObjectIdDeserializer.class)
     private ObjectId id;
 
+    // The name is only used for human readable identification.
+    private String name;
+    
     @JsonSerialize(using = ToStringSerializer.class)
     @JsonDeserialize(using = ObjectIdDeserializer.class)
     private ObjectId userId;

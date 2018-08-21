@@ -18,7 +18,10 @@
 
 package org.flexiblepower.rest;
 
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -37,6 +40,15 @@ import org.flexiblepower.orchestrator.ServiceManager;
  */
 public class ServiceRestApi extends BaseApi implements ServiceApi {
 
+    private static final Map<String, Comparator<Service>> SORT_MAP = new HashMap<>();
+    static {
+        ServiceRestApi.SORT_MAP.put("default", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
+        ServiceRestApi.SORT_MAP.put("id", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
+        ServiceRestApi.SORT_MAP.put("name", (a, b) -> a.getName().compareTo(b.getName()));
+        ServiceRestApi.SORT_MAP.put("created", (a, b) -> a.getCreated().compareTo(b.getCreated()));
+        ServiceRestApi.SORT_MAP.put("version", (a, b) -> a.getVersion().compareTo(b.getVersion()));
+    }
+
     /**
      * Create the REST API with the headers from the HTTP request (will be injected by the HTTP server)
      *
@@ -54,9 +66,12 @@ public class ServiceRestApi extends BaseApi implements ServiceApi {
             final String filters) throws AuthorizationException {
         // TODO implement pagination, sorting and filtering
         this.assertUserIsLoggedIn();
+
         final List<Service> content = ServiceManager.getInstance().listServices();
+        RestUtils.orderContent(content, ServiceRestApi.SORT_MAP, sortField, sortDir);
+
         this.addTotalCount(content.size());
-        return content;
+        return RestUtils.paginate(content, page, perPage);
     }
 
     @Override

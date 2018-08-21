@@ -17,12 +17,16 @@
  */
 package org.flexiblepower.orchestrator;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
+import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.model.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * UserManager
@@ -32,6 +36,7 @@ import org.flexiblepower.model.User;
  */
 public class UserManager {
 
+    private static final Logger log = LoggerFactory.getLogger(UserManager.class);
     private static UserManager instance;
 
     private final MongoDbConnector db = MongoDbConnector.getInstance();
@@ -45,7 +50,7 @@ public class UserManager {
     /**
      * @return The singleton instance of the UserManager
      */
-    public synchronized static UserManager getInstance() {
+    public static UserManager getInstance() {
         if (UserManager.instance == null) {
             UserManager.instance = new UserManager();
         }
@@ -79,6 +84,24 @@ public class UserManager {
      */
     public User getUser(final String username) {
         return this.db.getUserByUsername(username);
+    }
+
+    /**
+     * Get the users from the database with the provided set of userIds.
+     *
+     * @param ids the String representations of the user ids
+     * @return the user stored with the provided Ids
+     */
+    public List<User> getUsers(final List<String> ids) {
+        final List<User> ret = new LinkedList<>();
+        for (final String id : ids) {
+            try {
+                ret.add(this.getUser(MongoDbConnector.stringToObjectId(id)));
+            } catch (final InvalidObjectIdException e) {
+                UserManager.log.debug("Invalid objectId in list: {}", id);
+            }
+        }
+        return ret;
     }
 
     /**
@@ -137,11 +160,11 @@ public class UserManager {
     /**
      * List all users in the database
      *
-     * @param page      the current page to view
-     * @param perPage   the amount of users to view per page
-     * @param sortDir   the direction to sort the users
+     * @param page the current page to view
+     * @param perPage the amount of users to view per page
+     * @param sortDir the direction to sort the users
      * @param sortField the field to sort the users on
-     * @param filter    a map of filters as key/value pairs
+     * @param filter a map of filters as key/value pairs
      * @return A list of users in the dEF-Pi environment.
      */
     public List<User> listUsers(final int page,

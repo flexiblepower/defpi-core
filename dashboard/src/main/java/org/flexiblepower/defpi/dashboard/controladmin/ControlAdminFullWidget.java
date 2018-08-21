@@ -103,7 +103,7 @@ public class ControlAdminFullWidget implements Widget {
     }
 
     @Override
-    public String getFullWidgetId() {
+    public String getWidgetId() {
         return "controladmin";
     }
 
@@ -114,12 +114,7 @@ public class ControlAdminFullWidget implements Widget {
 
     @Override
     public Type getType() {
-        return Type.FULL;
-    }
-
-    @Override
-    public boolean isActive() {
-        return true;
+        return Type.FULL_WIDGET;
     }
 
 }

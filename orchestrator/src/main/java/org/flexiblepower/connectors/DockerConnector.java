@@ -156,7 +156,7 @@ public class DockerConnector {
     /**
      * @return The singleton instance of the DockerConnector
      */
-    public synchronized static DockerConnector getInstance() {
+    public static DockerConnector getInstance() {
         if (DockerConnector.instance == null) {
             DockerConnector.instance = new DockerConnector();
         }
@@ -312,8 +312,8 @@ public class DockerConnector {
      * network, and the orchestrator is added to this network in runtime.
      *
      * @param process the process which we want to make sure is in an attached network
-     * @throws InterruptedException If an  interruption occurs before the docker client was able to get the required info
-     * @throws DockerException      If an  exception occurs in the docker client
+     * @throws InterruptedException If an interruption occurs before the docker client was able to get the required info
+     * @throws DockerException If an exception occurs in the docker client
      */
     public void ensureProcessNetworkIsAttached(final Process process) throws DockerException, InterruptedException {
         try {

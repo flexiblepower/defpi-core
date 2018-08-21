@@ -18,7 +18,11 @@
 
 package org.flexiblepower.rest;
 
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -37,6 +41,14 @@ import org.flexiblepower.orchestrator.ServiceManager;
  */
 public class InterfaceRestApi extends BaseApi implements InterfaceApi {
 
+    private static final Map<String, Comparator<Interface>> SORT_MAP = new HashMap<>();
+    static {
+        InterfaceRestApi.SORT_MAP.put("default", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
+        InterfaceRestApi.SORT_MAP.put("id", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
+        InterfaceRestApi.SORT_MAP.put("serviceId", (a, b) -> a.getServiceId().compareTo(b.getServiceId()));
+        InterfaceRestApi.SORT_MAP.put("name", (a, b) -> a.getName().compareTo(b.getName()));
+    }
+
     /**
      * Create the REST API with the headers from the HTTP request (will be injected by the HTTP server)
      *
@@ -54,7 +66,16 @@ public class InterfaceRestApi extends BaseApi implements InterfaceApi {
             final String filters) throws AuthorizationException {
         // TODO implement pagination, sorting and filtering
         this.assertUserIsLoggedIn();
-        return ServiceManager.getInstance().listInterfaces();
+        if ((page < 0) || (perPage < 0)) {
+            this.addTotalCount(0);
+            return Collections.emptyList();
+        }
+
+        final List<Interface> content = ServiceManager.getInstance().listInterfaces();
+        RestUtils.orderContent(content, InterfaceRestApi.SORT_MAP, sortField, sortDir);
+
+        this.addTotalCount(content.size());
+        return RestUtils.paginate(content, page, perPage);
     }
 
     @Override

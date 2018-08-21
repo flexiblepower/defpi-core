@@ -58,7 +58,7 @@ public class ConnectionManager {
     /**
      * @return the singleton instance of the ConnectionManager
      */
-    public synchronized static ConnectionManager getInstance() {
+    public static ConnectionManager getInstance() {
         if (ConnectionManager.instance == null) {
             ConnectionManager.instance = new ConnectionManager();
         }

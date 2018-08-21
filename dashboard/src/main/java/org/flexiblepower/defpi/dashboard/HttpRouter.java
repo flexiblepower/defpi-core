@@ -9,9 +9,9 @@ public class HttpRouter implements HttpHandler {
     private final static Logger LOG = LoggerFactory.getLogger(HttpRouter.class);
 
     private final HttpStaticContentHandler staticContentHandler;
-    private final FullWidgetManager fullWidgetManager;
+    private final FullWidgetAndPageManager fullWidgetManager;
 
-    public HttpRouter(final FullWidgetManager fullWidgetManager) {
+    public HttpRouter(final FullWidgetAndPageManager fullWidgetManager) {
         this.fullWidgetManager = fullWidgetManager;
         this.staticContentHandler = new HttpStaticContentHandler();
     }
