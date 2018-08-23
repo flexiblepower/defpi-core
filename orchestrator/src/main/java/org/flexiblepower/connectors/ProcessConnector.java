@@ -158,7 +158,6 @@ public class ProcessConnector {
      * @param endpoint The endpoint to suspend
      * @return Whether the connection endpoint was successfully suspended or not
      * @throws ProcessNotFoundException When the process containing the endpoint cannot be found
-     * @see #resumeConnectionEndpoint(Connection,Endpoint)
      */
     public boolean suspendConnectionEndpoint(final Connection connection, final Endpoint endpoint)
             throws ProcessNotFoundException {
@@ -174,7 +173,6 @@ public class ProcessConnector {
      * @param endpoint The endpoint to resume
      * @return Whether the connection endpoint was successfully resumed or not
      * @throws ProcessNotFoundException When the process containing the endpoint cannot be found
-     * @see #suspendConnectionEndpoint(Connection,Endpoint)
      */
     public boolean resumeConnectionEndpoint(final Connection connection, final Endpoint endpoint)
             throws ProcessNotFoundException {
