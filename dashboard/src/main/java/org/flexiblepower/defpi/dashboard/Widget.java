@@ -11,7 +11,7 @@ public interface Widget extends HttpHandler {
     /**
      * Name which can be used in the URL. Not used for small widgets.
      *
-     * @return
+     * @return the Id of the Widget
      */
     String getWidgetId();
 
