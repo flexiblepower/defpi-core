@@ -1,4 +1,4 @@
-/**
+/*
  * File RegistryConnector.java
  *
  * Copyright 2017 FAN
@@ -107,7 +107,7 @@ public class RegistryConnector {
 
     private final ExecutorService cacheExecutor = Executors.newFixedThreadPool(10,
             r -> new Thread(r, "RegConThread" + RegistryConnector.threadCount++));
-    private final Set<Interface> interfaceCache = new HashSet<>();
+    // private final Set<Interface> interfaceCache = new HashSet<>();
 
     private final Map<String, Service> serviceCache = new ConcurrentHashMap<>();
     private long serviceCacheLastUpdate = 0;
@@ -294,8 +294,10 @@ public class RegistryConnector {
     }
 
     /**
-     * @param value
-     * @return
+     * Get architectures from a list of tags
+     *
+     * @param tags List of tags to convert to architectures
+     * @return A map of architecture -> tag mapping
      */
     private static Map<Architecture, String> tagsToArchitectureMap(final List<String> tags) {
         final Map<Architecture, String> result = new HashMap<>();
@@ -312,8 +314,10 @@ public class RegistryConnector {
     }
 
     /**
-     * @param tags
-     * @return
+     * Group tag versions per architecture
+     *
+     * @param tags List of tags to group
+     * @return A mapping containing for every version the list of architecture tags
      */
     private static Map<String, List<String>> groupTagVersions(final List<String> tags) {
         final Map<String, List<String>> result = new HashMap<>();
@@ -436,11 +440,10 @@ public class RegistryConnector {
                 serviceBuilder.interfaces(interfaces);
 
                 // Add interfaces to the cache
-                this.interfaceCache.addAll(interfaces);
+                // this.interfaceCache.addAll(interfaces);
             } catch (final IOException ex) {
                 RegistryConnector.log.warn("Exception while parsing interface: {}", ex.getMessage());
                 RegistryConnector.log.trace(ex.getMessage(), ex);
-                continue;
             }
         }
 
@@ -473,8 +476,8 @@ public class RegistryConnector {
     }
 
     /**
-     * @param response
-     * @throws ServiceNotFoundException
+     * @param response The response to validate
+     * @throws ServiceNotFoundException When the reponse is not valid, immediately throw an Exception
      */
     private static void validateResponse(final Response response) throws ServiceNotFoundException {
         if (response.getStatusInfo().equals(Status.NOT_FOUND)) {

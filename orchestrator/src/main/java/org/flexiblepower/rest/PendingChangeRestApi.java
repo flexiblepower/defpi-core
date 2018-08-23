@@ -55,8 +55,8 @@ public class PendingChangeRestApi extends BaseApi implements PendingChangeApi {
     /**
      * This is just a conversion of the internally used object to an API object
      *
-     * @param pendingChange
-     * @return
+     * @param pendingChange The pending change information of a description is required
+     * @return The information representing the pending change
      */
     private static PendingChangeDescription buildDescription(final PendingChange pendingChange) {
         return new PendingChangeDescription(pendingChange.getId(),

@@ -1,4 +1,4 @@
-/**
+/*
  * File ProcessConnector.java
  *
  * Copyright 2017 FAN
@@ -27,6 +27,7 @@ import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.exceptions.NotFoundException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
 import org.flexiblepower.exceptions.SerializationException;
+import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Connection.Endpoint;
 import org.flexiblepower.model.Interface;
@@ -132,7 +133,7 @@ public class ProcessConnector {
         }
 
         final ProcessConnection pc = this.getProcessConnection(process.getId());
-        return pc == null ? false : pc.setupConnectionEndpoint(connection, endpoint);
+        return (pc != null) && pc.setupConnectionEndpoint(connection, endpoint);
     }
 
     /**
@@ -147,7 +148,7 @@ public class ProcessConnector {
     public boolean terminateConnectionEndpoint(final Connection connection, final Endpoint endpoint)
             throws ProcessNotFoundException {
         final ProcessConnection pc = this.getProcessConnection(endpoint.getProcessId());
-        return pc == null ? false : pc.tearDownConnection(connection.getId());
+        return (pc != null) && pc.tearDownConnection(connection.getId());
     }
 
     /**
@@ -162,7 +163,7 @@ public class ProcessConnector {
     public boolean suspendConnectionEndpoint(final Connection connection, final Endpoint endpoint)
             throws ProcessNotFoundException {
         final ProcessConnection pc = this.getProcessConnection(endpoint.getProcessId());
-        return pc == null ? false : pc.suspendConnection(connection.getId());
+        return (pc != null) && pc.suspendConnection(connection.getId());
     }
 
     /**
@@ -177,7 +178,7 @@ public class ProcessConnector {
     public boolean resumeConnectionEndpoint(final Connection connection, final Endpoint endpoint)
             throws ProcessNotFoundException {
         final ProcessConnection pc = this.getProcessConnection(endpoint.getProcessId());
-        return pc == null ? false : pc.resumeConnectionEndpoint(connection, endpoint);
+        return (pc != null) && pc.resumeConnectionEndpoint(connection, endpoint);
     }
 
     /**
@@ -200,7 +201,7 @@ public class ProcessConnector {
      */
     public boolean initNewProcess(final ObjectId processId) throws ProcessNotFoundException {
         final ProcessConnection processConnection = this.getProcessConnection(processId);
-        return processConnection == null ? false : processConnection.startProcess();
+        return (processConnection != null) && processConnection.startProcess();
     }
 
     /**
@@ -213,7 +214,7 @@ public class ProcessConnector {
      */
     public boolean terminate(final ObjectId processId) throws ProcessNotFoundException {
         final ProcessConnection processConnection = this.getProcessConnection(processId);
-        return processConnection == null ? false : processConnection.terminateProcess();
+        return (processConnection != null) && processConnection.terminateProcess();
     }
 
     /**
@@ -227,7 +228,7 @@ public class ProcessConnector {
      */
     public boolean resume(final ObjectId processId, final byte[] suspendState) throws ProcessNotFoundException {
         final ProcessConnection processConnection = this.getProcessConnection(processId);
-        return processConnection == null ? false : processConnection.resumeProcess(suspendState);
+        return (processConnection != null) && processConnection.resumeProcess(suspendState);
     }
 
     /**
@@ -254,7 +255,7 @@ public class ProcessConnector {
     public boolean updateConfiguration(final ObjectId processId, final List<ProcessParameter> configuration)
             throws ProcessNotFoundException {
         final ProcessConnection processConnection = this.getProcessConnection(processId);
-        return processConnection == null ? false : processConnection.updateConfiguration(configuration);
+        return (processConnection != null) && processConnection.updateConfiguration(configuration);
     }
 
     /**
@@ -341,9 +342,17 @@ public class ProcessConnector {
                 final Process process = ProcessManager.getInstance().getProcess(this.processId);
                 final Service service = ServiceManager.getInstance().getService(process.getServiceId());
                 final Interface intface = service.getInterface(endpoint.getInterfaceId());
+                if (intface == null) {
+                    throw new ServiceNotFoundException("Interface " + endpoint.getInterfaceId() + " not found");
+                }
                 interfaceVersion = intface.getInterfaceVersionByName(endpoint.getInterfaceVersionName());
             } catch (final NotFoundException e) {
                 ProcessConnector.log.debug("Exception while preparing connection message: {}", e.getMessage());
+                return false;
+            }
+
+            if (interfaceVersion == null) {
+                ProcessConnector.log.debug("Unable to determine interface version fo create / resume");
                 return false;
             }
 
@@ -436,7 +445,7 @@ public class ProcessConnector {
             }
         }
 
-        boolean updateConfiguration(final List<ProcessParameter> newConfiguration) throws ProcessNotFoundException {
+        boolean updateConfiguration(final List<ProcessParameter> newConfiguration) {
             final SetConfigMessage msg = this.createSetConfigMessage(newConfiguration, true);
 
             final ProcessStateUpdateMessage response = this.send(msg, ProcessStateUpdateMessage.class);
@@ -449,7 +458,7 @@ public class ProcessConnector {
         }
 
         byte[] suspendProcess() {
-            byte[] suspendState = new byte[0];
+            byte[] suspendState; // = new byte[0];
             final GoToProcessStateMessage msg = GoToProcessStateMessage.newBuilder()
                     .setProcessId(this.processId.toString())
                     .setTargetState(org.flexiblepower.proto.ServiceProto.ProcessState.SUSPENDED)
@@ -535,7 +544,7 @@ public class ProcessConnector {
                 return null;
             }
 
-            byte[] recv = null;
+            byte[] recv; // = null;
             try {
                 recv = this.socket.read(ProcessConnection.IO_TIMEOUT);
             } catch (final IOException e) {

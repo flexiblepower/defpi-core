@@ -1,4 +1,4 @@
-/**
+/*
  * File MongoDbConnector.java
  *
  * Copyright 2017 FAN
@@ -31,7 +31,6 @@ import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Process;
-import org.flexiblepower.model.PublicNode;
 import org.flexiblepower.model.UnidentifiedNode;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange;
@@ -85,26 +84,22 @@ public final class MongoDbConnector {
     private final MongoClient client;
     private final Datastore datastore;
 
-    private String mongoDatabase;
-    private String mongoHost;
-    private String mongoPort;
-
     private MongoDbConnector() {
-        this.mongoHost = System.getenv(MongoDbConnector.MONGO_HOST_KEY);
-        if (this.mongoHost == null) {
-            this.mongoHost = MongoDbConnector.MONGO_HOST_DFLT;
+        String mongoHost = System.getenv(MongoDbConnector.MONGO_HOST_KEY);
+        if (mongoHost == null) {
+            mongoHost = MongoDbConnector.MONGO_HOST_DFLT;
         }
-        this.mongoDatabase = System.getenv(MongoDbConnector.MONGO_DATABASE_KEY);
-        if (this.mongoDatabase == null) {
-            this.mongoDatabase = MongoDbConnector.MONGO_DATABASE_DFLT;
+        String mongoDatabase = System.getenv(MongoDbConnector.MONGO_DATABASE_KEY);
+        if (mongoDatabase == null) {
+            mongoDatabase = MongoDbConnector.MONGO_DATABASE_DFLT;
         }
-        this.mongoPort = System.getenv(MongoDbConnector.MONGO_PORT_KEY);
-        if (this.mongoPort == null) {
-            this.mongoPort = MongoDbConnector.MONGO_PORT_DFLT;
+        String mongoPort = System.getenv(MongoDbConnector.MONGO_PORT_KEY);
+        if (mongoPort == null) {
+            mongoPort = MongoDbConnector.MONGO_PORT_DFLT;
         }
 
-        MongoDbConnector.log.info("Connecting to MongoDB on {}:{}", this.mongoHost, this.mongoPort);
-        this.client = new MongoClient(this.mongoHost, Integer.parseInt(this.mongoPort));
+        MongoDbConnector.log.info("Connecting to MongoDB on {}:{}", mongoHost, mongoPort);
+        this.client = new MongoClient(mongoHost, Integer.parseInt(mongoPort));
 
         // Instantiate Morphia where to find your classes can be called multiple times with different packages or
         // classes
@@ -112,7 +107,7 @@ public final class MongoDbConnector {
         morphia.mapPackage("org.flexiblepower.model");
 
         // create the Datastore connecting to the default port on the local host
-        this.datastore = morphia.createDatastore(this.client, this.mongoDatabase);
+        this.datastore = morphia.createDatastore(this.client, mongoDatabase);
         this.datastore.ensureIndexes();
     }
 
@@ -179,7 +174,7 @@ public final class MongoDbConnector {
 
         // Sort
         if ((sortField != null) && !sortField.isEmpty()) {
-            final String sortSign = ((sortDir != null) && "DESC".equals(sortDir)) ? "-" : "";
+            final String sortSign = ("DESC".equals(sortDir)) ? "-" : "";
             query.order(sortSign + sortField);
         }
 
@@ -358,17 +353,17 @@ public final class MongoDbConnector {
         return q.get();
     }
 
-    /**
-     * Get a public node by finding its docker id
-     *
-     * @param dockerId the dockerId of the node to look for
-     * @return The PublicNode with the provided id, or null
-     */
-    public PublicNode getPublicNodeByDockerId(final String dockerId) {
-        final Query<PublicNode> q = this.datastore.find(PublicNode.class);
-        q.criteria("dockerId").equal(dockerId);
-        return q.get();
-    }
+    // /**
+    // * Get a public node by finding its docker id
+    // *
+    // * @param dockerId the dockerId of the node to look for
+    // * @return The PublicNode with the provided id, or null
+    // */
+    // public PublicNode getPublicNodeByDockerId(final String dockerId) {
+    // final Query<PublicNode> q = this.datastore.find(PublicNode.class);
+    // q.criteria("dockerId").equal(dockerId);
+    // return q.get();
+    // }
 
     /**
      * Retrieve the next PendingChange. It uses the findAndModify option to make sure that no tasks gets taken from the
