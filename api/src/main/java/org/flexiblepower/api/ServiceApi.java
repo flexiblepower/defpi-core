@@ -109,4 +109,32 @@ public interface ServiceApi {
             throws ServiceNotFoundException,
             AuthorizationException;
 
+    /**
+     * Get all versions of a specific service
+     *
+     * @param id The id of the service to retrieve from the registry
+     * @return A list with all versions of the service with the specified Id
+     * @throws ServiceNotFoundException if no service is found with the specified id
+     * @throws AuthorizationException if the user is not authenticated
+     */
+    @GET
+    @Path("/{id}/all")
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
+    @ApiOperation(nickname = "getAllService",
+                  value = "Get all versions of a service",
+                  notes = "Get all versions of a particular service from the registry",
+                  authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
+    @ApiResponses(value = {
+            @ApiResponse(code = 200,
+                         message = "The definition of the service",
+                         response = Service.class,
+                         responseContainer = "List"),
+            @ApiResponse(code = 404, message = ServiceNotFoundException.SERVICE_NOT_FOUND_MESSAGE),
+            @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
+    public List<Service> getAllServiceVersions(
+            @ApiParam(name = "id", value = "The id of the service", required = true) @PathParam("id") final String id)
+            throws ServiceNotFoundException,
+            AuthorizationException;
+
 }

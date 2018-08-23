@@ -64,7 +64,6 @@ public class ServiceRestApi extends BaseApi implements ServiceApi {
             final String sortDir,
             final String sortField,
             final String filters) throws AuthorizationException {
-        // TODO implement pagination, sorting and filtering
         this.assertUserIsLoggedIn();
 
         final List<Service> content = ServiceManager.getInstance().listServices();
@@ -78,6 +77,16 @@ public class ServiceRestApi extends BaseApi implements ServiceApi {
     public Service getService(final String id) throws ServiceNotFoundException, AuthorizationException {
         this.assertUserIsLoggedIn();
         return ServiceManager.getInstance().getService(id);
+    }
+
+    @Override
+    public List<Service> getAllServiceVersions(final String id) throws ServiceNotFoundException,
+            AuthorizationException {
+        // Should we paginate even this?
+        this.assertUserIsLoggedIn();
+        final List<Service> content = ServiceManager.getInstance().listServiceVersions(id);
+        this.addTotalCount(content.size());
+        return content;
     }
 
 }
