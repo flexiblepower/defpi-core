@@ -9,7 +9,7 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>18.6.1</version>
+		<version>18.6.2-SNAPSHOT</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
@@ -23,16 +23,6 @@
 		<docker.imageName>${docker.registry}/defpi/${project.artifactId}</docker.imageName>
 	</properties>
 
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>org.glassfish.jersey.core</groupId>
-				<artifactId>jersey-client</artifactId>
-				<version>${jersey.version}</version>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
-
 	<dependencies>
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>
@@ -43,7 +33,7 @@
 		<dependency>
 			<groupId>io.swagger</groupId>
 			<artifactId>swagger-jaxrs</artifactId>
-			<version>1.5.18</version>
+			<version>${swagger.version}</version>
 		</dependency>
 
 		<dependency>
@@ -221,7 +211,7 @@
 		<profile>
 			<id>release</id>
 			<properties>
-				<docker.imageName>flexiblepower:defpi-orchestrator</docker.imageName>
+				<docker.imageName>docker.io/flexiblepower/defpi-orchestrator</docker.imageName>
 			</properties>
 
 			<build>

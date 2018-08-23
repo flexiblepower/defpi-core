@@ -71,9 +71,8 @@ public class PythonCodegenUtils {
         return PluginUtils.camelCaps(itf.getName()) + PythonCodegenUtils.MANAGER_IMPL_SUFFIX;
     }
 
-    public static String builderFunctionName(final InterfaceDescription itf, final InterfaceVersionDescription vitf) {
-        return PythonCodegenUtils.BUILDER_FUNCTION_PREFIX + "_"
-                + PluginUtils.snakeCaps(itf.getName() + " " + vitf.getVersionName());
+    public static String builderFunctionName(final InterfaceVersionDescription vitf) {
+        return PythonCodegenUtils.BUILDER_FUNCTION_PREFIX + PluginUtils.snakeCaps(vitf.getVersionName());
     }
 
     public static String typeHandlerFunction(final String type) {

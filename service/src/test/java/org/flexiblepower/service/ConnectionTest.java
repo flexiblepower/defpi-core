@@ -37,7 +37,9 @@ import org.flexiblepower.service.exceptions.ServiceInvocationException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -56,8 +58,6 @@ import com.google.protobuf.Message;
 @SuppressWarnings("javadoc")
 public class ConnectionTest {
 
-    private static final int WAIT_AFTER_CONNECT = 100;
-
     private final static Logger logger = LoggerFactory.getLogger(ConnectionTest.class);
 
     private static final String CONNECTION_ID = "1";
@@ -72,6 +72,9 @@ public class ConnectionTest {
     private TCPSocket dataSocket;
 
     private ProtobufMessageSerializer serializer;
+
+    @Rule
+    public Timeout globalTimeout = Timeout.seconds(10);
 
     @Parameters
     public static List<Object[]> data() {
@@ -137,7 +140,7 @@ public class ConnectionTest {
         // We should receive a handshake from the other side, but the test service is NOT connected
         final byte[] recv = this.readSocketFilterHeartbeat();
         Assert.assertEquals(ConnectionHandshake.class, this.serializer.deserialize(recv).getClass());
-        Assert.assertNotEquals("connected", this.testService.getState());
+        Assert.assertTrue(this.testService.stateQueue.isEmpty());
 
         // Send an ACK, but an incorrect one
         final ConnectionHandshake wrongHandshake = ConnectionHandshake.newBuilder()
@@ -146,8 +149,7 @@ public class ConnectionTest {
                 .build();
 
         this.dataSocket.send(this.serializer.serialize(wrongHandshake));
-
-        Assert.assertNotEquals("connected", this.testService.getState());
+        Assert.assertTrue(this.testService.stateQueue.isEmpty());
 
         // Send the real ack
         final ConnectionHandshake correctHandshake = ConnectionHandshake.newBuilder()
@@ -158,28 +160,27 @@ public class ConnectionTest {
         this.dataSocket.send(this.serializer.serialize(correctHandshake));
 
         // The other guy already sent an ack and was waiting for us, now it should continue;
-        Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
-        Assert.assertEquals("connected", this.testService.getState());
+        Assert.assertEquals("connected", this.testService.stateQueue.take());
     }
 
     @Test(timeout = 10000)
     public void
             testSend() throws InterruptedException, SerializationException, ServiceInvocationException, IOException {
-        this.testService.resetCount();
         final int numTests = 100;
+        this.testService.expect(numTests);
         final MessageSerializer<Serializable> javaSerializer = new JavaIOSerializer();
         for (int i = 0; i < numTests; i++) {
             this.dataSocket.send(javaSerializer.serialize("THIS IS A TEST " + i));
         }
 
-        Thread.sleep(500);
-        Assert.assertEquals(numTests, this.testService.getCounter());
+        Assert.assertNotNull(this.testService.stateQueue.take());
+        Assert.assertEquals(0, this.testService.getCounter());
     }
 
     @Test(timeout = 10000)
     public void
             testSuspend() throws SerializationException, InterruptedException, ServiceInvocationException, IOException {
-        Assert.assertNotEquals("connection-suspended", this.testService.getState());
+        Assert.assertTrue(this.testService.stateQueue.isEmpty());
         this.managementSocket.send(this.serializer.serialize(ConnectionMessage.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
                 .setMode(ConnectionMessage.ModeType.SUSPEND)
@@ -189,11 +190,7 @@ public class ConnectionTest {
         final byte[] recv = this.managementSocket.read();
         ConnectionHandshake acknowledgement = (ConnectionHandshake) this.serializer.deserialize(recv);
         Assert.assertEquals(ConnectionState.SUSPENDED, acknowledgement.getConnectionState());
-        Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
-        Assert.assertEquals("connection-suspended", this.testService.getState());
-
-        // Wait for at least one potential heartbeat that should NOT properly go
-        Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
+        Assert.assertEquals("connection-suspended", this.testService.stateQueue.take());
 
         this.managementSocket.send(this.serializer.serialize(ConnectionMessage.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
@@ -210,8 +207,6 @@ public class ConnectionTest {
         }
         acknowledgement = (ConnectionHandshake) msg;
         Assert.assertEquals(ConnectionState.CONNECTED, acknowledgement.getConnectionState());
-
-        Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
 
         final String hostOfTestRunner = InetAddress.getLocalHost().getCanonicalHostName();
         // Make a new connection TO the test service
@@ -230,14 +225,12 @@ public class ConnectionTest {
 
         this.dataSocket.send(this.serializer.serialize(correctHandshake));
 
-        Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
-
-        Assert.assertEquals("connection-resumed", this.testService.getState());
+        Assert.assertEquals("connection-resumed", this.testService.stateQueue.take());
     }
 
     @Test(timeout = 10000)
     public void testTerminate() throws Exception {
-        Assert.assertNotEquals("connection-terminated", this.testService.getState());
+        Assert.assertTrue(this.testService.stateQueue.isEmpty());
         this.managementSocket.send(this.serializer.serialize(ConnectionMessage.newBuilder()
                 .setConnectionId(ConnectionTest.CONNECTION_ID)
                 .setMode(ConnectionMessage.ModeType.TERMINATE)
@@ -245,8 +238,7 @@ public class ConnectionTest {
         final byte[] recv = this.managementSocket.read();
         final ConnectionHandshake acknowledgement = (ConnectionHandshake) this.serializer.deserialize(recv);
         Assert.assertEquals(ConnectionState.TERMINATED, acknowledgement.getConnectionState());
-        Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT); // Terminate method is call asynchronous
-        Assert.assertEquals("connection-terminated", this.testService.getState());
+        Assert.assertEquals("connection-terminated", this.testService.stateQueue.take());
     }
 
     @After()
@@ -260,7 +252,6 @@ public class ConnectionTest {
             this.dataSocket.close();
             this.dataSocket = null;
         }
-        Thread.sleep(ConnectionTest.WAIT_AFTER_CONNECT);
     }
 
     private byte[] readSocketFilterHeartbeat() throws IOException, InterruptedException {

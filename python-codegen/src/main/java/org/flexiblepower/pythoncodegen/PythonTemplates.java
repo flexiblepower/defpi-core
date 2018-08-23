@@ -119,7 +119,11 @@ public class PythonTemplates extends Templates {
         final Map<String, String> replaceMap = new HashMap<>();
 
         // Generic stuff that is the same everywhere
-        replaceMap.put("username", System.getProperty("user.name"));
+        String userName = System.getenv("USER");
+        if ((userName == null) || userName.isEmpty()) {
+            userName = System.getProperty("user.name");
+        }
+        replaceMap.put("username", userName);
         replaceMap.put("date", DateFormat.getDateTimeInstance().format(new Date()));
         replaceMap.put("generator", PythonTemplates.GENERATOR_NAME);
 
@@ -145,7 +149,7 @@ public class PythonTemplates extends Templates {
                 handlerReplace.put("vitf.handler.interface", interfaceClass);
                 handlerReplace.put("vitf.handler.class", implementationClass);
                 handlerReplace.put("vitf.version", interfaceVersionModule);
-                handlerReplace.put("vitf.version.builder", PythonCodegenUtils.builderFunctionName(itf, vitf));
+                handlerReplace.put("vitf.version.builder", PythonCodegenUtils.builderFunctionName(vitf));
 
                 definitions.add(this.replaceMap(this.getTemplate("BuilderDefinition"), handlerReplace));
                 implementations.add(this.replaceMap(this.getTemplate("BuilderImplementation"), handlerReplace));
