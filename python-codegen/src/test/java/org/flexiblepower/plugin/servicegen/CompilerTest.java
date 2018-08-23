@@ -31,7 +31,7 @@ import org.junit.Test;
  * @version 0.1
  * @since Jun 27, 2017
  */
-@SuppressWarnings({"static-method"})
+@SuppressWarnings({"static-method", "javadoc"})
 public class CompilerTest {
 
     @Test

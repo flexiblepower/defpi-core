@@ -38,15 +38,12 @@ public class PythonProtoCompiler extends ProtoCompiler {
      * repository, and put it in a temporary folder.
      *
      * @param protobufVersion The protobuf version to get the compiler for
+     * @throws IOException When an exception occurs while accessing the file
      */
     public PythonProtoCompiler(final String protobufVersion) throws IOException {
         super(protobufVersion);
     }
 
-    /**
-     * @param sourcePath
-     * @throws IOException
-     */
     @Override
     public void compile(final Path filePath, final Path targetPath) throws IOException {
         // Delay making the target folder to this point so it won't be made unnessecarily

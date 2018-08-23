@@ -28,6 +28,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class Main {
 
+    /**
+     * Main method for generating python code from service.json
+     *
+     * @param args Command line arguments (ignored)
+     */
     public static void main(final String[] args) {
         final PythonCodegen codeGenerator = new PythonCodegen();
         try {
