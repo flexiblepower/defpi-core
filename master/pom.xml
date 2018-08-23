@@ -68,6 +68,7 @@
 		<jackson.databind.version>2.9.6</jackson.databind.version>
 		<mongodb.version>3.8.0</mongodb.version>
 		<log4j.version>2.11.1</log4j.version>
+		<swagger.version>1.5.21</swagger.version>
 	</properties>
 
 	<prerequisites>

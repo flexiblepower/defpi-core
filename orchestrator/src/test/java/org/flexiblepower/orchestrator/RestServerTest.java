@@ -5,21 +5,14 @@
  */
 package org.flexiblepower.orchestrator;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.Charset;
 
 import javax.ws.rs.core.MediaType;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.http.Header;
-import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -67,29 +60,54 @@ public class RestServerTest {
     @Rule
     public Timeout globalTimeout = Timeout.seconds(20);
 
-    public void testListUsers() throws ClientProtocolException, URISyntaxException, IOException {
+    public void testListUsers() throws Exception {
         this.defaultTests("user", "_perPage=2&_sortDir=DESC", 200, MediaType.APPLICATION_JSON_TYPE);
     }
 
-    public void testListProcesses() throws ClientProtocolException, URISyntaxException, IOException {
+    public void testListProcesses() throws Exception {
         System.out.println(this.defaultTests("process",
                 "_page=0&_perPage=0&_sortDir=&_sortField=",
                 200,
                 MediaType.APPLICATION_JSON_TYPE));
     }
 
-    public void testListNodes() throws ClientProtocolException, URISyntaxException, IOException {
+    public void testListNodes() throws Exception {
         this.defaultTests("unidentifiednode", null, 200, MediaType.APPLICATION_JSON_TYPE);
     }
 
     @Test
-    public void test404() throws ClientProtocolException, URISyntaxException, IOException {
+    public void test401() throws Exception {
+        final String content = this.defaultTests("service", null, 401, MediaType.TEXT_HTML_TYPE);
+        Assert.assertTrue(content.contains("<h1>Unauthorized</h1>"));
+        Assert.assertTrue(content.contains("The user is not authorized to perform this operation"));
+
+        // We do not expect a stack trace
+        Assert.assertFalse(content.contains("<details><summary>"));
+    }
+
+    @Test
+    public void test400() throws Exception {
+        final String content = this.defaultTests("connection/1", null, 400, MediaType.TEXT_HTML_TYPE);
+        Assert.assertTrue(content.contains("<h1>Invalid input</h1>"));
+        Assert.assertTrue(content.contains("The provided id is not a valid ObjectId (1)"));
+
+        // We do not expect a stack trace
+        Assert.assertFalse(content.contains("<details><summary>"));
+    }
+
+    @Test
+    public void test404() throws Exception {
         this.defaultTests("bestaatniet", null, 404, MediaType.APPLICATION_JSON_TYPE);
     }
 
     @Test
     public void testSwagger() throws Exception {
         final String content = this.defaultTests("swagger.json", null, 200, MediaType.APPLICATION_JSON_TYPE);
+
+        // Test for some stuff which should NOT be there
+        Assert.assertFalse(content.contains("Response"));
+        Assert.assertFalse(content.contains("NewCookie"));
+        Assert.assertFalse(content.contains("Exception"));
 
         Assert.assertTrue(content.contains("swagger"));
 
@@ -111,15 +129,14 @@ public class RestServerTest {
                 Assert.assertTrue(content.contains(annotation.nickname()));
             }
         }
+
     }
 
     @SuppressWarnings("resource")
     private String defaultTests(final String path,
             final String query,
             final int expectedResponse,
-            final MediaType expectedType) throws URISyntaxException,
-            ClientProtocolException,
-            IOException {
+            final MediaType expectedType) throws Exception {
         final URI uri = new URI("http",
                 null,
                 InetAddress.getLocalHost().getHostName(),
@@ -128,17 +145,14 @@ public class RestServerTest {
                 query,
                 null);
 
-        System.out.println("GETting " + uri);
+        // System.out.println("GETting " + uri);
         final HttpGet request = new HttpGet(uri);
-        final String auth = "admin:admin";
-        final byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(Charset.forName("UTF-8")));
-        request.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + new String(encodedAuth));
+        // final String auth = "admin:admin";
+        // final byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(Charset.forName("UTF-8")));
+        // request.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + new String(encodedAuth));
         final HttpClient client = HttpClientBuilder.create().build();
 
         final HttpResponse response = client.execute(request);
-        for (final Header h : response.getAllHeaders()) {
-            System.out.format("Headers: %s - %s\n", h.getName(), h.getValue());
-        }
         Assert.assertEquals(expectedResponse, response.getStatusLine().getStatusCode());
         if (response.getEntity().getContentLength() == 0) {
             return "";
