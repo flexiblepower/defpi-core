@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -160,8 +160,8 @@ final class TCPConnection implements Connection, Closeable {
         }
 
         // Add sending and receiving types to serializer
-        Arrays.asList(info.sendTypes()).forEach((type) -> this.userMessageSerializer.addMessageClass(type));
-        Arrays.asList(info.receiveTypes()).forEach((type) -> this.userMessageSerializer.addMessageClass(type));
+        Arrays.asList(info.sendTypes()).forEach(this.userMessageSerializer::addMessageClass);
+        Arrays.asList(info.receiveTypes()).forEach(this.userMessageSerializer::addMessageClass);
 
         this.connectionExecutor.submit(this.messageQueue);
         this.connectionExecutor.submit(this.socketReader);
@@ -359,17 +359,17 @@ final class TCPConnection implements Connection, Closeable {
             });
             break;
         case INTERRUPTED:
-            this.serviceExecutor.submit(() -> this.serviceHandler.resumeAfterInterrupt());
+            this.serviceExecutor.submit(this.serviceHandler::resumeAfterInterrupt);
             break;
         case SUSPENDED:
-            this.serviceExecutor.submit(() -> this.serviceHandler.resumeAfterSuspend());
+            this.serviceExecutor.submit(this.serviceHandler::resumeAfterSuspend);
             break;
         case TERMINATED:
         default:
             TCPConnection.log.error("[{}] - Unexpected previous state: {}", this.connectionId, this.state);
         }
         // Make sure it runs AFTER user constructor
-        this.serviceExecutor.submit(() -> this.releaseWaitLock());
+        this.serviceExecutor.submit(this::releaseWaitLock);
     }
 
     /**
@@ -395,7 +395,7 @@ final class TCPConnection implements Connection, Closeable {
         this.state = ConnectionState.SUSPENDED;
         this.heartBeatMonitor.stop();
 
-        this.serviceExecutor.submit(() -> this.serviceHandler.onSuspend());
+        this.serviceExecutor.submit(this.serviceHandler::onSuspend);
     }
 
     /**
@@ -472,7 +472,7 @@ final class TCPConnection implements Connection, Closeable {
             this.state = ConnectionState.TERMINATED;
 
             if (this.serviceHandler != null) {
-                this.serviceExecutor.submit(() -> this.serviceHandler.terminated());
+                this.serviceExecutor.submit(this.serviceHandler::terminated);
             }
         }
 
@@ -504,7 +504,7 @@ final class TCPConnection implements Connection, Closeable {
         /**
          *
          */
-        protected SocketReader() {
+        SocketReader() {
             // Protected constructor for TCPConnection
         }
 
@@ -639,7 +639,7 @@ final class TCPConnection implements Connection, Closeable {
         /**
          *
          */
-        protected MessageQueue() {
+        MessageQueue() {
             // Protected constructor for TCPConnection
         }
 

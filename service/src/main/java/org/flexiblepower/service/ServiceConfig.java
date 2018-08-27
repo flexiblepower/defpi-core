@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
  * @version 0.1
  * @since 24 aug. 2017
  */
-public class ServiceConfig {
+final class ServiceConfig {
 
     /**
      * Generate a configuration object that implements a specific class by using a map of key/value pairs. This will
@@ -95,7 +95,7 @@ public class ServiceConfig {
          * java.lang.Object[])
          */
         @Override
-        public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
+        public Object invoke(final Object proxy, final Method method, final Object[] args) {
             final String methodName = method.getName();
 
             if (!methodName.startsWith("get")) {
@@ -192,11 +192,11 @@ public class ServiceConfig {
         }
 
         private int[] parseIntArray(final String[] cleanValues) {
-            return Arrays.asList(cleanValues).stream().map(this.convertInteger).mapToInt(Integer::intValue).toArray();
+            return Arrays.stream(cleanValues).map(this.convertInteger).mapToInt(Integer::intValue).toArray();
         }
 
         private long[] parseLongArray(final String[] cleanValues) {
-            return Arrays.asList(cleanValues).stream().map(this.convertLong).mapToLong(Long::longValue).toArray();
+            return Arrays.stream(cleanValues).map(this.convertLong).mapToLong(Long::longValue).toArray();
         }
 
         private float[] parseFloatArray(final String[] cleanValues) {
@@ -206,11 +206,7 @@ public class ServiceConfig {
         }
 
         private double[] parseDoubleArray(final String[] cleanValues) {
-            return Arrays.asList(cleanValues)
-                    .stream()
-                    .map(this.convertDouble)
-                    .mapToDouble(Double::doubleValue)
-                    .toArray();
+            return Arrays.stream(cleanValues).map(this.convertDouble).mapToDouble(Double::doubleValue).toArray();
         }
 
     }

@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,7 +20,6 @@
 package org.flexiblepower.service;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,7 +40,7 @@ import com.google.protobuf.Message;
  * @version 0.1
  * @since May 10, 2017
  */
-public class ConnectionManager implements Closeable {
+final class ConnectionManager implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(ConnectionManager.class);
     private static final Map<String, ConnectionHandlerManager> connectionHandlers = new HashMap<>();
@@ -56,7 +55,7 @@ public class ConnectionManager implements Closeable {
      * @return The resulting confirmation message containing the new connection state
      * @throws ConnectionModificationException When an error occurs while creating or updating the connection
      */
-    public Message handleConnectionMessage(final ConnectionMessage message) throws ConnectionModificationException {
+    Message handleConnectionMessage(final ConnectionMessage message) throws ConnectionModificationException {
         final String connectionId = message.getConnectionId();
         ConnectionManager.log
                 .info("Received ConnectionMessage for connection {} ({})", connectionId, message.getMode());
@@ -100,9 +99,8 @@ public class ConnectionManager implements Closeable {
     }
 
     /**
-     * @param message
-     * @throws ConnectionModificationException
-     * @throws IOException
+     * @param message A ConnectionMessage describing the connection to build
+     * @throws ConnectionModificationException When the service is unable to build / modify the connection
      */
     private Message createConnection(final ConnectionMessage message) throws ConnectionModificationException {
         // First find the correct handler to attach to the connection
@@ -169,7 +167,7 @@ public class ConnectionManager implements Closeable {
      * @param connectionHandlerManager The object that is capable of building the ConnectionHandler
      * @throws RuntimeException when the clazz argument class is not annotated with InterfaceInfo
      */
-    public static void registerConnectionHandlerFactory(final Class<? extends ConnectionHandler> clazz,
+    static void registerConnectionHandlerFactory(final Class<? extends ConnectionHandler> clazz,
             final ConnectionHandlerManager connectionHandlerManager) {
         if (!clazz.isAnnotationPresent(InterfaceInfo.class)) {
             throw new RuntimeException(

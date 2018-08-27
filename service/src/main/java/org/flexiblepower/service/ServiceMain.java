@@ -62,7 +62,7 @@ public final class ServiceMain {
             ServiceMain.log.debug("Found {} as service type", serviceClass);
 
             // Call the constructor in the user thread.
-            final Service<T> service = ServiceExecutor.getInstance().submit(() -> serviceClass.newInstance()).get();
+            final Service<T> service = ServiceExecutor.getInstance().submit(serviceClass::newInstance).get();
 
             ServiceMain.log.info("Starting service {}", service);
             ServiceMain.registerMessageHandlers(service);
@@ -116,7 +116,7 @@ public final class ServiceMain {
     /**
      * Registers all connectionHandlerFactories for their corresponding connectionHandlers.
      *
-     * @param service
+     * @param service The service to register
      */
     private static void registerMessageHandlers(final Service<?> service) {
         final Set<Class<? extends ConnectionHandlerManager>> managers = ServiceMain.reflections
@@ -154,17 +154,14 @@ public final class ServiceMain {
                         service,
                         e.getMessage());
                 ServiceMain.log.trace(e.getMessage(), e);
-                continue;
             }
         }
     }
 
     /**
-     * @param managerClass
-     * @param service
-     * @return
-     * @throws IllegalAccessException
-     * @throws InstantiationException
+     * @param managerClass The type of the ConnectionHandlerManager to instantiate
+     * @param service The service to instantiate the connection handler manager for
+     * @return A connectionHandlerManager instantiated particularly for the specified service
      */
     private static ConnectionHandlerManager instantiateManagerWithService(
             final Class<? extends ConnectionHandlerManager> managerClass,
