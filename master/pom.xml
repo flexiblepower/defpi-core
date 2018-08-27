@@ -66,7 +66,7 @@
 			maven central explicitly -->
 		<protobuf.version>3.6.1</protobuf.version>
 		<jackson.databind.version>2.9.6</jackson.databind.version>
-		<mongodb.version>3.8.0</mongodb.version>
+		<mongodb.version>3.8.1</mongodb.version>
 		<log4j.version>2.11.1</log4j.version>
 		<swagger.version>1.5.21</swagger.version>
 	</properties>
@@ -77,6 +77,7 @@
 
 	<modules>
 		<module>service-parent</module>
+		<module>service-parent/defpi-service</module>
 		<module>../api</module>
 		<module>../commons</module>
 		<module>../codegen-common</module>
@@ -270,6 +271,12 @@
 					<artifactId>maven-site-plugin</artifactId>
 					<version>3.7.1</version>
 				</plugin>
+
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>license-maven-plugin</artifactId>
+					<version>1.16</version>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 
@@ -310,6 +317,31 @@
 			</plugin>
 
 			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>license-maven-plugin</artifactId>
+				<configuration>
+					<addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
+					<emptyLineAfterHeader>true</emptyLineAfterHeader>
+					<licenseName>apache_v2</licenseName>
+					<failOnMissingHeader>true</failOnMissingHeader>
+					<failOnNotUptodateHeader>true</failOnNotUptodateHeader>
+					<roots>
+						<root>${project.basedir}/src/main/java</root>
+						<root>${project.basedir}/src/test/java</root>
+					</roots>
+				</configuration>
+				<executions>
+					<execution>
+						<id>check-file-header</id>
+						<phase>validate</phase>
+						<goals>
+							<goal>check-file-header</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
 				<executions>
@@ -344,7 +376,6 @@
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>license-maven-plugin</artifactId>
-						<version>1.16</version>
 						<executions>
 							<execution>
 								<id>add-third-party</id>
