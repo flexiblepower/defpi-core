@@ -19,7 +19,7 @@
  */
 package org.flexiblepower.rest;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -158,7 +158,7 @@ public class UserRestApi extends BaseApi implements UserApi {
                     ? this.db.getUsers((List<String>) filter.get("ids[]"))
                     : this.db.listUsers(page, perPage, sortDir, sortField, filter);
 
-            userList.forEach((u) -> u.clearPasswordHash());
+            userList.forEach(User::clearPasswordHash);
 
             this.addTotalCount(this.db.countUsers(filter));
             return userList;
@@ -166,7 +166,7 @@ public class UserRestApi extends BaseApi implements UserApi {
             final User ret = this.sessionUser;
             ret.clearPasswordHash();
             this.addTotalCount(1);
-            return Arrays.asList(ret);
+            return Collections.singletonList(ret);
         }
     }
 }

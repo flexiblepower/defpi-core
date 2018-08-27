@@ -40,7 +40,7 @@ import lombok.extern.slf4j.Slf4j;
  * @version 0.1
  * @since Aug 9, 2017
  */
-public class CreateProcess {
+class CreateProcess {
 
     /**
      * CreateDockerService
@@ -50,7 +50,7 @@ public class CreateProcess {
      */
     @Slf4j
     @Entity("PendingChange")
-    public static class CreateDockerService extends PendingChange {
+    static class CreateDockerService extends PendingChange {
 
         private Process process;
 
@@ -64,7 +64,7 @@ public class CreateProcess {
          *
          * @param process The process to create
          */
-        public CreateDockerService(final Process process) {
+        CreateDockerService(final Process process) {
             super(process.getUserId());
             // Add the userId because making the network, and choosing the running node
             this.resources = Collections.unmodifiableList(Arrays.asList(process.getId(), this.getUserId()));
@@ -113,7 +113,7 @@ public class CreateProcess {
      */
     @Slf4j
     @Entity("PendingChange")
-    public static class SendConfiguration extends PendingChange {
+    static class SendConfiguration extends PendingChange {
 
         private Process process;
 
@@ -127,9 +127,9 @@ public class CreateProcess {
          *
          * @param process The process to configure
          */
-        public SendConfiguration(final Process process) {
+        SendConfiguration(final Process process) {
             super(process.getUserId());
-            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
+            this.resources = Collections.singletonList(process.getId());
             this.process = process;
         }
 

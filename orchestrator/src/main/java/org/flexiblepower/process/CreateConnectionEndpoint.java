@@ -40,7 +40,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Entity("PendingChange")
 @Slf4j
-public class CreateConnectionEndpoint extends PendingChange {
+class CreateConnectionEndpoint extends PendingChange {
 
     private Connection connection;
     private Endpoint endpoint;
@@ -59,7 +59,7 @@ public class CreateConnectionEndpoint extends PendingChange {
      * @param connection The Connection to create
      * @param endpoint The endpoint to create
      */
-    public CreateConnectionEndpoint(final ObjectId userId,
+    CreateConnectionEndpoint(final ObjectId userId,
             final Connection connection,
             final Connection.Endpoint endpoint) {
         super(userId);

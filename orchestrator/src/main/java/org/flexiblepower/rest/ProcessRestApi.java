@@ -59,16 +59,13 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
 
     private static final Map<String, Comparator<Process>> SORT_MAP = new HashMap<>();
     static {
-        ProcessRestApi.SORT_MAP.put("default", (a, b) -> a.getName().compareTo(b.getName()));
-        ProcessRestApi.SORT_MAP.put("name", (a, b) -> a.getName().compareTo(b.getName()));
-        ProcessRestApi.SORT_MAP.put("id", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
-        ProcessRestApi.SORT_MAP.put("serviceId", (a, b) -> a.getServiceId().compareTo(b.getServiceId()));
-        ProcessRestApi.SORT_MAP.put("state", (a, b) -> a.getState().toString().compareTo(b.getState().toString()));
-        ProcessRestApi.SORT_MAP.put("userId",
-                (a, b) -> UserManager.getInstance()
-                        .getUser(a.getUserId())
-                        .getUsername()
-                        .compareTo(UserManager.getInstance().getUser(b.getUserId()).getUsername()));
+        ProcessRestApi.SORT_MAP.put("default", Comparator.comparing(p -> p.getId().toString()));
+        ProcessRestApi.SORT_MAP.put("name", Comparator.comparing(Process::getName));
+        ProcessRestApi.SORT_MAP.put("id", Comparator.comparing(p -> p.getId().toString()));
+        ProcessRestApi.SORT_MAP.put("serviceId", Comparator.comparing(Process::getServiceId));
+        ProcessRestApi.SORT_MAP.put("state", Comparator.comparing(Process::getState));
+        ProcessRestApi.SORT_MAP.put("userId", Comparator.comparing(p ->
+                UserManager.getInstance().getUser(p.getUserId()).getUsername()));
     }
 
     /**

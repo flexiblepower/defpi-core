@@ -161,7 +161,7 @@ public class ProcessManager {
      *
      * @return Whether a process with the service id specified in the {@value #DASHBOARD_GATEWAY_SERVICE_ID_KEY} exists
      */
-    public boolean dashboardGatewayExists() {
+    private boolean dashboardGatewayExists() {
         return this.getDashboardGateway() != null;
     }
 
@@ -173,7 +173,6 @@ public class ProcessManager {
      */
     public static int getDashboardGatewayPort() {
         final String portFromEnv = System.getenv(ProcessManager.DASHBOARD_GATEWAY_PORT_KEY);
-        final int defaultPort = ProcessManager.DASHBOARD_GATEWAY_PORT_DFLT;
         if (portFromEnv != null) {
             try {
                 return Integer.parseInt(portFromEnv);
@@ -181,7 +180,7 @@ public class ProcessManager {
                 // We keep it at the default
             }
         }
-        return defaultPort;
+        return ProcessManager.DASHBOARD_GATEWAY_PORT_DFLT;
     }
 
     /**
@@ -192,10 +191,10 @@ public class ProcessManager {
      */
     public static String getDashboardGatewayServiceId() {
         final String gatewayService = System.getenv(ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID_KEY);
-        if (gatewayService == null) {
-            return ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID_DFLT;
-        } else {
+        if (gatewayService != null) {
             return gatewayService;
+        } else {
+            return ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID_DFLT;
         }
     }
 
@@ -263,7 +262,7 @@ public class ProcessManager {
                             "The Process cannot be assigned to the private node of another user");
                 }
             }
-        } else if ((process.getPrivateNodeId() == null) && (process.getNodePoolId() == null)) {
+        } else {
             throw new IllegalArgumentException("Either the nodepool or the privatenode should be set");
         }
 
@@ -340,8 +339,11 @@ public class ProcessManager {
     }
 
     /**
-     * @param currentProcess
-     * @param newProcess
+     * Move a process according to the specified description. It must have an objectId which points to an existing
+     * process.
+     *
+     * @param currentProcess The current process running on a particular public node pool or a private node
+     * @param newProcess The new (description of the) process, which should run on another node
      */
     private void moveProcess(final Process currentProcess, final Process newProcess) {
         final PendingChangeManager pcm = PendingChangeManager.getInstance();

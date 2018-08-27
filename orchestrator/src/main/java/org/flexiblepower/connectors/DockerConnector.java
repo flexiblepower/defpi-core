@@ -7,32 +7,15 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  * #L%
- */
-/*
- * File DockerConnector.java
- *
- * Copyright 2017 FAN
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 package org.flexiblepower.connectors;
 
@@ -50,9 +33,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.spotify.docker.client.messages.*;
-import com.spotify.docker.client.messages.Network;
-import com.spotify.docker.client.messages.swarm.*;
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Architecture;
@@ -76,9 +56,27 @@ import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.DockerClient.ListNetworksParam;
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
+import com.spotify.docker.client.messages.AttachedNetwork;
+import com.spotify.docker.client.messages.ContainerInfo;
+import com.spotify.docker.client.messages.Network;
+import com.spotify.docker.client.messages.NetworkConfig;
+import com.spotify.docker.client.messages.ServiceCreateResponse;
 import com.spotify.docker.client.messages.mount.Mount;
+import com.spotify.docker.client.messages.swarm.ContainerSpec;
+import com.spotify.docker.client.messages.swarm.Driver;
+import com.spotify.docker.client.messages.swarm.EndpointSpec;
+import com.spotify.docker.client.messages.swarm.NetworkAttachmentConfig;
+import com.spotify.docker.client.messages.swarm.Placement;
+import com.spotify.docker.client.messages.swarm.PortConfig;
 import com.spotify.docker.client.messages.swarm.PortConfig.PortConfigPublishMode;
+import com.spotify.docker.client.messages.swarm.ReplicatedService;
+import com.spotify.docker.client.messages.swarm.ResourceRequirements;
+import com.spotify.docker.client.messages.swarm.Resources;
+import com.spotify.docker.client.messages.swarm.ServiceMode;
+import com.spotify.docker.client.messages.swarm.ServiceSpec;
+import com.spotify.docker.client.messages.swarm.Task;
 import com.spotify.docker.client.messages.swarm.Task.Criteria;
+import com.spotify.docker.client.messages.swarm.TaskSpec;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -164,7 +162,13 @@ public class DockerConnector {
      */
     public static DockerConnector getInstance() {
         if (DockerConnector.instance == null) {
-            DockerConnector.instance = new DockerConnector();
+            final DockerConnector connector = new DockerConnector();
+            try {
+                DockerConnector.instance.client.info();
+            } catch (final Exception e) {
+                throw new RuntimeException("Unable to start docker connector", e);
+            }
+            DockerConnector.instance = connector;
         }
         return DockerConnector.instance;
     }
@@ -334,7 +338,7 @@ public class DockerConnector {
 
             final Map<String, AttachedNetwork> networks = orchestratorInfo.networkSettings().networks();
 
-            if (networks == null || networks.isEmpty() || !networks.containsKey(newProcessNetworkName)) {
+            if ((networks == null) || networks.isEmpty() || !networks.containsKey(newProcessNetworkName)) {
                 DockerConnector.log.info("Connecting {} to network {}", orchestratorContainerId, newProcessNetworkName);
                 this.runOrTimeout(() -> {
                     this.client.connectToNetwork(orchestratorContainerId, newProcessNetworkName);
@@ -349,7 +353,7 @@ public class DockerConnector {
                 if (!dashboardGateway.getId().equals(process.getId()) && (dockerServiceId != null)) {
                     final com.spotify.docker.client.messages.swarm.Service dashboardInfo = this.client
                             .inspectService(dockerServiceId);
-                    List<NetworkAttachmentConfig> dashNets = dashboardInfo.spec().networks();
+                    final List<NetworkAttachmentConfig> dashNets = dashboardInfo.spec().networks();
                     if (dashNets != null) {
                         for (final NetworkAttachmentConfig network : dashNets) {
                             if (networkId.equals(network.target())) {
@@ -420,8 +424,8 @@ public class DockerConnector {
                 .attachable(true)
                 .name(networkName)
                 .build();
-        String netId = this.runOrTimeout(() -> this.client.createNetwork(networkConfig).id());
-        log.debug("Created network with id {}", netId);
+        final String netId = this.runOrTimeout(() -> this.client.createNetwork(networkConfig).id());
+        DockerConnector.log.debug("Created network with id {}", netId);
     }
 
     /**
@@ -670,7 +674,7 @@ public class DockerConnector {
      */
     public String getServiceHealth() {
         try {
-            StringBuilder report = new StringBuilder();
+            final StringBuilder report = new StringBuilder();
 
             for (final com.spotify.docker.client.messages.swarm.Service s : this.client.listServices()) {
                 final ServiceMode mode = s.spec().mode();

@@ -40,7 +40,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Entity("PendingChange")
 @Slf4j
-public class TerminateConnection extends PendingChange {
+class TerminateConnection extends PendingChange {
 
     private Connection connection;
     private Endpoint endpoint;
@@ -58,7 +58,7 @@ public class TerminateConnection extends PendingChange {
      * @param connection The Connection to terminate
      * @param endpoint The endpoint to terminate
      */
-    public TerminateConnection(final ObjectId userId, final Connection connection, final Connection.Endpoint endpoint) {
+    TerminateConnection(final ObjectId userId, final Connection connection, final Connection.Endpoint endpoint) {
         super(userId);
         this.resources = Collections.unmodifiableList(Arrays.asList(connection.getId(),
                 endpoint.getProcessId(),

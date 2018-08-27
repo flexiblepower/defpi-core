@@ -19,7 +19,6 @@
  */
 package org.flexiblepower.process;
 
-import java.util.Arrays;
 import java.util.Collections;
 
 import org.flexiblepower.connectors.DockerConnector;
@@ -38,7 +37,7 @@ import lombok.extern.slf4j.Slf4j;
  * @version 0.1
  * @since Aug 14, 2017
  */
-public class TerminateProcess {
+class TerminateProcess {
 
     /**
      * SendTerminateSignal
@@ -48,7 +47,7 @@ public class TerminateProcess {
      */
     @Slf4j
     @Entity("PendingChange")
-    public static class SendTerminateSignal extends PendingChange {
+    static class SendTerminateSignal extends PendingChange {
 
         private Process process;
 
@@ -68,9 +67,9 @@ public class TerminateProcess {
          *
          * @param process The process to terminate
          */
-        public SendTerminateSignal(final Process process) {
+        SendTerminateSignal(final Process process) {
             super(process.getUserId());
-            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
+            this.resources = Collections.singletonList(process.getId());
             this.process = process;
         }
 
@@ -119,7 +118,7 @@ public class TerminateProcess {
      */
     @Slf4j
     @Entity("PendingChange")
-    public static class RemoveDockerService extends PendingChange {
+    static class RemoveDockerService extends PendingChange {
 
         private static final int NUM_TRIES_TO_TERMINATE_CONNECTIONS = 10;
 
@@ -136,9 +135,9 @@ public class TerminateProcess {
          *
          * @param process The process to terminate
          */
-        public RemoveDockerService(final Process process) {
+        RemoveDockerService(final Process process) {
             super(process.getUserId());
-            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
+            this.resources = Collections.singletonList(process.getId());
             this.process = process;
         }
 

@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -76,10 +76,10 @@ public class NodeRestApi extends BaseApi implements NodeApi {
         NodeRestApi.PRIVATENODE_SORT_MAP.put("hostname", Comparator.comparing(Node::getHostname));
         NodeRestApi.PRIVATENODE_SORT_MAP.put("status", Comparator.comparing(Node::getStatus));
         NodeRestApi.PRIVATENODE_SORT_MAP.put("dockerId", Comparator.comparing(Node::getDockerId));
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("architecture",Comparator.comparing(Node::getArchitecture));
+        NodeRestApi.PRIVATENODE_SORT_MAP.put("architecture", Comparator.comparing(Node::getArchitecture));
         NodeRestApi.PRIVATENODE_SORT_MAP.put("lastSync", Comparator.comparing(Node::getLastSync));
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("userId",Comparator.comparing((n) ->
-                UserManager.getInstance().getUser(n.getUserId()).getUsername()));
+        NodeRestApi.PRIVATENODE_SORT_MAP.put("userId",
+                Comparator.comparing((n) -> UserManager.getInstance().getUser(n.getUserId()).getUsername()));
 
         NodeRestApi.PUBLICNODE_SORT_MAP.put("default", Comparator.comparing((n) -> n.getId().toString()));
         NodeRestApi.PUBLICNODE_SORT_MAP.put("id", Comparator.comparing((n) -> n.getId().toString()));
@@ -87,10 +87,10 @@ public class NodeRestApi extends BaseApi implements NodeApi {
         NodeRestApi.PUBLICNODE_SORT_MAP.put("hostname", Comparator.comparing(Node::getHostname));
         NodeRestApi.PUBLICNODE_SORT_MAP.put("status", Comparator.comparing(Node::getStatus));
         NodeRestApi.PUBLICNODE_SORT_MAP.put("dockerId", Comparator.comparing(Node::getDockerId));
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("architecture",Comparator.comparing(Node::getArchitecture));
+        NodeRestApi.PUBLICNODE_SORT_MAP.put("architecture", Comparator.comparing(Node::getArchitecture));
         NodeRestApi.PUBLICNODE_SORT_MAP.put("lastSync", Comparator.comparing(Node::getLastSync));
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("nodePoolId", Comparator.comparing((n) ->
-                NodeManager.getInstance().getNodePool(n.getNodePoolId()).getName()));
+        NodeRestApi.PUBLICNODE_SORT_MAP.put("nodePoolId",
+                Comparator.comparing((n) -> NodeManager.getInstance().getNodePool(n.getNodePoolId()).getName()));
     }
 
     /**
@@ -104,7 +104,8 @@ public class NodeRestApi extends BaseApi implements NodeApi {
 
     @Override
     public PrivateNode createPrivateNode(final PrivateNode newNode) throws AuthorizationException,
-            InvalidObjectIdException, NotFoundException {
+            InvalidObjectIdException,
+            NotFoundException {
         this.assertUserIsAdmin();
         // TODO this is a hack. The UI gives the id of the Unidentified node, not of the dockerId...
         final ObjectId oid = MongoDbConnector.stringToObjectId(newNode.getDockerId());
@@ -130,7 +131,8 @@ public class NodeRestApi extends BaseApi implements NodeApi {
 
     @Override
     public PublicNode createPublicNode(final PublicNode newNode) throws AuthorizationException,
-            InvalidObjectIdException, NodePoolNotFoundException {
+            InvalidObjectIdException,
+            NodePoolNotFoundException {
         this.assertUserIsAdmin();
         // TODO this is a hack. The UI gives the id of the Unidentified node, not of the dockerId...
         final ObjectId oid = MongoDbConnector.stringToObjectId(newNode.getDockerId());
@@ -158,7 +160,6 @@ public class NodeRestApi extends BaseApi implements NodeApi {
     @Override
     public PrivateNode updatePrivateNode(final String nodeId, final PrivateNode updatedPrivateNode)
             throws AuthorizationException,
-            NotFoundException,
             InvalidObjectIdException {
         final PrivateNode node = this.getPrivateNode(nodeId);
 
@@ -173,7 +174,6 @@ public class NodeRestApi extends BaseApi implements NodeApi {
     @Override
     public PublicNode updatePublicNode(final String nodeId, final PublicNode updatedPublicNode)
             throws AuthorizationException,
-            NotFoundException,
             InvalidObjectIdException {
         final PublicNode node = this.getPublicNode(nodeId);
 

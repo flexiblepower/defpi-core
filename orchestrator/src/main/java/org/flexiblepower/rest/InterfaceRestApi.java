@@ -30,7 +30,6 @@ import javax.ws.rs.core.HttpHeaders;
 
 import org.flexiblepower.api.InterfaceApi;
 import org.flexiblepower.exceptions.AuthorizationException;
-import org.flexiblepower.exceptions.NotFoundException;
 import org.flexiblepower.model.Interface;
 import org.flexiblepower.orchestrator.ServiceManager;
 
@@ -44,10 +43,10 @@ public class InterfaceRestApi extends BaseApi implements InterfaceApi {
 
     private static final Map<String, Comparator<Interface>> SORT_MAP = new HashMap<>();
     static {
-        InterfaceRestApi.SORT_MAP.put("default", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
-        InterfaceRestApi.SORT_MAP.put("id", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
-        InterfaceRestApi.SORT_MAP.put("serviceId", (a, b) -> a.getServiceId().compareTo(b.getServiceId()));
-        InterfaceRestApi.SORT_MAP.put("name", (a, b) -> a.getName().compareTo(b.getName()));
+        InterfaceRestApi.SORT_MAP.put("default", Comparator.comparing(Interface::getId));
+        InterfaceRestApi.SORT_MAP.put("id", Comparator.comparing(Interface::getId));
+        InterfaceRestApi.SORT_MAP.put("serviceId", Comparator.comparing(Interface::getServiceId));
+        InterfaceRestApi.SORT_MAP.put("name", Comparator.comparing(Interface::getName));
     }
 
     /**
@@ -80,7 +79,7 @@ public class InterfaceRestApi extends BaseApi implements InterfaceApi {
     }
 
     @Override
-    public Interface getInterface(final String id) throws NotFoundException, AuthorizationException {
+    public Interface getInterface(final String id) throws AuthorizationException {
         this.assertUserIsLoggedIn();
         return ServiceManager.getInstance().getInterfaceById(id);
     }

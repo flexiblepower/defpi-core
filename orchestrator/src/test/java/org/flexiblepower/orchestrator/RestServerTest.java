@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,6 +38,7 @@ import org.flexiblepower.api.PendingChangeApi;
 import org.flexiblepower.api.ProcessApi;
 import org.flexiblepower.api.ServiceApi;
 import org.flexiblepower.api.UserApi;
+import org.flexiblepower.connectors.DockerConnector;
 import org.flexiblepower.rest.OrchestratorApplication;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -50,7 +51,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.SwaggerDefinition;
 
 /**
- * TestSwaggerDef
+ * RestServerTest
  *
  * @version 0.1
  * @since Nov 23, 2017
@@ -115,6 +116,17 @@ public class RestServerTest {
     }
 
     @Test
+    public void testDiag() throws Exception {
+        try {
+            DockerConnector.getInstance();
+            this.defaultTests("diag", null, 200, MediaType.TEXT_PLAIN_TYPE);
+        } catch (final Exception e) {
+            // We expect the same error, but in HTML 500 format
+            this.defaultTests("diag", null, 500, MediaType.TEXT_HTML_TYPE);
+        }
+    }
+
+    @Test
     public void testSwagger() throws Exception {
         final String content = this.defaultTests("swagger.json", null, 200, MediaType.APPLICATION_JSON_TYPE);
 
@@ -159,11 +171,7 @@ public class RestServerTest {
                 query,
                 null);
 
-        // System.out.println("GETting " + uri);
         final HttpGet request = new HttpGet(uri);
-        // final String auth = "admin:admin";
-        // final byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(Charset.forName("UTF-8")));
-        // request.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + new String(encodedAuth));
         final HttpClient client = HttpClientBuilder.create().build();
 
         final HttpResponse response = client.execute(request);

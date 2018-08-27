@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -123,6 +123,12 @@ public class ConnectionManager {
         final Process process = ProcessManager.getInstance().getProcess(endpoint.getProcessId());
         final Service service = ServiceManager.getInstance().getService(process.getServiceId());
         final Interface intface = service.getInterface(endpoint.getInterfaceId());
+
+        if (intface == null) {
+            throw new ConnectionException("Invalid endpoint, service " + service.getName()
+                    + " does not contain interface " + endpoint.getInterfaceId());
+        }
+
         if (!intface.isAllowMultiple()) {
             // Is there already a connection for this interface?
             for (final Connection c : ConnectionManager.getInstance().getConnectionsForProcess(process)) {
@@ -234,7 +240,7 @@ public class ConnectionManager {
      * @param process The process to get all connections from
      * @return A list of all connections that are connected to the process with the provided id
      */
-    public List<Connection> getConnectionsForProcess(final Process process) {
+    List<Connection> getConnectionsForProcess(final Process process) {
         return MongoDbConnector.getInstance().getConnectionsForProcess(process);
     }
 
@@ -257,7 +263,7 @@ public class ConnectionManager {
      *
      * @param process the process to delete all connections from
      */
-    public synchronized void deleteConnectionsForProcess(final Process process) {
+    synchronized void deleteConnectionsForProcess(final Process process) {
         for (final Connection connection : this.getConnectionsForProcess(process)) {
             this.terminateConnection(connection, process.getUserId());
         }
@@ -269,7 +275,7 @@ public class ConnectionManager {
      * @param process The process to automatically connect
      * @throws ServiceNotFoundException If the service implemented by the process cannot be found
      */
-    public void createAutoConnectConnections(final Process process) throws ServiceNotFoundException {
+    void createAutoConnectConnections(final Process process) throws ServiceNotFoundException {
         final Service service = ServiceManager.getInstance().getService(process.getServiceId());
         final User user = UserManager.getInstance().getUser(process.getUserId());
         for (final Interface intface : service.getInterfaces()) {

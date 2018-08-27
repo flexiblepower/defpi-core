@@ -43,11 +43,11 @@ public class ServiceRestApi extends BaseApi implements ServiceApi {
 
     private static final Map<String, Comparator<Service>> SORT_MAP = new HashMap<>();
     static {
-        ServiceRestApi.SORT_MAP.put("default", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
-        ServiceRestApi.SORT_MAP.put("id", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
-        ServiceRestApi.SORT_MAP.put("name", (a, b) -> a.getName().compareTo(b.getName()));
-        ServiceRestApi.SORT_MAP.put("created", (a, b) -> a.getCreated().compareTo(b.getCreated()));
-        ServiceRestApi.SORT_MAP.put("version", (a, b) -> a.getVersion().compareTo(b.getVersion()));
+        ServiceRestApi.SORT_MAP.put("default", Comparator.comparing(Service::getId));
+        ServiceRestApi.SORT_MAP.put("id", Comparator.comparing(Service::getId));
+        ServiceRestApi.SORT_MAP.put("name", Comparator.comparing(Service::getName));
+        ServiceRestApi.SORT_MAP.put("created", Comparator.comparing(Service::getCreated));
+        ServiceRestApi.SORT_MAP.put("version", Comparator.comparing(Service::getVersion));
     }
 
     /**

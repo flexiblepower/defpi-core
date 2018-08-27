@@ -118,7 +118,7 @@ abstract class BaseApi {
         final Process ret = ProcessManager.getInstance().getProcessByToken(token);
         if (ret == null) { // If no match found, no user found
             BaseApi.log.debug("Unable to find process with provided token");
-            return ret;
+            return null;
         }
 
         BaseApi.log.trace("Process {} logged in", ret.getId());

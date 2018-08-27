@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,7 +21,6 @@ package org.flexiblepower.process;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.DockerConnector;
@@ -32,7 +31,6 @@ import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Connection.Endpoint;
 import org.flexiblepower.model.Process;
-import org.flexiblepower.model.Process.ProcessParameter;
 import org.flexiblepower.model.Process.ProcessState;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange;
 import org.flexiblepower.orchestrator.pendingchange.PendingChangeManager;
@@ -46,7 +44,7 @@ import lombok.extern.slf4j.Slf4j;
  * @version 0.1
  * @since Aug 14, 2017
  */
-public class MoveProcess {
+class MoveProcess {
 
     /**
      * SuspendConnection
@@ -56,7 +54,7 @@ public class MoveProcess {
      */
     @Slf4j
     @Entity("PendingChange")
-    public static class SuspendConnection extends PendingChange {
+    static class SuspendConnection extends PendingChange {
 
         private Connection connection;
         private Endpoint endpoint;
@@ -74,9 +72,7 @@ public class MoveProcess {
          * @param connection The Connection to suspend
          * @param endpoint The endpoint to suspend
          */
-        public SuspendConnection(final ObjectId userId,
-                final Connection connection,
-                final Connection.Endpoint endpoint) {
+        SuspendConnection(final ObjectId userId, final Connection connection, final Connection.Endpoint endpoint) {
             super(userId);
             this.resources = Collections.unmodifiableList(Arrays.asList(connection.getId(), endpoint.getProcessId()));
             this.connection = connection;
@@ -119,7 +115,7 @@ public class MoveProcess {
      */
     @Entity("PendingChange")
     @Slf4j
-    public static class SuspendProcess extends PendingChange {
+    static class SuspendProcess extends PendingChange {
 
         private Process process;
         private ObjectId nodePoolId;
@@ -139,9 +135,9 @@ public class MoveProcess {
          * @param nodePoolId The ID of the nodepool to move the process to (maybe null)
          * @param privateNodeId The ID of the private node to move the process to (maybe null)
          */
-        public SuspendProcess(final Process process, final ObjectId nodePoolId, final ObjectId privateNodeId) {
+        SuspendProcess(final Process process, final ObjectId nodePoolId, final ObjectId privateNodeId) {
             super(process.getUserId());
-            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
+            this.resources = Collections.singletonList(process.getId());
             this.process = process;
             this.nodePoolId = nodePoolId;
             this.privateNodeId = privateNodeId;
@@ -184,7 +180,7 @@ public class MoveProcess {
                 if (this.getCount() > 3) {
                     // Ok, this guy doesn't really want to suspend. Too bad, but we have to move on.
                     PendingChangeManager.getInstance()
-                            .submit(new RemoveDockerService(this.process, this.nodePoolId, this.privateNodeId));
+                            .submit(new RemoveDockerService(this.process, this.nodePoolId, this.privateNodeId, null));
                     return Result.FAILED_PERMANENTLY;
                 }
 
@@ -199,7 +195,10 @@ public class MoveProcess {
 
                 // start next
                 PendingChangeManager.getInstance()
-                        .submit(new RemoveDockerService(this.process, this.nodePoolId, this.privateNodeId));
+                        .submit(new RemoveDockerService(this.process,
+                                this.nodePoolId,
+                                this.privateNodeId,
+                                suspendProcess));
 
                 return Result.SUCCESS;
             }
@@ -215,9 +214,12 @@ public class MoveProcess {
      */
     @Entity("PendingChange")
     @Slf4j
-    public static class RemoveDockerService extends PendingChange {
+    static class RemoveDockerService extends PendingChange {
 
         private Process process;
+        private ObjectId nodePoolId;
+        private ObjectId privateNodeId;
+        private byte[] suspendState;
 
         // Default constructor for morphia
         @SuppressWarnings("unused")
@@ -232,14 +234,21 @@ public class MoveProcess {
          * @param process The process to suspend
          * @param nodePoolId The ID of the nodepool to move the process to (maybe null)
          * @param privateNodeId The ID of the private node to move the process to (maybe null)
+         * @param suspendState The byte array that represents the state that the process must be resumed from
          */
-        public RemoveDockerService(final Process process, final ObjectId nodePoolId, final ObjectId privateNodeId) {
+        RemoveDockerService(final Process process,
+                final ObjectId nodePoolId,
+                final ObjectId privateNodeId,
+                final byte[] suspendState) {
             super(process.getUserId());
             this.resources = Collections.unmodifiableList(Arrays.asList(process.getId(), this.getUserId()));
             this.process = process;
             if ((nodePoolId != null) && (privateNodeId != null)) {
                 throw new IllegalArgumentException("Either nodePoolId or privateNodeId should be null");
             }
+            this.nodePoolId = nodePoolId;
+            this.privateNodeId = privateNodeId;
+            this.suspendState = suspendState;
         }
 
         @Override
@@ -256,6 +265,13 @@ public class MoveProcess {
                 RemoveDockerService.log
                         .debug("Removing Docker service for process " + this.process.getId() + " was successful");
                 MongoDbConnector.getInstance().delete(this.process);
+
+                PendingChangeManager.getInstance()
+                        .submit(new CreateDockerService(this.process,
+                                this.nodePoolId,
+                                this.privateNodeId,
+                                this.suspendState));
+
                 return Result.SUCCESS;
             } else {
                 RemoveDockerService.log
@@ -273,7 +289,7 @@ public class MoveProcess {
      */
     @Slf4j
     @Entity("PendingChange")
-    public static class CreateDockerService extends PendingChange {
+    static class CreateDockerService extends PendingChange {
 
         private Process process;
         private ObjectId nodePoolId;
@@ -300,7 +316,7 @@ public class MoveProcess {
          * @param privateNodeId The ID of the private node to move the process to (maybe null)
          * @param suspendState The byte array that represents the state that the process must be resumed from
          */
-        public CreateDockerService(final Process process,
+        CreateDockerService(final Process process,
                 final ObjectId nodePoolId,
                 final ObjectId privateNodeId,
                 final byte[] suspendState) {
@@ -363,7 +379,6 @@ public class MoveProcess {
     public static class ResumeProcess extends PendingChange {
 
         private Process process;
-        private List<ProcessParameter> configuration;
         private byte[] suspendState;
 
         // Default constructor for morphia
@@ -378,9 +393,9 @@ public class MoveProcess {
          * @param process The process to resume
          * @param suspendState The byte array that represents the state that the process must be resumed from
          */
-        public ResumeProcess(final Process process, final byte[] suspendState) {
+        ResumeProcess(final Process process, final byte[] suspendState) {
             super(process.getUserId());
-            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
+            this.resources = Collections.singletonList(process.getId());
             this.process = process;
             this.suspendState = suspendState;
         }
@@ -392,8 +407,6 @@ public class MoveProcess {
 
         @Override
         public Result execute() {
-            this.process.setConfiguration(this.configuration);
-
             try {
                 if (ProcessConnector.getInstance().resume(this.process.getId(), this.suspendState)) {
                     ResumeProcess.log.info("Resumed process " + this.process.getId() + " after moving the process");
@@ -445,9 +458,7 @@ public class MoveProcess {
          * @param connection The Connection to resume
          * @param endpoint The endpoint to resume
          */
-        public ResumeConnection(final ObjectId userId,
-                final Connection connection,
-                final Connection.Endpoint endpoint) {
+        ResumeConnection(final ObjectId userId, final Connection connection, final Connection.Endpoint endpoint) {
             super(userId);
             this.resources = Collections.unmodifiableList(Arrays.asList(connection.getId(), endpoint.getProcessId()));
             this.connection = connection;

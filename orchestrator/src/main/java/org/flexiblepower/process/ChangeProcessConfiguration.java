@@ -19,7 +19,6 @@
  */
 package org.flexiblepower.process;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -41,7 +40,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Entity("PendingChange")
 @Slf4j
-public class ChangeProcessConfiguration extends PendingChange {
+class ChangeProcessConfiguration extends PendingChange {
 
     private Process process;
     private List<ProcessParameter> newConfiguration;
@@ -58,9 +57,9 @@ public class ChangeProcessConfiguration extends PendingChange {
      * @param process The process to update
      * @param newConfiguration The new configuration as a list of parameters
      */
-    public ChangeProcessConfiguration(final Process process, final List<ProcessParameter> newConfiguration) {
+    ChangeProcessConfiguration(final Process process, final List<ProcessParameter> newConfiguration) {
         super(process.getUserId());
-        this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
+        this.resources = Collections.singletonList(process.getId());
         this.process = process;
         this.newConfiguration = newConfiguration;
     }
