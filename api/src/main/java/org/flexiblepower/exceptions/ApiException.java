@@ -1,4 +1,4 @@
-/**
+/*
  * File ApiException.java
  *
  * Copyright 2017 FAN

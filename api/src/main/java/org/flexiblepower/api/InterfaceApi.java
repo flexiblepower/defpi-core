@@ -1,4 +1,4 @@
-/**
+/*
  * File InterfaceApi.java
  *
  * Copyright 2017 FAN

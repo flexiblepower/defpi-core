@@ -1,4 +1,4 @@
-/**
+/*
  * File InvalidInputException.java
  *
  * Copyright 2017 FAN

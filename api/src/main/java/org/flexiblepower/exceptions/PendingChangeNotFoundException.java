@@ -1,4 +1,4 @@
-/**
+/*
  * File PendingChangeNotFoundException.java
  *
  * Copyright 2017 FAN

@@ -1,4 +1,4 @@
-/**
+/*
  * File InvalidObjectIdException.java
  *
  * Copyright 2017 FAN

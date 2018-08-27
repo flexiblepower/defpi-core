@@ -1,4 +1,4 @@
-/**
+/*
  * File ConnectionApi.java
  *
  * Copyright 2017 FAN
@@ -115,7 +115,7 @@ public interface ConnectionApi {
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Connection with the specified Id", response = Connection.class),
             @ApiResponse(code = 400, message = InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE),
-            @ApiResponse(code = 404, message = ProcessApi.PROCESS_NOT_FOUND_MESSAGE),
+            @ApiResponse(code = 404, message = ConnectionApi.CONNECTION_NOT_FOUND_MESSAGE),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public Connection getConnection(
             @ApiParam(name = "connectionId",

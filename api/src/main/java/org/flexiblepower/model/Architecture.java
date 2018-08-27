@@ -1,4 +1,4 @@
-/**
+/*
  * File Architecture.java
  *
  * Copyright 2017 FAN

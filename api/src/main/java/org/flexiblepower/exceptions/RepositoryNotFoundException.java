@@ -1,4 +1,4 @@
-/**
+/*
  * File RepositoryNotFoundException.java
  *
  * Copyright 2017 FAN
@@ -48,7 +48,7 @@ public class RepositoryNotFoundException extends NotFoundException {
      * @param repositoryName the name of the repository that was not found
      */
     public RepositoryNotFoundException(final String repositoryName) {
-        super(RepositoryNotFoundException.REPOSITORY_NOT_FOUND_MESSAGE + ": " + repositoryName.toString());
+        super(RepositoryNotFoundException.REPOSITORY_NOT_FOUND_MESSAGE + ": " + repositoryName);
     }
 
 }

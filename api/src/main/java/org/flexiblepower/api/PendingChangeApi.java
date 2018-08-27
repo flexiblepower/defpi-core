@@ -1,4 +1,4 @@
-/**
+/*
  * File PendingChangeApi.java
  *
  * Copyright 2017 FAN
@@ -33,6 +33,7 @@ import javax.ws.rs.core.MediaType;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.NotFoundException;
+import org.flexiblepower.exceptions.PendingChangeNotFoundException;
 import org.flexiblepower.model.PendingChangeDescription;
 
 import io.swagger.annotations.Api;
@@ -41,6 +42,7 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
+import sun.security.util.PendingException;
 
 /**
  * PendingChangeApi
@@ -72,7 +74,7 @@ public interface PendingChangeApi {
                   authorizations = {@Authorization(value = OrchestratorApi.ADMIN_AUTHENTICATION)})
     @ApiResponses(value = {@ApiResponse(code = 204, message = "PendingChange deleted"),
             @ApiResponse(code = 400, message = InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE),
-            @ApiResponse(code = 404, message = "PendingChange not found"),
+            @ApiResponse(code = 404, message = PendingChangeNotFoundException.PENDING_CHANGE_NOT_FOUND),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public void deletePendingChange(
             @ApiParam(value = "The id of the PendingChange that needs to be deleted",

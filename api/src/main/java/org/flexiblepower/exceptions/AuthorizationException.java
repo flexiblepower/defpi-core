@@ -1,4 +1,4 @@
-/**
+/*
  * File AuthorizationException.java
  *
  * Copyright 2017 FAN

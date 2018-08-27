@@ -1,4 +1,4 @@
-/**
+/*
  * File NotFoundException.java
  *
  * Copyright 2017 FAN

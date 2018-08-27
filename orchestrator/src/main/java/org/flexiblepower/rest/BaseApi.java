@@ -1,4 +1,4 @@
-/**
+/*
  * File BaseApi.java
  *
  * Copyright 2017 FAN
@@ -37,7 +37,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since Mar 30, 2017
  */
 @Slf4j
-public abstract class BaseApi {
+abstract class BaseApi {
 
     private static final String AUTH_PREFIX = "Basic ";
 
@@ -45,12 +45,12 @@ public abstract class BaseApi {
      * The session user is the user who successfully logged in using Basic authentication or using his authentication
      * token.
      */
-    protected final User sessionUser;
+    final User sessionUser;
 
     /**
      * The HTTP headers of the session, which may include headers to add to the response by any filter
      */
-    protected final HttpHeaders headers;
+    private final HttpHeaders headers;
 
     /**
      * Create the abstract base class for the REST API. The base API will make sure the user is logged in by taking the
@@ -58,7 +58,7 @@ public abstract class BaseApi {
      *
      * @param httpHeaders The headers of the HTTP request that creates this object
      */
-    protected BaseApi(final HttpHeaders httpHeaders) {
+    BaseApi(final HttpHeaders httpHeaders) {
         this.headers = httpHeaders;
 
         // Allow token based authentication from the dashboard gateway
@@ -105,7 +105,7 @@ public abstract class BaseApi {
      *
      * @return The process that the token refers to, or null if no such process exists
      */
-    protected Process getTokenProcess() {
+    Process getTokenProcess() {
         // User did not provide Basic Auth info, so look for token in header
         final String token = this.headers.getHeaderString("X-Auth-Token");
         if (token == null) {
@@ -128,7 +128,7 @@ public abstract class BaseApi {
      *
      * @throws AuthorizationException If the assertion fails
      */
-    protected void assertUserIsAdmin() throws AuthorizationException {
+    void assertUserIsAdmin() throws AuthorizationException {
         if ((this.sessionUser == null) || !this.sessionUser.isAdmin()) {
             throw new AuthorizationException();
         }
@@ -139,7 +139,7 @@ public abstract class BaseApi {
      *
      * @throws AuthorizationException If the assertion fails
      */
-    protected void assertUserIsLoggedIn() throws AuthorizationException {
+    void assertUserIsLoggedIn() throws AuthorizationException {
         if (this.sessionUser == null) {
             throw new AuthorizationException();
         }
@@ -152,7 +152,7 @@ public abstract class BaseApi {
      * @param userId The userId that should be logged in
      * @throws AuthorizationException If the assertion fails
      */
-    protected void assertUserIsAdminOrEquals(final ObjectId userId) throws AuthorizationException {
+    void assertUserIsAdminOrEquals(final ObjectId userId) throws AuthorizationException {
         if (this.sessionUser == null) {
             throw new AuthorizationException();
         }
@@ -167,7 +167,7 @@ public abstract class BaseApi {
      *
      * @param count The total number of responses that could have been returned
      */
-    protected void addTotalCount(final int count) {
+    void addTotalCount(final int count) {
         this.headers.getRequestHeaders().add(TotalCountFilter.HEADER_NAME, Integer.toString(count));
     }
 

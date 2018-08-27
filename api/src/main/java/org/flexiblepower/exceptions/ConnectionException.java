@@ -1,4 +1,4 @@
-/**
+/*
  * File ConnectionException.java
  *
  * Copyright 2017 FAN

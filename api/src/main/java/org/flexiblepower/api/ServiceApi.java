@@ -1,4 +1,4 @@
-/**
+/*
  * File ServiceApi.java
  *
  * Copyright 2017 FAN

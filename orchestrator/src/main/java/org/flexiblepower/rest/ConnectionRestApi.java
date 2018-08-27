@@ -1,4 +1,4 @@
-/**
+/*
  * File ConnectionRestApi.java
  *
  * Copyright 2017 FAN
@@ -57,10 +57,9 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
 
     private static final Map<String, Comparator<Connection>> SORT_MAP = new HashMap<>();
     static {
-        ConnectionRestApi.SORT_MAP.put("default", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
-        ConnectionRestApi.SORT_MAP.put("id", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
-        ConnectionRestApi.SORT_MAP.put("interfaceId1",
-                (a, b) -> a.getEndpoint1().getInterfaceId().compareTo(b.getEndpoint1().getInterfaceId()));
+        ConnectionRestApi.SORT_MAP.put("default", Comparator.comparing((c) -> c.getId().toString()));
+        ConnectionRestApi.SORT_MAP.put("id", Comparator.comparing((c) -> c.getId().toString()));
+        ConnectionRestApi.SORT_MAP.put("interfaceId1", Comparator.comparing((c) -> c.getEndpoint1().getInterfaceId()));
         ConnectionRestApi.SORT_MAP.put("processId1", (a, b) -> {
             try {
                 return ProcessManager.getInstance()
@@ -72,8 +71,7 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
                 return 0;
             }
         });
-        ConnectionRestApi.SORT_MAP.put("interfaceId2",
-                (a, b) -> a.getEndpoint2().getInterfaceId().compareTo(b.getEndpoint2().getInterfaceId()));
+        ConnectionRestApi.SORT_MAP.put("interfaceId2", Comparator.comparing((c) -> c.getEndpoint2().getInterfaceId()));
         ConnectionRestApi.SORT_MAP.put("processId2", (a, b) -> {
             try {
                 return ProcessManager.getInstance()
@@ -135,14 +133,8 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
                 }
             }
             if (f.has("processId")) {
-                final Iterator<Connection> it = connections.iterator();
-                while (it.hasNext()) {
-                    final Connection c = it.next();
-                    if (!(c.getEndpoint1().getProcessId().toString().equals(f.getString("processId"))
-                            || c.getEndpoint2().getProcessId().toString().equals(f.getString("processId")))) {
-                        it.remove();
-                    }
-                }
+                connections.removeIf((c) -> !(c.getEndpoint1().getProcessId().toString().equals(f.getString("processId"))
+                        || c.getEndpoint2().getProcessId().toString().equals(f.getString("processId"))));
             }
         }
 

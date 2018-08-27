@@ -109,10 +109,10 @@ class RestUtils {
             comparator = sortMap.get("default");
         }
         if (comparator == null) {
-            comparator = (a, b) -> a.toString().compareTo(b.toString());
+            comparator = Comparator.comparing(Object::toString);
         }
 
-        Collections.sort(content, comparator);
+        content.sort(comparator);
 
         // Order the sorting if necessary
         if ("DESC".equals(sortDir)) {

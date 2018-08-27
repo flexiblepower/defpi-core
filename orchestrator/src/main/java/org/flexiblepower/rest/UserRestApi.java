@@ -29,9 +29,7 @@ import javax.ws.rs.core.Response.Status;
 import org.bson.types.ObjectId;
 import org.flexiblepower.api.UserApi;
 import org.flexiblepower.connectors.MongoDbConnector;
-import org.flexiblepower.exceptions.ApiException;
-import org.flexiblepower.exceptions.AuthorizationException;
-import org.flexiblepower.exceptions.InvalidObjectIdException;
+import org.flexiblepower.exceptions.*;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.UserManager;
 
@@ -93,11 +91,11 @@ public class UserRestApi extends BaseApi implements UserApi {
     }
 
     @Override
-    public User getUserByUsername(final String username) throws AuthorizationException {
+    public User getUserByUsername(final String username) throws AuthorizationException, UserNotFoundException {
         final User ret = UserManager.getInstance().getUser(username);
         if (ret == null) {
             this.assertUserIsAdmin();
-            throw new ApiException(Status.NOT_FOUND, UserApi.USER_NOT_FOUND_MESSAGE);
+            throw new UserNotFoundException(username);
         } else {
             this.assertUserIsAdminOrEquals(ret.getId());
             return ret;
