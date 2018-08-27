@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -167,9 +168,10 @@ public class PluginUtils {
      * @return A string in camel caps
      */
     public static String snakeCaps(final String str) {
-        return Stream.of(str.split(" ")).map(String::toLowerCase).collect(Collectors.joining("_")).replaceAll(
-                "[^a-zA-Z0-9_]",
-                "");
+        return Stream.of(str.split(" "))
+                .map(String::toLowerCase)
+                .collect(Collectors.joining("_"))
+                .replaceAll("[^a-zA-Z0-9_]", "");
     }
 
     /**
@@ -194,9 +196,10 @@ public class PluginUtils {
 
     private static String getHash(final InterfaceVersionDescription vitf, final Set<String> messageSet) {
         String baseHash = vitf.getHash();
-        for (final String key : messageSet) {
-            baseHash += ";" + key;
+        if ((messageSet != null) && !messageSet.isEmpty()) {
+            baseHash += ";" + String.join(";", messageSet);
         }
+        System.out.println(baseHash);
         return PluginUtils.SHA256(baseHash);
     }
 

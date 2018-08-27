@@ -143,9 +143,9 @@ public class Connection {
      * @throws IllegalArgumentException if the process is not part of either endpoint
      */
     public Endpoint getEndpointForProcess(final Process process) {
-        if (process.getId().equals(this.endpoint1.getProcessId())) {
+        if (this.endpoint1 != null && this.endpoint1.getProcessId().equals(process.getId())) {
             return this.endpoint1;
-        } else if (process.getId().equals(this.endpoint2.getProcessId())) {
+        } else if (this.endpoint2 != null && this.endpoint2.getProcessId().equals(process.getId())) {
             return this.endpoint2;
         } else {
             throw new IllegalArgumentException("The provided processId is not part of this connection");

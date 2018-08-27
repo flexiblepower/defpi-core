@@ -41,7 +41,7 @@ public class PendingChangeNotFoundException extends NotFoundException {
      *
      * @param id the ObjectId of the pending change that could not be found
      */
-    public PendingChangeNotFoundException(final ObjectId id) {
+    public PendingChangeNotFoundException() {
         super(PendingChangeNotFoundException.PENDING_CHANGE_NOT_FOUND);
     }
 

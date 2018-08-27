@@ -24,6 +24,9 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.flexiblepower.codegen.PluginUtils;
 import org.flexiblepower.codegen.model.InterfaceDescription;
@@ -94,6 +97,15 @@ public class CodegenTest {
                 dst.toFile());
         Assert.assertEquals("e00da70ae21e257e79e23df20461e28edb5c6e4c16f6675b8dc4c40e574ebc06",
                 PluginUtils.SHA256(dst));
+
+        String baseHash = "1";
+        Set<String> messageSet = new HashSet<>(Arrays.asList("Something", "Another thing", "Cool stuff"));
+        for (final String key : messageSet) {
+            baseHash += ";" + key;
+        }
+        System.out.println(baseHash);
+
+        System.out.println(String.join(";", messageSet));
     }
 
     @Test

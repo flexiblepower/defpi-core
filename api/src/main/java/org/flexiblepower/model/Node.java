@@ -51,12 +51,12 @@ import lombok.ToString;
 public abstract class Node {
 
     /**
-     * DockerNodeStatus incidates what the status of a node is in the docker swarm.
+     * DockerNodeStatus indicates what the status of a node is in the docker swarm.
      *
      * @version 0.1
      * @since 20 mrt. 2017
      */
-    public static enum DockerNodeStatus {
+    public enum DockerNodeStatus {
         /**
          * The other node could not be found
          */

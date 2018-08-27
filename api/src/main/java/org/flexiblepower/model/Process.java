@@ -58,7 +58,7 @@ public class Process {
      * @version 0.1
      * @since Dec 6, 2017
      */
-    public static enum ProcessState {
+    public enum ProcessState {
     /**
      * The process is starting, meaning its specification exists somewhere in memory, but the docker container
      * hasn't started

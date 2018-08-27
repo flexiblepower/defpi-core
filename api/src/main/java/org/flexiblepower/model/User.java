@@ -138,7 +138,7 @@ public class User {
         return User.sha256(password + name + User.SALT);
     }
 
-    private static final String sha256(final String password) {
+    private static String sha256(final String password) {
         try {
             final MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update(password.getBytes());

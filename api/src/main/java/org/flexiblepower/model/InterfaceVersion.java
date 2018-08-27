@@ -52,12 +52,12 @@ public class InterfaceVersion implements Comparable<InterfaceVersion> {
      * @return true if the other interface version is compatibly.
      */
     public boolean isCompatibleWith(final InterfaceVersion other) {
-        return this.receivesHash.equals(other.getSendsHash()) && this.sendsHash.equals(other.getReceivesHash());
+        return other != null && other.getSendsHash().equals(this.receivesHash) && other.getReceivesHash().equals(this.sendsHash);
     }
 
     @Override
     public int compareTo(final InterfaceVersion o) {
-        return this.versionName.compareTo(o.getVersionName());
+        return this.versionName == null ? -1 : this.versionName.compareTo(o.getVersionName());
     }
 
 }
