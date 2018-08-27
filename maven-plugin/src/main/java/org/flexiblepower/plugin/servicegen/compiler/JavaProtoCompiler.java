@@ -36,9 +36,8 @@ public class JavaProtoCompiler extends ProtoCompiler {
 
     /**
      * @param protobufVersion The protobuf version to get the compiler for
-     * @throws IOException When an exception occurs reading or writing the protobuf compiler to/from disk
      */
-    public JavaProtoCompiler(final String protobufVersion) throws IOException {
+    public JavaProtoCompiler(final String protobufVersion) {
         super(protobufVersion);
     }
 

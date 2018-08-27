@@ -69,7 +69,7 @@ public abstract class ProtoCompiler implements Compiler {
                 Files.createDirectories(this.compilerFile.toPath().getParent());
                 PluginUtils.downloadFile(
                         "http://central.maven.org/maven2/com/google/protobuf/protoc/" + this.protobufVersion + "/"
-                                + this.compilerFile.getName().toString(),
+                                + this.compilerFile.getName(),
                         this.compilerFile);
                 this.compilerFile.setExecutable(true);
             }
@@ -97,7 +97,7 @@ public abstract class ProtoCompiler implements Compiler {
      *
      * @return The name of the current system architecture (e.g x86_64, x64_32).
      */
-    public static String getArchitecture() {
+    static String getArchitecture() {
         return System.getProperty("os.arch").equals("amd64") ? "x86_64" : "x86_32";
     }
 

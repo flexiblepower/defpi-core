@@ -45,7 +45,6 @@ public class XSDMessageSerializer implements MessageSerializer<Object> {
 
     private final Map<String, Class<?>> classes = new HashMap<>();
     private final DescriptorType type = DescriptorType.XSD;
-    private JAXBContext ctx;
     private Marshaller marshaller;
     private Unmarshaller unmarshaller;
 
@@ -110,13 +109,13 @@ public class XSDMessageSerializer implements MessageSerializer<Object> {
     /**
      * Lazy initialization to avoid having the constructor throw an exception
      *
-     * @throws JAXBException
+     * @throws JAXBException If there is any error while instantiating the marshaller or the unmarshaller
      */
     private void init() throws JAXBException {
         final Class<?>[] array = new Class<?>[this.classes.size()];
-        this.ctx = JAXBContext.newInstance(this.classes.values().toArray(array));
-        this.unmarshaller = this.ctx.createUnmarshaller();
-        this.marshaller = this.ctx.createMarshaller();
+        JAXBContext ctx = JAXBContext.newInstance(this.classes.values().toArray(array));
+        this.unmarshaller = ctx.createUnmarshaller();
+        this.marshaller = ctx.createMarshaller();
     }
 
 }

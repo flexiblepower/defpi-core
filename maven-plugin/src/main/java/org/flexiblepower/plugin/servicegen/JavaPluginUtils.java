@@ -31,7 +31,7 @@ import org.flexiblepower.model.Parameter;
  * @version 0.1
  * @since Jun 8, 2017
  */
-public class JavaPluginUtils {
+class JavaPluginUtils {
 
     private static final String SERVICE_SUFFIX = "";
     private static final String CONFIG_SUFFIX = "Configuration";
