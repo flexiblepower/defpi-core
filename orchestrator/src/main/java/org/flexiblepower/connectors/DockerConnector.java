@@ -164,7 +164,7 @@ public class DockerConnector {
         if (DockerConnector.instance == null) {
             final DockerConnector connector = new DockerConnector();
             try {
-                DockerConnector.instance.client.info();
+                connector.client.info();
             } catch (final Exception e) {
                 throw new RuntimeException("Unable to start docker connector", e);
             }

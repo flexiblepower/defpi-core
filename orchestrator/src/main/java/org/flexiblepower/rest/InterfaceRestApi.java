@@ -29,6 +29,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 
 import org.flexiblepower.api.InterfaceApi;
+import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.model.Interface;
 import org.flexiblepower.orchestrator.ServiceManager;
@@ -64,7 +65,6 @@ public class InterfaceRestApi extends BaseApi implements InterfaceApi {
             final String sortDir,
             final String sortField,
             final String filters) throws AuthorizationException {
-        // TODO implement pagination, sorting and filtering
         this.assertUserIsLoggedIn();
         if ((page < 0) || (perPage < 0)) {
             this.addTotalCount(0);
@@ -72,6 +72,8 @@ public class InterfaceRestApi extends BaseApi implements InterfaceApi {
         }
 
         final List<Interface> content = ServiceManager.getInstance().listInterfaces();
+        final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
+        RestUtils.filterContent(content, Interface::getId, filter, "name");
         RestUtils.orderContent(content, InterfaceRestApi.SORT_MAP, sortField, sortDir);
 
         this.addTotalCount(content.size());

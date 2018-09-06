@@ -89,16 +89,16 @@ class RestUtils {
             // It is a regex, compile the pattern and filter out non-matching elements
             final Pattern pattern = Pattern.compile(filterValue.substring(1, filterValue.length() - 1));
             while (it.hasNext()) {
-                final String property = function.apply(it.next()).toString();
-                if (!pattern.matcher(property).matches()) {
+                final Object value = function.apply(it.next());
+                if ((value == null) || !pattern.matcher(value.toString()).find()) {
                     it.remove();
                 }
             }
         } else {
             // It is a just some value, compare for equality
             while (it.hasNext()) {
-                final String property = function.apply(it.next()).toString();
-                if (!filterValue.equals(property)) {
+                final Object value = function.apply(it.next());
+                if ((value == null) || !filterValue.equals(value.toString())) {
                     it.remove();
                 }
             }
@@ -121,8 +121,14 @@ class RestUtils {
         final Function<T, Object> keyExtractor = sortMap.getOrDefault(sortField,
                 sortMap.getOrDefault("default", Object::toString));
 
-        final Function<T, String> stringExtractor = o -> keyExtractor.apply(o).toString();
-        content.sort(Comparator.nullsLast(Comparator.comparing(stringExtractor)));
+        final Function<T, String> stringExtractor = t -> {
+            if (t == null) {
+                return "";
+            }
+            final Object o = keyExtractor.apply(t);
+            return o == null ? "" : o.toString();
+        };
+        content.sort(Comparator.comparing(stringExtractor));
 
         // Order the sorting if necessary
         if ("DESC".equals(sortDir)) {
