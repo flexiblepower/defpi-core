@@ -360,6 +360,11 @@ myApp
                 nga.field('endpoint1.interfaceId', 'reference')
                     .targetEntity(intface)
                     .targetField(nga.field('id'))
+                    .remoteComplete(true, {
+                        searchQuery: function (search) {
+                            return {name: "/" + search + "/"};
+                        }
+                    })
                     .label('Interface 1'),
                 nga.field('endpoint2.processId', 'reference')
                     .targetEntity(process)
@@ -372,8 +377,12 @@ myApp
                     .label('Process 2'),
                 nga.field('endpoint2.interfaceId', 'reference')
                     .targetEntity(intface)
-                    .perPage(-1)
                     .targetField(nga.field('id'))
+                    .remoteComplete(true, {
+                        searchQuery: function (search) {
+                            return {name: "/" + search + "/"};
+                        }
+                    })
                     .label('Interface 2')
             ]);
 
