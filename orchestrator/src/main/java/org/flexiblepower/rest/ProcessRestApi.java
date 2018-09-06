@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,11 +20,11 @@
 package org.flexiblepower.rest;
 
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -57,15 +57,14 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ProcessRestApi extends BaseApi implements ProcessApi {
 
-    private static final Map<String, Comparator<Process>> SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<Process, Object>> SORT_MAP = new HashMap<>();
     static {
-        ProcessRestApi.SORT_MAP.put("default", Comparator.comparing(p -> p.getId().toString()));
-        ProcessRestApi.SORT_MAP.put("name", Comparator.comparing(Process::getName));
-        ProcessRestApi.SORT_MAP.put("id", Comparator.comparing(p -> p.getId().toString()));
-        ProcessRestApi.SORT_MAP.put("serviceId", Comparator.comparing(Process::getServiceId));
-        ProcessRestApi.SORT_MAP.put("state", Comparator.comparing(Process::getState));
-        ProcessRestApi.SORT_MAP.put("userId", Comparator.comparing(p ->
-                UserManager.getInstance().getUser(p.getUserId()).getUsername()));
+        ProcessRestApi.SORT_MAP.put("default", Process::getId);
+        ProcessRestApi.SORT_MAP.put("name", Process::getName);
+        ProcessRestApi.SORT_MAP.put("id", Process::getId);
+        ProcessRestApi.SORT_MAP.put("serviceId", Process::getServiceId);
+        ProcessRestApi.SORT_MAP.put("state", Process::getState);
+        ProcessRestApi.SORT_MAP.put("userId", p -> UserManager.getInstance().getUser(p.getUserId()).getUsername());
     }
 
     /**

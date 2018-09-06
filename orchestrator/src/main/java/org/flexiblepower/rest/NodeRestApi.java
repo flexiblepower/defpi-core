@@ -19,11 +19,11 @@
  */
 package org.flexiblepower.rest;
 
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -57,40 +57,40 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NodeRestApi extends BaseApi implements NodeApi {
 
-    private static final Map<String, Comparator<UnidentifiedNode>> NODE_SORT_MAP = new HashMap<>();
-    private static final Map<String, Comparator<PrivateNode>> PRIVATENODE_SORT_MAP = new HashMap<>();
-    private static final Map<String, Comparator<PublicNode>> PUBLICNODE_SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<UnidentifiedNode, Object>> NODE_SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<PrivateNode, Object>> PRIVATENODE_SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<PublicNode, Object>> PUBLICNODE_SORT_MAP = new HashMap<>();
     static {
-        NodeRestApi.NODE_SORT_MAP.put("default", Comparator.comparing((n) -> n.getId().toString()));
-        NodeRestApi.NODE_SORT_MAP.put("id", Comparator.comparing((n) -> n.getId().toString()));
-        NodeRestApi.NODE_SORT_MAP.put("name", Comparator.comparing(Node::getName));
-        NodeRestApi.NODE_SORT_MAP.put("hostname", Comparator.comparing(Node::getHostname));
-        NodeRestApi.NODE_SORT_MAP.put("status", Comparator.comparing(Node::getStatus));
-        NodeRestApi.NODE_SORT_MAP.put("dockerId", Comparator.comparing(Node::getDockerId));
-        NodeRestApi.NODE_SORT_MAP.put("architecture", Comparator.comparing(Node::getArchitecture));
-        NodeRestApi.NODE_SORT_MAP.put("lastSync", Comparator.comparing(Node::getLastSync));
+        NodeRestApi.NODE_SORT_MAP.put("default", Node::getId);
+        NodeRestApi.NODE_SORT_MAP.put("id", Node::getId);
+        NodeRestApi.NODE_SORT_MAP.put("name", Node::getName);
+        NodeRestApi.NODE_SORT_MAP.put("hostname", Node::getHostname);
+        NodeRestApi.NODE_SORT_MAP.put("status", Node::getStatus);
+        NodeRestApi.NODE_SORT_MAP.put("dockerId", Node::getDockerId);
+        NodeRestApi.NODE_SORT_MAP.put("architecture", Node::getArchitecture);
+        NodeRestApi.NODE_SORT_MAP.put("lastSync", Node::getLastSync);
 
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("default", Comparator.comparing((n) -> n.getId().toString()));
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("id", Comparator.comparing((n) -> n.getId().toString()));
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("name", Comparator.comparing(Node::getName));
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("hostname", Comparator.comparing(Node::getHostname));
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("status", Comparator.comparing(Node::getStatus));
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("dockerId", Comparator.comparing(Node::getDockerId));
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("architecture", Comparator.comparing(Node::getArchitecture));
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("lastSync", Comparator.comparing(Node::getLastSync));
+        NodeRestApi.PRIVATENODE_SORT_MAP.put("default", Node::getId);
+        NodeRestApi.PRIVATENODE_SORT_MAP.put("id", Node::getId);
+        NodeRestApi.PRIVATENODE_SORT_MAP.put("name", Node::getName);
+        NodeRestApi.PRIVATENODE_SORT_MAP.put("hostname", Node::getHostname);
+        NodeRestApi.PRIVATENODE_SORT_MAP.put("status", Node::getStatus);
+        NodeRestApi.PRIVATENODE_SORT_MAP.put("dockerId", Node::getDockerId);
+        NodeRestApi.PRIVATENODE_SORT_MAP.put("architecture", Node::getArchitecture);
+        NodeRestApi.PRIVATENODE_SORT_MAP.put("lastSync", Node::getLastSync);
         NodeRestApi.PRIVATENODE_SORT_MAP.put("userId",
-                Comparator.comparing((n) -> UserManager.getInstance().getUser(n.getUserId()).getUsername()));
+                (n) -> UserManager.getInstance().getUser(n.getUserId()).getUsername());
 
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("default", Comparator.comparing((n) -> n.getId().toString()));
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("id", Comparator.comparing((n) -> n.getId().toString()));
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("name", Comparator.comparing(Node::getName));
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("hostname", Comparator.comparing(Node::getHostname));
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("status", Comparator.comparing(Node::getStatus));
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("dockerId", Comparator.comparing(Node::getDockerId));
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("architecture", Comparator.comparing(Node::getArchitecture));
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("lastSync", Comparator.comparing(Node::getLastSync));
+        NodeRestApi.PUBLICNODE_SORT_MAP.put("default", Node::getId);
+        NodeRestApi.PUBLICNODE_SORT_MAP.put("id", Node::getId);
+        NodeRestApi.PUBLICNODE_SORT_MAP.put("name", Node::getName);
+        NodeRestApi.PUBLICNODE_SORT_MAP.put("hostname", Node::getHostname);
+        NodeRestApi.PUBLICNODE_SORT_MAP.put("status", Node::getStatus);
+        NodeRestApi.PUBLICNODE_SORT_MAP.put("dockerId", Node::getDockerId);
+        NodeRestApi.PUBLICNODE_SORT_MAP.put("architecture", Node::getArchitecture);
+        NodeRestApi.PUBLICNODE_SORT_MAP.put("lastSync", Node::getLastSync);
         NodeRestApi.PUBLICNODE_SORT_MAP.put("nodePoolId",
-                Comparator.comparing((n) -> NodeManager.getInstance().getNodePool(n.getNodePoolId()).getName()));
+                (n) -> NodeManager.getInstance().getNodePool(n.getNodePoolId()).getName());
     }
 
     /**

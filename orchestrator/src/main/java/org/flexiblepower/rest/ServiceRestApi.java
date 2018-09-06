@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,10 +19,10 @@
  */
 package org.flexiblepower.rest;
 
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -41,13 +41,13 @@ import org.flexiblepower.orchestrator.ServiceManager;
  */
 public class ServiceRestApi extends BaseApi implements ServiceApi {
 
-    private static final Map<String, Comparator<Service>> SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<Service, Object>> SORT_MAP = new HashMap<>();
     static {
-        ServiceRestApi.SORT_MAP.put("default", Comparator.comparing(Service::getId));
-        ServiceRestApi.SORT_MAP.put("id", Comparator.comparing(Service::getId));
-        ServiceRestApi.SORT_MAP.put("name", Comparator.comparing(Service::getName));
-        ServiceRestApi.SORT_MAP.put("created", Comparator.comparing(Service::getCreated));
-        ServiceRestApi.SORT_MAP.put("version", Comparator.comparing(Service::getVersion));
+        ServiceRestApi.SORT_MAP.put("default", Service::getId);
+        ServiceRestApi.SORT_MAP.put("id", Service::getId);
+        ServiceRestApi.SORT_MAP.put("name", Service::getName);
+        ServiceRestApi.SORT_MAP.put("created", Service::getCreated);
+        ServiceRestApi.SORT_MAP.put("version", Service::getVersion);
     }
 
     /**

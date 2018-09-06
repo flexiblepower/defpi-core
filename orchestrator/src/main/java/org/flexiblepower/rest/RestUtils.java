@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -115,18 +115,14 @@ class RestUtils {
      * @param sortDir A string that if it equals "DESC", it will reverse the order of the elements
      */
     static <T> void orderContent(final List<T> content,
-            final Map<String, Comparator<T>> sortMap,
+            final Map<String, Function<T, Object>> sortMap,
             final String sortField,
             final String sortDir) {
-        Comparator<T> comparator = sortMap.get(sortField);
-        if (comparator == null) {
-            comparator = sortMap.get("default");
-        }
-        if (comparator == null) {
-            comparator = Comparator.comparing(Object::toString);
-        }
+        final Function<T, Object> keyExtractor = sortMap.getOrDefault(sortField,
+                sortMap.getOrDefault("default", Object::toString));
 
-        content.sort(comparator);
+        final Function<T, String> stringExtractor = o -> keyExtractor.apply(o).toString();
+        content.sort(Comparator.nullsLast(Comparator.comparing(stringExtractor)));
 
         // Order the sorting if necessary
         if ("DESC".equals(sortDir)) {
@@ -137,7 +133,7 @@ class RestUtils {
 
     /**
      * Get a sublist of the content based on the number of elements per page, and the page we are currently on
-     * 
+     *
      * @param content The full list
      * @param page The page number to return
      * @param perPage The number of elements per page
