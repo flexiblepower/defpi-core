@@ -42,7 +42,7 @@ import org.flexiblepower.orchestrator.ServiceManager;
  */
 public class InterfaceRestApi extends BaseApi implements InterfaceApi {
 
-    private static final Map<String, Function<Interface, Object>> SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<Interface, Comparable<?>>> SORT_MAP = new HashMap<>();
     static {
         InterfaceRestApi.SORT_MAP.put("default", Interface::getId);
         InterfaceRestApi.SORT_MAP.put("id", Interface::getId);

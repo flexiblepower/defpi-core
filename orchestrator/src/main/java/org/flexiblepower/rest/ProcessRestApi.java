@@ -57,7 +57,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ProcessRestApi extends BaseApi implements ProcessApi {
 
-    private static final Map<String, Function<Process, Object>> SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<Process, Comparable<?>>> SORT_MAP = new HashMap<>();
     static {
         ProcessRestApi.SORT_MAP.put("default", Process::getId);
         ProcessRestApi.SORT_MAP.put("name", Process::getName);

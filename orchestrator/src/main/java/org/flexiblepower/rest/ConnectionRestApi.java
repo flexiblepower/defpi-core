@@ -56,14 +56,14 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ConnectionRestApi extends BaseApi implements ConnectionApi {
 
-    private static final Map<String, Function<Connection, Object>> SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<Connection, Comparable<?>>> SORT_MAP = new HashMap<>();
     static {
         ConnectionRestApi.SORT_MAP.put("default", Connection::getId);
         ConnectionRestApi.SORT_MAP.put("id", Connection::getId);
         ConnectionRestApi.SORT_MAP.put("interfaceId1", (c) -> c.getEndpoint1().getInterfaceId());
         ConnectionRestApi.SORT_MAP.put("processId1", (c) -> {
             try {
-                return ProcessManager.getInstance().getProcess(c.getEndpoint1().getProcessId());
+                return ProcessManager.getInstance().getProcess(c.getEndpoint1().getProcessId()).getId();
             } catch (final ProcessNotFoundException e) {
                 return null;
             }
@@ -71,7 +71,7 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
         ConnectionRestApi.SORT_MAP.put("interfaceId2", (c) -> c.getEndpoint2().getInterfaceId());
         ConnectionRestApi.SORT_MAP.put("processId2", (c) -> {
             try {
-                return ProcessManager.getInstance().getProcess(c.getEndpoint2().getProcessId());
+                return ProcessManager.getInstance().getProcess(c.getEndpoint2().getProcessId()).getId();
             } catch (final ProcessNotFoundException e) {
                 return null;
             }

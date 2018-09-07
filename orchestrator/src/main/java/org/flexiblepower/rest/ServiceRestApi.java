@@ -41,7 +41,7 @@ import org.flexiblepower.orchestrator.ServiceManager;
  */
 public class ServiceRestApi extends BaseApi implements ServiceApi {
 
-    private static final Map<String, Function<Service, Object>> SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<Service, Comparable<?>>> SORT_MAP = new HashMap<>();
     static {
         ServiceRestApi.SORT_MAP.put("default", Service::getId);
         ServiceRestApi.SORT_MAP.put("id", Service::getId);

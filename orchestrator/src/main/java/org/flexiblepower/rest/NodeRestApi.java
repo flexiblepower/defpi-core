@@ -57,9 +57,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NodeRestApi extends BaseApi implements NodeApi {
 
-    private static final Map<String, Function<UnidentifiedNode, Object>> NODE_SORT_MAP = new HashMap<>();
-    private static final Map<String, Function<PrivateNode, Object>> PRIVATENODE_SORT_MAP = new HashMap<>();
-    private static final Map<String, Function<PublicNode, Object>> PUBLICNODE_SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<UnidentifiedNode, Comparable<?>>> NODE_SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<PrivateNode, Comparable<?>>> PRIVATENODE_SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<PublicNode, Comparable<?>>> PUBLICNODE_SORT_MAP = new HashMap<>();
     static {
         NodeRestApi.NODE_SORT_MAP.put("default", Node::getId);
         NodeRestApi.NODE_SORT_MAP.put("id", Node::getId);
