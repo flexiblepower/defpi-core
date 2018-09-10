@@ -114,11 +114,11 @@ class RestUtils {
      * @param sortField The key of the map that corresponds to the comparator to use
      * @param sortDir A string that if it equals "DESC", it will reverse the order of the elements
      */
-    static <T, U> void orderContent(final List<T> content,
-            final Map<String, Function<T, Comparable<?>>> sortMap,
+    static <T, U extends Comparable<?>> void orderContent(final List<T> content,
+            final Map<String, Function<T, U>> sortMap,
             final String sortField,
             final String sortDir) {
-        final Function<T, Comparable<?>> keyExtractor = sortMap.getOrDefault(sortField, sortMap.get("default"));
+        final Function<T, U> keyExtractor = sortMap.getOrDefault(sortField, sortMap.get("default"));
 
         @SuppressWarnings("unchecked")
         final Comparator<T> comparator = (o1, o2) -> {
