@@ -1,21 +1,22 @@
-/**
- * File JavaTemplates.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi service creation maven plugin
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
-
 package org.flexiblepower.plugin.servicegen;
 
 import java.io.IOException;
@@ -41,7 +42,7 @@ import org.flexiblepower.model.Parameter;
  * @version 0.1
  * @since Jun 8, 2017
  */
-public class JavaTemplates extends Templates {
+class JavaTemplates extends Templates {
 
     private final String servicePackage;
 
@@ -52,7 +53,7 @@ public class JavaTemplates extends Templates {
      * @param targetPackage The main service package "parent" this is obtained from the maven group id
      * @param descr The service description as parsed from the service.json file
      */
-    public JavaTemplates(final String targetPackage, final ServiceDescription descr) {
+    JavaTemplates(final String targetPackage, final ServiceDescription descr) {
         super(descr);
         this.servicePackage = targetPackage;
     }
@@ -63,7 +64,7 @@ public class JavaTemplates extends Templates {
      * @return The code that implements the service for the project.
      * @throws IOException When an exception occurs while reading the template file
      */
-    public String generateServiceImplementation() throws IOException {
+    String generateServiceImplementation() throws IOException {
         return this.generate("ServiceImplementation", null, null);
     }
 
@@ -73,7 +74,7 @@ public class JavaTemplates extends Templates {
      * @return The code of the configuration interface for the service
      * @throws IOException When an exception occurs while reading the template file
      */
-    public String generateConfigInterface() throws IOException {
+    String generateConfigInterface() throws IOException {
         return this.generate("ConfigInterface", null, null);
     }
 
@@ -86,7 +87,7 @@ public class JavaTemplates extends Templates {
      * @return The code of the connection handler interface for the specified version of the interface
      * @throws IOException When an exception occurs while reading the template file
      */
-    public String generateHandlerInterface(final InterfaceDescription itf, final InterfaceVersionDescription version)
+    String generateHandlerInterface(final InterfaceDescription itf, final InterfaceVersionDescription version)
             throws IOException {
         return this.generate("ConnectionHandlerInterface", itf, version);
     }
@@ -99,7 +100,7 @@ public class JavaTemplates extends Templates {
      * @return The code of the connection handler implementation for the specified version of the interface
      * @throws IOException When an exception occurs while reading the template file
      */
-    public String generateHandlerImplementation(final InterfaceDescription itf,
+    String generateHandlerImplementation(final InterfaceDescription itf,
             final InterfaceVersionDescription version) throws IOException {
         return this.generate("ConnectionHandlerClass", itf, version);
     }
@@ -111,7 +112,7 @@ public class JavaTemplates extends Templates {
      * @return The code of the connection manager interface for the specified interface
      * @throws IOException When an exception occurs while reading the template file
      */
-    public String generateManagerInterface(final InterfaceDescription itf) throws IOException {
+    String generateManagerInterface(final InterfaceDescription itf) throws IOException {
         return this.generate("ManagerInterface", itf, null);
     }
 
@@ -122,7 +123,7 @@ public class JavaTemplates extends Templates {
      * @return The code of the connection manager implementation for the specified interface
      * @throws IOException When an exception occurs while reading the template file
      */
-    public String generateManagerImplementation(final InterfaceDescription itf) throws IOException {
+    String generateManagerImplementation(final InterfaceDescription itf) throws IOException {
         return this.generate("ManagerClass", itf, null);
     }
 
@@ -145,7 +146,7 @@ public class JavaTemplates extends Templates {
         // Generic stuff that is the same everywhere
         replaceMap.put("username", System.getProperty("user.name"));
         replaceMap.put("date", DateFormat.getDateTimeInstance().format(new Date()));
-        replaceMap.put("generator", JavaTemplates.class.getPackage().getName().toString());
+        replaceMap.put("generator", JavaTemplates.class.getPackage().getName());
 
         replaceMap.put("service.package", this.servicePackage);
         replaceMap.put("service.class", JavaPluginUtils.serviceImplClass(this.serviceDescription));
@@ -165,7 +166,7 @@ public class JavaTemplates extends Templates {
                 final String annotation = (param.getDefaultValue() == null ? ""
                         : "    @DefaultValue(\"" + param.getDefaultValue() + "\")\n");
                 final String arraydef = (param.isArray() ? "[]" : "");
-                importDefaultValue = (annotation.isEmpty() ? importDefaultValue : true);
+                importDefaultValue = importDefaultValue || !annotation.isEmpty();
                 parameterDefinitions.add(String.format("%s%s    public %s%s get%s();",
                         javadoc,
                         annotation,

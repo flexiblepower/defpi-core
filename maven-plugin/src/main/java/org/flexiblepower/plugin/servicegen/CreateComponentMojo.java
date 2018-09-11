@@ -1,19 +1,21 @@
-/**
- * File CreateComponentMojo.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi service creation maven plugin
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
 package org.flexiblepower.plugin.servicegen;
 
@@ -214,7 +216,7 @@ public class CreateComponentMojo extends AbstractMojo {
             this.templates = new JavaTemplates(this.servicePackage, service);
 
             this.createJavaFiles(service);
-            this.createDockerfiles(service);
+            this.createDockerfiles();
 
             // If it doesn't exist, create the service-resource folder that should be included in the docker image
             final Path defpiResourceFolder = Paths.get(this.inputResources).resolve(this.serviceResourceLocation);
@@ -234,7 +236,7 @@ public class CreateComponentMojo extends AbstractMojo {
         }
     }
 
-    private boolean buildContextUpdated(final File serviceDescriptionFile) throws IOException {
+    private boolean buildContextUpdated(final File serviceDescriptionFile) {
         // If the buildcontext is null we are not in eclipse, make sure we run any way
         if ((this.buildContext == null) || this.buildContext.hasDelta(serviceDescriptionFile)) {
             return true;
@@ -267,9 +269,9 @@ public class CreateComponentMojo extends AbstractMojo {
     }
 
     /**
-     * @param serviceDefinition
-     * @throws ProcessingException
-     * @throws IOException
+     * @param serviceDefinition The file containing the service definition to generate the sources from
+     * @throws ProcessingException When the service definition contains errors and code cannot be generated
+     * @throws IOException When unable to read the file, or write the code
      */
     private void validateServiceDefinition(final File serviceDefinition) throws ProcessingException, IOException {
         this.buildContext.removeMessages(serviceDefinition);
@@ -297,8 +299,8 @@ public class CreateComponentMojo extends AbstractMojo {
     /**
      * Create stubs for the service implementation. By using the templates in the JavaTemplates object.
      *
-     * @param serviceDescription
-     * @throws IOException
+     * @param serviceDescription The service definition read from file to generate the sources from
+     * @throws IOException When unable to read the file, or write the code
      */
     private void createJavaFiles(final ServiceDescription serviceDescription) throws IOException {
         this.getLog().debug("Creating stubs");
@@ -372,11 +374,9 @@ public class CreateComponentMojo extends AbstractMojo {
     /**
      * Create the Dockerfiles
      *
-     * @param service
-     *                    The current ServiceDescription object
-     * @throws IOException
+     * @throws IOException When unable to write to the target Dockerfile
      */
-    private void createDockerfiles(final ServiceDescription service) throws IOException {
+    private void createDockerfiles() throws IOException {
         this.getLog().debug("Creating Dockerfiles");
 
         final Path targetResourcePath = Paths.get(this.targetResources);
@@ -391,8 +391,8 @@ public class CreateComponentMojo extends AbstractMojo {
     }
 
     /**
-     * @param service
-     * @throws IOException
+     * @param service The service definition read from file to generate the sources from
+     * @throws IOException When unable to write the code
      */
     private void compileDescriptors(final ServiceDescription service) throws IOException {
         this.getLog().debug("Compiling descriptors definitions to java code");
@@ -414,9 +414,9 @@ public class CreateComponentMojo extends AbstractMojo {
     }
 
     /**
-     * @param itf
-     * @param vitf
-     * @throws IOException
+     * @param itf The interface description to generate the XSD handler for
+     * @param vitf The specific version of the interface description to generate the XSD handler for
+     * @throws IOException When unable to write the code
      */
     private void compileXSDDescriptor(final InterfaceDescription itf, final InterfaceVersionDescription vitf)
             throws IOException {
@@ -450,9 +450,9 @@ public class CreateComponentMojo extends AbstractMojo {
     }
 
     /**
-     * @param itf
-     * @param vitf
-     * @throws IOException
+     * @param itf The interface description to generate the Proto handler for
+     * @param vitf The specific version of the interface description to generate the Proto handler for
+     * @throws IOException When unable to write the code
      */
     private void compileProtoDescriptor(final InterfaceDescription itf, final InterfaceVersionDescription vitf)
             throws IOException {

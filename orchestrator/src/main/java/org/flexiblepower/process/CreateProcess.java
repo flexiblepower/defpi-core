@@ -1,19 +1,21 @@
-/**
- * File CreateProcess.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
 package org.flexiblepower.process;
 
@@ -38,7 +40,7 @@ import lombok.extern.slf4j.Slf4j;
  * @version 0.1
  * @since Aug 9, 2017
  */
-public class CreateProcess {
+class CreateProcess {
 
     /**
      * CreateDockerService
@@ -48,7 +50,7 @@ public class CreateProcess {
      */
     @Slf4j
     @Entity("PendingChange")
-    public static class CreateDockerService extends PendingChange {
+    static class CreateDockerService extends PendingChange {
 
         private Process process;
 
@@ -62,7 +64,7 @@ public class CreateProcess {
          *
          * @param process The process to create
          */
-        public CreateDockerService(final Process process) {
+        CreateDockerService(final Process process) {
             super(process.getUserId());
             // Add the userId because making the network, and choosing the running node
             this.resources = Collections.unmodifiableList(Arrays.asList(process.getId(), this.getUserId()));
@@ -111,7 +113,7 @@ public class CreateProcess {
      */
     @Slf4j
     @Entity("PendingChange")
-    public static class SendConfiguration extends PendingChange {
+    static class SendConfiguration extends PendingChange {
 
         private Process process;
 
@@ -125,9 +127,9 @@ public class CreateProcess {
          *
          * @param process The process to configure
          */
-        public SendConfiguration(final Process process) {
+        SendConfiguration(final Process process) {
             super(process.getUserId());
-            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
+            this.resources = Collections.singletonList(process.getId());
             this.process = process;
         }
 

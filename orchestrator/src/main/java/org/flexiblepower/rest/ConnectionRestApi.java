@@ -1,29 +1,30 @@
-/**
- * File ConnectionRestApi.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
-
 package org.flexiblepower.rest;
 
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -55,34 +56,24 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ConnectionRestApi extends BaseApi implements ConnectionApi {
 
-    private static final Map<String, Comparator<Connection>> SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<Connection, Comparable<?>>> SORT_MAP = new HashMap<>();
     static {
-        ConnectionRestApi.SORT_MAP.put("default", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
-        ConnectionRestApi.SORT_MAP.put("id", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
-        ConnectionRestApi.SORT_MAP.put("interfaceId1",
-                (a, b) -> a.getEndpoint1().getInterfaceId().compareTo(b.getEndpoint1().getInterfaceId()));
-        ConnectionRestApi.SORT_MAP.put("processId1", (a, b) -> {
+        ConnectionRestApi.SORT_MAP.put("default", Connection::getId);
+        ConnectionRestApi.SORT_MAP.put("id", Connection::getId);
+        ConnectionRestApi.SORT_MAP.put("interfaceId1", (c) -> c.getEndpoint1().getInterfaceId());
+        ConnectionRestApi.SORT_MAP.put("processId1", (c) -> {
             try {
-                return ProcessManager.getInstance()
-                        .getProcess(a.getEndpoint1().getProcessId())
-                        .getName()
-                        .compareTo(ProcessManager.getInstance().getProcess(b.getEndpoint1().getProcessId()).getName());
+                return ProcessManager.getInstance().getProcess(c.getEndpoint1().getProcessId()).getId();
             } catch (final ProcessNotFoundException e) {
-                // Ignore
-                return 0;
+                return null;
             }
         });
-        ConnectionRestApi.SORT_MAP.put("interfaceId2",
-                (a, b) -> a.getEndpoint2().getInterfaceId().compareTo(b.getEndpoint2().getInterfaceId()));
-        ConnectionRestApi.SORT_MAP.put("processId2", (a, b) -> {
+        ConnectionRestApi.SORT_MAP.put("interfaceId2", (c) -> c.getEndpoint2().getInterfaceId());
+        ConnectionRestApi.SORT_MAP.put("processId2", (c) -> {
             try {
-                return ProcessManager.getInstance()
-                        .getProcess(a.getEndpoint2().getProcessId())
-                        .getName()
-                        .compareTo(ProcessManager.getInstance().getProcess(b.getEndpoint2().getProcessId()).getName());
+                return ProcessManager.getInstance().getProcess(c.getEndpoint2().getProcessId()).getId();
             } catch (final ProcessNotFoundException e) {
-                // Ignore
-                return 0;
+                return null;
             }
         });
     }
@@ -135,19 +126,14 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
                 }
             }
             if (f.has("processId")) {
-                final Iterator<Connection> it = connections.iterator();
-                while (it.hasNext()) {
-                    final Connection c = it.next();
-                    if (!(c.getEndpoint1().getProcessId().toString().equals(f.getString("processId"))
-                            || c.getEndpoint2().getProcessId().toString().equals(f.getString("processId")))) {
-                        it.remove();
-                    }
-                }
+                connections
+                        .removeIf((c) -> !(c.getEndpoint1().getProcessId().toString().equals(f.getString("processId"))
+                                || c.getEndpoint2().getProcessId().toString().equals(f.getString("processId"))));
             }
         }
 
         // Now do the sorting
-        RestUtils.orderContent(connections, ConnectionRestApi.SORT_MAP, sortField, sortDir);
+        RestUtils.orderContent(connections, ConnectionRestApi.SORT_MAP.get(sortField), sortDir);
         this.addTotalCount(connections.size());
 
         // And finally pagination
@@ -160,15 +146,9 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
             ServiceNotFoundException,
             ConnectionException {
         final Process p1 = ProcessManager.getInstance().getProcess(connection.getEndpoint1().getProcessId());
-        // if (p1 == null) {
-        // throw new ProcessNotFoundException(connection.getEndpoint1().getProcessId());
-        // }
         this.assertUserIsAdminOrEquals(p1.getUserId());
 
         final Process p2 = ProcessManager.getInstance().getProcess(connection.getEndpoint2().getProcessId());
-        // if (p2 == null) {
-        // throw new ProcessNotFoundException(connection.getEndpoint2().getProcessId());
-        // }
         this.assertUserIsAdminOrEquals(p2.getUserId());
 
         ConnectionRestApi.log.info("Inserting new Connection {}", connection);

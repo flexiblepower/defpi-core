@@ -1,28 +1,29 @@
-/**
- * File NodeRestApi.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
-
 package org.flexiblepower.rest;
 
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -30,13 +31,13 @@ import javax.ws.rs.core.Response.Status;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.api.NodeApi;
-import org.flexiblepower.api.UserApi;
 import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.NodePoolNotFoundException;
 import org.flexiblepower.exceptions.NotFoundException;
+import org.flexiblepower.model.Node;
 import org.flexiblepower.model.NodePool;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.PublicNode;
@@ -56,48 +57,25 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NodeRestApi extends BaseApi implements NodeApi {
 
-    private static final Map<String, Comparator<UnidentifiedNode>> NODE_SORT_MAP = new HashMap<>();
-    private static final Map<String, Comparator<PrivateNode>> PRIVATENODE_SORT_MAP = new HashMap<>();
-    private static final Map<String, Comparator<PublicNode>> PUBLICNODE_SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<Node, Comparable<?>>> NODE_SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<? super PrivateNode, Comparable<?>>> PRIVATENODE_SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<? super PublicNode, Comparable<?>>> PUBLICNODE_SORT_MAP = new HashMap<>();
     static {
-        NodeRestApi.NODE_SORT_MAP.put("default", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
-        NodeRestApi.NODE_SORT_MAP.put("id", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
-        NodeRestApi.NODE_SORT_MAP.put("name", (a, b) -> a.getName().compareTo(b.getName()));
-        NodeRestApi.NODE_SORT_MAP.put("hostname", (a, b) -> a.getHostname().compareTo(b.getHostname()));
-        NodeRestApi.NODE_SORT_MAP.put("status", (a, b) -> a.getStatus().compareTo(b.getStatus()));
-        NodeRestApi.NODE_SORT_MAP.put("dockerId", (a, b) -> a.getDockerId().compareTo(b.getDockerId()));
-        NodeRestApi.NODE_SORT_MAP.put("architecture", (a, b) -> a.getArchitecture().compareTo(b.getArchitecture()));
-        NodeRestApi.NODE_SORT_MAP.put("lastSync", (a, b) -> a.getLastSync().compareTo(b.getLastSync()));
+        NodeRestApi.NODE_SORT_MAP.put("id", Node::getId);
+        NodeRestApi.NODE_SORT_MAP.put("name", Node::getName);
+        NodeRestApi.NODE_SORT_MAP.put("hostname", Node::getHostname);
+        NodeRestApi.NODE_SORT_MAP.put("status", Node::getStatus);
+        NodeRestApi.NODE_SORT_MAP.put("dockerId", Node::getDockerId);
+        NodeRestApi.NODE_SORT_MAP.put("architecture", Node::getArchitecture);
+        NodeRestApi.NODE_SORT_MAP.put("lastSync", Node::getLastSync);
 
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("default", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("id", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("name", (a, b) -> a.getName().compareTo(b.getName()));
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("hostname", (a, b) -> a.getHostname().compareTo(b.getHostname()));
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("status", (a, b) -> a.getStatus().compareTo(b.getStatus()));
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("dockerId", (a, b) -> a.getDockerId().compareTo(b.getDockerId()));
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("architecture",
-                (a, b) -> a.getArchitecture().compareTo(b.getArchitecture()));
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("lastSync", (a, b) -> a.getLastSync().compareTo(b.getLastSync()));
+        NodeRestApi.PRIVATENODE_SORT_MAP.putAll(NodeRestApi.NODE_SORT_MAP);
         NodeRestApi.PRIVATENODE_SORT_MAP.put("userId",
-                (a, b) -> UserManager.getInstance()
-                        .getUser(a.getUserId())
-                        .getUsername()
-                        .compareTo(UserManager.getInstance().getUser(b.getUserId()).getUsername()));
+                (n) -> UserManager.getInstance().getUser(n.getUserId()).getUsername());
 
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("default", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("id", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("name", (a, b) -> a.getName().compareTo(b.getName()));
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("hostname", (a, b) -> a.getHostname().compareTo(b.getHostname()));
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("status", (a, b) -> a.getStatus().compareTo(b.getStatus()));
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("dockerId", (a, b) -> a.getDockerId().compareTo(b.getDockerId()));
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("architecture",
-                (a, b) -> a.getArchitecture().compareTo(b.getArchitecture()));
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("lastSync", (a, b) -> a.getLastSync().compareTo(b.getLastSync()));
+        NodeRestApi.PUBLICNODE_SORT_MAP.putAll(NodeRestApi.NODE_SORT_MAP);
         NodeRestApi.PUBLICNODE_SORT_MAP.put("nodePoolId",
-                (a, b) -> NodeManager.getInstance()
-                        .getNodePool(a.getNodePoolId())
-                        .getName()
-                        .compareTo(NodeManager.getInstance().getNodePool(b.getNodePoolId()).getName()));
+                (n) -> NodeManager.getInstance().getNodePool(n.getNodePoolId()).getName());
     }
 
     /**
@@ -111,7 +89,8 @@ public class NodeRestApi extends BaseApi implements NodeApi {
 
     @Override
     public PrivateNode createPrivateNode(final PrivateNode newNode) throws AuthorizationException,
-            InvalidObjectIdException {
+            InvalidObjectIdException,
+            NotFoundException {
         this.assertUserIsAdmin();
         // TODO this is a hack. The UI gives the id of the Unidentified node, not of the dockerId...
         final ObjectId oid = MongoDbConnector.stringToObjectId(newNode.getDockerId());
@@ -122,7 +101,7 @@ public class NodeRestApi extends BaseApi implements NodeApi {
 
         final User owner = UserManager.getInstance().getUser(newNode.getUserId());
         if (owner == null) {
-            throw new ApiException(Status.NOT_FOUND, UserApi.USER_NOT_FOUND_MESSAGE);
+            throw new NodePoolNotFoundException();
         }
 
         if ((newNode.getName() != null) && !newNode.getName().isEmpty()) {
@@ -137,7 +116,8 @@ public class NodeRestApi extends BaseApi implements NodeApi {
 
     @Override
     public PublicNode createPublicNode(final PublicNode newNode) throws AuthorizationException,
-            InvalidObjectIdException {
+            InvalidObjectIdException,
+            NodePoolNotFoundException {
         this.assertUserIsAdmin();
         // TODO this is a hack. The UI gives the id of the Unidentified node, not of the dockerId...
         final ObjectId oid = MongoDbConnector.stringToObjectId(newNode.getDockerId());
@@ -149,7 +129,7 @@ public class NodeRestApi extends BaseApi implements NodeApi {
 
         final NodePool nodePool = NodeManager.getInstance().getNodePool(newNode.getNodePoolId());
         if (nodePool == null) {
-            throw new ApiException(Status.NOT_FOUND, NodeApi.NODE_POOL_NOT_FOUND_MESSAGE);
+            throw new NodePoolNotFoundException();
         }
 
         if ((newNode.getName() != null) && !newNode.getName().isEmpty()) {
@@ -165,7 +145,6 @@ public class NodeRestApi extends BaseApi implements NodeApi {
     @Override
     public PrivateNode updatePrivateNode(final String nodeId, final PrivateNode updatedPrivateNode)
             throws AuthorizationException,
-            NotFoundException,
             InvalidObjectIdException {
         final PrivateNode node = this.getPrivateNode(nodeId);
 
@@ -180,7 +159,6 @@ public class NodeRestApi extends BaseApi implements NodeApi {
     @Override
     public PublicNode updatePublicNode(final String nodeId, final PublicNode updatedPublicNode)
             throws AuthorizationException,
-            NotFoundException,
             InvalidObjectIdException {
         final PublicNode node = this.getPublicNode(nodeId);
 
@@ -264,7 +242,7 @@ public class NodeRestApi extends BaseApi implements NodeApi {
         RestUtils.filterContent(content, PrivateNode::getName, filter, "name");
 
         this.addTotalCount(content.size());
-        RestUtils.orderContent(content, NodeRestApi.PRIVATENODE_SORT_MAP, sortField, sortDir);
+        RestUtils.orderContent(content, NodeRestApi.PRIVATENODE_SORT_MAP.get(sortField), sortDir);
 
         this.addTotalCount(content.size());
         return RestUtils.paginate(content, page, perPage);
@@ -285,7 +263,7 @@ public class NodeRestApi extends BaseApi implements NodeApi {
         RestUtils.filterMultiContent(content, PublicNode::getId, filter, "ids[]");
         RestUtils.filterContent(content, PublicNode::getName, filter, "name");
 
-        RestUtils.orderContent(content, NodeRestApi.PUBLICNODE_SORT_MAP, sortField, sortDir);
+        RestUtils.orderContent(content, NodeRestApi.PUBLICNODE_SORT_MAP.get(sortField), sortDir);
 
         this.addTotalCount(content.size());
         return RestUtils.paginate(content, page, perPage);
@@ -300,7 +278,7 @@ public class NodeRestApi extends BaseApi implements NodeApi {
         this.assertUserIsAdmin();
 
         final List<UnidentifiedNode> content = NodeManager.getInstance().getUnidentifiedNodes();
-        RestUtils.orderContent(content, NodeRestApi.NODE_SORT_MAP, sortField, sortDir);
+        RestUtils.orderContent(content, NodeRestApi.NODE_SORT_MAP.get(sortField), sortDir);
 
         this.addTotalCount(content.size());
         return RestUtils.paginate(content, page, perPage);

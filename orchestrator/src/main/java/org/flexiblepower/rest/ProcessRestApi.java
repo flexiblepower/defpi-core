@@ -1,29 +1,30 @@
-/**
- * File ProcessRestApi.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
-
 package org.flexiblepower.rest;
 
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -56,18 +57,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ProcessRestApi extends BaseApi implements ProcessApi {
 
-    private static final Map<String, Comparator<Process>> SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<Process, Comparable<?>>> SORT_MAP = new HashMap<>();
     static {
-        ProcessRestApi.SORT_MAP.put("default", (a, b) -> a.getName().compareTo(b.getName()));
-        ProcessRestApi.SORT_MAP.put("name", (a, b) -> a.getName().compareTo(b.getName()));
-        ProcessRestApi.SORT_MAP.put("id", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
-        ProcessRestApi.SORT_MAP.put("serviceId", (a, b) -> a.getServiceId().compareTo(b.getServiceId()));
-        ProcessRestApi.SORT_MAP.put("state", (a, b) -> a.getState().toString().compareTo(b.getState().toString()));
-        ProcessRestApi.SORT_MAP.put("userId",
-                (a, b) -> UserManager.getInstance()
-                        .getUser(a.getUserId())
-                        .getUsername()
-                        .compareTo(UserManager.getInstance().getUser(b.getUserId()).getUsername()));
+        ProcessRestApi.SORT_MAP.put("name", Process::getName);
+        ProcessRestApi.SORT_MAP.put("id", Process::getId);
+        ProcessRestApi.SORT_MAP.put("serviceId", Process::getServiceId);
+        ProcessRestApi.SORT_MAP.put("state", Process::getState);
+        ProcessRestApi.SORT_MAP.put("userId", p -> UserManager.getInstance().getUser(p.getUserId()).getUsername());
     }
 
     /**
@@ -131,7 +127,7 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
         }
 
         // Now do the sorting
-        RestUtils.orderContent(processes, ProcessRestApi.SORT_MAP, sortField, sortDir);
+        RestUtils.orderContent(processes, ProcessRestApi.SORT_MAP.get(sortField), sortDir);
         this.addTotalCount(processes.size());
 
         // And finally pagination

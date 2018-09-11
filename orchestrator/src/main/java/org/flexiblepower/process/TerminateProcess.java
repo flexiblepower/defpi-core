@@ -1,23 +1,24 @@
-/**
- * File TerminateProcess.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
 package org.flexiblepower.process;
 
-import java.util.Arrays;
 import java.util.Collections;
 
 import org.flexiblepower.connectors.DockerConnector;
@@ -36,7 +37,7 @@ import lombok.extern.slf4j.Slf4j;
  * @version 0.1
  * @since Aug 14, 2017
  */
-public class TerminateProcess {
+class TerminateProcess {
 
     /**
      * SendTerminateSignal
@@ -46,7 +47,7 @@ public class TerminateProcess {
      */
     @Slf4j
     @Entity("PendingChange")
-    public static class SendTerminateSignal extends PendingChange {
+    static class SendTerminateSignal extends PendingChange {
 
         private Process process;
 
@@ -66,9 +67,9 @@ public class TerminateProcess {
          *
          * @param process The process to terminate
          */
-        public SendTerminateSignal(final Process process) {
+        SendTerminateSignal(final Process process) {
             super(process.getUserId());
-            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
+            this.resources = Collections.singletonList(process.getId());
             this.process = process;
         }
 
@@ -117,7 +118,7 @@ public class TerminateProcess {
      */
     @Slf4j
     @Entity("PendingChange")
-    public static class RemoveDockerService extends PendingChange {
+    static class RemoveDockerService extends PendingChange {
 
         private static final int NUM_TRIES_TO_TERMINATE_CONNECTIONS = 10;
 
@@ -134,9 +135,9 @@ public class TerminateProcess {
          *
          * @param process The process to terminate
          */
-        public RemoveDockerService(final Process process) {
+        RemoveDockerService(final Process process) {
             super(process.getUserId());
-            this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
+            this.resources = Collections.singletonList(process.getId());
             this.process = process;
         }
 

@@ -1,21 +1,22 @@
-/**
- * File RegistryConnector.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
-
 package org.flexiblepower.connectors;
 
 import java.io.IOException;
@@ -107,7 +108,7 @@ public class RegistryConnector {
 
     private final ExecutorService cacheExecutor = Executors.newFixedThreadPool(10,
             r -> new Thread(r, "RegConThread" + RegistryConnector.threadCount++));
-    private final Set<Interface> interfaceCache = new HashSet<>();
+    // private final Set<Interface> interfaceCache = new HashSet<>();
 
     private final Map<String, Service> serviceCache = new ConcurrentHashMap<>();
     private long serviceCacheLastUpdate = 0;
@@ -294,8 +295,10 @@ public class RegistryConnector {
     }
 
     /**
-     * @param value
-     * @return
+     * Get architectures from a list of tags
+     *
+     * @param tags List of tags to convert to architectures
+     * @return A map of architecture -> tag mapping
      */
     private static Map<Architecture, String> tagsToArchitectureMap(final List<String> tags) {
         final Map<Architecture, String> result = new HashMap<>();
@@ -312,8 +315,10 @@ public class RegistryConnector {
     }
 
     /**
-     * @param tags
-     * @return
+     * Group tag versions per architecture
+     *
+     * @param tags List of tags to group
+     * @return A mapping containing for every version the list of architecture tags
      */
     private static Map<String, List<String>> groupTagVersions(final List<String> tags) {
         final Map<String, List<String>> result = new HashMap<>();
@@ -436,11 +441,10 @@ public class RegistryConnector {
                 serviceBuilder.interfaces(interfaces);
 
                 // Add interfaces to the cache
-                this.interfaceCache.addAll(interfaces);
+                // this.interfaceCache.addAll(interfaces);
             } catch (final IOException ex) {
                 RegistryConnector.log.warn("Exception while parsing interface: {}", ex.getMessage());
                 RegistryConnector.log.trace(ex.getMessage(), ex);
-                continue;
             }
         }
 
@@ -465,21 +469,16 @@ public class RegistryConnector {
 
     private static String queryRegistry(final URI uri) throws ServiceNotFoundException {
         RegistryConnector.log.debug("Requesting {}", uri);
-        Response response = null;
-        try {
-            response = ClientBuilder.newClient().target(uri).request().get();
+
+        try (Response response = ClientBuilder.newClient().target(uri).request().get()) {
             RegistryConnector.validateResponse(response);
             return response.readEntity(String.class);
-        } finally {
-            if (response != null) {
-                response.close();
-            }
         }
     }
 
     /**
-     * @param response
-     * @throws ServiceNotFoundException
+     * @param response The response to validate
+     * @throws ServiceNotFoundException When the reponse is not valid, immediately throw an Exception
      */
     private static void validateResponse(final Response response) throws ServiceNotFoundException {
         if (response.getStatusInfo().equals(Status.NOT_FOUND)) {
