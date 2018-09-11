@@ -96,7 +96,12 @@ public class ServiceManager {
     public List<Interface> listInterfaces() {
         final List<Interface> result = new LinkedList<>();
         for (final Service s : this.listServices()) {
-            result.addAll(s.getInterfaces());
+            for (final Interface i : s.getInterfaces()) {
+                if (!result.contains(i)) {
+                    result.add(i);
+                }
+            }
+            // result.addAll(s.getInterfaces());
         }
         return result;
     }
@@ -134,6 +139,17 @@ public class ServiceManager {
             }
         }
         return result;
+    }
+
+    /**
+     * Get all versions of a service with the specified Id.
+     *
+     * @param id The id of the service to retrieve from the registry
+     * @return The list of service versions with the specified Id
+     * @throws ServiceNotFoundException if no service is found with the specified id
+     */
+    public List<Service> listServiceVersions(final String id) throws ServiceNotFoundException {
+        return RegistryConnector.getInstance().getAllServiceVersions(ServiceManager.SERVICE_REPOSITORY, id);
     }
 
 }

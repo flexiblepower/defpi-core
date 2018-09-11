@@ -18,6 +18,8 @@
 package org.flexiblepower.service;
 
 import java.io.Serializable;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.flexiblepower.serializers.JavaIOSerializer;
 import org.flexiblepower.service.TestService.TestServiceConfiguration;
@@ -56,7 +58,8 @@ public class TestService implements Service<TestServiceConfiguration>, Connectio
 
     private static final Logger log = LoggerFactory.getLogger(TestService.class);
     private int counter = 0;
-    private String state = "";
+
+    final BlockingQueue<String> stateQueue = new LinkedBlockingQueue<>();
 
     /*
      * (non-Javadoc)
@@ -66,7 +69,7 @@ public class TestService implements Service<TestServiceConfiguration>, Connectio
     @Override
     public void resumeFrom(final Serializable resumeState) {
         TestService.log.info("ResumeFrom is called!");
-        this.state = "resumed";
+        this.stateQueue.add("resumed");
     }
 
     /*
@@ -77,7 +80,7 @@ public class TestService implements Service<TestServiceConfiguration>, Connectio
     @Override
     public void init(final TestServiceConfiguration props, final DefPiParameters params) {
         TestService.log.info("Init is called with key {}!", props.getKey());
-        this.state = "init";
+        this.stateQueue.add("init");
     }
 
     /*
@@ -91,7 +94,7 @@ public class TestService implements Service<TestServiceConfiguration>, Connectio
         if (props.getMakeMeThrowAnError()) {
             throw new RuntimeException("I am an error!");
         }
-        this.state = "modify";
+        this.stateQueue.add("modify");
     }
 
     /*
@@ -102,7 +105,7 @@ public class TestService implements Service<TestServiceConfiguration>, Connectio
     @Override
     public Serializable suspend() {
         TestService.log.info("Suspend is called!");
-        this.state = "suspend";
+        this.stateQueue.add("suspend");
         return this.getClass();
     }
 
@@ -114,7 +117,7 @@ public class TestService implements Service<TestServiceConfiguration>, Connectio
     @Override
     public void terminate() {
         TestService.log.info("Terminate is called!");
-        this.state = "terminate";
+        this.stateQueue.add("terminate");
     }
 
     /**
@@ -125,7 +128,7 @@ public class TestService implements Service<TestServiceConfiguration>, Connectio
      */
     public ConnectionHandler build1(final Connection connection) {
         TestService.log.info("build is called!");
-        this.state = "connected";
+        this.stateQueue.add("connected");
         return this;
     }
 
@@ -137,7 +140,7 @@ public class TestService implements Service<TestServiceConfiguration>, Connectio
     @Override
     public void onSuspend() {
         TestService.log.info("onSuspend is called!");
-        this.state = "connection-suspended";
+        this.stateQueue.add("connection-suspended");
     }
 
     /*
@@ -148,7 +151,7 @@ public class TestService implements Service<TestServiceConfiguration>, Connectio
     @Override
     public void resumeAfterSuspend() {
         TestService.log.info("resumeAfterSuspend is called!");
-        this.state = "connection-resumed";
+        this.stateQueue.add("connection-resumed");
     }
 
     /*
@@ -159,7 +162,7 @@ public class TestService implements Service<TestServiceConfiguration>, Connectio
     @Override
     public void onInterrupt() {
         TestService.log.info("onInterrupt is called!");
-        this.state = "connection-interrupted";
+        this.stateQueue.add("connection-interrupted");
     }
 
     /*
@@ -170,7 +173,7 @@ public class TestService implements Service<TestServiceConfiguration>, Connectio
     @Override
     public void resumeAfterInterrupt() {
         TestService.log.info("resumeAfterInterrupt is called!");
-        this.state = "connection-fixed";
+        this.stateQueue.add("connection-fixed");
     }
 
     /*
@@ -181,24 +184,23 @@ public class TestService implements Service<TestServiceConfiguration>, Connectio
     @Override
     public void terminated() {
         TestService.log.info("terminated is called!");
-        this.state = "connection-terminated";
+        this.stateQueue.add("connection-terminated");
     }
 
     public void handleStringMessage(final String obj) {
-        this.counter++;
-        TestService.log.info(" ********** HANDLING {} **************** ", obj);
-    }
-
-    public void resetCount() {
-        this.counter = 0;
+        this.counter--;
+        if (this.counter == 0) {
+            this.stateQueue.add("Received all messages!");
+        }
+        TestService.log.debug(" ********** HANDLING {} **************** ", obj);
     }
 
     public int getCounter() {
         return this.counter;
     }
 
-    public String getState() {
-        return this.state;
+    public void expect(final int numTests) {
+        this.counter = numTests;
     }
 
 }

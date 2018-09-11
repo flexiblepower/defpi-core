@@ -31,7 +31,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
@@ -536,10 +535,11 @@ public interface NodeApi {
                   value = "List NodePools",
                   notes = "List all registered NodePools",
                   authorizations = {@Authorization(value = OrchestratorApi.ADMIN_AUTHENTICATION)})
+
     @ApiResponses(value = {
             @ApiResponse(code = 200,
                          message = "An array of NodePool",
-                         response = Response.class,
+                         response = NodePool.class,
                          responseContainer = "List"),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public List<NodePool> listNodePools(@QueryParam("_page") @DefaultValue("1") int page,

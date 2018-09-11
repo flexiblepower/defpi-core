@@ -361,7 +361,7 @@ public class RegistryConnector {
     public Service getService(final String repository, final String id) throws ServiceNotFoundException {
         try {
             for (final Service service : this.getServices(repository)) {
-                if (service.getId().equals(id)) {
+                if (id.equals(service.getId())) {
                     return service;
                 }
             }
@@ -369,6 +369,33 @@ public class RegistryConnector {
             throw new ServiceNotFoundException(e);
         }
         throw new ServiceNotFoundException(id);
+    }
+
+    /**
+     * Get all versions of the service with the provided id from the repository.
+     *
+     * @param repository The repository to search in
+     * @param id The ID of the service to obtain.
+     * @return A list containing all version of a service with the specified id
+     * @throws ServiceNotFoundException When the service cannot be found
+     */
+    public List<Service> getAllServiceVersions(final String repository, final String id)
+            throws ServiceNotFoundException {
+        final List<Service> content = new LinkedList<>();
+        try {
+            for (final Service service : this.getAllServiceVersions(repository)) {
+                if (id.equals(service.getId())) {
+                    content.add(service);
+                }
+            }
+        } catch (final RepositoryNotFoundException e) {
+            throw new ServiceNotFoundException(e);
+        }
+
+        if (content.isEmpty()) {
+            throw new ServiceNotFoundException(id);
+        }
+        return content;
     }
 
     private Service getServiceFromRegistry(final String repository,

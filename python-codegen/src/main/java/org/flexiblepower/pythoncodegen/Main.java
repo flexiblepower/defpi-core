@@ -35,6 +35,7 @@ public class Main {
         } catch (final Exception e) {
             Main.log.error(e.getMessage());
             Main.log.trace(e.getMessage(), e);
+            System.exit(1);
         }
     }
 
