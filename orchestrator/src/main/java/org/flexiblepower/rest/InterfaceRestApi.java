@@ -74,7 +74,7 @@ public class InterfaceRestApi extends BaseApi implements InterfaceApi {
         final List<Interface> content = ServiceManager.getInstance().listInterfaces();
         final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
         RestUtils.filterContent(content, Interface::getId, filter, "name");
-        RestUtils.orderContent(content, InterfaceRestApi.SORT_MAP, sortField, sortDir);
+        RestUtils.orderContent(content, InterfaceRestApi.SORT_MAP.get(sortField), sortDir);
 
         this.addTotalCount(content.size());
         return RestUtils.paginate(content, page, perPage);

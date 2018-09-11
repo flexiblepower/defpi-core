@@ -43,7 +43,6 @@ public class ServiceRestApi extends BaseApi implements ServiceApi {
 
     private static final Map<String, Function<Service, Comparable<?>>> SORT_MAP = new HashMap<>();
     static {
-        ServiceRestApi.SORT_MAP.put("default", Service::getId);
         ServiceRestApi.SORT_MAP.put("id", Service::getId);
         ServiceRestApi.SORT_MAP.put("name", Service::getName);
         ServiceRestApi.SORT_MAP.put("created", Service::getCreated);
@@ -68,7 +67,7 @@ public class ServiceRestApi extends BaseApi implements ServiceApi {
         this.assertUserIsLoggedIn();
 
         final List<Service> content = ServiceManager.getInstance().listServices();
-        RestUtils.orderContent(content, ServiceRestApi.SORT_MAP, sortField, sortDir);
+        RestUtils.orderContent(content, ServiceRestApi.SORT_MAP.get(sortField), sortDir);
 
         this.addTotalCount(content.size());
         return RestUtils.paginate(content, page, perPage);

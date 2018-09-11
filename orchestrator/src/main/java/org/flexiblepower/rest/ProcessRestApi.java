@@ -59,7 +59,6 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
 
     private static final Map<String, Function<Process, Comparable<?>>> SORT_MAP = new HashMap<>();
     static {
-        ProcessRestApi.SORT_MAP.put("default", Process::getId);
         ProcessRestApi.SORT_MAP.put("name", Process::getName);
         ProcessRestApi.SORT_MAP.put("id", Process::getId);
         ProcessRestApi.SORT_MAP.put("serviceId", Process::getServiceId);
@@ -128,7 +127,7 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
         }
 
         // Now do the sorting
-        RestUtils.orderContent(processes, ProcessRestApi.SORT_MAP, sortField, sortDir);
+        RestUtils.orderContent(processes, ProcessRestApi.SORT_MAP.get(sortField), sortDir);
         this.addTotalCount(processes.size());
 
         // And finally pagination

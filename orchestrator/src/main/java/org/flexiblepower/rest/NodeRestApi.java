@@ -57,11 +57,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NodeRestApi extends BaseApi implements NodeApi {
 
-    private static final Map<String, Function<UnidentifiedNode, Comparable<?>>> NODE_SORT_MAP = new HashMap<>();
-    private static final Map<String, Function<PrivateNode, Comparable<?>>> PRIVATENODE_SORT_MAP = new HashMap<>();
-    private static final Map<String, Function<PublicNode, Comparable<?>>> PUBLICNODE_SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<Node, Comparable<?>>> NODE_SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<? super PrivateNode, Comparable<?>>> PRIVATENODE_SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<? super PublicNode, Comparable<?>>> PUBLICNODE_SORT_MAP = new HashMap<>();
     static {
-        NodeRestApi.NODE_SORT_MAP.put("default", Node::getId);
         NodeRestApi.NODE_SORT_MAP.put("id", Node::getId);
         NodeRestApi.NODE_SORT_MAP.put("name", Node::getName);
         NodeRestApi.NODE_SORT_MAP.put("hostname", Node::getHostname);
@@ -70,25 +69,11 @@ public class NodeRestApi extends BaseApi implements NodeApi {
         NodeRestApi.NODE_SORT_MAP.put("architecture", Node::getArchitecture);
         NodeRestApi.NODE_SORT_MAP.put("lastSync", Node::getLastSync);
 
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("default", Node::getId);
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("id", Node::getId);
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("name", Node::getName);
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("hostname", Node::getHostname);
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("status", Node::getStatus);
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("dockerId", Node::getDockerId);
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("architecture", Node::getArchitecture);
-        NodeRestApi.PRIVATENODE_SORT_MAP.put("lastSync", Node::getLastSync);
+        NodeRestApi.PRIVATENODE_SORT_MAP.putAll(NodeRestApi.NODE_SORT_MAP);
         NodeRestApi.PRIVATENODE_SORT_MAP.put("userId",
                 (n) -> UserManager.getInstance().getUser(n.getUserId()).getUsername());
 
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("default", Node::getId);
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("id", Node::getId);
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("name", Node::getName);
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("hostname", Node::getHostname);
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("status", Node::getStatus);
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("dockerId", Node::getDockerId);
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("architecture", Node::getArchitecture);
-        NodeRestApi.PUBLICNODE_SORT_MAP.put("lastSync", Node::getLastSync);
+        NodeRestApi.PUBLICNODE_SORT_MAP.putAll(NodeRestApi.NODE_SORT_MAP);
         NodeRestApi.PUBLICNODE_SORT_MAP.put("nodePoolId",
                 (n) -> NodeManager.getInstance().getNodePool(n.getNodePoolId()).getName());
     }
@@ -257,7 +242,7 @@ public class NodeRestApi extends BaseApi implements NodeApi {
         RestUtils.filterContent(content, PrivateNode::getName, filter, "name");
 
         this.addTotalCount(content.size());
-        RestUtils.orderContent(content, NodeRestApi.PRIVATENODE_SORT_MAP, sortField, sortDir);
+        RestUtils.orderContent(content, NodeRestApi.PRIVATENODE_SORT_MAP.get(sortField), sortDir);
 
         this.addTotalCount(content.size());
         return RestUtils.paginate(content, page, perPage);
@@ -278,7 +263,7 @@ public class NodeRestApi extends BaseApi implements NodeApi {
         RestUtils.filterMultiContent(content, PublicNode::getId, filter, "ids[]");
         RestUtils.filterContent(content, PublicNode::getName, filter, "name");
 
-        RestUtils.orderContent(content, NodeRestApi.PUBLICNODE_SORT_MAP, sortField, sortDir);
+        RestUtils.orderContent(content, NodeRestApi.PUBLICNODE_SORT_MAP.get(sortField), sortDir);
 
         this.addTotalCount(content.size());
         return RestUtils.paginate(content, page, perPage);
@@ -293,7 +278,7 @@ public class NodeRestApi extends BaseApi implements NodeApi {
         this.assertUserIsAdmin();
 
         final List<UnidentifiedNode> content = NodeManager.getInstance().getUnidentifiedNodes();
-        RestUtils.orderContent(content, NodeRestApi.NODE_SORT_MAP, sortField, sortDir);
+        RestUtils.orderContent(content, NodeRestApi.NODE_SORT_MAP.get(sortField), sortDir);
 
         this.addTotalCount(content.size());
         return RestUtils.paginate(content, page, perPage);

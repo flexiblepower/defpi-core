@@ -109,22 +109,26 @@ class RestUtils {
      * Order the elements of some content according to a comparator which we can lookup in a map. It will change the
      * existing collection in place, i.e. it will return by argument.
      *
+     * I know the typing is too weak, I would like to impose U extends Comparable<? super U> but then the API class
+     * won't accept the call to orderContent. This only goes wrong if the keyExtractor provides some type that compares
+     * to another type.
+     *
      * @param content The collection of elements
-     * @param sortMap A map of comparators to select one out of
-     * @param sortField The key of the map that corresponds to the comparator to use
+     * @param keyExtractor The extractor function to get a comparable key from an element
      * @param sortDir A string that if it equals "DESC", it will reverse the order of the elements
      */
-    @SuppressWarnings("unchecked")
     static <T, U extends Comparable<?>> void orderContent(final List<T> content,
-            final Map<String, Function<T, U>> sortMap,
-            final String sortField,
+            final Function<? super T, U> keyExtractor,
             final String sortDir) {
-        final Function<T, Comparable<U>> keyExtractor = (Function<T, Comparable<U>>) sortMap.getOrDefault(sortField,
-                sortMap.get("default"));
+        if (keyExtractor == null) {
+            // Probably a non-existing field was queried, leave order as is.
+            return;
+        }
 
-        final Comparator<Comparable<U>> keyComparator = Comparator.nullsLast((a, b) -> a.compareTo((U) b));
-
-        final Comparator<T> comparator = Comparator.nullsLast(Comparator.comparing(keyExtractor, keyComparator));
+        @SuppressWarnings("unchecked")
+        final Comparator<U> keyComparator = Comparator.nullsLast((a, b) -> ((Comparable<U>) a).compareTo(b));
+        final Comparator<? super T> comparator = Comparator
+                .nullsLast(Comparator.comparing(keyExtractor, keyComparator));
 
         content.sort(comparator);
 

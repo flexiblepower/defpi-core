@@ -133,7 +133,7 @@ public class ConnectionRestApi extends BaseApi implements ConnectionApi {
         }
 
         // Now do the sorting
-        RestUtils.orderContent(connections, ConnectionRestApi.SORT_MAP, sortField, sortDir);
+        RestUtils.orderContent(connections, ConnectionRestApi.SORT_MAP.get(sortField), sortDir);
         this.addTotalCount(connections.size());
 
         // And finally pagination
