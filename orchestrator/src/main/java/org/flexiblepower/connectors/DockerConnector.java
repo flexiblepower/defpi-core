@@ -1,26 +1,27 @@
-/**
- * File DockerConnector.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
 package org.flexiblepower.connectors;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -55,6 +56,7 @@ import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.DockerClient.ListNetworksParam;
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
+import com.spotify.docker.client.messages.AttachedNetwork;
 import com.spotify.docker.client.messages.ContainerInfo;
 import com.spotify.docker.client.messages.Network;
 import com.spotify.docker.client.messages.NetworkConfig;
@@ -67,8 +69,10 @@ import com.spotify.docker.client.messages.swarm.NetworkAttachmentConfig;
 import com.spotify.docker.client.messages.swarm.Placement;
 import com.spotify.docker.client.messages.swarm.PortConfig;
 import com.spotify.docker.client.messages.swarm.PortConfig.PortConfigPublishMode;
+import com.spotify.docker.client.messages.swarm.ReplicatedService;
 import com.spotify.docker.client.messages.swarm.ResourceRequirements;
 import com.spotify.docker.client.messages.swarm.Resources;
+import com.spotify.docker.client.messages.swarm.ServiceMode;
 import com.spotify.docker.client.messages.swarm.ServiceSpec;
 import com.spotify.docker.client.messages.swarm.Task;
 import com.spotify.docker.client.messages.swarm.Task.Criteria;
@@ -117,7 +121,7 @@ public class DockerConnector {
     private DockerClient client;
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
-    private static int nodepicker = 0;
+    private static int nodePicker = 0;
 
     private static DockerClient init() throws DockerCertificateException {
         final String dockerHost = System.getenv(DockerConnector.DOCKER_HOST_KEY);
@@ -158,7 +162,13 @@ public class DockerConnector {
      */
     public static DockerConnector getInstance() {
         if (DockerConnector.instance == null) {
-            DockerConnector.instance = new DockerConnector();
+            final DockerConnector connector = new DockerConnector();
+            try {
+                connector.client.info();
+            } catch (final Exception e) {
+                throw new RuntimeException("Unable to start docker connector", e);
+            }
+            DockerConnector.instance = connector;
         }
         return DockerConnector.instance;
     }
@@ -230,8 +240,9 @@ public class DockerConnector {
                         "Could not find node with hostname %s, instead dashboard gateway will run on {}.",
                         dashboardNodeName,
                         randomNode.getHostname());
+            } else {
+                targetNode = manuallySpecifiedNode;
             }
-            targetNode = manuallySpecifiedNode;
         }
 
         for (final User u : UserManager.getInstance().getUsers()) {
@@ -315,7 +326,7 @@ public class DockerConnector {
      * @throws InterruptedException If an interruption occurs before the docker client was able to get the required info
      * @throws DockerException If an exception occurs in the docker client
      */
-    public void ensureProcessNetworkIsAttached(final Process process) throws DockerException, InterruptedException {
+    void ensureProcessNetworkIsAttached(final Process process) throws DockerException, InterruptedException {
         try {
             final String newProcessNetworkName = DockerConnector.getNetworkNameFromProcess(process);
             final String networkId = this.runOrTimeout(
@@ -324,7 +335,10 @@ public class DockerConnector {
             // Connect orchestrator to network
             final String orchestratorContainerId = DockerConnector.getOrchestratorContainerId();
             final ContainerInfo orchestratorInfo = this.client.inspectContainer(orchestratorContainerId);
-            if (!orchestratorInfo.networkSettings().networks().containsKey(newProcessNetworkName)) {
+
+            final Map<String, AttachedNetwork> networks = orchestratorInfo.networkSettings().networks();
+
+            if ((networks == null) || networks.isEmpty() || !networks.containsKey(newProcessNetworkName)) {
                 DockerConnector.log.info("Connecting {} to network {}", orchestratorContainerId, newProcessNetworkName);
                 this.runOrTimeout(() -> {
                     this.client.connectToNetwork(orchestratorContainerId, newProcessNetworkName);
@@ -339,10 +353,13 @@ public class DockerConnector {
                 if (!dashboardGateway.getId().equals(process.getId()) && (dockerServiceId != null)) {
                     final com.spotify.docker.client.messages.swarm.Service dashboardInfo = this.client
                             .inspectService(dockerServiceId);
-                    for (final NetworkAttachmentConfig network : dashboardInfo.spec().networks()) {
-                        if (network.target().equals(networkId)) {
-                            // It is already attached, we're done here!
-                            return;
+                    final List<NetworkAttachmentConfig> dashNets = dashboardInfo.spec().networks();
+                    if (dashNets != null) {
+                        for (final NetworkAttachmentConfig network : dashNets) {
+                            if (networkId.equals(network.target())) {
+                                // It is already attached, we're done here!
+                                return;
+                            }
                         }
                     }
                     // If we're here that means that the dashboard proxy is not yet part of this network
@@ -381,8 +398,9 @@ public class DockerConnector {
     /**
      * Get the container id of the current container by getting the local hostname.
      *
-     * @return
-     * @throws DockerException
+     * @return The name of the orchestrator container
+     * @throws DockerException If an exception occurred by the DockerClient
+     * @see InetAddress#getHostName()
      */
     private static String getOrchestratorContainerId() throws DockerException {
         try {
@@ -393,35 +411,39 @@ public class DockerConnector {
     }
 
     /**
-     * @param networkName
-     * @return
-     * @throws InterruptedException
-     * @throws DockerException
+     * Create a new docker overlay network for a user
+     *
+     * @param networkName The name of the network to create
+     * @throws InterruptedException When the docker operation took too long
+     * @throws DockerException If an exception occurred by the DockerClient
      */
-    private String newNetwork(final String networkName) throws DockerException, InterruptedException {
+    private void newNetwork(final String networkName) throws DockerException, InterruptedException {
         // TODO: Add encrypted network? .addOption("encrypted", "")
         final NetworkConfig networkConfig = NetworkConfig.builder()
                 .driver("overlay")
                 .attachable(true)
                 .name(networkName)
                 .build();
-        return this.runOrTimeout(() -> this.client.createNetwork(networkConfig).id());
+        final String netId = this.runOrTimeout(() -> this.client.createNetwork(networkConfig).id());
+        DockerConnector.log.debug("Created network with id {}", netId);
     }
 
     /**
-     * @param networkId
-     * @throws InterruptedException
-     * @throws DockerException
+     * Disconnect and remove and existing user network
+     *
+     * @param networkName The name of the network to remove
+     * @throws InterruptedException When the docker operation took too long
+     * @throws DockerException If an exception occurred by the DockerClient
      */
     @SuppressWarnings("unused")
-    private void removeNetwork(final String networkId) throws DockerException, InterruptedException {
+    private void removeNetwork(final String networkName) throws DockerException, InterruptedException {
         this.runOrTimeout(() -> {
-            this.client.disconnectFromNetwork(DockerConnector.getOrchestratorContainerId(), networkId);
+            this.client.disconnectFromNetwork(DockerConnector.getOrchestratorContainerId(), networkName);
             return true;
         });
 
         this.runOrTimeout(() -> {
-            this.client.removeNetwork(networkId);
+            this.client.removeNetwork(networkName);
             return true;
         });
     }
@@ -447,7 +469,7 @@ public class DockerConnector {
             }
 
             // If no other process running on a node, do round-robin on all nodes
-            return nodes.get(DockerConnector.nodepicker++ % nodes.size());
+            return nodes.get(DockerConnector.nodePicker++ % nodes.size());
         } else {
             // get Private node
             return nm.getPrivateNode(process.getPrivateNodeId());
@@ -457,8 +479,10 @@ public class DockerConnector {
     /**
      * Internal function to translate a def-pi process definition to a docker service specification
      *
-     * @param process
-     * @return
+     * @param process The process to create the service specification for
+     * @param service The service to use
+     * @param node The node to run the process on
+     * @return The DockerClient serviceSpec that can be instantiated for this process
      */
     private static ServiceSpec createServiceSpec(final Process process, final Service service, final Node node) {
         return DockerConnector.createServiceSpec(process,
@@ -470,8 +494,11 @@ public class DockerConnector {
     /**
      * Internal function to translate a def-pi process definition to a docker service specification
      *
-     * @param process
-     * @return
+     * @param process The process to create the service specification for
+     * @param service The service to use
+     * @param node The node to run the process on
+     * @param networks A list of networks to attach the process to
+     * @return The DockerClient serviceSpec that can be instantiated for this process
      */
     private static ServiceSpec createServiceSpec(final Process process,
             final Service service,
@@ -584,7 +611,7 @@ public class DockerConnector {
         taskSpec.logDriver(Driver.builder().name("json-file").addOption("max-size", "10m").build());
 
         // Add the containerSpec and placement to the taskSpec
-        final Placement placement = Placement.create(Arrays.asList("node.id == " + node.getDockerId()));
+        final Placement placement = Placement.create(Collections.singletonList("node.id == " + node.getDockerId()));
         taskSpec.containerSpec(containerSpec.build()).resources(resources.build()).placement(placement);
         return ServiceSpec.builder()
                 .name(serviceName)
@@ -647,23 +674,34 @@ public class DockerConnector {
      */
     public String getServiceHealth() {
         try {
-            String report = "";
+            final StringBuilder report = new StringBuilder();
 
             for (final com.spotify.docker.client.messages.swarm.Service s : this.client.listServices()) {
-                final long desiredAmount = s.spec().mode().replicated().replicas();
+                final ServiceMode mode = s.spec().mode();
+                if (mode == null) {
+                    continue;
+                }
+                final ReplicatedService replicated = mode.replicated();
+                if (replicated == null) {
+                    continue;
+                }
+                final Long desiredAmount = replicated.replicas();
+                if (desiredAmount == null) {
+                    continue;
+                }
                 long runningAmount = 0;
                 for (final Task t : this.client.listTasks(Criteria.builder().serviceName(s.id()).build())) {
                     runningAmount += t.status().state().equals("running") ? 1 : 0;
                 }
                 if (runningAmount != desiredAmount) {
-                    report += String.format("\t%s: %d/%d\n", s.id(), runningAmount, desiredAmount);
+                    report.append(String.format("\t%s: %d/%d\n", s.id(), runningAmount, desiredAmount));
                 }
             }
 
-            if (report.isEmpty()) {
+            if (report.length() == 0) {
                 return "Healthy";
             } else {
-                return "*** Unhealthy! ***\n" + report;
+                return "*** Unhealthy! ***\n" + report.toString();
             }
 
         } catch (final DockerException | InterruptedException e) {

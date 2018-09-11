@@ -1,19 +1,21 @@
-/**
- * File TCPSocket.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi commons Library
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
 package org.flexiblepower.commons;
 
@@ -157,7 +159,7 @@ public class TCPSocket implements Closeable {
      * Try to read data from the socket, blocking forever until the data is read, or an exception occurs.
      * <p>
      * It is not necessary to use {@linkplain #waitUntilConnected()} before calling this function; if the socket was not
-     * connected before using {@linkplain #read()}, it will be connected before attempting to read from the socket.
+     * connected before, it will be connected before attempting to read from the socket.
      *
      * @return the data that was read from the socket
      * @throws ClosedChannelException when this socket has been closed
@@ -174,10 +176,8 @@ public class TCPSocket implements Closeable {
      * occurs. If a timeout of 0 is provided, this function behaves identical to {@linkplain #read()}.
      * <p>
      * It is not necessary to use {@linkplain #waitUntilConnected(long)} before calling this function; if the socket was
-     * not
-     * connected before using {@linkplain #read(long)}, it will be connected before attempting to read from the socket.
-     * The
-     * time spent waiting to connect will be subtracted from the timeout.
+     * not connected before, it will be connected before attempting to read from the socket. The time spent waiting to
+     * connect will be subtracted from the timeout.
      *
      * @param timeout the amount of milliseconds to wait, before returning null
      * @return the data that was read from the socket or null if no data was read.
@@ -254,9 +254,8 @@ public class TCPSocket implements Closeable {
      * <p>
      * It is not necessary to use {@linkplain #waitUntilConnected()} before calling this function; but it is
      * recommended.
-     * If the socket was not connected before using {@linkplain #send(byte[])}, it will be attempted to connect, but
-     * with a
-     * very brief timeout, which will only succeed if the remote socket is already attempting to connect.
+     * If the socket was not connected before, it will be attempted to connect, but with a very brief timeout, which
+     * will only succeed if the remote socket is already attempting to connect.
      *
      * @param data The byte array to send through the socket
      * @throws NotYetConnectedException when the socket is not yet connected, and fails to connect immediately
@@ -331,7 +330,7 @@ public class TCPSocket implements Closeable {
          *
          * @param max a maximum timeout to respect
          */
-        protected void increaseBackOffAndWait(final long max) {
+        void increaseBackOffAndWait(final long max) {
             this.backOffMs = (long) Math.min(max, Math.min(SocketConnector.MAXIMUM_BACKOFF_MS, this.backOffMs * 1.25));
             try {
                 Thread.sleep(this.backOffMs);
@@ -349,7 +348,7 @@ public class TCPSocket implements Closeable {
          * @return the maximum backoff period when the timeout is zero, or the amount of remaining milliseconds in the
          *         timeout
          */
-        protected long timeLeft(final long t_start, final long millis) {
+        long timeLeft(final long t_start, final long millis) {
             return millis == 0 ? SocketConnector.MAXIMUM_BACKOFF_MS
                     : Math.max(0, millis - (System.currentTimeMillis() - t_start));
         }
@@ -368,7 +367,7 @@ public class TCPSocket implements Closeable {
          * @param port the remote port to connect to
          * @see java.net.Socket#Socket(String, int)
          */
-        public ClientSocketConnector(final String address, final int port) {
+        ClientSocketConnector(final String address, final int port) {
             this.targetAddress = address;
             this.targetPort = port;
         }
@@ -390,7 +389,7 @@ public class TCPSocket implements Closeable {
         }
 
         @Override
-        public void close() throws IOException {
+        public void close() {
             // Do nothing
         }
 
@@ -407,7 +406,7 @@ public class TCPSocket implements Closeable {
          * @param port the local port to bind to
          * @see java.net.ServerSocket#ServerSocket(int)
          */
-        public ServerSocketConnector(final int port) {
+        ServerSocketConnector(final int port) {
             TCPSocket.log.info("Starting server socket at {}", port);
             this.serverPort = port;
             this.bindServerSocket();

@@ -1,19 +1,21 @@
-/**
- * File ServiceManager.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi service managing library
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
 package org.flexiblepower.service;
 
@@ -59,7 +61,7 @@ import com.google.protobuf.Message;
  * @param <T> The type of service this manager will maintain
  * @since May 10, 2017
  */
-public class ServiceManager<T> implements Closeable {
+final class ServiceManager<T> implements Closeable {
 
     /**
      * The global port number on which to listen for management messages
@@ -191,13 +193,11 @@ public class ServiceManager<T> implements Closeable {
         this.managerThread.start();
 
         // Add a nice shutdown when the java runtime is killed (e.g. by stopping the docker container)
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            this.close();
-        }));
+        Runtime.getRuntime().addShutdownHook(new Thread(this::close));
     }
 
     /**
-     * @return
+     * @return The string representing the processId of the current service
      */
     private String getProcessId() {
         final String processId = this.defPiParams.getProcessId();
@@ -234,8 +234,8 @@ public class ServiceManager<T> implements Closeable {
     }
 
     /**
-     * @throws ServiceInvocationException
-     *
+     * @throws ServiceInvocationException If the manager is unable to request the configuration at the orchestrator. For
+     *             instance when orchestrator is not connected to the user network.
      */
     private void requestConfig() throws ServiceInvocationException {
         try {
@@ -298,13 +298,15 @@ public class ServiceManager<T> implements Closeable {
     }
 
     /**
-     * @param msg
-     * @throws IOException
-     * @throws ServiceInvocationException
-     * @throws ConnectionModificationException
-     * @throws TimeoutException
-     * @throws ExecutionException
-     * @throws InterruptedException
+     * @param msg The message that intends to change the state of the service
+     * @throws IOException A generic error when the message is not valid
+     * @throws ServiceInvocationException If the message contains an unknown service, or contains fields we cannot
+     *             handle
+     * @throws ConnectionModificationException If a connection is attempted to change, but the message contains a
+     *             non-existing interface
+     * @throws TimeoutException If the operation is unable to finish within @value {@link #SERVICE_IMPL_TIMEOUT_MILLIS}
+     * @throws ExecutionException If an exception occurred while updating the service
+     * @throws InterruptedException If the thread was interrupted before we were able to finish
      */
     private Message handleServiceMessage(final Message msg) throws ServiceInvocationException,
             ConnectionModificationException,
@@ -331,11 +333,13 @@ public class ServiceManager<T> implements Closeable {
     }
 
     /**
-     * @param message
-     * @throws ServiceInvocationException
-     * @throws TimeoutException
-     * @throws ExecutionException
-     * @throws InterruptedException
+     * @param message The message that intends to change the state of the service
+     * @throws ServiceInvocationException If the message contains an unknown service, or contains fields we cannot
+     *             handle
+     * @throws TimeoutException If the operation is unable to finish within @value {@link #SERVICE_IMPL_TIMEOUT_MILLIS}
+     * @throws ExecutionException If an exception occurred while updating the service
+     * @throws InterruptedException If the thread was interrupted before we were able to finish
+     *
      */
     private Message handleGoToProcessStateMessage(final GoToProcessStateMessage message)
             throws ServiceInvocationException,
@@ -364,9 +368,7 @@ public class ServiceManager<T> implements Closeable {
 
             return startFuture.get(ServiceManager.SERVICE_IMPL_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
         case SUSPENDED:
-            final Future<Serializable> suspendFuture = this.serviceExecutor.submit(() -> {
-                return this.managedService.suspend();
-            });
+            final Future<Serializable> suspendFuture = this.serviceExecutor.submit(this.managedService::suspend);
             final Serializable state = suspendFuture.get(ServiceManager.SERVICE_IMPL_TIMEOUT_MILLIS,
                     TimeUnit.MILLISECONDS);
             this.keepThreadAlive = false;
@@ -386,32 +388,23 @@ public class ServiceManager<T> implements Closeable {
         }
     }
 
-    /**
-     *
-     */
     private void terminateManagedService() {
         if (!this.configured) {
             ServiceManager.log.debug("User service is not configured, no need to terminate()");
             return;
         }
         ServiceManager.log.debug("Terminating user service");
-        this.serviceExecutor.submit(() -> {
-            try {
-                this.managedService.terminate();
-            } catch (final Throwable t) {
-                ServiceManager.log.error("Error while calling terminate()", t);
-            }
-        });
+        this.serviceExecutor.submit(this.managedService::terminate);
         this.serviceIsTerminated = true;
     }
 
     /**
-     * @param msg
-     * @throws ServiceInvocationException
-     * @throws SerializationException
-     * @throws TimeoutException
-     * @throws ExecutionException
-     * @throws InterruptedException
+     * @param msg The message that intends to change the state of the service
+     * @throws ServiceInvocationException If the message contains an unknown service, or contains fields we cannot
+     *             handle
+     * @throws TimeoutException If the operation is unable to finish within @value {@link #SERVICE_IMPL_TIMEOUT_MILLIS}
+     * @throws ExecutionException If an exception occurred while updating the service
+     * @throws InterruptedException If the thread was interrupted before we were able to finish
      */
     private Message handleResumeProcessMessage(final ResumeProcessMessage msg) throws ServiceInvocationException,
             SerializationException,
@@ -434,12 +427,12 @@ public class ServiceManager<T> implements Closeable {
     }
 
     /**
-     * @param parseFrom
-     * @return
-     * @throws ServiceInvocationException
-     * @throws TimeoutException
-     * @throws ExecutionException
-     * @throws InterruptedException
+     * @param message The message that intends to change the configuration of the service
+     * @throws ServiceInvocationException If the message contains an unknown service, or contains fields we cannot
+     *             handle
+     * @throws TimeoutException If the operation is unable to finish within @value {@link #SERVICE_IMPL_TIMEOUT_MILLIS}
+     * @throws ExecutionException If an exception occurred while updating the service
+     * @throws InterruptedException If the thread was interrupted before we were able to finish
      */
     private Message handleSetConfigMessage(final SetConfigMessage message) throws ServiceInvocationException,
             InterruptedException,
@@ -479,8 +472,7 @@ public class ServiceManager<T> implements Closeable {
     }
 
     /**
-     * @param params
-     * @return
+     * @return The parameters of this dEF-Pi process, as taken from the environment variables
      */
     private static DefPiParameters generateDefPiParameters() {
         int orchestratorPort = 0;

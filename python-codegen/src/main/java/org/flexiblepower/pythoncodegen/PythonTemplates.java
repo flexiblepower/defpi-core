@@ -1,21 +1,22 @@
-/**
- * File PythonTemplates.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi python service creation
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
-
 package org.flexiblepower.pythoncodegen;
 
 import java.io.IOException;
@@ -42,33 +43,57 @@ import org.flexiblepower.codegen.model.ServiceDescription;
 public class PythonTemplates extends Templates {
 
     /**
-     *
+     * Constant representing the code generator
      */
     private static final String GENERATOR_NAME = "Python code generator for dEF-Pi";
 
+    /**
+     * Create the object that provides the Templates for the python code generation for a service description
+     *
+     * @param descr The service description as parsed from the service.json file
+     */
     public PythonTemplates(final ServiceDescription descr) {
         super(descr);
     }
 
+    /**
+     * Generate the main python file
+     *
+     * @return The string containing the content of __main__.py
+     * @throws IOException When an exception occurs while reading the template
+     */
     public String generateServiceMain() throws IOException {
         return this.generate("ServiceMain", null, null);
     }
 
     /**
-     * @return
+     * Generate the contents for the service implementation file
+     *
+     * @return The code that implements the service for the project.
+     * @throws IOException When an exception occurs while reading the template
      */
     public String generateServiceImplementation() throws IOException {
         return this.generate("ServiceImplementation", null, null);
     }
 
+    /**
+     * Generate the file contents for the pip requirements file
+     *
+     * @return The contents of the requirements.txt file
+     * @throws IOException When an exception occurs while reading the template
+     */
     public String generateRequirements() throws IOException {
         return this.generate("PipRequirements", null, null);
     }
 
     /**
-     * @param itf
-     * @param version
-     * @return
+     * Generate the contents for the abstract base class defining the connection handler for the specified dEF-Pi
+     * interface version.
+     *
+     * @param itf The interface to generate the handler interface for
+     * @param version The version of the interface to generate the code for
+     * @return The code of the connection handler interface for the specified version of the interface
+     * @throws IOException When an exception occurs while reading the template file
      */
     public String generateHandlerInterface(final InterfaceDescription itf, final InterfaceVersionDescription version)
             throws IOException {
@@ -76,9 +101,12 @@ public class PythonTemplates extends Templates {
     }
 
     /**
-     * @param itf
-     * @param version
-     * @return
+     * Generate the code that implements the connection handler for the specified dEF-Pi interface version.
+     *
+     * @param itf The interface to generate the handler implementation for
+     * @param version The version of the interface to generate the code for
+     * @return The code of the connection handler implementation for the specified version of the interface
+     * @throws IOException When an exception occurs while reading the template file
      */
     public String generateHandlerImplementation(final InterfaceDescription itf,
             final InterfaceVersionDescription version) throws IOException {
@@ -86,18 +114,22 @@ public class PythonTemplates extends Templates {
     }
 
     /**
-     * @param itf
-     * @param version
-     * @return
+     * Generate the code of the java interface that defines the manager for the specified dEF-Pi interface.
+     *
+     * @param itf The interface to generate the manager interface for
+     * @return The code of the connection manager interface for the specified interface
+     * @throws IOException When an exception occurs while reading the template file
      */
     public String generateManagerInterface(final InterfaceDescription itf) throws IOException {
         return this.generate("ManagerInterface", itf, null);
     }
 
     /**
-     * @param itf
-     * @param version
-     * @return
+     * Generate the code that implements the manager for the specified dEF-Pi interface.
+     *
+     * @param itf The interface to generate the manager implementation for
+     * @return The code of the connection manager implementation for the specified interface
+     * @throws IOException When an exception occurs while reading the template file
      */
     public String generateManagerImplementation(final InterfaceDescription itf) throws IOException {
         return this.generate("ManagerClass", itf, null);
@@ -106,10 +138,11 @@ public class PythonTemplates extends Templates {
     /**
      * Generate a file based on the template and the provided interface description and version description
      *
-     * @param templateName
-     * @param itf
-     * @param version
-     * @return
+     * @param templateName The template to use while creating the code
+     * @param itf The interface to generate the code for
+     * @param version The version of the interface to generate the code for
+     * @return The filled-in template, which should provide valid java code
+     * @throws IOException When an exception occurs while reading the template file
      */
     private String generate(final String templateName,
             final InterfaceDescription itf,
@@ -240,11 +273,6 @@ public class PythonTemplates extends Templates {
         return this.replaceMap(template, replaceMap);
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see org.flexiblepower.pythoncodegen.Templates#getDockerBaseImage(java.lang.String)
-     */
     @Override
     protected String getDockerBaseImage(final String platform) {
         if (platform.equals("x86")) {

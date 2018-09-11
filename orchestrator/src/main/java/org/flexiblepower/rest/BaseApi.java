@@ -1,19 +1,21 @@
-/**
- * File BaseApi.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
 package org.flexiblepower.rest;
 
@@ -37,7 +39,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since Mar 30, 2017
  */
 @Slf4j
-public abstract class BaseApi {
+abstract class BaseApi {
 
     private static final String AUTH_PREFIX = "Basic ";
 
@@ -45,12 +47,12 @@ public abstract class BaseApi {
      * The session user is the user who successfully logged in using Basic authentication or using his authentication
      * token.
      */
-    protected final User sessionUser;
+    final User sessionUser;
 
     /**
      * The HTTP headers of the session, which may include headers to add to the response by any filter
      */
-    protected final HttpHeaders headers;
+    private final HttpHeaders headers;
 
     /**
      * Create the abstract base class for the REST API. The base API will make sure the user is logged in by taking the
@@ -58,7 +60,7 @@ public abstract class BaseApi {
      *
      * @param httpHeaders The headers of the HTTP request that creates this object
      */
-    protected BaseApi(final HttpHeaders httpHeaders) {
+    BaseApi(final HttpHeaders httpHeaders) {
         this.headers = httpHeaders;
 
         // Allow token based authentication from the dashboard gateway
@@ -105,7 +107,7 @@ public abstract class BaseApi {
      *
      * @return The process that the token refers to, or null if no such process exists
      */
-    protected Process getTokenProcess() {
+    Process getTokenProcess() {
         // User did not provide Basic Auth info, so look for token in header
         final String token = this.headers.getHeaderString("X-Auth-Token");
         if (token == null) {
@@ -116,7 +118,7 @@ public abstract class BaseApi {
         final Process ret = ProcessManager.getInstance().getProcessByToken(token);
         if (ret == null) { // If no match found, no user found
             BaseApi.log.debug("Unable to find process with provided token");
-            return ret;
+            return null;
         }
 
         BaseApi.log.trace("Process {} logged in", ret.getId());
@@ -128,7 +130,7 @@ public abstract class BaseApi {
      *
      * @throws AuthorizationException If the assertion fails
      */
-    protected void assertUserIsAdmin() throws AuthorizationException {
+    void assertUserIsAdmin() throws AuthorizationException {
         if ((this.sessionUser == null) || !this.sessionUser.isAdmin()) {
             throw new AuthorizationException();
         }
@@ -139,7 +141,7 @@ public abstract class BaseApi {
      *
      * @throws AuthorizationException If the assertion fails
      */
-    protected void assertUserIsLoggedIn() throws AuthorizationException {
+    void assertUserIsLoggedIn() throws AuthorizationException {
         if (this.sessionUser == null) {
             throw new AuthorizationException();
         }
@@ -152,7 +154,7 @@ public abstract class BaseApi {
      * @param userId The userId that should be logged in
      * @throws AuthorizationException If the assertion fails
      */
-    protected void assertUserIsAdminOrEquals(final ObjectId userId) throws AuthorizationException {
+    void assertUserIsAdminOrEquals(final ObjectId userId) throws AuthorizationException {
         if (this.sessionUser == null) {
             throw new AuthorizationException();
         }
@@ -167,7 +169,7 @@ public abstract class BaseApi {
      *
      * @param count The total number of responses that could have been returned
      */
-    protected void addTotalCount(final int count) {
+    void addTotalCount(final int count) {
         this.headers.getRequestHeaders().add(TotalCountFilter.HEADER_NAME, Integer.toString(count));
     }
 

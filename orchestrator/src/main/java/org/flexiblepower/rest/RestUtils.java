@@ -1,7 +1,21 @@
-/**
- * File RestUtils.java
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Copyright 2018 FAN
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
  */
 package org.flexiblepower.rest;
 
@@ -75,16 +89,16 @@ class RestUtils {
             // It is a regex, compile the pattern and filter out non-matching elements
             final Pattern pattern = Pattern.compile(filterValue.substring(1, filterValue.length() - 1));
             while (it.hasNext()) {
-                final String property = function.apply(it.next()).toString();
-                if (!pattern.matcher(property).matches()) {
+                final Object value = function.apply(it.next());
+                if ((value == null) || !pattern.matcher(value.toString()).find()) {
                     it.remove();
                 }
             }
         } else {
             // It is a just some value, compare for equality
             while (it.hasNext()) {
-                final String property = function.apply(it.next()).toString();
-                if (!filterValue.equals(property)) {
+                final Object value = function.apply(it.next());
+                if ((value == null) || !filterValue.equals(value.toString())) {
                     it.remove();
                 }
             }
@@ -95,24 +109,28 @@ class RestUtils {
      * Order the elements of some content according to a comparator which we can lookup in a map. It will change the
      * existing collection in place, i.e. it will return by argument.
      *
+     * I know the typing is too weak, I would like to impose U extends Comparable<? super U> but then the API class
+     * won't accept the call to orderContent. This only goes wrong if the keyExtractor provides some type that compares
+     * to another type.
+     *
      * @param content The collection of elements
-     * @param sortMap A map of comparators to select one out of
-     * @param sortField The key of the map that corresponds to the comparator to use
+     * @param keyExtractor The extractor function to get a comparable key from an element
      * @param sortDir A string that if it equals "DESC", it will reverse the order of the elements
      */
-    static <T> void orderContent(final List<T> content,
-            final Map<String, Comparator<T>> sortMap,
-            final String sortField,
+    static <T, U extends Comparable<?>> void orderContent(final List<T> content,
+            final Function<? super T, U> keyExtractor,
             final String sortDir) {
-        Comparator<T> comparator = sortMap.get(sortField);
-        if (comparator == null) {
-            comparator = sortMap.get("default");
-        }
-        if (comparator == null) {
-            comparator = (a, b) -> a.toString().compareTo(b.toString());
+        if (keyExtractor == null) {
+            // Probably a non-existing field was queried, leave order as is.
+            return;
         }
 
-        Collections.sort(content, comparator);
+        @SuppressWarnings("unchecked")
+        final Comparator<U> keyComparator = Comparator.nullsLast((a, b) -> ((Comparable<U>) a).compareTo(b));
+        final Comparator<? super T> comparator = Comparator
+                .nullsLast(Comparator.comparing(keyExtractor, keyComparator));
+
+        content.sort(comparator);
 
         // Order the sorting if necessary
         if ("DESC".equals(sortDir)) {
@@ -123,7 +141,7 @@ class RestUtils {
 
     /**
      * Get a sublist of the content based on the number of elements per page, and the page we are currently on
-     * 
+     *
      * @param content The full list
      * @param page The page number to return
      * @param perPage The number of elements per page

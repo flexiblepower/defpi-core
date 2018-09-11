@@ -1,27 +1,28 @@
-/**
- * File ServiceRestApi.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
-
 package org.flexiblepower.rest;
 
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -40,13 +41,12 @@ import org.flexiblepower.orchestrator.ServiceManager;
  */
 public class ServiceRestApi extends BaseApi implements ServiceApi {
 
-    private static final Map<String, Comparator<Service>> SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<Service, Comparable<?>>> SORT_MAP = new HashMap<>();
     static {
-        ServiceRestApi.SORT_MAP.put("default", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
-        ServiceRestApi.SORT_MAP.put("id", (a, b) -> a.getId().toString().compareTo(b.getId().toString()));
-        ServiceRestApi.SORT_MAP.put("name", (a, b) -> a.getName().compareTo(b.getName()));
-        ServiceRestApi.SORT_MAP.put("created", (a, b) -> a.getCreated().compareTo(b.getCreated()));
-        ServiceRestApi.SORT_MAP.put("version", (a, b) -> a.getVersion().compareTo(b.getVersion()));
+        ServiceRestApi.SORT_MAP.put("id", Service::getId);
+        ServiceRestApi.SORT_MAP.put("name", Service::getName);
+        ServiceRestApi.SORT_MAP.put("created", Service::getCreated);
+        ServiceRestApi.SORT_MAP.put("version", Service::getVersion);
     }
 
     /**
@@ -64,11 +64,10 @@ public class ServiceRestApi extends BaseApi implements ServiceApi {
             final String sortDir,
             final String sortField,
             final String filters) throws AuthorizationException {
-        // TODO implement pagination, sorting and filtering
         this.assertUserIsLoggedIn();
 
         final List<Service> content = ServiceManager.getInstance().listServices();
-        RestUtils.orderContent(content, ServiceRestApi.SORT_MAP, sortField, sortDir);
+        RestUtils.orderContent(content, ServiceRestApi.SORT_MAP.get(sortField), sortDir);
 
         this.addTotalCount(content.size());
         return RestUtils.paginate(content, page, perPage);
@@ -78,6 +77,16 @@ public class ServiceRestApi extends BaseApi implements ServiceApi {
     public Service getService(final String id) throws ServiceNotFoundException, AuthorizationException {
         this.assertUserIsLoggedIn();
         return ServiceManager.getInstance().getService(id);
+    }
+
+    @Override
+    public List<Service> getAllServiceVersions(final String id) throws ServiceNotFoundException,
+            AuthorizationException {
+        // Should we paginate even this?
+        this.assertUserIsLoggedIn();
+        final List<Service> content = ServiceManager.getInstance().listServiceVersions(id);
+        this.addTotalCount(content.size());
+        return content;
     }
 
 }
