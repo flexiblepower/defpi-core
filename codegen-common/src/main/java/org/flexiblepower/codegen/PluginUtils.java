@@ -31,7 +31,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -199,7 +198,6 @@ public class PluginUtils {
         if ((messageSet != null) && !messageSet.isEmpty()) {
             baseHash += ";" + String.join(";", messageSet);
         }
-        System.out.println(baseHash);
         return PluginUtils.SHA256(baseHash);
     }
 
