@@ -59,14 +59,14 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<java.source>1.8</java.source>
-		<java.target>1.8</java.target>
+		<java.source>10</java.source>
+		<java.target>10</java.target>
 
 		<!-- The plugin needs the protobuf version to obtain the compiler from 
 			maven central explicitly -->
 		<protobuf.version>3.6.1</protobuf.version>
-		<jackson.databind.version>2.9.6</jackson.databind.version>
-		<mongodb.version>3.8.1</mongodb.version>
+		<jackson.databind.version>2.9.7</jackson.databind.version>
+		<mongodb.version>3.9.1</mongodb.version>
 		<log4j.version>2.11.1</log4j.version>
 		<swagger.version>1.5.21</swagger.version>
 	</properties>
@@ -113,7 +113,7 @@
 			<dependency>
 				<groupId>org.projectlombok</groupId>
 				<artifactId>lombok</artifactId>
-				<version>1.18.2</version>
+				<version>1.18.4</version>
 				<scope>provided</scope>
 			</dependency>
 
@@ -144,7 +144,7 @@
 			<dependency>
 				<groupId>org.json</groupId>
 				<artifactId>json</artifactId>
-				<version>20180130</version>
+				<version>20180813</version>
 			</dependency>
 
 			<dependency>
