@@ -1,6 +1,8 @@
 {
 	"name": "Dashboard",
 	"version": "1",
+	"description": " This is the official dashboard app from FAN. The dashboard is the central place where a user can see its devices, as well as running processes. From here you can add/remove new processes and manage your devices.",
+	"iconURL": "https://upload.wikimedia.org/wikipedia/commons/2/22/Tapiture_Logo_Mark.png",
 	"parameters": [
 		{
 			"id": "cemHashPair",

@@ -9,18 +9,25 @@
       "type": "string",
       "pattern": "^([0-9]+\\.)*[0-9]+(-[0-9a-zA-Z]*)?$"
     },
+    "description": {
+      "type": "string"
+    },
+    "iconURL": {
+      "type": "string",
+      "pattern": "^(https?|ftp)://[a-z0-9\\.]+\\.[a-z]{2,}[a-zA-Z0-9\\.\\?\\=\\-_/]*$"
+    },
     "parameters": {
       "type": "array",
       "uniqueItems": true,
       "items": {
-      	"type": "object",
+        "type": "object",
         "properties": {
           "id": {
             "type": "string",
             "pattern": "^([a-z])([a-zA-Z0-9])+$"
           },
           "name": {
-           	"$ref":"#/definitions/name"
+            "$ref": "#/definitions/name"
           },
           "type": {
             "enum": [
@@ -36,7 +43,7 @@
             ]
           },
           "isArray": {
-            "type": "boolean" 
+            "type": "boolean"
           },
           "isOptional": {
             "type": "boolean"
@@ -47,7 +54,7 @@
               "type": "string",
               "uniqueItems": true,
               "items": {
-         	    "type": "string"
+                "type": "string"
               }
             }
           },
@@ -59,7 +66,10 @@
             }
           },
           "default": {
-            "type": ["string", "number"]
+            "type": [
+              "string",
+              "number"
+            ]
           }
         },
         "required": [

@@ -1,6 +1,8 @@
 {
   "name": "Echo Service",
   "version": "0.0.1-SNAPSHOT",
+  "description": "This is just an example for unit testing and should never be published",
+  "iconURL": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Example.svg/1024px-Example.svg.png",
   "interfaces": [
     {
       "name": "Echo Interface",

@@ -19,6 +19,7 @@
  */
 package org.flexiblepower.model;
 
+import java.net.URL;
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
@@ -55,6 +56,10 @@ public class Service {
     private final String id;
 
     private final String version;
+    
+    private final String description;
+    
+    private final URL iconURL;
 
     private final Date created;
 
