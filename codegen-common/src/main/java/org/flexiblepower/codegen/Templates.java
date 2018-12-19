@@ -119,24 +119,29 @@ public abstract class Templates {
 
         final Set<InterfaceDescription> input = this.serviceDescription.getInterfaces();
 
-        final Set<Interface> serviceInterfaces = new HashSet<>();
-        for (final InterfaceDescription descr : input) {
-            final List<InterfaceVersion> versionList = new ArrayList<>();
-            for (final InterfaceVersionDescription ivd : descr.getInterfaceVersions()) {
-                final String sendHash = PluginUtils.getSendHash(ivd);
-                final String recvHash = PluginUtils.getReceiveHash(ivd);
-                versionList.add(new InterfaceVersion(ivd.getVersionName(), recvHash, sendHash));
+        if (input != null) {
+            final Set<Interface> serviceInterfaces = new HashSet<>();
+            for (final InterfaceDescription descr : input) {
+                final List<InterfaceVersion> versionList = new ArrayList<>();
+                for (final InterfaceVersionDescription ivd : descr.getInterfaceVersions()) {
+                    final String sendHash = PluginUtils.getSendHash(ivd);
+                    final String recvHash = PluginUtils.getReceiveHash(ivd);
+                    versionList.add(new InterfaceVersion(ivd.getVersionName(), recvHash, sendHash));
+                }
+                serviceInterfaces.add(new Interface(this.serviceDescription.getId() + "/" + descr.getId(),
+                        descr.getName(),
+                        this.serviceDescription.getId(),
+                        versionList,
+                        descr.isAllowMultiple(),
+                        descr.isAutoConnect()));
             }
-            serviceInterfaces.add(new Interface(this.serviceDescription.getId() + "/" + descr.getId(),
-                    descr.getName(),
-                    this.serviceDescription.getId(),
-                    versionList,
-                    descr.isAllowMultiple(),
-                    descr.isAutoConnect()));
+
+            final String interfaces = writer.writeValueAsString(serviceInterfaces);
+            replace.put("interfaces", interfaces.replaceAll("\n", " \\\\ \n"));
+        } else {
+            replace.put("interfaces", null);
         }
 
-        final String interfaces = writer.writeValueAsString(serviceInterfaces);
-        replace.put("interfaces", interfaces.replaceAll("\n", " \\\\ \n"));
         replace.put("entrypoint", dockerEntryPoint);
         replace.putAll(this.getAdditionalDockerReplaceMap());
 
@@ -173,6 +178,8 @@ public abstract class Templates {
         for (final Entry<String, String> entry : replace.entrySet()) {
             if (entry.getValue() != null) {
                 ret = ret.replace("{{" + entry.getKey() + "}}", entry.getValue());
+            } else {
+                ret = ret.replace("{{" + entry.getKey() + "}}", "");
             }
         }
         return ret;
