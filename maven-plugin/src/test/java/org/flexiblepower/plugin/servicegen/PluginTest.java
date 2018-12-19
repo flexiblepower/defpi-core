@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -53,6 +54,12 @@ public class PluginTest {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Test
+    public void serializeParameterTest() throws JsonProcessingException {
+        final Parameter p = new Parameter(null, null, null, false, false, null, null, null);
+        PluginTest.log.info(this.mapper.writeValueAsString(p));
+    }
+
+    @Test
     public void testGenerate() throws JsonParseException, JsonMappingException, IOException {
         final File inputFile = new File("src/test/resources/service.json");
         final ServiceDescription descr = this.mapper.readValue(inputFile, ServiceDescription.class);
@@ -67,6 +74,7 @@ public class PluginTest {
             }
             PluginTest.log.info(t.generateManagerInterface(itf));
         }
+
         PluginTest.log.info(t.generateDockerfile("x86", "run-java.sh"));
     }
 
@@ -88,7 +96,11 @@ public class PluginTest {
         final JavaTemplates t = new JavaTemplates("test.config", descr);
         PluginTest.log.info(t.generateConfigInterface());
 
-        PluginTest.log.info(t.generateDockerfile("NONSENSE", "gogogogo"));
+        final String dockerFileContents = t.generateDockerfile("NONSENSE", "gogogogo");
+        PluginTest.log.info(dockerFileContents);
+
+        Assert.assertTrue(dockerFileContents.contains("\"isOptional\""));
+        Assert.assertFalse(dockerFileContents.contains("\"optional\""));
     }
 
     @Test

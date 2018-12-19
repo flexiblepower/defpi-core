@@ -60,6 +60,8 @@ public class Service {
     private final String description;
     
     private final URL iconURL;
+    
+    private final Set<Parameter> parameters;
 
     private final Date created;
 

@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,6 +19,7 @@
  */
 package org.flexiblepower.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -39,6 +40,7 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties({"optional", "array"})
 public class Parameter {
 
     /**
@@ -49,60 +51,60 @@ public class Parameter {
      * @since Apr 24, 2017
      */
     public enum Type {
-    /**
-     * A one bit boolean which is either true or false
-     *
-     * @see Boolean
-     */
-    BOOLEAN,
-    /**
-     * One byte with a range of 0x00 (0) to 0xFF (255, or -128 depending on the used application)
-     *
-     * @see Byte
-     */
-    BYTE,
-    /**
-     * Two bytes representing a unicode character like 'a', '5', '€', 'α' or '\n'
-     *
-     * @see Character
-     */
-    CHARACTER,
-    /**
-     * A two byte short integer, with a range of -32,768 to of 32,767
-     *
-     * @see Short
-     */
-    SHORT,
-    /**
-     * A four byte integer, with a range of -2<sup>31</sup> and a maximum value of 2<sup>31</sup>-1
-     *
-     * @see Integer
-     */
-    INTEGER,
-    /**
-     * An eight byte long integer, with a range of -2<sup>63</sup> and a maximum value of 2<sup>63</sup>-1
-     *
-     * @see Long
-     */
-    LONG,
-    /**
-     * A four byte single precision IEEE 754 floating point number.
-     *
-     * @see Float
-     */
-    FLOAT,
-    /**
-     * An eight byte double precision IEEE 754 floating point number
-     *
-     * @see Float
-     */
-    DOUBLE,
-    /**
-     * A variable length String of characters representing a piece of text
-     *
-     * @see String
-     */
-    STRING;
+        /**
+         * A one bit boolean which is either true or false
+         *
+         * @see Boolean
+         */
+        BOOLEAN,
+        /**
+         * One byte with a range of 0x00 (0) to 0xFF (255, or -128 depending on the used application)
+         *
+         * @see Byte
+         */
+        BYTE,
+        /**
+         * Two bytes representing a unicode character like 'a', '5', '€', 'α' or '\n'
+         *
+         * @see Character
+         */
+        CHARACTER,
+        /**
+         * A two byte short integer, with a range of -32,768 to of 32,767
+         *
+         * @see Short
+         */
+        SHORT,
+        /**
+         * A four byte integer, with a range of -2<sup>31</sup> and a maximum value of 2<sup>31</sup>-1
+         *
+         * @see Integer
+         */
+        INTEGER,
+        /**
+         * An eight byte long integer, with a range of -2<sup>63</sup> and a maximum value of 2<sup>63</sup>-1
+         *
+         * @see Long
+         */
+        LONG,
+        /**
+         * A four byte single precision IEEE 754 floating point number.
+         *
+         * @see Float
+         */
+        FLOAT,
+        /**
+         * An eight byte double precision IEEE 754 floating point number
+         *
+         * @see Float
+         */
+        DOUBLE,
+        /**
+         * A variable length String of characters representing a piece of text
+         *
+         * @see String
+         */
+        STRING;
 
         /**
          * @return The key string that is used to identify this parameter in a key/value map

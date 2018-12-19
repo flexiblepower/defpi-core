@@ -21,7 +21,9 @@ package org.flexiblepower.connectors;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.text.ParseException;
 import java.time.Duration;
@@ -52,6 +54,7 @@ import org.flexiblepower.exceptions.RepositoryNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Architecture;
 import org.flexiblepower.model.Interface;
+import org.flexiblepower.model.Parameter;
 import org.flexiblepower.model.Service;
 import org.flexiblepower.model.Service.ServiceBuilder;
 import org.flexiblepower.orchestrator.ServiceManager;
@@ -95,6 +98,12 @@ public class RegistryConnector {
      */
     public static final String SECURE_REGISTRY_KEY = "USE_SECURE_REGISTRY";
     private static final boolean SECURE_REGISTRY_DFLT = true;
+
+    private static final String SERVICE_NAME_LABEL = "org.flexiblepower.serviceName";
+    private static final String SERVICE_ICON_URL_LABEL = "org.flexiblepower.iconURL";
+    private static final String SERVICE_DESCRIPTION_LABEL = "org.flexiblepower.description";
+    private static final String SERVICE_INTERFACE_LABEL = "org.flexiblepower.interfaces";
+    private static final String SERVICE_PARAMETERS_LABEL = "org.flexiblepower.parameters";
 
     private static final long MAX_CACHE_AGE_MS = Duration.ofMinutes(2).toMillis();
     private static final long MAX_CACHE_REFRESH_TIME = Duration.ofSeconds(5).toMillis();
@@ -267,6 +276,11 @@ public class RegistryConnector {
                                 RegistryConnector.log
                                         .error("Could not find service {}: {}", serviceName, ex.getMessage());
                                 RegistryConnector.log.trace(ex.getMessage(), ex);
+                            } catch (final Exception ex) {
+                                RegistryConnector.log.error("Exception while looking for service {}: {}",
+                                        serviceName,
+                                        ex.getMessage());
+                                RegistryConnector.log.trace(ex.getMessage(), ex);
                             }
                         });
                     });
@@ -406,7 +420,6 @@ public class RegistryConnector {
             final String serviceName,
             final String version,
             final Map<Architecture, String> tags) throws ServiceNotFoundException {
-        // final ISO8601DateFormat df = new ISO8601DateFormat();
         final StdDateFormat df = new StdDateFormat();
         final ServiceBuilder serviceBuilder = Service.builder();
 
@@ -430,24 +443,54 @@ public class RegistryConnector {
             serviceBuilder.repository(ServiceManager.SERVICE_REPOSITORY);
             final String serviceId = image.substring(image.indexOf("/") + 1);
             serviceBuilder.id(serviceId);
-            serviceBuilder.name(labels.getString("org.flexiblepower.serviceName"));
+            serviceBuilder.name(labels.getString(RegistryConnector.SERVICE_NAME_LABEL));
 
-            try {
-                final Set<Interface> interfaces = this.om.readValue(labels.getString("org.flexiblepower.interfaces"),
-                        new TypeReference<Set<Interface>>() {
-                            // A list of services
-                        });
-                serviceBuilder.interfaces(interfaces);
+            if (labels.has(RegistryConnector.SERVICE_DESCRIPTION_LABEL)) {
+                serviceBuilder.description(labels.getString(RegistryConnector.SERVICE_DESCRIPTION_LABEL));
+            } else {
+                serviceBuilder.description("");
+            }
 
-                // Add interfaces to the cache
-                // this.interfaceCache.addAll(interfaces);
-            } catch (final IOException ex) {
-                RegistryConnector.log.warn("Exception while parsing interface: {}", ex.getMessage());
-                RegistryConnector.log.trace(ex.getMessage(), ex);
+            if (labels.has(RegistryConnector.SERVICE_ICON_URL_LABEL)) {
+                try {
+                    serviceBuilder.iconURL(new URL(labels.getString(RegistryConnector.SERVICE_ICON_URL_LABEL)));
+                } catch (final MalformedURLException ex) {
+                    RegistryConnector.log.warn("Exception while parsing service icon URL: {}", ex.getMessage());
+                    RegistryConnector.log.trace(ex.getMessage(), ex);
+                }
+            }
+
+            if (labels.has(RegistryConnector.SERVICE_INTERFACE_LABEL)) {
+                try {
+                    final Set<Interface> interfaces = this.om.readValue(
+                            labels.getString(RegistryConnector.SERVICE_INTERFACE_LABEL),
+                            new TypeReference<Set<Interface>>() {
+                                // A set of interfaces
+                            });
+                    serviceBuilder.interfaces(interfaces);
+                } catch (final IOException ex) {
+                    RegistryConnector.log.warn("Exception while parsing service interfaces: {}", ex.getMessage());
+                    RegistryConnector.log.trace(ex.getMessage(), ex);
+                }
+            }
+
+            if (labels.has(RegistryConnector.SERVICE_PARAMETERS_LABEL)) {
+                try {
+                    final Set<Parameter> parameters = this.om.readValue(
+                            labels.getString(RegistryConnector.SERVICE_PARAMETERS_LABEL),
+                            new TypeReference<Set<Parameter>>() {
+                                // A list of parameters
+                            });
+                    serviceBuilder.parameters(parameters);
+                } catch (final IOException ex) {
+                    RegistryConnector.log.warn("Exception while parsing service parameters: {}", ex.getMessage());
+                    RegistryConnector.log.trace(ex.getMessage(), ex);
+                }
             }
         }
 
         return serviceBuilder.tags(tags).registry(this.registryName).version(version).build();
+
     }
 
     private URI buildUrl(final String... pathParams) {

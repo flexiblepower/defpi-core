@@ -1,6 +1,8 @@
 {
 	"name": "Dashboard Gateway",
 	"version": "1",
+	"description": "This is the official FAN dashboard gateway. This service serves as the single point for all users in the dEF-Pi cluster to connect to their own dashboard",
+	"iconURL": "https://upload.wikimedia.org/wikipedia/commons/3/37/Adobe_ConnectNow_icon.png",
 	"interfaces": [
 		{
 			"name": "Dashboard",
