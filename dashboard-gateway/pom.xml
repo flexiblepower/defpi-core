@@ -37,7 +37,7 @@
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-server</artifactId>
-			<version>9.4.11.v20180605</version>
+			<version>9.4.14.v20181114</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>
@@ -47,7 +47,7 @@
 		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
-			<version>20180130</version>
+			<version>20180813</version>
 		</dependency>
 	</dependencies>
 

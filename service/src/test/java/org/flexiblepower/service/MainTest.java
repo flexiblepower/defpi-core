@@ -22,7 +22,6 @@ package org.flexiblepower.service;
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -32,7 +31,7 @@ import org.junit.Test;
  * @version 0.1
  * @since Nov 8, 2017
  */
-@Ignore // Only run this test standalone in Eclipse, not as part of CI
+// @Ignore // Only run this test standalone in Eclipse, not as part of CI
 @SuppressWarnings({"javadoc"})
 public class MainTest {
 
