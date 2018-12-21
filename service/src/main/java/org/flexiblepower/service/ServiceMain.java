@@ -186,7 +186,7 @@ public final class ServiceMain {
         // Try the empty constructor if it fails
         ServiceMain.log.debug("Attempting fallback empty constructor for {}", managerClass);
         try {
-            return managerClass.newInstance();
+            return managerClass.getConstructor().newInstance();
         } catch (final Exception e) {
             ServiceMain.log.warn("Unable to instantiate manager type {} of service {}: {}",
                     managerClass,

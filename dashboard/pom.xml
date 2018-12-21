@@ -129,7 +129,6 @@
 					to make sure docker gets the shaded jar, and not the assembly jar -->
 				<groupId>com.spotify</groupId>
 				<artifactId>docker-maven-plugin</artifactId>
-				<version>1.1.1</version>
 				<executions>
 					<execution>
 						<!-- Build x86_64 image -->

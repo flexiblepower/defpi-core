@@ -73,7 +73,7 @@
 						</executions>
 					</plugin>
 
-<!-- Create javadoc, but not for generated code -->
+					<!-- Create javadoc, but not for generated code -->
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-javadoc-plugin</artifactId>

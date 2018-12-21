@@ -83,7 +83,7 @@
 	</properties>
 
 	<prerequisites>
-		<maven>3.0</maven>
+		<maven>3.0.5</maven>
 	</prerequisites>
 
 	<!-- Where to push the service parent itself, should not be used by children -->
@@ -183,7 +183,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-jar-plugin</artifactId>
-					<version>3.1.0</version>
+					<version>3.1.1</version>
 				</plugin>
 
 				<plugin>
@@ -203,6 +203,12 @@
 					<artifactId>maven-site-plugin</artifactId>
 					<version>3.7.1</version>
 				</plugin>
+
+				<plugin>
+					<groupId>com.spotify</groupId>
+					<artifactId>docker-maven-plugin</artifactId>
+					<version>1.2.0</version>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 	</build>
@@ -217,7 +223,7 @@
 					<missing>.noservice</missing>
 				</file>
 			</activation>
-			
+
 			<build>
 				<plugins>
 					<!-- Use the def-pi plugin to generate stubs -->
@@ -334,7 +340,6 @@
 					<plugin>
 						<groupId>com.spotify</groupId>
 						<artifactId>docker-maven-plugin</artifactId>
-						<version>1.2.0</version>
 						<executions>
 							<execution>
 								<!-- Build x86_64 image -->

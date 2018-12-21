@@ -15,7 +15,7 @@
 	</parent>
 
 	<prerequisites>
-		<maven>3.0</maven>
+		<maven>3.0.5</maven>
 	</prerequisites>
 
 	<dependencies>
@@ -64,7 +64,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-plugin-plugin</artifactId>
-				<version>3.5.2</version>
+				<version>3.6.0</version>
 				<configuration>
 					<goalPrefix>defpi</goalPrefix>
 					<skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
