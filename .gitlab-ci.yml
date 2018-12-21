@@ -59,7 +59,7 @@ java-test:
   except:
     - master
   script:
-    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml test'
+    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml package'
   cache:
     paths:
       - cache/maven.repository
