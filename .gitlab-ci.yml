@@ -9,7 +9,7 @@ variables:
   MAVEN_OPTS: "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true -Dmaven.repo.local=cache/maven.repository -XX:+TieredCompilation -XX:TieredStopAtLevel=1"
   MAVEN_CLI_OPTS: "-T 4 --batch-mode --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
 
-image: maven:3.5.3-jdk-8
+image: maven:3.5.3-jdk-10
 
 stages:
   - build
@@ -63,29 +63,6 @@ java-test:
   cache:
     paths:
       - cache/maven.repository
-
-# Plugin template, how test the plugins with the code generator
-.plugin_template: &plugin
-  stage: test
-  before_script:
-    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
-  script:
-    - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml defpi:generate'
-  cache:
-    paths:
-      - cache/maven.repository
-
-# Test plugin on xsd
-plugin-test:proto:
-  variables:
-    TEST_PROJ: skeleton_proto
-  <<: *plugin
-
-# Test plugin on xsd
-plugin-test:xsd:
-  variables:
-    TEST_PROJ: skeleton_xsd
-  <<: *plugin
 
 # Test to see if the orchestrator ui does what it is supposed to
 #ui-test:
