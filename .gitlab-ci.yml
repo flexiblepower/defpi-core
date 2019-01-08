@@ -8,8 +8,8 @@
 variables:
   MAVEN_OPTS: "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true -Dmaven.repo.local=cache/maven.repository -XX:+TieredCompilation -XX:TieredStopAtLevel=1"
   MAVEN_CLI_OPTS: "-T 4 --batch-mode --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
-  JDK_8_IMAGE: maven-3.5.3-jdk-8-slim
-  JDK_10_IMAGE: maven-3.5.3-jdk-10-slim
+  JDK_8_IMAGE: maven:3.5.3-jdk-8-slim
+  JDK_10_IMAGE: maven:3.5.3-jdk-10-slim
   DOCKER_IMAGE: docker:18.04.0-ce-git
   BUSYBOX_IMAGE: busybox:latest
 
@@ -56,7 +56,6 @@ java-compile:jdk10:
     image: $JDK_10_IMAGE
 
 # Compile the orchestrator-ui
-# Compile the orchestrator-ui
 ui-compile:
   image: $DOCKER_IMAGE
   stage: build
@@ -84,24 +83,6 @@ java-test:jdk10:
     <<: *test
     image: $JDK_10_IMAGE
 
-# Compile the orchestrator-ui
-# Test to see if the orchestrator ui does what it is supposed to
-#ui-test:
-#  image: docker:17.03.2-ce-git
-#  tags:
-#    - defpi2
-#  stage: test
-#  except:
-#    - master
-#  before_script:
-#    - 'docker build orchestrator-ui -t orchestrator-ui:test'
-#    - 'docker run --rm --name ui-test -d -p 8756:80 orchestrator-ui:test'
-#    - 'sleep 10'
-#  script:
-#    - 'wget -q localhost:8756/login.html -O -| grep "Orchestrator"'
-#  after_script:
-#    - 'docker stop ui-test'
-
 # *** predeployMENT JOBS *** #
 
 # Deploy the complete project with modules to artifactory and the orchestrator to registry
@@ -127,26 +108,6 @@ ui-deploy:
     - 'docker build orchestrator-ui -t defpi.hesilab.nl:5000/defpi/orchestrator-ui'
   script:
     - 'docker push defpi.hesilab.nl:5000/defpi/orchestrator-ui'
-
-# Test the deployment first
-# test-deploy:
-#  image: tmaier/docker-compose:17.06
-#  tags:
-#    - defpi2
-#  only:
-#    - master
-#    - defpici
-#  stage: predeploy
-#  before_script:
-#    - 'docker-compose -p test -f orchestrator/docker-compose.test.yml pull'
-#    - 'docker-compose -p test -f orchestrator/docker-compose.test.yml up -d'
-#    - 'sleep 120'
-#  script:
-#    - 'nc -zv def-pi2.sensorlab.tno.nl:9999'
-#    - 'wget -q def-pi2.sensorlab.tno.nl:84/login.html -O - | grep "Orchestrator"'
-#    - 'wget -q def-pi2.sensorlab.tno.nl:8484/swagger.json -O - | grep "dEF-Pi API"'
-#  after_script:
-#    - 'docker-compose -p test -f orchestrator/docker-compose.test.yml down'
 
 # *** FINAL DEPLOY JOBS *** #
 
