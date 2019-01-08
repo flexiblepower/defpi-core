@@ -8,8 +8,10 @@
 variables:
   MAVEN_OPTS: "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true -Dmaven.repo.local=cache/maven.repository -XX:+TieredCompilation -XX:TieredStopAtLevel=1"
   MAVEN_CLI_OPTS: "-T 4 --batch-mode --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
-
-image: maven:3.5.3-jdk-10-slim
+  JDK_8_IMAGE: maven-3.5.3-jdk-8-slim
+  JDK_10_IMAGE: maven-3.5.3-jdk-10-slim
+  DOCKER_IMAGE: docker:18.04.0-ce-git
+  BUSYBOX_IMAGE: busybox:latest
 
 stages:
   - build
@@ -22,6 +24,7 @@ branch-test:ek2:
   stage: build
   only:
     - ek2_ui
+  image: $BUSYBOX_IMAGE
   script:
     - "grep ek2 dashboard/pom.xml"
     - "grep ek2 dashboard-gateway/pom.xml"
@@ -30,12 +33,13 @@ branch-test:other:
   stage: build
   except:
     - ek2_ui
+  image: $BUSYBOX_IMAGE
   script:
     - "! grep ek2 dashboard/pom.xml"
     - "! grep ek2 dashboard-gateway/pom.xml"
 
-# Validate java code using JDK8; for master this is a sanity check
-java-compile:
+# Validate java code; usually this is a sanity check
+.java-compile: &compile
   stage: build
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml clean test-compile'
@@ -43,10 +47,18 @@ java-compile:
     paths:
       - cache/maven.repository
 
-# *** BUILD JOBS *** #
+java-compile:jdk8:
+    <<: *compile
+    image: $JDK_8_IMAGE
 
+java-compile:jdk10:
+    <<: *compile
+    image: $JDK_10_IMAGE
+
+# Compile the orchestrator-ui
+# Compile the orchestrator-ui
 ui-compile:
-  image: docker:18.04.0-ce-git
+  image: $DOCKER_IMAGE
   stage: build
   script:
     - 'docker build orchestrator-ui'
@@ -54,7 +66,7 @@ ui-compile:
 # *** TEST JOBS *** #
 
 # Run Junit tests with maven; not on master where we will deploy
-java-test:
+.java-test: &test
   stage: test
   except:
     - master
@@ -64,6 +76,15 @@ java-test:
     paths:
       - cache/maven.repository
 
+java-test:jdk8:
+    <<: *test
+    image: $JDK_8_IMAGE
+
+java-test:jdk10:
+    <<: *test
+    image: $JDK_10_IMAGE
+
+# Compile the orchestrator-ui
 # Test to see if the orchestrator ui does what it is supposed to
 #ui-test:
 #  image: docker:17.03.2-ce-git
@@ -97,7 +118,7 @@ java-deploy:
 
 # Deploy UI to registry
 ui-deploy:
-  image: docker:18.04.0-ce-git
+  image: $DOCKER_IMAGE
   stage: predeploy
   only:
     - master
@@ -131,7 +152,7 @@ ui-deploy:
 
 # And finally run the orchestrator on hesilab using docker-compose
 deploy-compose:
-  image: tmaier/docker-compose:18.02
+  image: tmaier/docker-compose:18.09
   stage: deploy
   tags:
     - hesilab
