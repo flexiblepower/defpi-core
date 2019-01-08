@@ -155,7 +155,6 @@ public class RestServerTest {
                 Assert.assertTrue(content.contains(annotation.nickname()));
             }
         }
-
     }
 
     @SuppressWarnings("resource")

@@ -19,6 +19,7 @@
 			<artifactId>protobuf-java</artifactId>
 		</dependency>
 
+		<!-- This was not at java 8 -->
 		<dependency>
 			<groupId>javax.xml.bind</groupId>
 			<artifactId>jaxb-api</artifactId>

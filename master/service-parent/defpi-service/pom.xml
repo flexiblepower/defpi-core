@@ -73,6 +73,41 @@
 						</executions>
 					</plugin>
 
+					<!-- Create javadoc, but not for generated code -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>attach-javadocs</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+								<configuration>
+									<sourceFileExcludes>
+										<sourceFileExclude>${defpi.resources.generated}</sourceFileExclude>
+									</sourceFileExcludes>
+									<quiet>true</quiet>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+
+					<!--Attach sources when packaging -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+
+					<!-- Sign code for when deploying public version -->
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>

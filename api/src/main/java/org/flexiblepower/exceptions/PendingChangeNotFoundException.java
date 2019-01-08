@@ -19,8 +19,6 @@
  */
 package org.flexiblepower.exceptions;
 
-import org.bson.types.ObjectId;
-
 /**
  * ServiceNotFoundException
  *
@@ -37,9 +35,7 @@ public class PendingChangeNotFoundException extends NotFoundException {
     public static final String PENDING_CHANGE_NOT_FOUND = "PendingChange not found";
 
     /**
-     * Create an exception with the default message that the pendinc change is not found
-     *
-     * @param id the ObjectId of the pending change that could not be found
+     * Create an exception with the default message that the pending change is not found
      */
     public PendingChangeNotFoundException() {
         super(PendingChangeNotFoundException.PENDING_CHANGE_NOT_FOUND);
