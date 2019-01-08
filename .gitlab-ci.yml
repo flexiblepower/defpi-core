@@ -124,4 +124,4 @@ deploy-compose:
     - 'docker-compose -f orchestrator/docker-compose.test.yml pull'
   script:
     - 'docker-compose -f orchestrator/docker-compose.test.yml up -d'
-
+  allow_failure: true
