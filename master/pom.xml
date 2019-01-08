@@ -59,8 +59,8 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<java.source>10</java.source>
-		<java.target>10</java.target>
+		<java.source>1.8</java.source>
+		<java.target>1.8</java.target>
 
 		<!-- The plugin needs the protobuf version to obtain the compiler from 
 			maven central explicitly -->
