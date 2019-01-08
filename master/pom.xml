@@ -352,6 +352,7 @@
 						</goals>
 						<configuration>
 							<quiet>true</quiet>
+							<additionalOptions>-html5</additionalOptions>
 						</configuration>
 					</execution>
 				</executions>

@@ -200,6 +200,7 @@
 						<additionalOptions>
 							<additionalOption>--add-modules java.xml.bind</additionalOption>
 							<additionalOption>--add-modules java.xml.ws.annotation</additionalOption>
+							<additionalOptions>-html5</additionalOptions>
 						</additionalOptions>
 					</configuration>
 				</plugin>
