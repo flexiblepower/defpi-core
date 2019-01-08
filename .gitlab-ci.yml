@@ -91,6 +91,7 @@ java-deploy:
   only:
     - master
     - defpici
+  image: $JDK_10_IMAGE
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy -Ddocker.registry=defpi.hesilab.nl:5000'
   cache:
@@ -99,11 +100,11 @@ java-deploy:
 
 # Deploy UI to registry
 ui-deploy:
-  image: $DOCKER_IMAGE
   stage: predeploy
   only:
     - master
     - defpici
+  image: $DOCKER_IMAGE
   before_script:  
     - 'docker build orchestrator-ui -t defpi.hesilab.nl:5000/defpi/orchestrator-ui'
   script:
@@ -113,12 +114,12 @@ ui-deploy:
 
 # And finally run the orchestrator on hesilab using docker-compose
 deploy-compose:
-  image: tmaier/docker-compose:18.09
   stage: deploy
   tags:
     - hesilab
   only:
     - master
+  image: tmaier/docker-compose:18.09
   before_script:
     - 'docker-compose -f orchestrator/docker-compose.test.yml pull'
   script:
