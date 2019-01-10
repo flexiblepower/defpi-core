@@ -96,7 +96,7 @@
 	</distributionManagement>
 
 	<!-- Where to find dependencies -->
-	<repositories>
+	<!-- repositories>
 		<repository>
 			<id>sonatype-snapshot</id>
 			<name>Sonatype snapshot repository</name>
@@ -105,10 +105,10 @@
 				<enabled>true</enabled>
 			</snapshots>
 		</repository>
-	</repositories>
+	</repositories -->
 
 	<!-- Where to find plugins -->
-	<pluginRepositories>
+	<!--  pluginRepositories>
 		<pluginRepository>
 			<id>sonatype-snapshot</id>
 			<name>Sonatype snapshot repository</name>
@@ -117,7 +117,7 @@
 				<enabled>true</enabled>
 			</snapshots>
 		</pluginRepository>
-	</pluginRepositories>
+	</pluginRepositories -->
 
 	<dependencies>
 		<!-- Use the defpi-service library to communicate with orchestrator -->
@@ -200,7 +200,7 @@
 						<additionalOptions>
 							<additionalOption>--add-modules java.xml.bind</additionalOption>
 							<additionalOption>--add-modules java.xml.ws.annotation</additionalOption>
-							<additionalOptions>-html5</additionalOptions>
+							<!-- additionalOptions>-html5</additionalOptions -->
 						</additionalOptions>
 					</configuration>
 				</plugin>
@@ -343,6 +343,15 @@
 						<artifactId>docker-maven-plugin</artifactId>
 						<!-- Upgrading to 1.2.0 breaks deploying with credentials, see https://github.com/spotify/docker-maven-plugin/issues/309 -->
 						<version>1.1.1</version>
+						
+		                <dependencies>
+		                    <dependency>
+		                        <groupId>javax.activation</groupId>
+		                        <artifactId>activation</artifactId>
+		                        <version>1.1.1</version>
+		                    </dependency>
+		                </dependencies>
+						
 						<executions>
 							<execution>
 								<!-- Build x86_64 image -->
