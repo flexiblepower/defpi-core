@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -100,8 +100,8 @@ class JavaTemplates extends Templates {
      * @return The code of the connection handler implementation for the specified version of the interface
      * @throws IOException When an exception occurs while reading the template file
      */
-    String generateHandlerImplementation(final InterfaceDescription itf,
-            final InterfaceVersionDescription version) throws IOException {
+    String generateHandlerImplementation(final InterfaceDescription itf, final InterfaceVersionDescription version)
+            throws IOException {
         return this.generate("ConnectionHandlerClass", itf, version);
     }
 
@@ -297,7 +297,7 @@ class JavaTemplates extends Templates {
     @Override
     protected String getDockerBaseImage(final String platform) {
         if (platform.equals("x86")) {
-            return "java:alpine";
+            return "openjdk:11-jre-slim"; // "java:alpine";
         } else {
             return "arm32v6/openjdk:8-jre-alpine"; // "larmog/armhf-alpine-java:jdk-8u73";
         }
