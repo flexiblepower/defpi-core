@@ -91,7 +91,7 @@ java-deploy:
   only:
     - master
     - defpici
-  image: $JDK_10_IMAGE
+  image: $JDK_8_IMAGE
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy -Ddocker.registry=defpi.hesilab.nl:5000'
   cache:
