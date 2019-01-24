@@ -9,9 +9,9 @@ package org.flexiblepower.defpi.dashboard;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,15 +29,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPRequest.Method;
 import org.flexiblepower.defpi.dashboard.gateway.http.proto.Gateway_httpProto.HTTPResponse;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.ByteString;
 
-public class DashboardFullWidget implements Widget {
+public class WidgetManager implements HttpHandler {
 
-    private final static Logger LOG = LoggerFactory.getLogger(DashboardFullWidget.class);
+    private final static Logger LOG = LoggerFactory.getLogger(WidgetManager.class);
     private final Map<Integer, Widget> widgets = new HashMap<>();
     private final AtomicInteger idGenerator = new AtomicInteger(0);
 
@@ -56,61 +57,47 @@ public class DashboardFullWidget implements Widget {
             }
         }
         final String path = httpTask.getPath();
-        if (httpTask.getRequest().getMethod().equals(Method.GET) && path.equals("/index.html")) {
-            HttpUtils.serveStaticFile(httpTask, "/dynamic/widgets/DashboardFullWidget/index.html");
-        } else if (httpTask.getRequest().getMethod().equals(Method.GET) && path.equals("/menu.png")) {
-            HttpUtils.serveStaticFile(httpTask, "/dynamic/widgets/DashboardFullWidget/menu.png");
-        } else if (httpTask.getRequest().getMethod().equals(Method.GET) && path.equals("/script.js")) {
-            HttpUtils.serveStaticFile(httpTask, "/dynamic/widgets/DashboardFullWidget/script.js");
-        } else if (httpTask.getRequest().getMethod().equals(Method.POST) && path.equals("/getWidgets")) {
+        // if (httpTask.getRequest().getMethod().equals(Method.GET) && path.equals("/index.html")) {
+        // HttpUtils.serveStaticFile(httpTask, "/dynamic/widgets/DashboardFullWidget/index.html");
+        // } else if (httpTask.getRequest().getMethod().equals(Method.GET) && path.equals("/menu.png")) {
+        // HttpUtils.serveStaticFile(httpTask, "/dynamic/widgets/DashboardFullWidget/menu.png");
+        // } else if (httpTask.getRequest().getMethod().equals(Method.GET) && path.equals("/script.js")) {
+        // HttpUtils.serveStaticFile(httpTask, "/dynamic/widgets/DashboardFullWidget/script.js");
+        // } else
+        if ((httpTask.getRequest().getMethod().equals(Method.POST)
+                || httpTask.getRequest().getMethod().equals(Method.GET)) && path.equals("/getWidgets")) {
             httpTask.respond(this.getActiveWidgets(httpTask.getRequest()));
         } else {
-            DashboardFullWidget.LOG.warn("Got request for " + httpTask.getUri()
+            WidgetManager.LOG.warn("Got request for " + httpTask.getUri()
                     + ", but dashboard only serves index.html, menu.png and script.js");
             HttpUtils.notFound(httpTask);
         }
     }
 
     private HTTPResponse getActiveWidgets(final HTTPRequest request) {
-        final JSONObject map = new JSONObject();
+        final JSONArray list = new JSONArray();
         for (final Entry<Integer, Widget> e : this.widgets.entrySet()) {
-            map.put(e.getKey().toString(), e.getValue().getTitle());
+            final JSONObject widgetInfo = new JSONObject();
+            widgetInfo.put("widgetId", e.getKey().toString());
+            widgetInfo.put("processId", e.getValue().getProcessId());
+            widgetInfo.put("serviceId", e.getValue().getServiceId());
+            widgetInfo.put("title", e.getValue().getTitle());
+            list.put(widgetInfo);
         }
         return HTTPResponse.newBuilder()
                 .setId(request.getId())
                 .setStatus(200)
                 .putHeaders(HttpUtils.NO_CACHE_KEY, HttpUtils.NO_CACHE_VALUE)
                 .putHeaders(HttpUtils.CONTENT_TYPE, HttpUtils.APPLICATION_JAVASCRIPT)
-                .setBody(ByteString.copyFromUtf8(map.toString()))
+                .setBody(ByteString.copyFromUtf8(list.toString()))
                 .build();
     }
 
-    @Override
-    public String getWidgetId() {
-        return "dashboard";
-    }
-
-    @Override
-    public String getTitle() {
-        return "Dashboard";
-    }
-
-    @Override
-    public Type getType() {
-        return Type.FULL_WIDGET;
-    }
-
-    public void registerSmallWidget(final Widget widget) {
-        if (!widget.getType().equals(Widget.Type.SMALL_WIDGET)) {
-            throw new IllegalArgumentException("Can only accept small widgets");
-        }
+    public void registerWidget(final Widget widget) {
         this.widgets.put(this.idGenerator.getAndIncrement(), widget);
     }
 
-    public void unregisterSmallWidget(final Widget widget) {
-        if (!widget.getType().equals(Widget.Type.SMALL_WIDGET)) {
-            throw new IllegalArgumentException("Can only accept small widgets");
-        }
+    public void unregisterWidget(final Widget widget) {
         final Iterator<Entry<Integer, Widget>> it = this.widgets.entrySet().iterator();
         while (it.hasNext()) {
             if (it.next().getValue().equals(widget)) {

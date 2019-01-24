@@ -9,9 +9,9 @@ package org.flexiblepower.defpi.dashboard;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,7 +24,6 @@ import java.io.Serializable;
 
 import javax.annotation.Generated;
 
-import org.flexiblepower.defpi.dashboard.controladmin.ControlAdminFullWidget;
 import org.flexiblepower.service.DefPiParameters;
 import org.flexiblepower.service.Service;
 
@@ -42,11 +41,9 @@ import org.flexiblepower.service.Service;
 public class Dashboard implements Service<DashboardConfiguration> {
 
     private HttpRouter requestRouter;
-    private final FullWidgetAndPageManager fullWidgetManager = new FullWidgetAndPageManager();
-    private DashboardFullWidget dashboardFullWidget;
+    private WidgetManager widgetManager;
     private DashboardConfiguration config;
     private DefPiParameters parameters;
-    private ControlAdminFullWidget controlAdminFullWidget;
 
     @Override
     public void resumeFrom(final Serializable state) {
@@ -58,11 +55,8 @@ public class Dashboard implements Service<DashboardConfiguration> {
     public void init(final DashboardConfiguration dashboardConfig, final DefPiParameters defpiParams) {
         this.parameters = defpiParams;
         this.config = dashboardConfig;
-        this.requestRouter = new HttpRouter(this.fullWidgetManager);
-        this.dashboardFullWidget = new DashboardFullWidget();
-        this.controlAdminFullWidget = new ControlAdminFullWidget(this);
-        this.fullWidgetManager.registerFullWidgetOrPage(this.dashboardFullWidget);
-        this.fullWidgetManager.registerFullWidgetOrPage(this.controlAdminFullWidget);
+        this.widgetManager = new WidgetManager();
+        this.requestRouter = new HttpRouter(this.widgetManager);
     }
 
     @Override
@@ -82,31 +76,11 @@ public class Dashboard implements Service<DashboardConfiguration> {
     }
 
     public void registerWidget(final Widget widget) {
-        switch (widget.getType()) {
-        case FULL_WIDGET:
-        case PAGE:
-            this.fullWidgetManager.registerFullWidgetOrPage(widget);
-            break;
-        case SMALL_WIDGET:
-            this.dashboardFullWidget.registerSmallWidget(widget);
-            break;
-        default:
-            break;
-        }
+        this.widgetManager.registerWidget(widget);
     }
 
     public void unregisterWidget(final Widget widget) {
-        switch (widget.getType()) {
-        case FULL_WIDGET:
-        case PAGE:
-            this.fullWidgetManager.unregisterFullWidgetOrPage(widget);
-            break;
-        case SMALL_WIDGET:
-            this.dashboardFullWidget.unregisterSmallWidget(widget);
-            break;
-        default:
-            break;
-        }
+        this.widgetManager.unregisterWidget(widget);
     }
 
     public HttpRouter getRequestRouter() {

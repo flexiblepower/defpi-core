@@ -9,9 +9,9 @@ package org.flexiblepower.defpi.dashboard.widget.http;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -61,6 +61,9 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
     private final Map<Integer, HttpTask> responseList = new ConcurrentHashMap<>();
     private WidgetInfo widgetInfo = null;
 
+    private final String remoteProcessId;
+    private final String remoteServiceId;
+
     /**
      * Auto-generated constructor for the ConnectionHandlers of the provided service
      *
@@ -70,6 +73,8 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
     public Widget_httpConnectionHandlerImpl(final Connection connection, final Dashboard service) {
         this.connection = connection;
         this.service = service;
+        this.remoteProcessId = this.connection.remoteProcessId();
+        this.remoteServiceId = this.connection.remoteServiceId();
     }
 
     @Override
@@ -170,11 +175,19 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
             return null;
         } else if (this.widgetInfo.getType() == WidgetType.FULL_WIDGET) {
             return Widget.Type.FULL_WIDGET;
-        } else if (this.widgetInfo.getType() == WidgetType.PAGE) {
-            return Widget.Type.PAGE;
         } else {
             return Widget.Type.SMALL_WIDGET;
         }
+    }
+
+    @Override
+    public String getProcessId() {
+        return this.remoteProcessId;
+    }
+
+    @Override
+    public String getServiceId() {
+        return this.remoteServiceId;
     }
 
 }
