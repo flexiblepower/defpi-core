@@ -94,31 +94,7 @@
 			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
 		</snapshotRepository>
 	</distributionManagement>
-
-	<!-- Where to find dependencies -->
-	<!-- repositories>
-		<repository>
-			<id>sonatype-snapshot</id>
-			<name>Sonatype snapshot repository</name>
-			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
-	</repositories -->
-
-	<!-- Where to find plugins -->
-	<!--  pluginRepositories>
-		<pluginRepository>
-			<id>sonatype-snapshot</id>
-			<name>Sonatype snapshot repository</name>
-			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</pluginRepository>
-	</pluginRepositories -->
-
+	
 	<dependencies>
 		<!-- Use the defpi-service library to communicate with orchestrator -->
 		<dependency>
