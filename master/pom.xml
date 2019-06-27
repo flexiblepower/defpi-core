@@ -277,6 +277,13 @@
 					<artifactId>license-maven-plugin</artifactId>
 					<version>1.16</version>
 				</plugin>
+
+				<plugin>
+					<groupId>com.spotify</groupId>
+					<artifactId>docker-maven-plugin</artifactId>
+					<!-- Upgrading to 1.2.0 breaks deploying with credentials, see https://github.com/spotify/docker-maven-plugin/issues/309 -->
+					<version>1.1.1</version>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 
