@@ -47,13 +47,6 @@ public class CompilerTest {
     }
 
     @Test
-    public void testSimpleRamlCompiler() throws IOException {
-        final JavaRamlCompiler compiler = new JavaRamlCompiler();
-        compiler.setBasePackageName("org.flexiblepower.defpi.test");
-        compiler.compile(Paths.get("src/test/resources/simpleapi.raml"), Paths.get("target/raml-test-results1"));
-    }
-
-    @Test
     public void testMDERamlCompiler() throws IOException {
         final JavaRamlCompiler compiler = new JavaRamlCompiler();
         compiler.setBasePackageName("org.flexiblepower.defpi.test");

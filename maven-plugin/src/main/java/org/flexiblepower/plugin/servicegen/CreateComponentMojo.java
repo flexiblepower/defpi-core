@@ -148,13 +148,13 @@ public class CreateComponentMojo extends AbstractMojo {
     /**
      * Folder where the RAML resources should be put, relative to the ${defpi.resources.generated}
      */
-    @Parameter(property = "defpi.raml.outputfolder", defaultValue = "xsd")
+    @Parameter(property = "defpi.raml.outputfolder", defaultValue = "raml")
     private String ramlOutputLocation;
 
     /**
      * Package where the RAML sources will be put in (in source folder ${defpi.sources.generated})
      */
-    @Parameter(property = "defpi.raml.package", defaultValue = "xml")
+    @Parameter(property = "defpi.raml.package", defaultValue = "raml")
     private String ramlOutputPackage;
 
     /**
@@ -530,6 +530,7 @@ public class CreateComponentMojo extends AbstractMojo {
 
         // Compute hash and store in interface
         final String interfaceHash = PluginUtils.SHA256(ramlSourceFilePath);
+        // TODO take into consideration referenced files
         vitf.setHash(interfaceHash);
 
         if (this.hashes.containsKey(interfaceHash)) {
