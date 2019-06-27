@@ -24,6 +24,7 @@ import java.util.List;
 import org.flexiblepower.connectors.DockerConnector;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -38,6 +39,7 @@ import com.spotify.docker.client.messages.swarm.Node;
  * @version 0.1
  * @since May 8, 2017
  */
+@Ignore
 @SuppressWarnings({"static-method", "javadoc"})
 public class DockerConnectorTest {
 

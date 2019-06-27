@@ -4,6 +4,14 @@ MAVEN_CLI_OPTS=-T4 --batch-mode --errors --fail-at-end -DinstallAtEnd=true -Ddep
 
 all: install
 
+deploy:
+	@export MAVEN_OPTS="-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+	mvn $(MAVEN_CLI_OPTS) -f master/pom.xml deploy
+
+install-no-test:
+	@export MAVEN_OPTS="-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+	mvn $(MAVEN_CLI_OPTS) -f master/pom.xml install -DskipTests
+
 install:
 	@export MAVEN_OPTS="-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
 	mvn $(MAVEN_CLI_OPTS) -f master/pom.xml install

@@ -528,7 +528,8 @@ public class DockerConnector {
 
         final Map<String, String> envArgs = new HashMap<>();
         if (process.getDebuggingPort() != 0) {
-            jvmArgs += String.format("-Xdebug -agentlib:jdwp=transport=dt_socket,server=y,suspend=%s,address=%d",
+            jvmArgs += String.format(
+                    "-Xdebug -agentlib:jdwp=transport=dt_socket,server=y,suspend=%s,address=0.0.0.0:%d",
                     process.isSuspendOnDebug() ? "y" : "n",
                     DockerConnector.INTERNAL_DEBUGGING_PORT);
             endpointSpec.addPort(PortConfig.builder()

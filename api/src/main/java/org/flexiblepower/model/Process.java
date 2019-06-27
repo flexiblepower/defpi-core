@@ -185,7 +185,7 @@ public class Process {
     private long maxNanoCPUs;
 
     @Builder.Default
-    private boolean suspendOnDebug = true;
+    private boolean suspendOnDebug = false;
 
     /**
      * Mount points can be added in order to allow physical devices be used from the java process. e.g. to use a usb
