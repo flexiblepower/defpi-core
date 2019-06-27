@@ -13,14 +13,14 @@
       "type": "array",
       "uniqueItems": true,
       "items": {
-      	"type": "object",
+        "type": "object",
         "properties": {
           "id": {
             "type": "string",
             "pattern": "^([a-z])([a-zA-Z0-9])+$"
           },
           "name": {
-           	"$ref":"#/definitions/name"
+             "$ref":"#/definitions/name"
           },
           "type": {
             "enum": [
@@ -47,7 +47,7 @@
               "type": "string",
               "uniqueItems": true,
               "items": {
-         	    "type": "string"
+                "type": "string"
               }
             }
           },
@@ -98,7 +98,8 @@
                   "type": "string",
                   "enum": [
                     "xsd",
-                    "proto"
+                    "proto",
+                    "raml"
                   ]
                 },
                 "location": {
@@ -113,7 +114,6 @@
               },
               "required": [
                 "versionName",
-                "type",
                 "location",
                 "sends",
                 "receives"

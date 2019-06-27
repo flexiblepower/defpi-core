@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -75,6 +75,16 @@ public class CodegenTest {
     }
 
     @Test
+    public void testReadServiceValidation() throws IOException {
+        final ServiceDescription descr = PluginUtils.readServiceDefinition(new File("src/test/resources/service.json"));
+        for (final InterfaceDescription i : descr.getInterfaces()) {
+            for (final InterfaceVersionDescription v : i.getInterfaceVersions()) {
+                Assert.assertNotNull(v.getType());
+            }
+        }
+    }
+
+    @Test
     public void testComputeHashes() throws JsonParseException, JsonMappingException, IOException {
         final File hashTestFile = new File("src/test/resources/hashes.json");
         final ServiceDescription descr = this.mapper.readValue(hashTestFile, ServiceDescription.class);
@@ -99,7 +109,7 @@ public class CodegenTest {
                 PluginUtils.SHA256(dst));
 
         String baseHash = "1";
-        Set<String> messageSet = new HashSet<>(Arrays.asList("Something", "Another thing", "Cool stuff"));
+        final Set<String> messageSet = new HashSet<>(Arrays.asList("Something", "Another thing", "Cool stuff"));
         for (final String key : messageSet) {
             baseHash += ";" + key;
         }

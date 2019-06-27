@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -43,6 +43,7 @@ import org.flexiblepower.codegen.model.InterfaceVersionDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription.Type;
 import org.flexiblepower.codegen.model.ServiceDescription;
 import org.flexiblepower.plugin.servicegen.compiler.JavaProtoCompiler;
+import org.flexiblepower.plugin.servicegen.compiler.JavaRamlCompiler;
 import org.flexiblepower.plugin.servicegen.compiler.XjcCompiler;
 import org.sonatype.plexus.build.incremental.BuildContext;
 
@@ -139,6 +140,24 @@ public class CreateComponentMojo extends AbstractMojo {
     private String xsdOutputPackage;
 
     /**
+     * Folder where the RAML sources can be found, relative to the ${project.resources.directory}
+     */
+    @Parameter(property = "defpi.raml.inputfolder", defaultValue = ".")
+    private String ramlInputLocation;
+
+    /**
+     * Folder where the RAML resources should be put, relative to the ${defpi.resources.generated}
+     */
+    @Parameter(property = "defpi.raml.outputfolder", defaultValue = "xsd")
+    private String ramlOutputLocation;
+
+    /**
+     * Package where the RAML sources will be put in (in source folder ${defpi.sources.generated})
+     */
+    @Parameter(property = "defpi.raml.package", defaultValue = "xml")
+    private String ramlOutputPackage;
+
+    /**
      * Service definition file, relative to the ${project.resources.directory}
      */
     @Parameter(property = "defpi.service.description", defaultValue = "service.json")
@@ -180,14 +199,14 @@ public class CreateComponentMojo extends AbstractMojo {
 
     private JavaProtoCompiler protoCompiler;
     private XjcCompiler xjcCompiler;
-
+    private JavaRamlCompiler ramlCompiler;
     private JavaTemplates templates;
 
     /**
      * Main function of the Maven plugin, will call the several stages of the plugin.
      *
-     * @throws MojoFailureException   If the input or output to the maven plugin was incorrect. e.g. incorrect
-     *                                    service.json or a reference to a non-existing file.
+     * @throws MojoFailureException If the input or output to the maven plugin was incorrect. e.g. incorrect
+     *             service.json or a reference to a non-existing file.
      * @throws MojoExecutionException If any other unexpected exception occured while executing the maven plugin
      */
     @Override
@@ -403,11 +422,12 @@ public class CreateComponentMojo extends AbstractMojo {
         for (final InterfaceDescription iface : service.getInterfaces()) {
             for (final InterfaceVersionDescription versionDescription : iface.getInterfaceVersions()) {
 
-                if (versionDescription.getType().equals(Type.PROTO)) {
+                if (Type.PROTO.equals(versionDescription.getType())) {
                     this.compileProtoDescriptor(iface, versionDescription);
-
-                } else if (versionDescription.getType().equals(Type.XSD)) {
+                } else if (Type.XSD.equals(versionDescription.getType())) {
                     this.compileXSDDescriptor(iface, versionDescription);
+                } else if (Type.RAML.equals(versionDescription.getType())) {
+                    this.compileRAMLDescriptor(iface, versionDescription);
                 }
             }
         }
@@ -438,7 +458,7 @@ public class CreateComponentMojo extends AbstractMojo {
                 this.servicePackage + "." + JavaPluginUtils.getPackageName(itf, vitf) + "." + this.xsdOutputPackage);
         this.hashes.put(interfaceHash, vitf);
 
-        // Append additional compilation info to the proto file and compile the java code
+        // Copy the temporary file to the target resources folder
         final Path xsdDestFilePath = Files
                 .createDirectories(Paths.get(this.targetResources).resolve(this.xsdOutputLocation))
                 .resolve(JavaPluginUtils.getVersionedName(itf, vitf) + ".xsd");
@@ -496,6 +516,39 @@ public class CreateComponentMojo extends AbstractMojo {
         }
 
         this.protoCompiler.compile(protoDestFilePath, Paths.get(this.genSourceLocation));
+    }
+
+    /**
+     * @param itf The interface description to generate the RAML handler for
+     * @param vitf The specific version of the interface description to generate the RAML handler for
+     * @throws IOException if the target file cannot be written
+     */
+    private void compileRAMLDescriptor(final InterfaceDescription itf, final InterfaceVersionDescription vitf)
+            throws IOException {
+        final Path ramlSourceFilePath = PluginUtils.downloadFileOrResolve(vitf.getLocation(),
+                Paths.get(this.inputResources).resolve(this.ramlInputLocation));
+
+        // Compute hash and store in interface
+        final String interfaceHash = PluginUtils.SHA256(ramlSourceFilePath);
+        vitf.setHash(interfaceHash);
+
+        if (this.hashes.containsKey(interfaceHash)) {
+            vitf.setModelPackageName(this.hashes.get(interfaceHash).getModelPackageName());
+            return;
+        }
+
+        // Get the package name and add the hash
+        vitf.setModelPackageName(
+                this.servicePackage + "." + JavaPluginUtils.getPackageName(itf, vitf) + "." + this.ramlOutputPackage);
+        this.hashes.put(interfaceHash, vitf);
+
+        // Copy the temporary file to the target resources folder
+        final Path ramlDestFilePath = Files
+                .createDirectories(Paths.get(this.targetResources).resolve(this.ramlOutputLocation))
+                .resolve(JavaPluginUtils.getVersionedName(itf, vitf) + ".raml");
+        Files.copy(ramlSourceFilePath, ramlDestFilePath, StandardCopyOption.REPLACE_EXISTING);
+
+        this.ramlCompiler.compile(ramlDestFilePath, Paths.get(this.genSourceLocation));
     }
 
 }

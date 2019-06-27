@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -51,9 +51,6 @@ public class InterfaceVersionDescription {
     @JsonProperty("versionName")
     private String versionName;
 
-    /**
-     * (Required)
-     */
     @JsonProperty("type")
     private InterfaceVersionDescription.Type type;
 
@@ -86,6 +83,22 @@ public class InterfaceVersionDescription {
     private String modelPackageName = null;
 
     /**
+     * @return The Type of the descriptor. If none is given in the service description, determine it automatically from
+     *         the file name (if possible).
+     */
+    final public Type getType() {
+        return this.type != null ? this.type : this.determineType();
+    }
+
+    /**
+     * @return
+     */
+    private Type determineType() {
+        final String[] parts = this.location.split("\\.");
+        return Type.fromValue(parts[parts.length - 1]);
+    }
+
+    /**
      * The type of descriptor for the interface version. In the current implementation this is either XSD or PROTO, but
      * may be extended in the future.
      *
@@ -101,7 +114,11 @@ public class InterfaceVersionDescription {
         /**
          * Google Protobuf descriptor type
          */
-        PROTO("proto");
+        PROTO("proto"),
+        /**
+         * RAML descriptor type
+         */
+        RAML("raml");
 
         private final String value;
         private final static Map<String, InterfaceVersionDescription.Type> CONSTANTS = new HashMap<>();

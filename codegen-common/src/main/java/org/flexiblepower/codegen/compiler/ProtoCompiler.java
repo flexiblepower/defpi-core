@@ -34,7 +34,7 @@ import org.flexiblepower.codegen.PluginUtils;
  * @version 0.1
  * @since 21 jun. 2018
  */
-public abstract class ProtoCompiler implements Compiler {
+public abstract class ProtoCompiler implements InterfaceCompiler {
 
     private static final Object downloadFileLock = new Object();
     private final File compilerFile;
