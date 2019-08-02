@@ -19,9 +19,11 @@
  */
 package org.flexiblepower.codegen.model;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -60,19 +62,20 @@ public class InterfaceVersionDescription {
     @JsonProperty("location")
     private String location;
 
-    /**
-     * (Required)
-     */
     @JsonProperty("sends")
-    @JsonDeserialize(as = java.util.TreeSet.class)
-    private final Set<String> sends = null;
+    @JsonDeserialize(as = TreeSet.class)
+    private Set<String> sends = null;
+
+    @JsonProperty("receives")
+    @JsonDeserialize(as = TreeSet.class)
+    private Set<String> receives = null;
 
     /**
-     * (Required)
+     * The interface role is only specified for interfaces of the RAML type. If it is used the role will specify what
+     * role the service plays in the interface
      */
-    @JsonProperty("receives")
-    @JsonDeserialize(as = java.util.TreeSet.class)
-    private final Set<String> receives = null;
+    @JsonProperty("interfaceRole")
+    private InterfaceVersionDescription.Role interfaceRole;
 
     @Setter
     @JsonIgnore
@@ -96,6 +99,31 @@ public class InterfaceVersionDescription {
     private Type determineType() {
         final String[] parts = this.location.split("\\.");
         return Type.fromValue(parts[parts.length - 1]);
+    }
+
+    /**
+     * @return A Set of Strings indicating the types of objects that the interface receives. If the interface is of type
+     *         RAML, none are defined, so we just put the Raml types
+     */
+    final public Set<String> getReceives() {
+        if ((this.receives == null) && (this.getType() == Type.RAML)) {
+            // This also means that it will only be populated the first time
+            this.receives = Collections
+                    .singleton(Role.CLIENT.equals(this.interfaceRole) ? "RamlResponse" : "RamlRequest");
+        }
+        return this.receives;
+    }
+
+    /**
+     * @return A Set of Strings indicating the types of objects that the interface sends. If the interface is of type
+     *         RAML, none are defined, so we just put the Raml types
+     */
+    final public Set<String> getSends() {
+        if ((this.sends == null) && (this.getType() == Type.RAML)) {
+            // This also means that it will only be populated the first time
+            this.sends = Collections.singleton(Role.CLIENT.equals(this.interfaceRole) ? "RamlRequest" : "RamlResponse");
+        }
+        return this.sends;
     }
 
     /**
@@ -162,6 +190,67 @@ public class InterfaceVersionDescription {
             }
         }
 
+    }
+
+    /**
+     * Role
+     *
+     * @version 0.1
+     * @since Aug 2, 2019
+     */
+    public enum Role {
+        /**
+         * Indicates that the service acts as a server in the interface, i.e. it will offer the functions described in
+         * the RAML file
+         */
+        SERVER("server"),
+        /**
+         * Indicates that the service acts as a cliet in the interface, i.e. it will use the functions described in
+         * the RAML file
+         */
+        CLIENT("client");
+
+        private final String value;
+        private final static Map<String, InterfaceVersionDescription.Role> CONSTANTS = new HashMap<>();
+
+        static {
+            for (final InterfaceVersionDescription.Role c : Role.values()) {
+                Role.CONSTANTS.put(c.value, c);
+            }
+        }
+
+        private Role(final String value) {
+            this.value = value;
+        }
+
+        @Override
+        public String toString() {
+            return this.value;
+        }
+
+        /**
+         * @return The value of the role
+         */
+        @JsonValue
+        public String value() {
+            return this.value;
+        }
+
+        /**
+         * Get the enum type from a string representation of the value
+         *
+         * @param value The value to get the Role of
+         * @return A enum Role that represents the provided value
+         */
+        @JsonCreator
+        public static InterfaceVersionDescription.Role fromValue(final String value) {
+            final InterfaceVersionDescription.Role constant = Role.CONSTANTS.get(value);
+            if (constant == null) {
+                throw new IllegalArgumentException(value);
+            } else {
+                return constant;
+            }
+        }
     }
 
 }

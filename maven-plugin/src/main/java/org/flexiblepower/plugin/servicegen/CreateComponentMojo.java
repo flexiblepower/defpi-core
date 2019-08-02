@@ -226,6 +226,11 @@ public class CreateComponentMojo extends AbstractMojo {
             }
 
             final ServiceDescription service = PluginUtils.readServiceDefinition(serviceDescriptionFile);
+            final String err = CreateComponentMojo.validateServiceInterfaces(service);
+            if (err != null) {
+                this.buildContext.addMessage(serviceDescriptionFile, 1, 1, err, BuildContext.SEVERITY_ERROR, null);
+                throw new ProcessingException(err);
+            }
             service.setId(this.artifactId);
 
             // Add descriptors and related hashes
@@ -316,97 +321,40 @@ public class CreateComponentMojo extends AbstractMojo {
     }
 
     /**
-     * Create stubs for the service implementation. By using the templates in the JavaTemplates object.
-     *
-     * @param serviceDescription The service definition read from file to generate the sources from
-     * @throws IOException When unable to read the file, or write the code
+     * @param service The service description object (after reading it from the file)
+     * @return An error string if any errors are found. If not, it will return null
      */
-    private void createJavaFiles(final ServiceDescription serviceDescription) throws IOException {
-        this.getLog().debug("Creating stubs");
-
-        final String packageFolder = this.servicePackage.replace('.', '/');
-        final Path mainJavaFolder = Paths.get(this.mainSourceLocation).resolve(packageFolder);
-        final Path generatedJavaFolder = Paths.get(this.genSourceLocation).resolve(packageFolder);
-
-        Files.createDirectories(mainJavaFolder);
-        Files.createDirectories(generatedJavaFolder);
-
-        final String ext = ".java";
-        if (serviceDescription.getParameters() != null) {
-            final Path configInterface = generatedJavaFolder
-                    .resolve(JavaPluginUtils.configInterfaceClass(serviceDescription) + ext);
-            Files.write(configInterface, this.templates.generateConfigInterface().getBytes());
-        }
-
-        final Path serviceImpl = mainJavaFolder.resolve(JavaPluginUtils.serviceImplClass(serviceDescription) + ext);
-        if (serviceImpl.toFile().exists()) {
-            this.getLog().debug("Skipping existing file " + serviceImpl.toString());
-        } else {
-            Files.write(serviceImpl, this.templates.generateServiceImplementation().getBytes());
-        }
-
-        for (final InterfaceDescription itf : serviceDescription.getInterfaces()) {
-            final String interfacePackageName = JavaPluginUtils.getPackageName(itf);
-            final Path interfaceGeneratedPath = Files
-                    .createDirectories(generatedJavaFolder.resolve(interfacePackageName));
-            final Path interfaceMainPath = Files.createDirectories(mainJavaFolder.resolve(interfacePackageName));
-
-            final Path manager = interfaceGeneratedPath.resolve(JavaPluginUtils.managerInterface(itf) + ext);
-            final Path managerImpl = interfaceMainPath.resolve(JavaPluginUtils.managerClass(itf) + ext);
-
-            // Write interface files
-            Files.write(manager, this.templates.generateManagerInterface(itf).getBytes());
-
-            if (managerImpl.toFile().exists()) {
-                this.getLog().debug("Skipping existing file " + managerImpl.toString());
-            } else {
-                Files.write(managerImpl, this.templates.generateManagerImplementation(itf).getBytes());
-            }
-
-            for (final InterfaceVersionDescription version : itf.getInterfaceVersions()) {
-                // Create folders for the version directories
-                final String versionPackageName = JavaPluginUtils.getPackageName(version);
-                final Path versionGeneratedPath = Files
-                        .createDirectories(interfaceGeneratedPath.resolve(versionPackageName));
-                final Path versionMainPath = Files.createDirectories(interfaceMainPath.resolve(versionPackageName));
-
-                final Path connectionHandler = versionGeneratedPath
-                        .resolve(JavaPluginUtils.connectionHandlerInterface(itf, version) + ext);
-                final Path connectionHandlerImpl = versionMainPath
-                        .resolve(JavaPluginUtils.connectionHandlerClass(itf, version) + ext);
-
-                // Write files
-                Files.write(connectionHandler, this.templates.generateHandlerInterface(itf, version).getBytes())
-                        .toFile();
-
-                if (connectionHandlerImpl.toFile().exists()) {
-                    this.getLog().debug("Skipping existing file " + connectionHandlerImpl.toString());
+    private static String validateServiceInterfaces(final ServiceDescription service) {
+        for (final InterfaceDescription itf : service.getInterfaces()) {
+            for (final InterfaceVersionDescription vitf : itf.getInterfaceVersions()) {
+                final String name = JavaPluginUtils.getVersionedName(itf, vitf);
+                if (Type.RAML.equals(vitf.getType())) {
+                    if (vitf.getInterfaceRole() == null) {
+                        return String.format("Interface {} is of type RAML, so should define a valid \"interfaceRole\"",
+                                name);
+                    }
+                    if ((vitf.getSends().size() != 1) || (!vitf.getSends().contains("RamlRequest")
+                            && !vitf.getSends().contains("RamlResponse"))) {
+                        return String.format(
+                                "Interface {} is of type RAML, so should not define \"sends\", instead use interfaceRole",
+                                name);
+                    }
+                    if ((vitf.getReceives().size() != 1) || (!vitf.getReceives().contains("RamlRequest")
+                            && !vitf.getReceives().contains("RamlResponse"))) {
+                        return String.format(
+                                "Interface {} is of type RAML, so should not define \"receives\", instead use interfaceRole",
+                                name);
+                    }
                 } else {
-                    Files.write(connectionHandlerImpl,
-                            this.templates.generateHandlerImplementation(itf, version).getBytes());
+                    if (vitf.getInterfaceRole() != null) {
+                        return String.format(
+                                "Interface {} is not of type RAML, so should not define an \"interfaceRole\"",
+                                name);
+                    }
                 }
-
             }
         }
-    }
-
-    /**
-     * Create the Dockerfiles
-     *
-     * @throws IOException When unable to write to the target Dockerfile
-     */
-    private void createDockerfiles() throws IOException {
-        this.getLog().debug("Creating Dockerfiles");
-
-        final Path targetResourcePath = Paths.get(this.targetResources);
-        final Path dockerFolder = Files.createDirectories(targetResourcePath.resolve(this.dockerLocation));
-        final Path dockerArmFolder = Files.createDirectories(targetResourcePath.resolve(this.dockerArmLocation));
-
-        Files.write(dockerFolder.resolve("Dockerfile"),
-                this.templates.generateDockerfile("x86", this.dockerEntryPoint).getBytes());
-
-        Files.write(dockerArmFolder.resolve("Dockerfile"),
-                this.templates.generateDockerfile("arm", this.dockerEntryPoint).getBytes());
+        return null;
     }
 
     /**
@@ -419,8 +367,6 @@ public class CreateComponentMojo extends AbstractMojo {
         this.protoCompiler = new JavaProtoCompiler(this.protobufVersion);
         this.xjcCompiler = new XjcCompiler();
         this.ramlCompiler = new JavaRamlCompiler();
-
-        this.getLog().warn("OKAY\"?\"");
 
         for (final InterfaceDescription iface : service.getInterfaces()) {
             for (final InterfaceVersionDescription versionDescription : iface.getInterfaceVersions()) {
@@ -528,8 +474,8 @@ public class CreateComponentMojo extends AbstractMojo {
      */
     private void compileRAMLDescriptor(final InterfaceDescription itf, final InterfaceVersionDescription vitf)
             throws IOException {
-        final Path ramlSourceFilePath = PluginUtils.downloadFileOrResolve(vitf.getLocation(),
-                Paths.get(this.inputResources).resolve(this.ramlInputLocation));
+        final Path ramlResourceLocation = Paths.get(this.inputResources).resolve(this.ramlInputLocation);
+        final Path ramlSourceFilePath = PluginUtils.downloadFileOrResolve(vitf.getLocation(), ramlResourceLocation);
 
         // Compute hash and store in interface
         final String interfaceHash = PluginUtils.SHA256(ramlSourceFilePath);
@@ -552,8 +498,108 @@ public class CreateComponentMojo extends AbstractMojo {
                 .resolve(JavaPluginUtils.getVersionedName(itf, vitf) + ".raml");
         Files.copy(ramlSourceFilePath, ramlDestFilePath, StandardCopyOption.REPLACE_EXISTING);
 
+        // If there are (locally) any more resources, try and find them.
+        final Path localRamlFile = ramlResourceLocation.resolve(vitf.getLocation()).normalize();
+        if (localRamlFile.toFile().exists()) {
+            Files.walkFileTree(localRamlFile.getParent(), new FileCopier(ramlDestFilePath, localRamlFile));
+        }
+
         this.ramlCompiler.setBasePackageName(vitf.getModelPackageName());
         this.ramlCompiler.compile(ramlDestFilePath, Paths.get(this.genSourceLocation));
+    }
+
+    /**
+     * Create stubs for the service implementation. By using the templates in the JavaTemplates object.
+     *
+     * @param serviceDescription The service definition read from file to generate the sources from
+     * @throws IOException When unable to read the file, or write the code
+     */
+    private void createJavaFiles(final ServiceDescription serviceDescription) throws IOException {
+        this.getLog().debug("Creating stubs");
+
+        final String packageFolder = this.servicePackage.replace('.', '/');
+        final Path mainJavaFolder = Paths.get(this.mainSourceLocation).resolve(packageFolder);
+        final Path generatedJavaFolder = Paths.get(this.genSourceLocation).resolve(packageFolder);
+
+        Files.createDirectories(mainJavaFolder);
+        Files.createDirectories(generatedJavaFolder);
+
+        final String ext = ".java";
+        if (serviceDescription.getParameters() != null) {
+            final Path configInterface = generatedJavaFolder
+                    .resolve(JavaPluginUtils.configInterfaceClass(serviceDescription) + ext);
+            Files.write(configInterface, this.templates.generateConfigInterface().getBytes());
+        }
+
+        final Path serviceImpl = mainJavaFolder.resolve(JavaPluginUtils.serviceImplClass(serviceDescription) + ext);
+        if (serviceImpl.toFile().exists()) {
+            this.getLog().debug("Skipping existing file " + serviceImpl.toString());
+        } else {
+            Files.write(serviceImpl, this.templates.generateServiceImplementation().getBytes());
+        }
+
+        for (final InterfaceDescription itf : serviceDescription.getInterfaces()) {
+            final String interfacePackageName = JavaPluginUtils.getPackageName(itf);
+            final Path interfaceGeneratedPath = Files
+                    .createDirectories(generatedJavaFolder.resolve(interfacePackageName));
+            final Path interfaceMainPath = Files.createDirectories(mainJavaFolder.resolve(interfacePackageName));
+
+            final Path manager = interfaceGeneratedPath.resolve(JavaPluginUtils.managerInterface(itf) + ext);
+            final Path managerImpl = interfaceMainPath.resolve(JavaPluginUtils.managerClass(itf) + ext);
+
+            // Write interface files
+            Files.write(manager, this.templates.generateManagerInterface(itf).getBytes());
+
+            if (managerImpl.toFile().exists()) {
+                this.getLog().debug("Skipping existing file " + managerImpl.toString());
+            } else {
+                Files.write(managerImpl, this.templates.generateManagerImplementation(itf).getBytes());
+            }
+
+            for (final InterfaceVersionDescription version : itf.getInterfaceVersions()) {
+                // Create folders for the version directories
+                final String versionPackageName = JavaPluginUtils.getPackageName(version);
+                final Path versionGeneratedPath = Files
+                        .createDirectories(interfaceGeneratedPath.resolve(versionPackageName));
+                final Path versionMainPath = Files.createDirectories(interfaceMainPath.resolve(versionPackageName));
+
+                final Path connectionHandler = versionGeneratedPath
+                        .resolve(JavaPluginUtils.connectionHandlerInterface(itf, version) + ext);
+                final Path connectionHandlerImpl = versionMainPath
+                        .resolve(JavaPluginUtils.connectionHandlerClass(itf, version) + ext);
+
+                // Write files
+                Files.write(connectionHandler, this.templates.generateHandlerInterface(itf, version).getBytes())
+                        .toFile();
+
+                if (connectionHandlerImpl.toFile().exists()) {
+                    this.getLog().debug("Skipping existing file " + connectionHandlerImpl.toString());
+                } else {
+                    Files.write(connectionHandlerImpl,
+                            this.templates.generateHandlerImplementation(itf, version).getBytes());
+                }
+
+            }
+        }
+    }
+
+    /**
+     * Create the Dockerfiles
+     *
+     * @throws IOException When unable to write to the target Dockerfile
+     */
+    private void createDockerfiles() throws IOException {
+        this.getLog().debug("Creating Dockerfiles");
+
+        final Path targetResourcePath = Paths.get(this.targetResources);
+        final Path dockerFolder = Files.createDirectories(targetResourcePath.resolve(this.dockerLocation));
+        final Path dockerArmFolder = Files.createDirectories(targetResourcePath.resolve(this.dockerArmLocation));
+
+        Files.write(dockerFolder.resolve("Dockerfile"),
+                this.templates.generateDockerfile("x86", this.dockerEntryPoint).getBytes());
+
+        Files.write(dockerArmFolder.resolve("Dockerfile"),
+                this.templates.generateDockerfile("arm", this.dockerEntryPoint).getBytes());
     }
 
 }

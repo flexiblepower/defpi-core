@@ -21,6 +21,7 @@ package org.flexiblepower.plugin.servicegen;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
@@ -92,8 +93,8 @@ public class PluginTest {
     @Test
     public void steadyHashTest() throws JsonParseException, JsonMappingException, IOException {
         final Path testFile = Files.createTempFile("http", ".proto");
-        PluginUtils.downloadFile(
-                "https://raw.githubusercontent.com/defpi/interfaces/6098df232adb24fe17612857ecc23597d5174680/defpi/HTTP.proto",
+        PluginUtils.downloadFile(new URL(
+                "https://raw.githubusercontent.com/defpi/interfaces/6098df232adb24fe17612857ecc23597d5174680/defpi/HTTP.proto"),
                 testFile.toFile());
 
         final String fileHash = "e00da70ae21e257e79e23df20461e28edb5c6e4c16f6675b8dc4c40e574ebc06";

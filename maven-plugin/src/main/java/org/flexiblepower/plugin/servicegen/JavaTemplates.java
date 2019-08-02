@@ -265,21 +265,35 @@ class JavaTemplates extends Templates {
             replaceMap.put("vitf.handler.definitions", String.join("\n\n", definitions));
             replaceMap.put("vitf.handler.implementations", String.join("\n\n", implementations));
 
-            if (version.getType().equals(Type.PROTO)) {
-                replaceMap.put("vitf.serializer", "ProtobufMessageSerializer");
-            } else if (version.getType().equals(Type.XSD)) {
+            if (version.getType().equals(Type.XSD)) {
                 replaceMap.put("vitf.serializer", "XSDMessageSerializer");
+            } else {
+                replaceMap.put("vitf.serializer", "ProtobufMessageSerializer");
             }
 
             // Add imports for the handlers
             final Set<String> handlerImports = new HashSet<>();
             final Set<String> interfaceImports = new HashSet<>();
             for (final String type : version.getReceives()) {
-                handlerImports.add(String.format("import %s.%s;", version.getModelPackageName(), type));
-                interfaceImports.add(String.format("import %s.%s;", version.getModelPackageName(), type));
+                if (type.equals("RamlRequest")) {
+                    handlerImports.add("import org.flexiblepower.proto.RamlProto.RamlRequest;");
+                    interfaceImports.add("import org.flexiblepower.proto.RamlProto.RamlRequest;");
+                } else if (type.equals("RamlResponse")) {
+                    handlerImports.add("import org.flexiblepower.proto.RamlProto.RamlResponse;");
+                    interfaceImports.add("import org.flexiblepower.proto.RamlProto.RamlResponse;");
+                } else {
+                    handlerImports.add(String.format("import %s.%s;", version.getModelPackageName(), type));
+                    interfaceImports.add(String.format("import %s.%s;", version.getModelPackageName(), type));
+                }
             }
             for (final String type : version.getSends()) {
-                interfaceImports.add(String.format("import %s.%s;", version.getModelPackageName(), type));
+                if (type.equals("RamlRequest")) {
+                    interfaceImports.add("import org.flexiblepower.proto.RamlProto.RamlRequest;");
+                } else if (type.equals("RamlResponse")) {
+                    interfaceImports.add("import org.flexiblepower.proto.RamlProto.RamlResponse;");
+                } else {
+                    interfaceImports.add(String.format("import %s.%s;", version.getModelPackageName(), type));
+                }
             }
 
             replaceMap.put("vitf.handler.imports", String.join("\n", handlerImports));

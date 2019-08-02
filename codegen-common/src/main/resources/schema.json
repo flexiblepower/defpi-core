@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json-schema.org/draft-06/schema#",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
     "name": {
@@ -110,13 +110,31 @@
                 },
                 "receives": {
                   "$ref": "#/definitions/messageArray"
+                },
+                "interfaceRole": {
+                  "type": "string",
+                  "enum": [
+                    "server",
+                    "client"
+                  ] 
                 }
               },
-              "required": [
-                "versionName",
-                "location",
-                "sends",
-                "receives"
+              "oneOf": [
+                {
+                  "required": [
+                    "versionName",
+                    "location",
+                    "sends",
+                    "receives"
+                  ]
+                },
+                {
+                  "required": [
+                    "versionName",
+                    "location",
+                    "interfaceRole"
+                  ]
+                }
               ],
               "additionalProperties": false
             }

@@ -54,15 +54,15 @@ public class JavaRamlCompiler implements InterfaceCompiler {
     public void compile(final Path sourceFile, final Path targetPath) throws IOException {
         final Configuration config = new Configuration();
 
-        final String[] generateTypesWith = new String[1];
-        generateTypesWith[0] = "jackson2";
+        final String[] generateTypesWith = new String[0];
+        // generateTypesWith[0] = "jackson2";
 
         config.setResourcePackage(this.basePackageName);
         config.setModelPackage(this.basePackageName + ".model");
         config.setSupportPackage(this.basePackageName + ".support");
 
         config.setOutputDirectory(targetPath.toFile());
-        config.setJsonMapper(AnnotationStyle.JACKSON2);
+        config.setJsonMapper(AnnotationStyle.NONE);
 
         config.setJsonMapperConfiguration(Collections.emptyMap());
         config.setTypeConfiguration(generateTypesWith);
