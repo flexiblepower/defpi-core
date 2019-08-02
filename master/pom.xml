@@ -64,10 +64,10 @@
 
 		<!-- The plugin needs the protobuf version to obtain the compiler from 
 			maven central explicitly -->
-		<protobuf.version>3.6.1</protobuf.version>
-		<jackson.databind.version>2.9.8</jackson.databind.version>
-		<mongodb.version>3.9.1</mongodb.version>
-		<log4j.version>2.11.1</log4j.version>
+		<protobuf.version>3.9.0</protobuf.version>
+		<jackson.databind.version>2.10.0.pr1</jackson.databind.version>
+		<mongodb.version>3.11.0-rc0</mongodb.version>
+		<log4j.version>2.12.0</log4j.version>
 		<swagger.version>1.5.21</swagger.version>
 	</properties>
 
@@ -113,7 +113,7 @@
 			<dependency>
 				<groupId>org.projectlombok</groupId>
 				<artifactId>lombok</artifactId>
-				<version>1.18.4</version>
+				<version>1.18.8</version>
 				<scope>provided</scope>
 			</dependency>
 
@@ -177,7 +177,7 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>1.7.25</version>
+			<version>2.0.0-alpha0</version>
 		</dependency>
 
 		<dependency>
@@ -190,7 +190,7 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>4.12</version>
+			<version>4.13-beta-3</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -211,7 +211,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
-					<version>2.22.1</version>
+					<version>3.0.0-M2</version>
 					<configuration>
 						<systemProperties>
 							<property>
@@ -239,13 +239,13 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-deploy-plugin</artifactId>
-					<version>2.8.2</version>
+					<version>3.0.0-M1</version>
 				</plugin>
 
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-install-plugin</artifactId>
-					<version>2.5.2</version>
+					<version>3.0.0-M1</version>
 				</plugin>
 
 				<plugin>
@@ -284,6 +284,12 @@
 					<!-- Upgrading to 1.2.0 breaks deploying with credentials, see https://github.com/spotify/docker-maven-plugin/issues/309 -->
 					<version>1.1.1</version>
 				</plugin>
+
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>versions-maven-plugin</artifactId>
+					<version>2.7</version>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 
@@ -297,28 +303,6 @@
 						<goals>
 							<goal>jar</goal>
 						</goals>
-					</execution>
-				</executions>
-			</plugin>
-
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>versions-maven-plugin</artifactId>
-				<version>2.7</version>
-				<executions>
-					<execution>
-						<id>check-dependency-versions</id>
-						<goals>
-							<goal>display-dependency-updates</goal>
-						</goals>
-						<phase>verify</phase>
-					</execution>
-					<execution>
-						<id>check-plugin-versions</id>
-						<goals>
-							<goal>display-plugin-updates</goal>
-						</goals>
-						<phase>verify</phase>
 					</execution>
 				</executions>
 			</plugin>
