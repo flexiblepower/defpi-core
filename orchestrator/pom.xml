@@ -14,7 +14,7 @@
 	</parent>
 
 	<properties>
-		<jersey.version>2.27</jersey.version>
+		<jersey.version>2.29</jersey.version>
 
 		<project.resourcedir>${project.basedir}/src/main/resources</project.resourcedir>
 		<mainClass>org.flexiblepower.orchestrator.Main</mainClass>
@@ -84,7 +84,7 @@
 		<dependency>
 			<groupId>com.spotify</groupId>
 			<artifactId>docker-client</artifactId>
-			<version>8.14.5</version>
+			<version>8.16.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>ch.qos.logback</groupId>
