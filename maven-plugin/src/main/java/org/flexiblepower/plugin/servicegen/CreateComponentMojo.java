@@ -418,6 +418,9 @@ public class CreateComponentMojo extends AbstractMojo {
 
         this.protoCompiler = new JavaProtoCompiler(this.protobufVersion);
         this.xjcCompiler = new XjcCompiler();
+        this.ramlCompiler = new JavaRamlCompiler();
+
+        this.getLog().warn("OKAY\"?\"");
 
         for (final InterfaceDescription iface : service.getInterfaces()) {
             for (final InterfaceVersionDescription versionDescription : iface.getInterfaceVersions()) {
@@ -549,6 +552,7 @@ public class CreateComponentMojo extends AbstractMojo {
                 .resolve(JavaPluginUtils.getVersionedName(itf, vitf) + ".raml");
         Files.copy(ramlSourceFilePath, ramlDestFilePath, StandardCopyOption.REPLACE_EXISTING);
 
+        this.ramlCompiler.setBasePackageName(vitf.getModelPackageName());
         this.ramlCompiler.compile(ramlDestFilePath, Paths.get(this.genSourceLocation));
     }
 

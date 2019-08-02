@@ -95,6 +95,16 @@
 		</snapshotRepository>
 	</distributionManagement>
 	
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.flexiblepower.defpi</groupId>
+				<artifactId>raml-service</artifactId>
+				<version>${defpi.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+	
 	<dependencies>
 		<!-- Use the defpi-service library to communicate with orchestrator -->
 		<dependency>

@@ -82,8 +82,9 @@
 		<module>../commons</module>
 		<module>../codegen-common</module>
 		<module>../maven-plugin</module>
-		<module>../python-codegen</module>
 		<module>../orchestrator</module>
+		<module>../python-codegen</module>
+		<module>../raml-service</module>
 		<module>../service</module>
 	</modules>
 
