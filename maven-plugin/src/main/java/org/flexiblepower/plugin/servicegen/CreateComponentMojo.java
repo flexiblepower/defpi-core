@@ -474,11 +474,11 @@ public class CreateComponentMojo extends AbstractMojo {
      */
     private void compileRAMLDescriptor(final InterfaceDescription itf, final InterfaceVersionDescription vitf)
             throws IOException {
-        final Path ramlResourceLocation = Paths.get(this.inputResources).resolve(this.ramlInputLocation);
-        final Path ramlSourceFilePath = PluginUtils.downloadFileOrResolve(vitf.getLocation(), ramlResourceLocation);
+        final Path ramlResourcePath = Paths.get(this.inputResources).resolve(this.ramlInputLocation);
+        final Path ramlSourceFile = PluginUtils.downloadFileOrResolve(vitf.getLocation(), ramlResourcePath);
 
         // Compute hash and store in interface
-        final String interfaceHash = PluginUtils.SHA256(ramlSourceFilePath);
+        final String interfaceHash = PluginUtils.SHA256(ramlSourceFile);
         // TODO take into consideration referenced files
         vitf.setHash(interfaceHash);
 
@@ -496,16 +496,36 @@ public class CreateComponentMojo extends AbstractMojo {
         final Path ramlDestFilePath = Files
                 .createDirectories(Paths.get(this.targetResources).resolve(this.ramlOutputLocation))
                 .resolve(JavaPluginUtils.getVersionedName(itf, vitf) + ".raml");
-        Files.copy(ramlSourceFilePath, ramlDestFilePath, StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(ramlSourceFile, ramlDestFilePath, StandardCopyOption.REPLACE_EXISTING);
 
         // If there are (locally) any more resources, try and find them.
-        final Path localRamlFile = ramlResourceLocation.resolve(vitf.getLocation()).normalize();
+        final Path localRamlFile = ramlResourcePath.resolve(vitf.getLocation()).normalize();
         if (localRamlFile.toFile().exists()) {
-            Files.walkFileTree(localRamlFile.getParent(), new FileCopier(ramlDestFilePath, localRamlFile));
+            this.copyRamlFiles(ramlSourceFile.getParent().toFile(),
+                    localRamlFile.toFile(),
+                    Paths.get(this.targetResources).resolve(this.ramlOutputLocation));
         }
 
         this.ramlCompiler.setBasePackageName(vitf.getModelPackageName());
         this.ramlCompiler.compile(ramlDestFilePath, Paths.get(this.genSourceLocation));
+    }
+
+    private void copyRamlFiles(final File folder, final File mainFile, final Path destination) throws IOException {
+        for (final File file : folder.listFiles()) {
+            if (file.getCanonicalFile().equals(mainFile)) {
+                // Don't copy the main file
+                continue;
+            } else if (file.isFile() && file.getName().endsWith(".raml")) {
+                Files.copy(file.toPath(), destination.resolve(file.getName()), StandardCopyOption.REPLACE_EXISTING);
+            } else if (file.isDirectory() && !file.isHidden()) {
+                final Path newDestination = Files.createDirectories(destination.resolve(file.getName()));
+                this.copyRamlFiles(file, null, newDestination);
+                if (file.list().length == 0) {
+                    // Remove empty folders
+                    file.delete();
+                }
+            }
+        }
     }
 
     /**
