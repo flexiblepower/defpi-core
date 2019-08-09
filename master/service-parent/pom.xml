@@ -94,7 +94,7 @@
 			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
 		</snapshotRepository>
 	</distributionManagement>
-	
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -104,13 +104,19 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
-	
+
 	<dependencies>
 		<!-- Use the defpi-service library to communicate with orchestrator -->
 		<dependency>
 			<groupId>org.flexiblepower.defpi</groupId>
 			<artifactId>service</artifactId>
 			<version>${defpi.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>javax.annotation</groupId>
+			<artifactId>javax.annotation-api</artifactId>
+			<version>1.3.2</version>
 		</dependency>
 	</dependencies>
 
@@ -328,16 +334,16 @@
 						<groupId>com.spotify</groupId>
 						<artifactId>docker-maven-plugin</artifactId>
 						<!-- Upgrading to 1.2.0 breaks deploying with credentials, see https://github.com/spotify/docker-maven-plugin/issues/309 -->
-						<version>1.1.1</version>	
-					
-		                <dependencies>
-		                    <dependency>
-		                        <groupId>javax.activation</groupId>
-		                        <artifactId>activation</artifactId>
-		                        <version>1.1.1</version>
-		                    </dependency>
-		                </dependencies>
-						
+						<version>1.1.1</version>
+
+						<dependencies>
+							<dependency>
+								<groupId>javax.activation</groupId>
+								<artifactId>activation</artifactId>
+								<version>1.1.1</version>
+							</dependency>
+						</dependencies>
+
 						<executions>
 							<execution>
 								<!-- Build x86_64 image -->
