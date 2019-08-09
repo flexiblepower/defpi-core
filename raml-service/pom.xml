@@ -15,7 +15,8 @@
 	<dependencies>
 		<dependency>
 			<groupId>org.flexiblepower.defpi</groupId>
-			<artifactId>commons</artifactId>
+			<artifactId>service</artifactId>
+			<version>${project.version}</version>
 		</dependency>
     
         <dependency>
