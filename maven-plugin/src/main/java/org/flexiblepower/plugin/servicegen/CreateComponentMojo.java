@@ -233,11 +233,11 @@ public class CreateComponentMojo extends AbstractMojo {
             }
             service.setId(this.artifactId);
 
-            // Add descriptors and related hashes
-            this.compileDescriptors(service);
-
             // Add templates to generate java code and the dockerfile
             this.templates = new JavaTemplates(this.servicePackage, service);
+
+            // Add descriptors and related hashes
+            this.compileDescriptors(service);
 
             this.createJavaFiles(service);
             this.createDockerfiles();
@@ -508,6 +508,7 @@ public class CreateComponentMojo extends AbstractMojo {
 
         this.ramlCompiler.setBasePackageName(vitf.getModelPackageName());
         this.ramlCompiler.compile(ramlDestFilePath, Paths.get(this.genSourceLocation));
+        this.templates.addRamlResouceNames(this.ramlCompiler.getResourceNames());
     }
 
     private void copyRamlFiles(final File folder, final File mainFile, final Path destination) throws IOException {

@@ -24,9 +24,11 @@ import java.text.DateFormat;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.flexiblepower.codegen.PluginUtils;
 import org.flexiblepower.codegen.Templates;
@@ -45,6 +47,7 @@ import org.flexiblepower.model.Parameter;
 class JavaTemplates extends Templates {
 
     private final String servicePackage;
+    private final List<String> ramlResourceNames;
 
     /**
      * Create the object that provides the Templates for the java code generation with a specific target java package
@@ -56,6 +59,16 @@ class JavaTemplates extends Templates {
     JavaTemplates(final String targetPackage, final ServiceDescription descr) {
         super(descr);
         this.servicePackage = targetPackage;
+        this.ramlResourceNames = new LinkedList<>();
+    }
+
+    /**
+     * Add raml resources if there are any
+     *
+     * @param resources A list of raml resource names that need to be added to the templates
+     */
+    public void addRamlResouceNames(final List<String> resources) {
+        this.ramlResourceNames.addAll(resources);
     }
 
     /**
@@ -141,24 +154,24 @@ class JavaTemplates extends Templates {
             final InterfaceVersionDescription version) throws IOException {
         final String template = this.getTemplate(templateName);
 
-        final Map<String, String> replaceMap = new HashMap<>();
+        final Map<String, String> templates = new HashMap<>();
 
         // Generic stuff that is the same everywhere
-        replaceMap.put("username", System.getProperty("user.name"));
-        replaceMap.put("date", DateFormat.getDateTimeInstance().format(new Date()));
-        replaceMap.put("generator", JavaTemplates.class.getPackage().getName());
+        templates.put("username", System.getProperty("user.name"));
+        templates.put("date", DateFormat.getDateTimeInstance().format(new Date()));
+        templates.put("generator", JavaTemplates.class.getPackage().getName());
 
-        replaceMap.put("service.package", this.servicePackage);
-        replaceMap.put("service.class", JavaPluginUtils.serviceImplClass(this.serviceDescription));
-        replaceMap.put("service.version", this.serviceDescription.getVersion());
-        replaceMap.put("service.name", this.serviceDescription.getName());
+        templates.put("service.package", this.servicePackage);
+        templates.put("service.class", JavaPluginUtils.serviceImplClass(this.serviceDescription));
+        templates.put("service.version", this.serviceDescription.getVersion());
+        templates.put("service.name", this.serviceDescription.getName());
 
         if (this.serviceDescription.getParameters() == null) {
-            replaceMap.put("config.interface", "Void");
+            templates.put("config.interface", "Void");
         } else {
             boolean importDefaultValue = false;
-            replaceMap.put("config.interface", JavaPluginUtils.configInterfaceClass(this.serviceDescription));
-            final Set<String> parameterDefinitions = new HashSet<>();
+            templates.put("config.interface", JavaPluginUtils.configInterfaceClass(this.serviceDescription));
+            final Set<String> parameterDefinitions = new TreeSet<>();
 
             for (final Parameter param : this.serviceDescription.getParameters()) {
                 final String javadoc = ((param.getName() == null) || param.getName().isEmpty() ? ""
@@ -175,22 +188,22 @@ class JavaTemplates extends Templates {
                         JavaPluginUtils.getParameterId(param)));
             }
 
-            replaceMap.put("config.definitions", String.join("\n\n", parameterDefinitions));
-            replaceMap.put("config.imports",
+            templates.put("config.definitions", String.join("\n\n", parameterDefinitions));
+            templates.put("config.imports",
                     importDefaultValue ? "\nimport org.flexiblepower.service.DefaultValue;\n" : "");
         }
 
         // Build replaceMaps for the manager
         if (itf != null) {
             final String interfacePackage = JavaPluginUtils.getPackageName(itf);
-            replaceMap.put("itf.package", interfacePackage);
-            replaceMap.put("itf.manager.class", JavaPluginUtils.managerClass(itf));
-            replaceMap.put("itf.manager.interface", JavaPluginUtils.managerInterface(itf));
+            templates.put("itf.package", interfacePackage);
+            templates.put("itf.manager.class", JavaPluginUtils.managerClass(itf));
+            templates.put("itf.manager.interface", JavaPluginUtils.managerInterface(itf));
 
-            final Set<String> definitions = new HashSet<>();
-            final Set<String> implementations = new HashSet<>();
-            final Set<String> itfimports = new HashSet<>();
-            final Set<String> clsimports = new HashSet<>();
+            final Set<String> definitions = new TreeSet<>();
+            final Set<String> implementations = new TreeSet<>();
+            final Set<String> itfimports = new TreeSet<>();
+            final Set<String> clsimports = new TreeSet<>();
             for (final InterfaceVersionDescription vitf : itf.getInterfaceVersions()) {
                 final String interfaceVersionPackage = JavaPluginUtils.getPackageName(vitf);
                 final String interfaceClass = JavaPluginUtils.connectionHandlerInterface(itf, vitf);
@@ -220,63 +233,85 @@ class JavaTemplates extends Templates {
                         implementationClass));
             }
 
-            replaceMap.put("itf.manager.definitions", String.join("\n\n", definitions));
-            replaceMap.put("itf.manager.implementations", String.join("\n\n", implementations));
+            templates.put("itf.manager.definitions", String.join("\n\n", definitions));
+            templates.put("itf.manager.implementations", String.join("\n\n", implementations));
 
-            replaceMap.put("itf.manager.imports.interface", String.join("\n", itfimports));
-            replaceMap.put("itf.manager.imports.implementation", String.join("\n", clsimports));
+            templates.put("itf.manager.imports.interface", String.join("\n", itfimports));
+            templates.put("itf.manager.imports.implementation", String.join("\n", clsimports));
         }
 
         // Build replaceMaps for the interface versions
         if ((itf != null) && (version != null)) {
             final String packageName = JavaPluginUtils.getPackageName(itf, version);
 
-            replaceMap.put("vitf.handler.interface", JavaPluginUtils.connectionHandlerInterface(itf, version));
-            replaceMap.put("vitf.handler.class", JavaPluginUtils.connectionHandlerClass(itf, version));
+            templates.put("vitf.handler.interface", JavaPluginUtils.connectionHandlerInterface(itf, version));
+            templates.put("vitf.handler.class", JavaPluginUtils.connectionHandlerClass(itf, version));
 
-            replaceMap.put("itf.name", itf.getName());
-            replaceMap.put("vitf.version", version.getVersionName());
-            replaceMap.put("vitf.package", packageName);
-            replaceMap.put("vitf.receivesHash", PluginUtils.getReceiveHash(version));
-            replaceMap.put("vitf.sendsHash", PluginUtils.getSendHash(version));
+            templates.put("itf.name", itf.getName());
+            templates.put("vitf.version", version.getVersionName());
+            templates.put("vitf.package", packageName);
+            templates.put("vitf.receivesHash", PluginUtils.getReceiveHash(version));
+            templates.put("vitf.sendsHash", PluginUtils.getSendHash(version));
 
-            final Set<String> recvClasses = new HashSet<>();
+            final Set<String> recvClasses = new TreeSet<>();
             for (final String type : version.getReceives()) {
                 recvClasses.add(type + ".class");
             }
-            replaceMap.put("vitf.receiveClasses", String.join(", ", recvClasses));
+            templates.put("vitf.receiveClasses", String.join(", ", recvClasses));
 
-            final Set<String> sendClasses = new HashSet<>();
+            final Set<String> sendClasses = new TreeSet<>();
             for (final String type : version.getSends()) {
                 sendClasses.add(type + ".class");
             }
-            replaceMap.put("vitf.sendClasses", String.join(", ", sendClasses));
+            templates.put("vitf.sendClasses", String.join(", ", sendClasses));
 
             // Add handler definitions and implementations for the connection handlers (and implementations
             // respectively)
-            final Set<String> definitions = new HashSet<>();
-            final Set<String> implementations = new HashSet<>();
+            final Set<String> definitions = new TreeSet<>();
+            final Set<String> implementations = new TreeSet<>();
             for (final String type : version.getReceives()) {
                 final Map<String, String> handlerReplace = new HashMap<>();
+
                 handlerReplace.put("handle.type", type);
-                definitions.add(this.replaceMap(this.getTemplate("HandlerDefinition"), handlerReplace));
-                implementations.add(this.replaceMap(this.getTemplate("HandlerImplementation"), handlerReplace));
+                if (type.equals("RamlRequest")) {
+                    definitions.add(this.replaceMap(this.getTemplate("RamlHandlerImplementation"), handlerReplace));
+                } else {
+                    definitions.add(this.replaceMap(this.getTemplate("HandlerDefinition"), handlerReplace));
+                    implementations.add(this.replaceMap(this.getTemplate("HandlerImplementation"), handlerReplace));
+                }
             }
-            replaceMap.put("vitf.handler.definitions", String.join("\n\n", definitions));
-            replaceMap.put("vitf.handler.implementations", String.join("\n\n", implementations));
+
+            if (version.getType().equals(Type.RAML)) {
+                final Set<String> typeRegistries = new TreeSet<>();
+                for (final String resource : this.ramlResourceNames) {
+                    final String resourceClass = PluginUtils.camelCaps(resource);
+                    final Map<String, String> resourceMap = Collections.singletonMap("resource.type", resourceClass);
+                    definitions.add(this.replaceMap(this.getTemplate("RamlResourceProviderDefinition"), resourceMap));
+                    implementations
+                            .add(this.replaceMap(this.getTemplate("RamlResourceProviderImplementation"), resourceMap));
+                    typeRegistries
+                            .add(String.format("        RamlRequestHandler.register(this, %s.class);", resourceClass));
+                }
+                templates.put("raml.registry", "\n" + String.join("\n", typeRegistries) + "\n");
+            } else {
+                templates.put("raml.registry", "");
+            }
+
+            templates.put("vitf.handler.definitions", String.join("\n\n", definitions));
+            templates.put("vitf.handler.implementations", String.join("\n\n", implementations));
 
             if (version.getType().equals(Type.XSD)) {
-                replaceMap.put("vitf.serializer", "XSDMessageSerializer");
+                templates.put("vitf.serializer", "XSDMessageSerializer");
             } else {
-                replaceMap.put("vitf.serializer", "ProtobufMessageSerializer");
+                templates.put("vitf.serializer", "ProtobufMessageSerializer");
             }
 
             // Add imports for the handlers
-            final Set<String> handlerImports = new HashSet<>();
-            final Set<String> interfaceImports = new HashSet<>();
+            final Set<String> handlerImports = new TreeSet<>();
+            final Set<String> interfaceImports = new TreeSet<>();
             for (final String type : version.getReceives()) {
                 if (type.equals("RamlRequest")) {
-                    handlerImports.add("import org.flexiblepower.proto.RamlProto.RamlRequest;");
+                    // handlerImports.add("import org.flexiblepower.proto.RamlProto.RamlRequest;");
                     interfaceImports.add("import org.flexiblepower.proto.RamlProto.RamlRequest;");
                 } else if (type.equals("RamlResponse")) {
                     handlerImports.add("import org.flexiblepower.proto.RamlProto.RamlResponse;");
@@ -296,11 +331,22 @@ class JavaTemplates extends Templates {
                 }
             }
 
-            replaceMap.put("vitf.handler.imports", String.join("\n", handlerImports));
-            replaceMap.put("vitf.handler.interface.imports", String.join("\n", interfaceImports));
+            if (!this.ramlResourceNames.isEmpty()) {
+                handlerImports.add("import org.flexiblepower.raml.RamlRequestHandler;");
+                interfaceImports.add("import org.flexiblepower.raml.RamlRequestHandler;");
+                for (final String resource : this.ramlResourceNames) {
+                    interfaceImports.add(String
+                            .format("import %s.%s;", version.getModelPackageName(), PluginUtils.camelCaps(resource)));
+                    handlerImports.add(String
+                            .format("import %s.%s;", version.getModelPackageName(), PluginUtils.camelCaps(resource)));
+                }
+            }
+
+            templates.put("vitf.handler.imports", String.join("\n", handlerImports));
+            templates.put("vitf.handler.interface.imports", String.join("\n", interfaceImports));
         }
 
-        return this.replaceMap(template, replaceMap);
+        return this.replaceMap(template, templates);
     }
 
     /*

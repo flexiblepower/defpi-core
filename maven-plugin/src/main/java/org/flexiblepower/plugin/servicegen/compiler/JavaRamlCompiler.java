@@ -22,11 +22,12 @@ package org.flexiblepower.plugin.servicegen.compiler;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.List;
 
 import org.flexiblepower.codegen.compiler.InterfaceCompiler;
+import org.flexiblepower.plugin.servicegen.compiler.raml.DefpiRamlScanner;
 import org.jsonschema2pojo.AnnotationStyle;
 import org.raml.jaxrs.generator.Configuration;
-import org.raml.jaxrs.generator.RamlScanner;
 
 /**
  * JavaRamlCompiler
@@ -36,6 +37,7 @@ import org.raml.jaxrs.generator.RamlScanner;
  */
 public class JavaRamlCompiler implements InterfaceCompiler {
 
+    private List<String> resources;
     private String basePackageName;
 
     /**
@@ -54,9 +56,6 @@ public class JavaRamlCompiler implements InterfaceCompiler {
     public void compile(final Path sourceFile, final Path targetPath) throws IOException {
         final Configuration config = new Configuration();
 
-        final String[] generateTypesWith = new String[0];
-        // generateTypesWith[0] = "jackson2";
-
         config.setResourcePackage(this.basePackageName);
         config.setModelPackage(this.basePackageName + ".model");
         config.setSupportPackage(this.basePackageName + ".support");
@@ -65,10 +64,14 @@ public class JavaRamlCompiler implements InterfaceCompiler {
         config.setJsonMapper(AnnotationStyle.NONE);
 
         config.setJsonMapperConfiguration(Collections.emptyMap());
-        config.setTypeConfiguration(generateTypesWith);
+        config.setTypeConfiguration(new String[0]);
 
-        final RamlScanner scanner = new RamlScanner(config);
+        final DefpiRamlScanner scanner = new DefpiRamlScanner(config);
         scanner.handle(sourceFile.toFile());
+        this.resources = scanner.getResourceNames();
     }
 
+    public List<String> getResourceNames() {
+        return this.resources;
+    }
 }
