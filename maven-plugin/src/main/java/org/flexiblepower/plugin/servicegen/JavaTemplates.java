@@ -282,19 +282,13 @@ class JavaTemplates extends Templates {
             }
 
             if (version.getType().equals(Type.RAML)) {
-                final Set<String> typeRegistries = new TreeSet<>();
                 for (final String resource : this.ramlResourceNames) {
                     final String resourceClass = PluginUtils.camelCaps(resource);
                     final Map<String, String> resourceMap = Collections.singletonMap("resource.type", resourceClass);
                     definitions.add(this.replaceMap(this.getTemplate("RamlResourceProviderDefinition"), resourceMap));
                     implementations
                             .add(this.replaceMap(this.getTemplate("RamlResourceProviderImplementation"), resourceMap));
-                    typeRegistries
-                            .add(String.format("        RamlRequestHandler.register(this, %s.class);", resourceClass));
                 }
-                templates.put("raml.registry", "\n" + String.join("\n", typeRegistries) + "\n");
-            } else {
-                templates.put("raml.registry", "");
             }
 
             templates.put("vitf.handler.definitions", String.join("\n\n", definitions));
@@ -332,7 +326,6 @@ class JavaTemplates extends Templates {
             }
 
             if (!this.ramlResourceNames.isEmpty()) {
-                handlerImports.add("import org.flexiblepower.raml.RamlRequestHandler;");
                 interfaceImports.add("import org.flexiblepower.raml.RamlRequestHandler;");
                 for (final String resource : this.ramlResourceNames) {
                     interfaceImports.add(String

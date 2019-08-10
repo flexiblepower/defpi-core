@@ -31,7 +31,7 @@ public class {{vitf.handler.class}} implements {{vitf.handler.interface}} {
 	public {{vitf.handler.class}}(Connection connection, {{service.class}} service) {
 		this.connection = connection;
 		this.service = service;
-{{raml.registry}}	}
+	}
 
 {{vitf.handler.implementations}}
 
