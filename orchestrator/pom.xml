@@ -9,7 +9,7 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>18.6.2-SNAPSHOT</version>
+		<version>19.10-SNAPSHOT</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
@@ -150,8 +150,6 @@
 			<!-- The assembly plugin puts all java code in one jar -->
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
-				<!-- Upgrading to version 3.x.x makes it MUCH slower -->
-				<version>2.6</version>
 				<configuration>
 					<archive>
 						<manifest>

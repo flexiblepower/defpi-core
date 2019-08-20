@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -34,12 +34,12 @@ import org.flexiblepower.orchestrator.pendingchange.PendingChange;
 import org.flexiblepower.process.CreateProcess.CreateDockerService;
 import org.flexiblepower.process.TerminateProcess.RemoveDockerService;
 import org.flexiblepower.process.TerminateProcess.SendTerminateSignal;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 /**
  * DockerConnectorTest
@@ -48,14 +48,14 @@ import org.junit.Test;
  * @since May 8, 2017
  */
 @SuppressWarnings({"static-method", "javadoc"})
-@Ignore // Don't run this test, it will mess with existing pending changes
+@Disabled // Don't run this test, it will mess with existing pending changes
 public class MongoConnectorTest {
 
     private static final String TEST_USER = "TEST_USER";
     private static final String TEST_PASS = "123456";
     private static final String TEST_SERVICE = "Tester";
 
-    @BeforeClass
+    @BeforeAll
     public static void assumeMongo() {
         try {
             final MongoDbConnector mongo = MongoDbConnector.getInstance();
@@ -64,15 +64,15 @@ public class MongoConnectorTest {
             }
         } catch (final Exception e) {
             e.printStackTrace();
-            Assume.assumeNoException(e);
+            Assumptions.assumeTrue(false);
         }
     }
 
     @Test
     public void runTest() {
         final Map<String, Object> map = MongoDbConnector.parseFilters("{\"stuff\":\"stuff\"}");
-        Assert.assertTrue(map.containsKey("stuff"));
-        Assert.assertEquals("stuff", map.get("stuff"));
+        Assertions.assertTrue(map.containsKey("stuff"));
+        Assertions.assertEquals("stuff", map.get("stuff"));
     }
 
     @Test
@@ -98,13 +98,13 @@ public class MongoConnectorTest {
 
         Thread.sleep(Duration.ofSeconds(6).toMillis());
 
-        Assert.assertEquals(CreateDockerService.class,
+        Assertions.assertEquals(CreateDockerService.class,
                 MongoDbConnector.getInstance().getNextPendingChange().getClass());
-        Assert.assertEquals(ChangeProcessConfiguration.class,
+        Assertions.assertEquals(ChangeProcessConfiguration.class,
                 MongoDbConnector.getInstance().getNextPendingChange().getClass());
-        Assert.assertEquals(SendTerminateSignal.class,
+        Assertions.assertEquals(SendTerminateSignal.class,
                 MongoDbConnector.getInstance().getNextPendingChange().getClass());
-        Assert.assertEquals(RemoveDockerService.class,
+        Assertions.assertEquals(RemoveDockerService.class,
                 MongoDbConnector.getInstance().getNextPendingChange().getClass());
     }
 
@@ -143,40 +143,40 @@ public class MongoConnectorTest {
 
         Thread.sleep(Duration.ofSeconds(6).toMillis());
 
-        Assert.assertEquals(ChangeProcessConfiguration.class,
+        Assertions.assertEquals(ChangeProcessConfiguration.class,
                 MongoDbConnector.getInstance()
                         .getNextPendingChange(Arrays.asList(testConnection.getId(), testProcess2.getId()))
                         .getClass());
 
-        Assert.assertEquals(SendTerminateSignal.class,
+        Assertions.assertEquals(SendTerminateSignal.class,
                 MongoDbConnector.getInstance()
                         .getNextPendingChange(Arrays.asList(testConnection.getId(), testProcess2.getId()))
                         .getClass());
 
-        Assert.assertNull(MongoDbConnector.getInstance()
+        Assertions.assertNull(MongoDbConnector.getInstance()
                 .getNextPendingChange(Arrays.asList(testConnection.getId(), testProcess2.getId())));
 
         PendingChange pc = MongoDbConnector.getInstance().getNextPendingChange(Arrays.asList(testProcess2.getId()));
-        Assert.assertEquals(CreateConnectionEndpoint.class, pc.getClass());
-        Assert.assertEquals(
+        Assertions.assertEquals(CreateConnectionEndpoint.class, pc.getClass());
+        Assertions.assertEquals(
                 "Creating connection for Process " + testProcess1.getId() + " with interface Something to process "
                         + testProcess2.getId() + " with connection Something",
                 ((CreateConnectionEndpoint) pc).description());
 
-        Assert.assertEquals(CreateDockerService.class,
+        Assertions.assertEquals(CreateDockerService.class,
                 MongoDbConnector.getInstance().getNextPendingChange().getClass());
         pc = MongoDbConnector.getInstance().getNextPendingChange();
-        Assert.assertEquals(CreateConnectionEndpoint.class, pc.getClass());
-        Assert.assertEquals(
+        Assertions.assertEquals(CreateConnectionEndpoint.class, pc.getClass());
+        Assertions.assertEquals(
                 "Creating connection for Process " + testProcess2.getId() + " with interface Something to process "
                         + testProcess1.getId() + " with connection Something",
                 ((CreateConnectionEndpoint) pc).description());
-        Assert.assertEquals(RemoveDockerService.class,
+        Assertions.assertEquals(RemoveDockerService.class,
                 MongoDbConnector.getInstance().getNextPendingChange().getClass());
 
     }
 
-    @After
+    @AfterEach
     public void cleanup() {
         try {
             final MongoDbConnector mongo = MongoDbConnector.getInstance();

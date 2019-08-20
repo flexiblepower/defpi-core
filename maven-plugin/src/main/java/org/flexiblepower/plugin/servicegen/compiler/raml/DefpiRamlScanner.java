@@ -40,15 +40,18 @@ import org.raml.v2.api.RamlModelResult;
  */
 public class DefpiRamlScanner extends RamlScanner {
 
-    List<String> resources;
+    private List<String> resources;
 
     /**
-     * @param configuration
+     * @param configuration The configuration of the scanner, similar to that of the raml generator maven plugin.
      */
     public DefpiRamlScanner(final Configuration configuration) {
         super(configuration);
     }
 
+    /**
+     * @return a List of resource names that the scanner generated
+     */
     public List<String> getResourceNames() {
         return this.resources;
     }

@@ -71,6 +71,9 @@ public class JavaRamlCompiler implements InterfaceCompiler {
         this.resources = scanner.getResourceNames();
     }
 
+    /**
+     * @return a List of resource names (java-interfaces) that the compiler generated
+     */
     public List<String> getResourceNames() {
         return this.resources;
     }
