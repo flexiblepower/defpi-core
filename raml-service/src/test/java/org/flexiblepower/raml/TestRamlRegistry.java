@@ -21,8 +21,14 @@ package org.flexiblepower.raml;
 
 import java.util.regex.Pattern;
 
+import org.flexiblepower.proto.RamlProto.RamlRequest;
+import org.flexiblepower.proto.RamlProto.RamlRequest.Method;
+import org.flexiblepower.proto.RamlProto.RamlResponse;
+import org.flexiblepower.service.ConnectionHandler;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * TestRamlRegistry
@@ -33,6 +39,8 @@ import org.junit.jupiter.api.Test;
 @SuppressWarnings({"static-method", "javadoc"})
 public class TestRamlRegistry {
 
+    final ConnectionHandler handler = new TestConnectionHandler();
+
     @Test
     public void patternTest() {
         Pattern p = RamlResourceRegistry.MethodRegistry.getPattern("test");
@@ -40,4 +48,33 @@ public class TestRamlRegistry {
         p = RamlResourceRegistry.MethodRegistry.getPattern("test/{id}/nogiets/{version}/zoiets");
         Assertions.assertTrue(p.matcher("test/2-._0~/nogiets/hoihoi.apx#2/zoiets").matches());
     }
+
+    @Test
+    public void testSimpleGet() throws Exception {
+        final RamlRequest request = RamlRequest.newBuilder().setUri("/example").setMethod(Method.GET).setId(1).build();
+        final RamlResponse response = RamlRequestHandler.handle(this.handler, request);
+
+        System.out.println(response.getBody().toStringUtf8());
+
+        Assertions.assertEquals(200, response.getStatus());
+
+        final ObjectMapper mapper = new ObjectMapper();
+        Assertions.assertEquals("Hello world!", mapper.readValue(response.getBody().toByteArray(), String.class));
+    }
+
+    @Test
+    public void testQueryParam() throws Exception {
+        final RamlRequest request = RamlRequest.newBuilder()
+                .setUri("/example?name=Maarten")
+                .setMethod(Method.GET)
+                .setId(1)
+                .build();
+        final RamlResponse response = RamlRequestHandler.handle(this.handler, request);
+
+        Assertions.assertEquals(200, response.getStatus());
+
+        final ObjectMapper mapper = new ObjectMapper();
+        Assertions.assertEquals("Hello Maarten!", mapper.readValue(response.getBody().toByteArray(), String.class));
+    }
+
 }

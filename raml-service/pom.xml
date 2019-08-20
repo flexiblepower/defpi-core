@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
@@ -18,15 +19,27 @@
 			<artifactId>service</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-    
-        <dependency>
+
+		<dependency>
 			<groupId>javax.ws.rs</groupId>
 			<artifactId>javax.ws.rs-api</artifactId>
 			<version>2.1.1</version>
 		</dependency>
-    </dependencies>
-    
-    <build>
+
+		<dependency>
+			<groupId>com.fasterxml.jackson.jaxrs</groupId>
+			<artifactId>jackson-jaxrs-json-provider</artifactId>
+			<version>2.10.0.pr1</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+			<version>2.10.0.pr1</version>
+		</dependency>
+	</dependencies>
+
+	<build>
 		<plugins>
 			<!-- Add the generated code to the build path -->
 			<plugin>
@@ -48,7 +61,7 @@
 					</execution>
 				</executions>
 			</plugin>
-			
+
 			<!-- Just don't generate javadocs for it -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

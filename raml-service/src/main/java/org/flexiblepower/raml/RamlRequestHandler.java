@@ -19,14 +19,19 @@
  */
 package org.flexiblepower.raml;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.flexiblepower.proto.RamlProto.RamlRequest;
+import org.flexiblepower.proto.RamlProto.RamlResponse;
 import org.flexiblepower.service.ConnectionHandler;
-import org.flexiblepower.service.exceptions.ServiceInvocationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.ByteString;
 
 /**
  * RamlRequestHandler
@@ -37,38 +42,56 @@ import org.slf4j.LoggerFactory;
 public class RamlRequestHandler {
 
     private static final Logger log = LoggerFactory.getLogger(RamlRequestHandler.class);
+
+    private static final ObjectMapper mapper = new ObjectMapper();
+
     private static Map<ConnectionHandler, RamlResourceRegistry> RESOURCES = new HashMap<>();
 
     /**
      * @param handler
      * @param message
      */
-    public static void handle(final ConnectionHandler handler, final RamlRequest message) {
+    public static RamlResponse handle(final ConnectionHandler handler, final RamlRequest message) {
         if (!RamlRequestHandler.RESOURCES.containsKey(handler)) {
             RamlRequestHandler.RESOURCES.put(handler, new RamlResourceRegistry(handler));
         }
 
-        try {
-            RamlRequestHandler.RESOURCES.get(handler).getResourceForMessage(message);
-        } catch (final ServiceInvocationException e) {
-            RamlRequestHandler.log.error("Exception while invoking RAML resource: {}", e.getMessage());
-            RamlRequestHandler.log.trace(e.getMessage(), e);
+        final RamlResponse.Builder builder = RamlResponse.newBuilder().setId(message.getId());
+
+        final RamlResource resource = RamlRequestHandler.RESOURCES.get(handler).getResourceForMessage(message);
+        if (resource == null) {
+            RamlRequestHandler.log.warn("Unable to locate resource, ignoring message");
+            return builder.setStatus(404)
+                    .setBody(ByteString.copyFromUtf8("No resource found for " + message.getUri()))
+                    .build();
         }
 
-        // final String key = message.getMethod().toString() + " " + message.getUri();
-        //
-        // if (RamlRequestHandler.RESOURCES.containsKey(handler)
-        // && RamlRequestHandler.RESOURCES.get(handler).containsKey(key)) {
-        // final ResourceEntry re = RamlRequestHandler.RESOURCES.get(handler).get(key);
-        // try {
-        // re.m.invoke(re.o);
-        // } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-        // RamlRequestHandler.log.error("Unable to invoke method: {}", e.getMessage());
-        // RamlRequestHandler.log.trace(e.getMessage(), e);
-        // }
-        // } else {
-        // RamlRequestHandler.log.warn("Unknown operation {} for handler {}", key, handler.getClass());
-        // }
+        try {
+            final Object o = resource.invoke(message);
+
+            if (o != null) {
+                builder.setStatus(200).setBody(ByteString.copyFrom(RamlRequestHandler.mapper.writeValueAsBytes(o)));
+            } else {
+                builder.setStatus(204);
+            }
+
+            return builder.build();
+        } catch (final IllegalArgumentException | IllegalAccessException | InvocationTargetException e) {
+            RamlRequestHandler.log.warn("Error invoking raml resource: {}", e.getMessage());
+            RamlRequestHandler.log.trace(e.getMessage(), e);
+            return builder.setStatus(500)
+                    .setBody(ByteString.copyFromUtf8(
+                            e.getClass().getSimpleName() + " while invoking raml resource: " + e.getMessage()))
+                    .build();
+        } catch (final JsonProcessingException e) {
+            RamlRequestHandler.log.warn("Unable to create response: {}", e.getMessage());
+            RamlRequestHandler.log.trace(e.getMessage(), e);
+            return builder.setStatus(500)
+                    .setBody(ByteString
+                            .copyFromUtf8(e.getClass().getSimpleName() + " while creating response: " + e.getMessage()))
+                    .build();
+        }
+
     }
 
 }
