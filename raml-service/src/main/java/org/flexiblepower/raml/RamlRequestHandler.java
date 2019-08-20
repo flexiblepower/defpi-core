@@ -42,9 +42,7 @@ import com.google.protobuf.ByteString;
 public class RamlRequestHandler {
 
     private static final Logger log = LoggerFactory.getLogger(RamlRequestHandler.class);
-
     private static final ObjectMapper mapper = new ObjectMapper();
-
     private static Map<ConnectionHandler, RamlResourceRegistry> RESOURCES = new HashMap<>();
 
     /**

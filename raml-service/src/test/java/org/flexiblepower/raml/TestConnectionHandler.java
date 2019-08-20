@@ -19,8 +19,12 @@
  */
 package org.flexiblepower.raml;
 
+import java.util.Map;
+
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
 import org.flexiblepower.service.ConnectionHandler;
@@ -42,6 +46,17 @@ public class TestConnectionHandler implements ConnectionHandler {
         @GET
         public String getPersonalText(@QueryParam("name") final String name);
 
+        @GET
+        @Path("{reps}")
+        public String getPersonalText(@PathParam("reps") final int reps);
+
+        @POST
+        @Path("complicated/{id}")
+        public float setStuff(@PathParam("id") final int id,
+                @QueryParam("q") final String q,
+                @QueryParam("test") double test,
+                Map<String, String> body);
+
     }
 
     public Example getExample() {
@@ -55,6 +70,20 @@ public class TestConnectionHandler implements ConnectionHandler {
             @Override
             public String getPersonalText(final String name) {
                 return "Hello " + name + "!";
+            }
+
+            @Override
+            public String getPersonalText(final int reps) {
+                String ret = "";
+                for (int i = 0; i < reps; i++) {
+                    ret += this.getExampleText() + "\n";
+                }
+                return ret;
+            }
+
+            @Override
+            public float setStuff(final int id, final String q, final double test, final Map<String, String> body) {
+                return (float) (id + Double.parseDouble(body.get(q)) + Math.sqrt(test));
             }
 
         };

@@ -19,6 +19,8 @@
  */
 package org.flexiblepower.raml;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.flexiblepower.proto.RamlProto.RamlRequest;
@@ -40,13 +42,28 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class TestRamlRegistry {
 
     final ConnectionHandler handler = new TestConnectionHandler();
+    final ObjectMapper mapper = new ObjectMapper();
 
     @Test
     public void patternTest() {
-        Pattern p = RamlResourceRegistry.MethodRegistry.getPattern("test");
-        Assertions.assertEquals("test", p.pattern());
-        p = RamlResourceRegistry.MethodRegistry.getPattern("test/{id}/nogiets/{version}/zoiets");
-        Assertions.assertTrue(p.matcher("test/2-._0~/nogiets/hoihoi.apx#2/zoiets").matches());
+        Pattern p = RamlResource.getPattern("/test");
+        Assertions.assertEquals("/test", p.pattern());
+        p = RamlResource.getPattern("/test/{id}/nogiets/{version}/zoiets");
+        System.out.println(p);
+        Assertions.assertTrue(p.matcher("/test/2-._0~/nogiets/hoihoi.apx#2/zoiets").matches());
+    }
+
+    @Test
+    public void pathParamsTest() {
+        final RamlResource res = new RamlResource(null, null, "/test/{id}/nogiets/{version}/zoiets");
+        final Pattern p = res.getUriPattern();
+
+        final String request = "/test/21/nogiets/SNAPSHOT/zoiets";
+        Assertions.assertTrue(p.matcher(request).matches());
+        final Map<String, String> params = res.withRequestUri(request).getPathParametersFromUri();
+        System.out.println(params);
+        Assertions.assertEquals("21", params.get("id"));
+        Assertions.assertEquals("SNAPSHOT", params.get("version"));
     }
 
     @Test
@@ -58,8 +75,7 @@ public class TestRamlRegistry {
 
         Assertions.assertEquals(200, response.getStatus());
 
-        final ObjectMapper mapper = new ObjectMapper();
-        Assertions.assertEquals("Hello world!", mapper.readValue(response.getBody().toByteArray(), String.class));
+        Assertions.assertEquals("Hello world!", this.mapper.readValue(response.getBody().toByteArray(), String.class));
     }
 
     @Test
@@ -71,10 +87,43 @@ public class TestRamlRegistry {
                 .build();
         final RamlResponse response = RamlRequestHandler.handle(this.handler, request);
 
+        System.out.println(response.getBody().toStringUtf8());
         Assertions.assertEquals(200, response.getStatus());
 
-        final ObjectMapper mapper = new ObjectMapper();
-        Assertions.assertEquals("Hello Maarten!", mapper.readValue(response.getBody().toByteArray(), String.class));
+        Assertions.assertEquals("Hello Maarten!",
+                this.mapper.readValue(response.getBody().toByteArray(), String.class));
+    }
+
+    @Test
+    public void testPathParam() throws Exception {
+        final RamlRequest request = RamlRequest.newBuilder()
+                .setUri("/example/3")
+                .setMethod(Method.GET)
+                .setId(1)
+                .build();
+        final RamlResponse response = RamlRequestHandler.handle(this.handler, request);
+
+        System.out.println(response.getBody().toStringUtf8());
+        Assertions.assertEquals(200, response.getStatus());
+
+        Assertions.assertEquals("Hello world!\nHello world!\nHello world!\n",
+                this.mapper.readValue(response.getBody().toByteArray(), String.class));
+    }
+
+    @Test
+    public void testComplicatedRequest() throws Exception {
+        final RamlRequest request = RamlRequest.newBuilder()
+                .setUri("/example/complicated/100?q=waarde&test=49")
+                .setMethod(Method.POST)
+                .setId(5)
+                .setBody(this.mapper.writeValueAsString(Collections.singletonMap("waarde", "80")))
+                .build();
+        final RamlResponse response = RamlRequestHandler.handle(this.handler, request);
+
+        System.out.println(response.getBody().toStringUtf8());
+        Assertions.assertEquals(200, response.getStatus());
+
+        Assertions.assertEquals(187f, this.mapper.readValue(response.getBody().toByteArray(), Float.class));
     }
 
 }

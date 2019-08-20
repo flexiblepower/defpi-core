@@ -24,13 +24,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.ws.rs.DELETE;
@@ -94,7 +91,7 @@ public class RamlResourceRegistry {
      */
     public RamlResource getResourceForMessage(final RamlRequest message) {
         String uri = message.getUri();
-        final Map<String, String> queryParams = RamlResourceRegistry.getQueryParametersFromUri(uri);
+        final Map<String, String> queryParams = RamlResource.getQueryParametersFromUri(uri);
         final int questionMark = uri.indexOf('?');
         if (questionMark != -1) {
             uri = uri.substring(0, questionMark);
@@ -109,27 +106,13 @@ public class RamlResourceRegistry {
         }
 
         final String suffixFromQueryParams = queryParams.isEmpty() ? "" : "?" + String.join("&", queryParams.keySet());
-        final String key = message.getMethod().name() + uri.substring(top.length()) + suffixFromQueryParams;
+        final String key = message.getMethod().name() + " " + top + uri.substring(top.length()) + suffixFromQueryParams;
 
-        return this.resources.get(top).getResource(key).withURI(uri).withQueryParameters(queryParams);
-    }
-
-    private static Map<String, String> getQueryParametersFromUri(final String uri) {
-        final int questionMark = uri.indexOf('?');
-        if (questionMark == -1) {
-            return Collections.emptyMap();
+        final RamlResource ret = this.resources.get(top).getResource(key);
+        if (ret != null) {
+            return ret.withRequestUri(uri).withQueryParameters(queryParams);
         }
-        final String params = uri.substring(questionMark + 1);
-        final Map<String, String> map = new TreeMap<>();
-        for (final String keyvalue : params.split("&")) {
-            final int equals = keyvalue.indexOf('=');
-            if (equals == -1) {
-                map.put(keyvalue, "");
-            } else {
-                map.put(keyvalue.substring(0, equals), keyvalue.substring(equals + 1));
-            }
-        }
-        return map;
+        return ret;
     }
 
     /**
@@ -162,7 +145,10 @@ public class RamlResourceRegistry {
             if (!clazz.isAnnotationPresent(Path.class)) {
                 RamlResourceRegistry.log.error("Unable to determine the Path annotated superclass of {}",
                         resource.getClass());
+                return;
             }
+
+            final String resourcePath = clazz.getAnnotation(Path.class).value();
 
             for (final Method m : clazz.getMethods()) {
                 // Here I assume there is only one restMethod per method.
@@ -170,50 +156,28 @@ public class RamlResourceRegistry {
                 if (restMethod == null) {
                     continue;
                 }
-                final String queryParams = MethodRegistry.getQueryParametersFromMethod(m);
+                final String methodPath = MethodRegistry.methodPathOf(m);
+                final String queryParams = MethodRegistry.queryParametersOf(m);
 
-                if (!m.isAnnotationPresent(Path.class)) {
-                    // This is a simple method, no extra path
-                    this.fixedPaths.put(restMethod + queryParams, new RamlResource(resource, m));
-                    RamlResourceRegistry.log.debug("Added \"{}\" for resource path {}",
-                            restMethod,
-                            resource.getClass().getSimpleName());
-                    continue;
-                }
+                final RamlResource ramlResource = new RamlResource(resource, m, resourcePath + methodPath);
 
-                final String typePath = m.getAnnotation(Path.class).value();
-                if (!typePath.contains("{")) {
-                    // This is a method with some additional path
-                    this.fixedPaths.put(restMethod + typePath + queryParams, new RamlResource(resource, m));
-                    RamlResourceRegistry.log.debug("Added \"{}\" for resource path {}",
-                            restMethod + typePath,
-                            resource.getClass().getSimpleName());
+                if (methodPath.contains("{")) {
+                    final Pattern pat = ramlResource.getUriPattern();
+                    this.wildcardPaths.put(Pattern.compile(restMethod + pat + queryParams), ramlResource);
                 } else {
-                    // This method has a path with a parameter in it
-                    final Pattern uriPattern = MethodRegistry.getPattern(restMethod + typePath + queryParams);
-                    this.wildcardPaths.put(uriPattern, new RamlResource(resource, m, uriPattern));
-                    RamlResourceRegistry.log.debug("Added \"{}\" for resource path {}",
-                            restMethod + typePath,
-                            resource.getClass().getSimpleName());
+                    this.fixedPaths.put(restMethod + resourcePath + methodPath + queryParams, ramlResource);
                 }
+
+                RamlResourceRegistry.log.debug("Added \"{}\" for resource path {}",
+                        ramlResource.getUri(),
+                        resource.getClass().getSimpleName());
             }
 
-        }
-
-        private static String getQueryParametersFromMethod(final Method m) {
-            final Set<String> params = new TreeSet<>();
-            for (final Parameter par : m.getParameters()) {
-                if (par.isAnnotationPresent(QueryParam.class)) {
-                    params.add(par.getAnnotation(QueryParam.class).value());
-                }
-            }
-            return params.isEmpty() ? "" : "?" + String.join("&", params);
         }
 
         /**
-         * @param key The key of the resource (REST Method + URI)
+         * @param key The key of the resource (REST Method + URI + query parameters)
          * @return the RAML resource that this key would refer to of null if no such method exists
-         *
          */
         public RamlResource getResource(final String key) {
             if (this.fixedPaths.containsKey(key)) {
@@ -230,46 +194,32 @@ public class RamlResourceRegistry {
             return null;
         }
 
-        /**
-         * @param m
-         * @return
-         */
         private static String restMethodOf(final Method m) {
             for (final Class<? extends Annotation> type : Arrays
                     .asList(GET.class, HEAD.class, POST.class, PUT.class, DELETE.class, OPTIONS.class, PATCH.class)) {
                 if (m.isAnnotationPresent(type)) {
-                    return type.getSimpleName();
+                    return type.getSimpleName() + " ";
                 }
             }
             return null;
         }
 
-        /**
-         * Get the Pattern for a path that we are adding. This should replace any occurences of "{X}" by a wilcard
-         * fragment.
-         *
-         * @param path The path to create a valid pattern out of
-         * @return The pattern that will match the path
-         */
-        static Pattern getPattern(final String path) {
-            final String WILD_FRAGMENT = "[^/\\{\\}]+";
-
-            // This is the pattern to find the param groups in the path
-            final Pattern param = Pattern.compile("\\{" + WILD_FRAGMENT + "\\}");
-            final Matcher m = param.matcher(path);
-
-            // Build the pattern using a stringbuilder
-            int pos = 0;
-            final StringBuilder pathPattern = new StringBuilder();
-            while (m.find(pos)) {
-                pathPattern.append(path.substring(pos, m.start()));
-                pathPattern.append("(" + WILD_FRAGMENT + ")");
-                pos = m.end();
+        private static String queryParametersOf(final Method m) {
+            final Set<String> params = new TreeSet<>();
+            for (final Parameter par : m.getParameters()) {
+                if (par.isAnnotationPresent(QueryParam.class)) {
+                    params.add(par.getAnnotation(QueryParam.class).value());
+                }
             }
+            return params.isEmpty() ? "" : "?" + String.join("&", params);
+        }
 
-            // The rest is the tail, compile and return
-            pathPattern.append(path.substring(pos));
-            return Pattern.compile(pathPattern.toString());
+        private static String methodPathOf(final Method m) {
+            if (m.isAnnotationPresent(Path.class)) {
+                final String value = m.getAnnotation(Path.class).value();
+                return value.startsWith("/") ? value : "/" + value;
+            }
+            return "";
         }
 
     }
