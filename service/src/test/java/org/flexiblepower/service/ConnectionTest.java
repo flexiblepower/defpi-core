@@ -124,6 +124,7 @@ public class ConnectionTest {
         this.dataSocket = TCPSocket.asClient(hostOfTestRunner, ConnectionTest.TEST_SERVICE_LISTEN_PORT);
         this.dataSocket.waitUntilConnected();
         this.testAck();
+        Thread.sleep(100);
     }
 
     /**
