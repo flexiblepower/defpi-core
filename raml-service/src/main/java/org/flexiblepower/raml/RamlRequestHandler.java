@@ -46,8 +46,11 @@ public class RamlRequestHandler {
     private static Map<ConnectionHandler, RamlResourceRegistry> RESOURCES = new HashMap<>();
 
     /**
-     * @param handler
-     * @param message
+     * Handle a message by invoking the corresponding resource
+     *
+     * @param handler The ConnectionHandler that will provide the resources, and provided this message
+     * @param message The message to handle
+     * @return A RamlResponse message
      */
     public static RamlResponse handle(final ConnectionHandler handler, final RamlRequest message) {
         if (!RamlRequestHandler.RESOURCES.containsKey(handler)) {
@@ -56,8 +59,8 @@ public class RamlRequestHandler {
 
         final RamlResponse.Builder builder = RamlResponse.newBuilder().setId(message.getId());
 
-        final RamlResource resource = RamlRequestHandler.RESOURCES.get(handler).getResourceForMessage(message);
-        if (resource == null) {
+        final RamlResourceRequest request = RamlRequestHandler.RESOURCES.get(handler).getResourceForMessage(message);
+        if (request == null) {
             RamlRequestHandler.log.warn("Unable to locate resource, ignoring message");
             return builder.setStatus(404)
                     .setBody(ByteString.copyFromUtf8("No resource found for " + message.getUri()))
@@ -65,7 +68,7 @@ public class RamlRequestHandler {
         }
 
         try {
-            final Object o = resource.invoke(message);
+            final Object o = request.invoke(message);
 
             if (o != null) {
                 builder.setStatus(200).setBody(ByteString.copyFrom(RamlRequestHandler.mapper.writeValueAsBytes(o)));

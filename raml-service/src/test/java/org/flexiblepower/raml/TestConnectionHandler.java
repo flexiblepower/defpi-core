@@ -35,6 +35,7 @@ import org.flexiblepower.service.ConnectionHandler;
  * @version 0.1
  * @since Aug 20, 2019
  */
+@SuppressWarnings({"javadoc", "static-method"})
 public class TestConnectionHandler implements ConnectionHandler {
 
     @Path("/example")
@@ -92,31 +93,26 @@ public class TestConnectionHandler implements ConnectionHandler {
     @Override
     public void onSuspend() {
         // TODO Auto-generated method stub
-
     }
 
     @Override
     public void resumeAfterSuspend() {
         // TODO Auto-generated method stub
-
     }
 
     @Override
     public void onInterrupt() {
         // TODO Auto-generated method stub
-
     }
 
     @Override
     public void resumeAfterInterrupt() {
         // TODO Auto-generated method stub
-
     }
 
     @Override
     public void terminated() {
         // TODO Auto-generated method stub
-
     }
 
 }

@@ -87,11 +87,11 @@ public class RamlResourceRegistry {
     /**
      * @param message A RAML message for which we want to get the resource and method depending on the URI and the
      *            method. (In the future possibly also the headers)
-     * @return The RAML resource that this message should invoke
+     * @return The RAML request that this message should invoke
      */
-    public RamlResource getResourceForMessage(final RamlRequest message) {
+    public RamlResourceRequest getResourceForMessage(final RamlRequest message) {
         String uri = message.getUri();
-        final Map<String, String> queryParams = RamlResource.getQueryParametersFromUri(uri);
+        final Map<String, String> queryParams = RamlResourceRequest.getQueryParametersFromUri(uri);
         final int questionMark = uri.indexOf('?');
         if (questionMark != -1) {
             uri = uri.substring(0, questionMark);
@@ -110,9 +110,9 @@ public class RamlResourceRegistry {
 
         final RamlResource ret = this.resources.get(top).getResource(key);
         if (ret != null) {
-            return ret.withRequestUri(uri).withQueryParameters(queryParams);
+            return new RamlResourceRequest(ret, uri, queryParams);
         }
-        return ret;
+        return null;
     }
 
     /**

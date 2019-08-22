@@ -55,12 +55,13 @@ public class TestRamlRegistry {
 
     @Test
     public void pathParamsTest() {
-        final RamlResource res = new RamlResource(null, null, "/test/{id}/nogiets/{version}/zoiets");
-        final Pattern p = res.getUriPattern();
+        final RamlResource resource = new RamlResource(new Object(), null, "/test/{id}/nogiets/{version}/zoiets");
+        final Pattern p = resource.getUriPattern();
 
-        final String request = "/test/21/nogiets/SNAPSHOT/zoiets";
-        Assertions.assertTrue(p.matcher(request).matches());
-        final Map<String, String> params = res.withRequestUri(request).getPathParametersFromUri();
+        final String requestURI = "/test/21/nogiets/SNAPSHOT/zoiets";
+        Assertions.assertTrue(p.matcher(requestURI).matches());
+        final RamlResourceRequest request = new RamlResourceRequest(resource, requestURI, null);
+        final Map<String, String> params = request.getPathParametersFromUri();
         System.out.println(params);
         Assertions.assertEquals("21", params.get("id"));
         Assertions.assertEquals("SNAPSHOT", params.get("version"));
@@ -68,13 +69,15 @@ public class TestRamlRegistry {
 
     @Test
     public void testSimpleGet() throws Exception {
+        System.out.println("1");
         final RamlRequest request = RamlRequest.newBuilder().setUri("/example").setMethod(Method.GET).setId(1).build();
+        System.out.println("2");
         final RamlResponse response = RamlRequestHandler.handle(this.handler, request);
-
+        System.out.println("3");
         System.out.println(response.getBody().toStringUtf8());
-
+        System.out.println("4");
         Assertions.assertEquals(200, response.getStatus());
-
+        System.out.println("5");
         Assertions.assertEquals("Hello world!", this.mapper.readValue(response.getBody().toByteArray(), String.class));
     }
 
