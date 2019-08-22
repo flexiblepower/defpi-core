@@ -87,7 +87,7 @@ class RamlResource {
      *             method is inaccessible.
      * @see Method#invoke(Object, Object...)
      */
-    Object invoke(final Object... args) throws IllegalAccessException,
+    public Object invoke(final Object... args) throws IllegalAccessException,
             IllegalArgumentException,
             InvocationTargetException {
         return this.method.invoke(this.resource, args);
@@ -97,7 +97,7 @@ class RamlResource {
      * @return An array of parameters of the java method of this resource
      * @see Method#getParameters()
      */
-    Parameter[] getParameters() {
+    public Parameter[] getParameters() {
         return this.method.getParameters();
     }
 

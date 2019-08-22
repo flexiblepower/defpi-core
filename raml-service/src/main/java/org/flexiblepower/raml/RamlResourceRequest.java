@@ -103,7 +103,7 @@ public class RamlResourceRequest {
      *             has other mismatch issues)
      * @see Method#invoke(Object, Object...)
      */
-    Object invoke(final RamlRequest message) throws IllegalAccessException,
+    public Object invoke(final RamlRequest message) throws IllegalAccessException,
             IllegalArgumentException,
             InvocationTargetException,
             JsonMappingException,

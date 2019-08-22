@@ -53,6 +53,7 @@ import org.slf4j.LoggerFactory;
  */
 public class RamlResourceRegistry {
 
+    @SuppressWarnings("javadoc")
     protected static final Logger log = LoggerFactory.getLogger(RamlRequestHandler.class);
 
     /**
