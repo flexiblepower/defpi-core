@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package org.flexiblepower.raml;
+package org.flexiblepower.raml.server;
 
 import java.util.Collections;
 import java.util.Map;
@@ -26,6 +26,8 @@ import java.util.regex.Pattern;
 import org.flexiblepower.proto.RamlProto.RamlRequest;
 import org.flexiblepower.proto.RamlProto.RamlRequest.Method;
 import org.flexiblepower.proto.RamlProto.RamlResponse;
+import org.flexiblepower.raml.server.RamlRequestHandler;
+import org.flexiblepower.raml.server.RamlResourceRequest;
 import org.flexiblepower.service.ConnectionHandler;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

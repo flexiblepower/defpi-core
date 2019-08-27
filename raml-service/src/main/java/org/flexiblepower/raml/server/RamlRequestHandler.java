@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package org.flexiblepower.raml;
+package org.flexiblepower.raml.server;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;

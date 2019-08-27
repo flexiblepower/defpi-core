@@ -305,10 +305,11 @@ class JavaTemplates extends Templates {
             final Set<String> interfaceImports = new TreeSet<>();
             for (final String type : version.getReceives()) {
                 if (type.equals("RamlRequest")) {
-                    // handlerImports.add("import org.flexiblepower.proto.RamlProto.RamlRequest;");
+                    interfaceImports.add("import org.flexiblepower.raml.server.RamlRequestHandler;");
                     interfaceImports.add("import org.flexiblepower.proto.RamlProto.RamlRequest;");
                 } else if (type.equals("RamlResponse")) {
                     handlerImports.add("import org.flexiblepower.proto.RamlProto.RamlResponse;");
+                    handlerImports.add("import org.flexiblepower.raml.server.RamlResponseHandler;");
                     interfaceImports.add("import org.flexiblepower.proto.RamlProto.RamlResponse;");
                 } else {
                     handlerImports.add(String.format("import %s.%s;", version.getModelPackageName(), type));
@@ -326,7 +327,6 @@ class JavaTemplates extends Templates {
             }
 
             if (!this.ramlResourceNames.isEmpty()) {
-                interfaceImports.add("import org.flexiblepower.raml.RamlRequestHandler;");
                 for (final String resource : this.ramlResourceNames) {
                     interfaceImports.add(String
                             .format("import %s.%s;", version.getModelPackageName(), PluginUtils.camelCaps(resource)));
