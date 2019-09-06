@@ -26,10 +26,11 @@ import java.util.regex.Pattern;
 import org.flexiblepower.proto.RamlProto.RamlRequest;
 import org.flexiblepower.proto.RamlProto.RamlRequest.Method;
 import org.flexiblepower.proto.RamlProto.RamlResponse;
-import org.flexiblepower.raml.server.RamlRequestHandler;
-import org.flexiblepower.raml.server.RamlResourceRequest;
+import org.flexiblepower.raml.client.TestConnection;
 import org.flexiblepower.service.ConnectionHandler;
+import org.flexiblepower.service.TestConnectionManager;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -43,8 +44,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @SuppressWarnings({"static-method", "javadoc"})
 public class TestRamlRegistry {
 
-    final ConnectionHandler handler = new TestConnectionHandler();
-    final ObjectMapper mapper = new ObjectMapper();
+    final static TestConnection connection = new TestConnection();
+    final static ConnectionHandler handler = TestConnectionManager.getServerHandler(TestRamlRegistry.connection);
+    final static ObjectMapper mapper = new ObjectMapper();
+
+    @BeforeAll
+    public static void init() {
+        Assertions.assertThrows(NullPointerException.class,
+                () -> RamlRequestHandler.handle(TestRamlRegistry.handler, null));
+    }
 
     @Test
     public void patternTest() {
@@ -71,16 +79,14 @@ public class TestRamlRegistry {
 
     @Test
     public void testSimpleGet() throws Exception {
-        System.out.println("1");
         final RamlRequest request = RamlRequest.newBuilder().setUri("/example").setMethod(Method.GET).setId(1).build();
-        System.out.println("2");
-        final RamlResponse response = RamlRequestHandler.handle(this.handler, request);
-        System.out.println("3");
+        RamlRequestHandler.handle(TestRamlRegistry.handler, request);
+        final RamlResponse response = (RamlResponse) TestRamlRegistry.connection.peek(); //
+
         System.out.println(response.getBody().toStringUtf8());
-        System.out.println("4");
         Assertions.assertEquals(200, response.getStatus());
-        System.out.println("5");
-        Assertions.assertEquals("Hello world!", this.mapper.readValue(response.getBody().toByteArray(), String.class));
+        Assertions.assertEquals("Hello world!",
+                TestRamlRegistry.mapper.readValue(response.getBody().toByteArray(), String.class));
     }
 
     @Test
@@ -90,13 +96,14 @@ public class TestRamlRegistry {
                 .setMethod(Method.GET)
                 .setId(1)
                 .build();
-        final RamlResponse response = RamlRequestHandler.handle(this.handler, request);
+        RamlRequestHandler.handle(TestRamlRegistry.handler, request);
+        final RamlResponse response = (RamlResponse) TestRamlRegistry.connection.peek(); //
 
         System.out.println(response.getBody().toStringUtf8());
         Assertions.assertEquals(200, response.getStatus());
 
         Assertions.assertEquals("Hello Maarten!",
-                this.mapper.readValue(response.getBody().toByteArray(), String.class));
+                TestRamlRegistry.mapper.readValue(response.getBody().toByteArray(), String.class));
     }
 
     @Test
@@ -106,13 +113,14 @@ public class TestRamlRegistry {
                 .setMethod(Method.GET)
                 .setId(1)
                 .build();
-        final RamlResponse response = RamlRequestHandler.handle(this.handler, request);
+        RamlRequestHandler.handle(TestRamlRegistry.handler, request);
+        final RamlResponse response = (RamlResponse) TestRamlRegistry.connection.peek(); //
 
         System.out.println(response.getBody().toStringUtf8());
         Assertions.assertEquals(200, response.getStatus());
 
         Assertions.assertEquals("Hello world!\nHello world!\nHello world!\n",
-                this.mapper.readValue(response.getBody().toByteArray(), String.class));
+                TestRamlRegistry.mapper.readValue(response.getBody().toByteArray(), String.class));
     }
 
     @Test
@@ -121,14 +129,15 @@ public class TestRamlRegistry {
                 .setUri("/example/complicated/100?q=waarde&test=49")
                 .setMethod(Method.POST)
                 .setId(5)
-                .setBody(this.mapper.writeValueAsString(Collections.singletonMap("waarde", "80")))
+                .setBody(TestRamlRegistry.mapper.writeValueAsString(Collections.singletonMap("waarde", "80")))
                 .build();
-        final RamlResponse response = RamlRequestHandler.handle(this.handler, request);
+        RamlRequestHandler.handle(TestRamlRegistry.handler, request);
+        final RamlResponse response = (RamlResponse) TestRamlRegistry.connection.peek(); //
 
         System.out.println(response.getBody().toStringUtf8());
         Assertions.assertEquals(200, response.getStatus());
 
-        Assertions.assertEquals(187f, this.mapper.readValue(response.getBody().toByteArray(), Float.class));
+        Assertions.assertEquals(187f, TestRamlRegistry.mapper.readValue(response.getBody().toByteArray(), Float.class));
     }
 
 }

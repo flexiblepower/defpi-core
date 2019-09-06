@@ -22,7 +22,6 @@ package org.flexiblepower.raml.client;
 import java.io.IOException;
 
 import org.flexiblepower.proto.ConnectionProto.ConnectionState;
-import org.flexiblepower.proto.RamlProto.RamlRequest;
 import org.flexiblepower.service.Connection;
 
 /**
@@ -33,15 +32,25 @@ import org.flexiblepower.service.Connection;
  */
 public class TestConnection implements Connection {
 
-    private RamlRequest lastMessage;
+    private Object lastMessage;
 
-    public RamlRequest getLastMessage() {
+    public Object peek() {
         return this.lastMessage;
+    }
+
+    public Object pop() {
+        final Object ret = this.lastMessage;
+        this.lastMessage = null;
+        return ret;
+    }
+
+    public boolean contains(final Class<?> clazz) {
+        return (this.lastMessage != null) && clazz.isAssignableFrom(this.lastMessage.getClass());
     }
 
     @Override
     public void send(final Object message) throws IOException {
-        this.lastMessage = (RamlRequest) message;
+        this.lastMessage = message;
     }
 
     @Override

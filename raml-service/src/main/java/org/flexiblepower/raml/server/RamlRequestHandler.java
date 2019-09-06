@@ -19,13 +19,16 @@
  */
 package org.flexiblepower.raml.server;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.flexiblepower.proto.RamlProto.RamlRequest;
 import org.flexiblepower.proto.RamlProto.RamlResponse;
+import org.flexiblepower.service.Connection;
 import org.flexiblepower.service.ConnectionHandler;
+import org.flexiblepower.service.ConnectionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,21 +53,28 @@ public class RamlRequestHandler {
      *
      * @param handler The ConnectionHandler that will provide the resources, and provided this message
      * @param message The message to handle
-     * @return A RamlResponse message
      */
-    public static RamlResponse handle(final ConnectionHandler handler, final RamlRequest message) {
+    public static void handle(final ConnectionHandler handler, final RamlRequest message) {
         if (!RamlRequestHandler.RESOURCES.containsKey(handler)) {
             RamlRequestHandler.RESOURCES.put(handler, new RamlResourceRegistry(handler));
+        }
+
+        final Connection conn = ConnectionManager.getMyConnection(handler);
+        if (conn == null) {
+            RamlRequestHandler.log.error("Unable to handle request without return connection");
+            return;
         }
 
         final RamlResponse.Builder builder = RamlResponse.newBuilder().setId(message.getId());
 
         final RamlResourceRequest request = RamlRequestHandler.RESOURCES.get(handler).getResourceForMessage(message);
         if (request == null) {
-            RamlRequestHandler.log.warn("Unable to locate resource, ignoring message");
-            return builder.setStatus(404)
-                    .setBody(ByteString.copyFromUtf8("No resource found for " + message.getUri()))
-                    .build();
+            RamlRequestHandler.log.warn("Unable to locate resource for {}", message.getUri());
+            RamlRequestHandler.respond(conn,
+                    builder.setStatus(404)
+                            .setBody(ByteString.copyFromUtf8("No resource found for " + message.getUri()))
+                            .build());
+            return;
         }
 
         try {
@@ -76,23 +86,60 @@ public class RamlRequestHandler {
                 builder.setStatus(204);
             }
 
-            return builder.build();
-        } catch (final IllegalArgumentException | IllegalAccessException | InvocationTargetException e) {
+            RamlRequestHandler.respond(conn, builder.build());
+
+        } catch (final InvocationTargetException e) {
+            final Throwable cause = e.getCause();
+            RamlRequestHandler.log.warn("Error invoking raml resource: {}", cause.getMessage());
+            RamlRequestHandler.log.trace(cause.getMessage(), cause);
+            RamlRequestHandler.respond(conn,
+                    builder.setStatus(500)
+                            .setBody(ByteString.copyFromUtf8(
+                                    cause.getClass().getName() + "::" + RamlRequestHandler.writeException(cause)))
+                            .build());
+        } catch (final IllegalArgumentException | IllegalAccessException e) {
             RamlRequestHandler.log.warn("Error invoking raml resource: {}", e.getMessage());
             RamlRequestHandler.log.trace(e.getMessage(), e);
-            return builder.setStatus(500)
-                    .setBody(ByteString.copyFromUtf8(
-                            e.getClass().getSimpleName() + " while invoking raml resource: " + e.getMessage()))
-                    .build();
+            RamlRequestHandler.respond(conn,
+                    builder.setStatus(500)
+                            .setBody(ByteString
+                                    .copyFromUtf8(e.getClass().getName() + "::" + RamlRequestHandler.writeException(e)))
+                            .build());
         } catch (final JsonProcessingException e) {
             RamlRequestHandler.log.warn("Unable to create response: {}", e.getMessage());
             RamlRequestHandler.log.trace(e.getMessage(), e);
-            return builder.setStatus(500)
-                    .setBody(ByteString
-                            .copyFromUtf8(e.getClass().getSimpleName() + " while creating response: " + e.getMessage()))
-                    .build();
+            RamlRequestHandler.respond(conn,
+                    builder.setStatus(500)
+                            .setBody(ByteString
+                                    .copyFromUtf8(e.getClass().getName() + "::" + RamlRequestHandler.writeException(e)))
+                            .build());
         }
 
+    }
+
+    private static String writeException(final Throwable e) {
+        try {
+            return RamlRequestHandler.mapper.writeValueAsString(e);
+        } catch (final JsonProcessingException e1) {
+            RamlRequestHandler.log.error("Unable to write actual error message!");
+            return "{\"exception\":\"" + e.getMessage() + "\"}";
+        }
+    }
+
+    /**
+     * @param build
+     */
+    private static void respond(final Connection connection, final RamlResponse response) {
+        if (connection.isConnected()) {
+            try {
+                connection.send(response);
+            } catch (final IOException e) {
+                RamlRequestHandler.log.error("Unable to respond, exception while sending: {}", e.getMessage());
+                RamlRequestHandler.log.error(e.getMessage(), e);
+            }
+        } else {
+            RamlRequestHandler.log.error("Unable to respond, connection is not connected!");
+        }
     }
 
 }

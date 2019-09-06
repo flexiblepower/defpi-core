@@ -44,6 +44,8 @@ import javax.ws.rs.QueryParam;
 import org.flexiblepower.proto.RamlProto.RamlRequest;
 import org.flexiblepower.proto.RamlProto.RamlResponse;
 import org.flexiblepower.service.Connection;
+import org.flexiblepower.service.ConnectionHandler;
+import org.flexiblepower.service.ConnectionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,14 +64,14 @@ public class RamlProxyClient {
      * will create a Proxy object mimicking the provided class.
      *
      * @param clazz the resource class to mimic.
-     * @param conn The connection to send/receive RAML messages
+     * @param handler The connection handler to send/receive RAML messages
      * @return An object of the type clazz, that will return the values in the map when corresponding getKey functions
      *         are called.
      */
     @SuppressWarnings("unchecked")
-    static <T> T generateClient(final Class<T> clazz, final Connection conn) {
+    public static <T> T generateClient(final Class<T> clazz, final ConnectionHandler handler) {
         return (T) Proxy
-                .newProxyInstance(clazz.getClassLoader(), new Class[] {clazz}, new RamlProxyHandler(conn, clazz));
+                .newProxyInstance(clazz.getClassLoader(), new Class[] {clazz}, new RamlProxyHandler(handler, clazz));
     }
 
     /**
@@ -84,15 +86,15 @@ public class RamlProxyClient {
 
         private static int messageCounter = 0;
         private static ObjectMapper om = new ObjectMapper();
-        private final Connection connection;
+        private final ConnectionHandler handler;
         private final String typePath;
 
         /**
-         * @param conn The connection to send messages through
+         * @param h The connection handler to send messages through
          * @param clazz The class to generate the proxy for
          */
-        RamlProxyHandler(final Connection conn, final Class<?> clazz) {
-            this.connection = conn;
+        RamlProxyHandler(final ConnectionHandler h, final Class<?> clazz) {
+            this.handler = h;
 
             // Other class annotated values are not yet used, e.g. @Consumes
             if (clazz.isAnnotationPresent(Path.class)) {
@@ -104,6 +106,11 @@ public class RamlProxyClient {
 
         @Override
         public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
+            final Connection conn = ConnectionManager.getMyConnection(this.handler);
+            if (conn == null) {
+                throw new IllegalStateException("Unable to send a message when there is no connection");
+            }
+
             final Map<String, Object> pathParams = new HashMap<>();
             final Set<String> queryParams = new HashSet<>();
             Object body = null;
@@ -144,27 +151,32 @@ public class RamlProxyClient {
             }
 
             final RamlRequest.Method ramlMethod = RamlProxyHandler.getRamlMethod(method);
-            final RamlRequest.Builder builder = RamlRequest.newBuilder();
-            builder.setId(RamlProxyHandler.messageCounter++);
-            builder.setUri(this.typePath + methodPath);
+            final RamlRequest.Builder builder = RamlRequest.newBuilder()
+                    .setId(RamlProxyHandler.messageCounter++)
+                    .setUri(this.typePath + methodPath)
+                    .setMethod(ramlMethod);
             if (body != null) {
                 builder.setBody(RamlProxyHandler.om.writeValueAsString(body));
             }
-            builder.setMethod(ramlMethod);
 
             final RamlRequest message = builder.build();
-            this.connection.send(message);
+            conn.send(message);
             final RamlResponse response = RamlResponseHandler.getResponse(message.getId());
 
             final String responseString = response.getBody().toStringUtf8();
 
-            if (response.getStatus() > 300) {
+            if ((response.getStatus() > 300) && (response.getStatus() < 500)) {
                 RamlProxyHandler.log.error("RAML client error {}: {}", response.getStatus(), responseString);
                 throw new RuntimeException("Error invoking " + method.getName() + ": " + responseString);
-            } else if (response.getStatus() > 500) {
+            } else if (response.getStatus() >= 500) {
+                final int pos = responseString.indexOf("::");
+                final Class<? extends Throwable> clazz = (Class<? extends Throwable>) Class
+                        .forName(responseString.substring(0, pos));
+
                 RamlProxyHandler.log.error("RAML server error {}: {}", response.getStatus(), responseString);
-                final Exception e = RamlProxyHandler.om.readValue(response.getBody().toStringUtf8(), Exception.class);
+                final Throwable e = RamlProxyHandler.om.readValue(responseString.substring(pos + 2), clazz);
                 throw e;
+                // new RuntimeException("Error invoking " + method.getName() + ": " + responseString);
             }
 
             return RamlProxyHandler.om.readValue(response.getBody().toStringUtf8(), method.getReturnType());

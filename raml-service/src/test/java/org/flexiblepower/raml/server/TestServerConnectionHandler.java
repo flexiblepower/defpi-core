@@ -21,43 +21,33 @@ package org.flexiblepower.raml.server;
 
 import java.util.Map;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.QueryParam;
-
+import org.flexiblepower.proto.RamlProto.RamlRequest;
+import org.flexiblepower.proto.RamlProto.RamlResponse;
+import org.flexiblepower.raml.Example;
+import org.flexiblepower.serializers.ProtobufMessageSerializer;
+import org.flexiblepower.service.Connection;
 import org.flexiblepower.service.ConnectionHandler;
+import org.flexiblepower.service.InterfaceInfo;
 
 /**
- * TestConnectionHandler
+ * TestServerConnectionHandler
  *
  * @version 0.1
  * @since Aug 20, 2019
  */
+
 @SuppressWarnings({"javadoc", "static-method"})
-public class TestConnectionHandler implements ConnectionHandler {
+@InterfaceInfo(name = "Test server connection handler",
+               version = "server",
+               receivesHash = "12345",
+               sendsHash = "54321",
+               serializer = ProtobufMessageSerializer.class,
+               receiveTypes = {RamlRequest.class},
+               sendTypes = {RamlResponse.class})
+public class TestServerConnectionHandler implements ConnectionHandler {
 
-    @Path("/example")
-    public interface Example {
-
-        @GET
-        public String getExampleText();
-
-        @GET
-        public String getPersonalText(@QueryParam("name") final String name);
-
-        @GET
-        @Path("{reps}")
-        public String getPersonalText(@PathParam("reps") final int reps);
-
-        @POST
-        @Path("complicated/{id}")
-        public float setStuff(@PathParam("id") final int id,
-                @QueryParam("q") final String q,
-                @QueryParam("test") double test,
-                Map<String, String> body);
-
+    public TestServerConnectionHandler(final Connection c) {
+        // Do whatever
     }
 
     public Example getExample() {
@@ -88,6 +78,11 @@ public class TestConnectionHandler implements ConnectionHandler {
             }
 
         };
+    }
+
+    // This would normally be implemented as a default implementation in the generated code
+    public void handleRamlRequest(final RamlRequest msg) {
+        RamlRequestHandler.handle(this, msg);
     }
 
     @Override
