@@ -273,8 +273,9 @@ class JavaTemplates extends Templates {
                 final Map<String, String> handlerReplace = new HashMap<>();
 
                 handlerReplace.put("handle.type", type);
-                if (type.equals("RamlRequest")) {
-                    definitions.add(this.replaceMap(this.getTemplate("RamlHandlerImplementation"), handlerReplace));
+                if (type.equals("RamlRequest") || type.equals("RamlResponse")) {
+                    definitions
+                            .add(this.replaceMap(this.getTemplate("RamlMessageHandlerImplementation"), handlerReplace));
                 } else {
                     definitions.add(this.replaceMap(this.getTemplate("HandlerDefinition"), handlerReplace));
                     implementations.add(this.replaceMap(this.getTemplate("HandlerImplementation"), handlerReplace));
@@ -285,9 +286,15 @@ class JavaTemplates extends Templates {
                 for (final String resource : this.ramlResourceNames) {
                     final String resourceClass = PluginUtils.camelCaps(resource);
                     final Map<String, String> resourceMap = Collections.singletonMap("resource.type", resourceClass);
-                    definitions.add(this.replaceMap(this.getTemplate("RamlResourceProviderDefinition"), resourceMap));
-                    implementations
-                            .add(this.replaceMap(this.getTemplate("RamlResourceProviderImplementation"), resourceMap));
+                    if (version.getSends().contains("RamlRequest")) {
+                        definitions
+                                .add(this.replaceMap(this.getTemplate("RamlProxyProviderImplementation"), resourceMap));
+                    } else {
+                        implementations.add(
+                                this.replaceMap(this.getTemplate("RamlResourceProviderImplementation"), resourceMap));
+                        definitions
+                                .add(this.replaceMap(this.getTemplate("RamlResourceProviderDefinition"), resourceMap));
+                    }
                 }
             }
 
@@ -308,8 +315,8 @@ class JavaTemplates extends Templates {
                     interfaceImports.add("import org.flexiblepower.raml.server.RamlRequestHandler;");
                     interfaceImports.add("import org.flexiblepower.proto.RamlProto.RamlRequest;");
                 } else if (type.equals("RamlResponse")) {
-                    handlerImports.add("import org.flexiblepower.proto.RamlProto.RamlResponse;");
-                    handlerImports.add("import org.flexiblepower.raml.server.RamlResponseHandler;");
+                    interfaceImports.add("import org.flexiblepower.raml.client.RamlResponseHandler;");
+                    interfaceImports.add("import org.flexiblepower.raml.client.RamlProxyClient;");
                     interfaceImports.add("import org.flexiblepower.proto.RamlProto.RamlResponse;");
                 } else {
                     handlerImports.add(String.format("import %s.%s;", version.getModelPackageName(), type));

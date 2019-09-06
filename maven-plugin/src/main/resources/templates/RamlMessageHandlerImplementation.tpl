@@ -6,5 +6,5 @@
 	 * @param message The RAML message to be handled
 	 */
 	default public void handle{{handle.type}}Message({{handle.type}} message) {
-        RamlRequestHandler.handle(this, message);
+        {{handle.type}}Handler.handle(this, message);
 	}

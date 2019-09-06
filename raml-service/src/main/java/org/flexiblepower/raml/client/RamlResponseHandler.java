@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.flexiblepower.proto.RamlProto.RamlResponse;
+import org.flexiblepower.service.ConnectionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,9 +42,11 @@ public class RamlResponseHandler {
     /**
      * Handle a message by invoking the corresponding resource
      *
+     * @param handler The handler that provided this reponse, and whose request is answered
      * @param message The message to handle
      */
-    public static void handle(final RamlResponse message) {
+    public static void handle(final ConnectionHandler handler, final RamlResponse message) {
+        // TODO: Right now the handler is not actually used, this should be implemented
         final int id = message.getId();
         RamlResponseHandler.responses.put(id, message);
 
