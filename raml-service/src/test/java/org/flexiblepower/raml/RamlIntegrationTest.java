@@ -44,7 +44,7 @@ import org.junit.jupiter.api.Test;
 public class RamlIntegrationTest {
 
     static final TestConnection testConnection = new TestConnection();
-    static final ExecutorService executor = Executors.newFixedThreadPool(2);
+    static final ExecutorService executor = Executors.newCachedThreadPool();
     static final Server server = new Server();
     static final Client client = new Client();
 
