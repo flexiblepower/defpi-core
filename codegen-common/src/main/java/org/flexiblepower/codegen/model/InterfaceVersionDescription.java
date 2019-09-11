@@ -21,6 +21,7 @@ package org.flexiblepower.codegen.model;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -84,6 +85,11 @@ public class InterfaceVersionDescription {
     @Setter
     @JsonIgnore
     private String modelPackageName = null;
+
+    @Getter
+    @Setter
+    @JsonIgnore
+    private List<String> ramlResources = Collections.emptyList();
 
     /**
      * @return The Type of the descriptor. If none is given in the service description, determine it automatically from

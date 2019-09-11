@@ -173,6 +173,17 @@ public class PluginUtils {
     }
 
     /**
+     * Simply replace the first letter by a capital letter. This is useful when a resource or type needs to be
+     * transformed to a proper class name.
+     *
+     * @param str The string to capitalize
+     * @return The same string with the first letter capitalized
+     */
+    public static String capitalize(final String str) {
+        return Character.toUpperCase(str.charAt(0)) + str.substring(1);
+    }
+
+    /**
      * Compute the outgoing dEF-Pi hash of a specific interface version.
      *
      * @param vitf The versioned interface description to compute the hash of.
