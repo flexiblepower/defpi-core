@@ -42,7 +42,7 @@ branch-test:other:
 .java-compile: &compile
   stage: build
   script:
-    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml clean test-compile'
+    - mvn $MAVEN_CLI_OPTS -f master/pom.xml clean test-compile
   cache:
     paths:
       - cache/maven.repository
@@ -60,7 +60,7 @@ ui-compile:
   image: $DOCKER_IMAGE
   stage: build
   script:
-    - 'docker build orchestrator-ui'
+    - docker build orchestrator-ui
 
 # *** TEST JOBS *** #
 
@@ -70,7 +70,7 @@ ui-compile:
   except:
     - master
   script:
-    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml package'
+    - mvn $MAVEN_CLI_OPTS -f master/pom.xml package
   cache:
     paths:
       - cache/maven.repository
@@ -92,8 +92,10 @@ java-deploy:
     - master
     - defpici
   image: $JDK_8_IMAGE
+  before_script:  
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
   script:
-    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy -Ddocker.registry=ci.hesi.energy:5008'
+    - mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy -Ddocker.registry=$CI_REGISTRY
   cache:
     paths:
       - cache/maven.repository
@@ -106,9 +108,10 @@ ui-deploy:
     - defpici
   image: $DOCKER_IMAGE
   before_script:  
-    - 'docker build orchestrator-ui -t ci.hesi.energy:5008/defpi/orchestrator-ui'
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
   script:
-    - 'docker push ci.hesi.energy:5008/defpi/orchestrator-ui'
+    - docker build orchestrator-ui -t $CI_REGISTRY/defpi/orchestrator-ui
+    - docker push $CI_REGISTRY/defpi/orchestrator-ui
 
 # *** FINAL DEPLOY JOBS *** #
 
@@ -121,7 +124,7 @@ deploy-compose:
     - master
   image: tmaier/docker-compose:18.09
   before_script:
-    - 'docker-compose -f orchestrator/docker-compose.test.yml pull'
+    - docker-compose -f orchestrator/docker-compose.test.yml pull
   script:
-    - 'docker-compose -f orchestrator/docker-compose.test.yml up -d'
+    - docker-compose -f orchestrator/docker-compose.test.yml up -d
   allow_failure: true
