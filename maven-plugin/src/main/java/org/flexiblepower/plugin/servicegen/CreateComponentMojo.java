@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -43,6 +43,7 @@ import org.flexiblepower.codegen.model.InterfaceVersionDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription.Type;
 import org.flexiblepower.codegen.model.ServiceDescription;
 import org.flexiblepower.plugin.servicegen.compiler.JavaProtoCompiler;
+import org.flexiblepower.plugin.servicegen.compiler.JavaRamlCompiler;
 import org.flexiblepower.plugin.servicegen.compiler.XjcCompiler;
 import org.sonatype.plexus.build.incremental.BuildContext;
 
@@ -139,6 +140,24 @@ public class CreateComponentMojo extends AbstractMojo {
     private String xsdOutputPackage;
 
     /**
+     * Folder where the RAML sources can be found, relative to the ${project.resources.directory}
+     */
+    @Parameter(property = "defpi.raml.inputfolder", defaultValue = ".")
+    private String ramlInputLocation;
+
+    /**
+     * Folder where the RAML resources should be put, relative to the ${defpi.resources.generated}
+     */
+    @Parameter(property = "defpi.raml.outputfolder", defaultValue = "raml")
+    private String ramlOutputLocation;
+
+    /**
+     * Package where the RAML sources will be put in (in source folder ${defpi.sources.generated})
+     */
+    @Parameter(property = "defpi.raml.package", defaultValue = "raml")
+    private String ramlOutputPackage;
+
+    /**
      * Service definition file, relative to the ${project.resources.directory}
      */
     @Parameter(property = "defpi.service.description", defaultValue = "service.json")
@@ -180,14 +199,14 @@ public class CreateComponentMojo extends AbstractMojo {
 
     private JavaProtoCompiler protoCompiler;
     private XjcCompiler xjcCompiler;
-
+    private JavaRamlCompiler ramlCompiler;
     private JavaTemplates templates;
 
     /**
      * Main function of the Maven plugin, will call the several stages of the plugin.
      *
-     * @throws MojoFailureException   If the input or output to the maven plugin was incorrect. e.g. incorrect
-     *                                    service.json or a reference to a non-existing file.
+     * @throws MojoFailureException If the input or output to the maven plugin was incorrect. e.g. incorrect
+     *             service.json or a reference to a non-existing file.
      * @throws MojoExecutionException If any other unexpected exception occured while executing the maven plugin
      */
     @Override
@@ -207,13 +226,18 @@ public class CreateComponentMojo extends AbstractMojo {
             }
 
             final ServiceDescription service = PluginUtils.readServiceDefinition(serviceDescriptionFile);
+            final String err = CreateComponentMojo.validateServiceInterfaces(service);
+            if (err != null) {
+                this.buildContext.addMessage(serviceDescriptionFile, 1, 1, err, BuildContext.SEVERITY_ERROR, null);
+                throw new ProcessingException(err);
+            }
             service.setId(this.artifactId);
-
-            // Add descriptors and related hashes
-            this.compileDescriptors(service);
 
             // Add templates to generate java code and the dockerfile
             this.templates = new JavaTemplates(this.servicePackage, service);
+
+            // Add descriptors and related hashes
+            this.compileDescriptors(service);
 
             this.createJavaFiles(service);
             this.createDockerfiles();
@@ -293,6 +317,215 @@ public class CreateComponentMojo extends AbstractMojo {
                     null);
         } finally {
             this.buildContext.refresh(serviceDefinition);
+        }
+    }
+
+    /**
+     * @param service The service description object (after reading it from the file)
+     * @return An error string if any errors are found. If not, it will return null
+     */
+    private static String validateServiceInterfaces(final ServiceDescription service) {
+        for (final InterfaceDescription itf : service.getInterfaces()) {
+            for (final InterfaceVersionDescription vitf : itf.getInterfaceVersions()) {
+                final String name = JavaPluginUtils.getVersionedName(itf, vitf);
+                if (Type.RAML.equals(vitf.getType())) {
+                    if (vitf.getInterfaceRole() == null) {
+                        return String.format("Interface {} is of type RAML, so should define a valid \"interfaceRole\"",
+                                name);
+                    }
+                    if ((vitf.getSends().size() != 1) || (!vitf.getSends().contains("RamlRequest")
+                            && !vitf.getSends().contains("RamlResponse"))) {
+                        return String.format(
+                                "Interface {} is of type RAML, so should not define \"sends\", instead use interfaceRole",
+                                name);
+                    }
+                    if ((vitf.getReceives().size() != 1) || (!vitf.getReceives().contains("RamlRequest")
+                            && !vitf.getReceives().contains("RamlResponse"))) {
+                        return String.format(
+                                "Interface {} is of type RAML, so should not define \"receives\", instead use interfaceRole",
+                                name);
+                    }
+                } else {
+                    if (vitf.getInterfaceRole() != null) {
+                        return String.format(
+                                "Interface {} is not of type RAML, so should not define an \"interfaceRole\"",
+                                name);
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param service The service definition read from file to generate the sources from
+     * @throws IOException When unable to write the code
+     */
+    private void compileDescriptors(final ServiceDescription service) throws IOException {
+        this.getLog().debug("Compiling descriptors definitions to java code");
+
+        this.protoCompiler = new JavaProtoCompiler(this.protobufVersion);
+        this.xjcCompiler = new XjcCompiler();
+        this.ramlCompiler = new JavaRamlCompiler();
+
+        for (final InterfaceDescription iface : service.getInterfaces()) {
+            for (final InterfaceVersionDescription versionDescription : iface.getInterfaceVersions()) {
+
+                if (Type.PROTO.equals(versionDescription.getType())) {
+                    this.compileProtoDescriptor(iface, versionDescription);
+                } else if (Type.XSD.equals(versionDescription.getType())) {
+                    this.compileXSDDescriptor(iface, versionDescription);
+                } else if (Type.RAML.equals(versionDescription.getType())) {
+                    this.compileRAMLDescriptor(iface, versionDescription);
+                }
+            }
+        }
+    }
+
+    /**
+     * @param itf The interface description to generate the XSD handler for
+     * @param vitf The specific version of the interface description to generate the XSD handler for
+     * @throws IOException When unable to write the code
+     */
+    private void compileXSDDescriptor(final InterfaceDescription itf, final InterfaceVersionDescription vitf)
+            throws IOException {
+        // First get the hash of the input file
+        final Path xsdSourceFilePath = PluginUtils.downloadFileOrResolve(vitf.getLocation(),
+                Paths.get(this.inputResources).resolve(this.xsdInputLocation));
+
+        // Compute hash and store in interface
+        final String interfaceHash = PluginUtils.SHA256(xsdSourceFilePath);
+        vitf.setHash(interfaceHash);
+
+        if (this.hashes.containsKey(interfaceHash)) {
+            vitf.setModelPackageName(this.hashes.get(interfaceHash).getModelPackageName());
+            return;
+        }
+
+        // Get the package name and add the hash
+        vitf.setModelPackageName(
+                this.servicePackage + "." + JavaPluginUtils.getPackageName(itf, vitf) + "." + this.xsdOutputPackage);
+        this.hashes.put(interfaceHash, vitf);
+
+        // Copy the temporary file to the target resources folder
+        final Path xsdDestFilePath = Files
+                .createDirectories(Paths.get(this.targetResources).resolve(this.xsdOutputLocation))
+                .resolve(JavaPluginUtils.getVersionedName(itf, vitf) + ".xsd");
+
+        // Copy the descriptor and start compilation
+        Files.copy(xsdSourceFilePath, xsdDestFilePath, StandardCopyOption.REPLACE_EXISTING);
+        this.xjcCompiler.setBasePackageName(vitf.getModelPackageName());
+        this.xjcCompiler.compile(xsdDestFilePath, Paths.get(this.genSourceLocation));
+    }
+
+    /**
+     * @param itf The interface description to generate the Proto handler for
+     * @param vitf The specific version of the interface description to generate the Proto handler for
+     * @throws IOException When unable to write the code
+     */
+    private void compileProtoDescriptor(final InterfaceDescription itf, final InterfaceVersionDescription vitf)
+            throws IOException {
+        final Path protoSourceFilePath = PluginUtils.downloadFileOrResolve(vitf.getLocation(),
+                Paths.get(this.inputResources).resolve(this.protobufInputLocation));
+
+        // Compute hash and store in interface
+        final String interfaceHash = PluginUtils.SHA256(protoSourceFilePath);
+        vitf.setHash(interfaceHash);
+
+        if (this.hashes.containsKey(interfaceHash)) {
+            // If we already have it, just copy the package name
+            vitf.setModelPackageName(this.hashes.get(interfaceHash).getModelPackageName());
+            return;
+        }
+
+        // Get the package name and add the hash
+        final String versionedName = JavaPluginUtils.getVersionedName(itf, vitf);
+        String protoPackageName = this.servicePackage + "." + JavaPluginUtils.getPackageName(itf, vitf);
+        if ((this.protobufOutputPackage != null) && !this.protobufOutputPackage.isEmpty()) {
+            protoPackageName = protoPackageName + "." + this.protobufOutputPackage;
+        }
+
+        final String protoClassName = protoPackageName + "." + versionedName + "Proto";
+
+        // Store for later reference
+        vitf.setModelPackageName(protoClassName);
+        this.hashes.put(interfaceHash, vitf);
+
+        // Append additional compilation info to the proto file and compile the java code
+        final Path protoDestFilePath = Files
+                .createDirectories(Paths.get(this.targetResources).resolve(this.protobufOutputLocation))
+                .resolve(versionedName + ".proto");
+        Files.copy(protoSourceFilePath, protoDestFilePath, StandardCopyOption.REPLACE_EXISTING);
+
+        try (final Scanner scanner = new Scanner(new FileInputStream(protoSourceFilePath.toFile()), "UTF-8")) {
+            Files.write(protoDestFilePath,
+                    ("syntax = \"proto2\";" + "\n\n" + "option java_package = \"" + protoPackageName + "\";\n"
+                            + "option java_outer_classname = \"" + versionedName + "Proto\";\n\n" + "package "
+                            + protoPackageName + ";\n" + scanner.useDelimiter("\\A").next()).getBytes());
+        }
+
+        this.protoCompiler.compile(protoDestFilePath, Paths.get(this.genSourceLocation));
+    }
+
+    /**
+     * @param itf The interface description to generate the RAML handler for
+     * @param vitf The specific version of the interface description to generate the RAML handler for
+     * @throws IOException if the target file cannot be written
+     */
+    private void compileRAMLDescriptor(final InterfaceDescription itf, final InterfaceVersionDescription vitf)
+            throws IOException {
+        final Path ramlResourcePath = Paths.get(this.inputResources).resolve(this.ramlInputLocation);
+        final Path ramlSourceFile = PluginUtils.downloadFileOrResolve(vitf.getLocation(), ramlResourcePath);
+
+        // Compute hash and store in interface
+        final String interfaceHash = PluginUtils.SHA256(ramlSourceFile);
+        // TODO take into consideration referenced files
+        vitf.setHash(interfaceHash);
+
+        if (this.hashes.containsKey(interfaceHash)) {
+            vitf.setModelPackageName(this.hashes.get(interfaceHash).getModelPackageName());
+            return;
+        }
+
+        // Get the package name and add the hash
+        vitf.setModelPackageName(
+                this.servicePackage + "." + JavaPluginUtils.getPackageName(itf, vitf) + "." + this.ramlOutputPackage);
+        this.hashes.put(interfaceHash, vitf);
+
+        // Copy the temporary file to the target resources folder
+        final Path ramlDestFilePath = Files
+                .createDirectories(Paths.get(this.targetResources).resolve(this.ramlOutputLocation))
+                .resolve(JavaPluginUtils.getVersionedName(itf, vitf) + ".raml");
+        Files.copy(ramlSourceFile, ramlDestFilePath, StandardCopyOption.REPLACE_EXISTING);
+
+        // If there are (locally) any more resources, try and find them.
+        final Path localRamlFile = ramlResourcePath.resolve(vitf.getLocation()).normalize();
+        if (localRamlFile.toFile().exists()) {
+            this.copyRamlFiles(ramlSourceFile.getParent().toFile(),
+                    localRamlFile.toFile(),
+                    Paths.get(this.targetResources).resolve(this.ramlOutputLocation));
+        }
+
+        this.ramlCompiler.setBasePackageName(vitf.getModelPackageName());
+        this.ramlCompiler.compile(ramlDestFilePath, Paths.get(this.genSourceLocation));
+        vitf.setRamlResources(this.ramlCompiler.getResourceNames());
+    }
+
+    private void copyRamlFiles(final File folder, final File mainFile, final Path destination) throws IOException {
+        for (final File file : folder.listFiles()) {
+            if (file.getCanonicalFile().equals(mainFile)) {
+                // Don't copy the main file
+                continue;
+            } else if (file.isFile() && file.getName().endsWith(".raml")) {
+                Files.copy(file.toPath(), destination.resolve(file.getName()), StandardCopyOption.REPLACE_EXISTING);
+            } else if (file.isDirectory() && !file.isHidden()) {
+                final Path newDestination = Files.createDirectories(destination.resolve(file.getName()));
+                this.copyRamlFiles(file, null, newDestination);
+                if (file.list().length == 0) {
+                    // Remove empty folders
+                    file.delete();
+                }
+            }
         }
     }
 
@@ -388,114 +621,6 @@ public class CreateComponentMojo extends AbstractMojo {
 
         Files.write(dockerArmFolder.resolve("Dockerfile"),
                 this.templates.generateDockerfile("arm", this.dockerEntryPoint).getBytes());
-    }
-
-    /**
-     * @param service The service definition read from file to generate the sources from
-     * @throws IOException When unable to write the code
-     */
-    private void compileDescriptors(final ServiceDescription service) throws IOException {
-        this.getLog().debug("Compiling descriptors definitions to java code");
-
-        this.protoCompiler = new JavaProtoCompiler(this.protobufVersion);
-        this.xjcCompiler = new XjcCompiler();
-
-        for (final InterfaceDescription iface : service.getInterfaces()) {
-            for (final InterfaceVersionDescription versionDescription : iface.getInterfaceVersions()) {
-
-                if (versionDescription.getType().equals(Type.PROTO)) {
-                    this.compileProtoDescriptor(iface, versionDescription);
-
-                } else if (versionDescription.getType().equals(Type.XSD)) {
-                    this.compileXSDDescriptor(iface, versionDescription);
-                }
-            }
-        }
-    }
-
-    /**
-     * @param itf The interface description to generate the XSD handler for
-     * @param vitf The specific version of the interface description to generate the XSD handler for
-     * @throws IOException When unable to write the code
-     */
-    private void compileXSDDescriptor(final InterfaceDescription itf, final InterfaceVersionDescription vitf)
-            throws IOException {
-        // First get the hash of the input file
-        final Path xsdSourceFilePath = PluginUtils.downloadFileOrResolve(vitf.getLocation(),
-                Paths.get(this.inputResources).resolve(this.xsdInputLocation));
-
-        // Compute hash and store in interface
-        final String interfaceHash = PluginUtils.SHA256(xsdSourceFilePath);
-        vitf.setHash(interfaceHash);
-
-        if (this.hashes.containsKey(interfaceHash)) {
-            vitf.setModelPackageName(this.hashes.get(interfaceHash).getModelPackageName());
-            return;
-        }
-
-        // Get the package name and add the hash
-        vitf.setModelPackageName(
-                this.servicePackage + "." + JavaPluginUtils.getPackageName(itf, vitf) + "." + this.xsdOutputPackage);
-        this.hashes.put(interfaceHash, vitf);
-
-        // Append additional compilation info to the proto file and compile the java code
-        final Path xsdDestFilePath = Files
-                .createDirectories(Paths.get(this.targetResources).resolve(this.xsdOutputLocation))
-                .resolve(JavaPluginUtils.getVersionedName(itf, vitf) + ".xsd");
-
-        // Copy the descriptor and start compilation
-        Files.copy(xsdSourceFilePath, xsdDestFilePath, StandardCopyOption.REPLACE_EXISTING);
-        this.xjcCompiler.setBasePackageName(vitf.getModelPackageName());
-        this.xjcCompiler.compile(xsdDestFilePath, Paths.get(this.genSourceLocation));
-    }
-
-    /**
-     * @param itf The interface description to generate the Proto handler for
-     * @param vitf The specific version of the interface description to generate the Proto handler for
-     * @throws IOException When unable to write the code
-     */
-    private void compileProtoDescriptor(final InterfaceDescription itf, final InterfaceVersionDescription vitf)
-            throws IOException {
-        final Path protoSourceFilePath = PluginUtils.downloadFileOrResolve(vitf.getLocation(),
-                Paths.get(this.inputResources).resolve(this.protobufInputLocation));
-
-        // Compute hash and store in interface
-        final String interfaceHash = PluginUtils.SHA256(protoSourceFilePath);
-        vitf.setHash(interfaceHash);
-
-        if (this.hashes.containsKey(interfaceHash)) {
-            // If we already have it, just copy the package name
-            vitf.setModelPackageName(this.hashes.get(interfaceHash).getModelPackageName());
-            return;
-        }
-
-        // Get the package name and add the hash
-        final String versionedName = JavaPluginUtils.getVersionedName(itf, vitf);
-        String protoPackageName = this.servicePackage + "." + JavaPluginUtils.getPackageName(itf, vitf);
-        if ((this.protobufOutputPackage != null) && !this.protobufOutputPackage.isEmpty()) {
-            protoPackageName = protoPackageName + "." + this.protobufOutputPackage;
-        }
-
-        final String protoClassName = protoPackageName + "." + versionedName + "Proto";
-
-        // Store for later reference
-        vitf.setModelPackageName(protoClassName);
-        this.hashes.put(interfaceHash, vitf);
-
-        // Append additional compilation info to the proto file and compile the java code
-        final Path protoDestFilePath = Files
-                .createDirectories(Paths.get(this.targetResources).resolve(this.protobufOutputLocation))
-                .resolve(versionedName + ".proto");
-        Files.copy(protoSourceFilePath, protoDestFilePath, StandardCopyOption.REPLACE_EXISTING);
-
-        try (final Scanner scanner = new Scanner(new FileInputStream(protoSourceFilePath.toFile()), "UTF-8")) {
-            Files.write(protoDestFilePath,
-                    ("syntax = \"proto2\";" + "\n\n" + "option java_package = \"" + protoPackageName + "\";\n"
-                            + "option java_outer_classname = \"" + versionedName + "Proto\";\n\n" + "package "
-                            + protoPackageName + ";\n" + scanner.useDelimiter("\\A").next()).getBytes());
-        }
-
-        this.protoCompiler.compile(protoDestFilePath, Paths.get(this.genSourceLocation));
     }
 
 }

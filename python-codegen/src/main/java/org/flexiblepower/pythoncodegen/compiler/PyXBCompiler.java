@@ -24,7 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Scanner;
 
-import org.flexiblepower.codegen.compiler.Compiler;
+import org.flexiblepower.codegen.compiler.InterfaceCompiler;
 
 /**
  * PyXBCompiler
@@ -32,7 +32,7 @@ import org.flexiblepower.codegen.compiler.Compiler;
  * @version 0.1
  * @since Jun 28, 2017
  */
-public class PyXBCompiler implements Compiler {
+public class PyXBCompiler implements InterfaceCompiler {
 
     /**
      *

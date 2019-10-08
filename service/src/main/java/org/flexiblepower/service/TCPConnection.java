@@ -473,6 +473,7 @@ final class TCPConnection implements Connection, Closeable {
 
             if (this.serviceHandler != null) {
                 this.serviceExecutor.submit(this.serviceHandler::terminated);
+                ConnectionManager.removeConnectionHandler(this.serviceHandler);
             }
         }
 
