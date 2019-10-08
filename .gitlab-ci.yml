@@ -93,7 +93,7 @@ java-deploy:
     - defpici
   image: $JDK_8_IMAGE
   script:
-    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy -Ddocker.registry=defpi.hesilab.nl:5000'
+    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy -Ddocker.registry=ci.hesi.energy:5008'
   cache:
     paths:
       - cache/maven.repository
@@ -106,9 +106,9 @@ ui-deploy:
     - defpici
   image: $DOCKER_IMAGE
   before_script:  
-    - 'docker build orchestrator-ui -t defpi.hesilab.nl:5000/defpi/orchestrator-ui'
+    - 'docker build orchestrator-ui -t ci.hesi.energy:5008/defpi/orchestrator-ui'
   script:
-    - 'docker push defpi.hesilab.nl:5000/defpi/orchestrator-ui'
+    - 'docker push ci.hesi.energy:5008/defpi/orchestrator-ui'
 
 # *** FINAL DEPLOY JOBS *** #
 
