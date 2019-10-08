@@ -170,6 +170,7 @@ public class RamlProxyClient {
                 throw new RuntimeException("Error invoking " + method.getName() + ": " + responseString);
             } else if (response.getStatus() >= 500) {
                 final int pos = responseString.indexOf("::");
+                @SuppressWarnings("unchecked")
                 final Class<? extends Throwable> clazz = (Class<? extends Throwable>) Class
                         .forName(responseString.substring(0, pos));
 

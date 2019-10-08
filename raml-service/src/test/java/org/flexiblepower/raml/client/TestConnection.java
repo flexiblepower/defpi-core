@@ -30,6 +30,7 @@ import org.flexiblepower.service.Connection;
  * @version 0.1
  * @since Aug 26, 2019
  */
+@SuppressWarnings("javadoc")
 public class TestConnection implements Connection {
 
     private Object lastMessage;

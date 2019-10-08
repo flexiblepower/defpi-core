@@ -46,6 +46,9 @@ import org.flexiblepower.service.InterfaceInfo;
                sendTypes = {RamlResponse.class})
 public class TestServerConnectionHandler implements ConnectionHandler {
 
+    /**
+     * @param c The connection this handler handles
+     */
     public TestServerConnectionHandler(final Connection c) {
         // Do whatever
     }

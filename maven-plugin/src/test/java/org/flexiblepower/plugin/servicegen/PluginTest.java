@@ -31,8 +31,8 @@ import org.flexiblepower.codegen.model.InterfaceDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription;
 import org.flexiblepower.codegen.model.ServiceDescription;
 import org.flexiblepower.model.Parameter;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,8 +58,8 @@ public class PluginTest {
         final File inputFile = new File("src/test/resources/service.json");
         final ServiceDescription descr = this.mapper.readValue(inputFile, ServiceDescription.class);
 
-        Assert.assertEquals("Echo Service", descr.getName());
-        Assert.assertEquals("0.0.1-SNAPSHOT", descr.getVersion());
+        Assertions.assertEquals("Echo Service", descr.getName());
+        Assertions.assertEquals("0.0.1-SNAPSHOT", descr.getVersion());
 
         final JavaTemplates t = new JavaTemplates("target.package", descr);
         for (final InterfaceDescription itf : descr.getInterfaces()) {
@@ -73,10 +73,10 @@ public class PluginTest {
 
     @Test
     public void testPackageName() {
-        Assert.assertEquals("service", JavaPluginUtils.toPackageName("sErvI*ce"));
-        Assert.assertEquals("twee_woorden", JavaPluginUtils.toPackageName("Twee Woorden"));
-        Assert.assertEquals("_00zomaar_iets", JavaPluginUtils.toPackageName("00*zomaar iets"));
-        Assert.assertEquals("_raar", JavaPluginUtils.toPackageName("_ra@(>=<)ar)"));
+        Assertions.assertEquals("service", JavaPluginUtils.toPackageName("sErvI*ce"));
+        Assertions.assertEquals("twee_woorden", JavaPluginUtils.toPackageName("Twee Woorden"));
+        Assertions.assertEquals("_00zomaar_iets", JavaPluginUtils.toPackageName("00*zomaar iets"));
+        Assertions.assertEquals("_raar", JavaPluginUtils.toPackageName("_ra@(>=<)ar)"));
     }
 
     @Test
@@ -98,10 +98,10 @@ public class PluginTest {
                 testFile.toFile());
 
         final String fileHash = "e00da70ae21e257e79e23df20461e28edb5c6e4c16f6675b8dc4c40e574ebc06";
-        Assert.assertEquals(fileHash, PluginUtils.SHA256(testFile));
-        Assert.assertEquals("aafa92f5e8c919cc004f017d0c7706bf5e72594e656cf04cd67dd47b97cf7c6c",
+        Assertions.assertEquals(fileHash, PluginUtils.SHA256(testFile));
+        Assertions.assertEquals("aafa92f5e8c919cc004f017d0c7706bf5e72594e656cf04cd67dd47b97cf7c6c",
                 PluginUtils.SHA256(fileHash + ";HTTPResponse"));
-        Assert.assertEquals("c46d5961b42774f80194e8308e4a1bec450881925f8d20a08a1f764acf22ed24",
+        Assertions.assertEquals("c46d5961b42774f80194e8308e4a1bec450881925f8d20a08a1f764acf22ed24",
                 PluginUtils.SHA256(fileHash + ";HTTPRequest"));
     }
 
@@ -115,8 +115,8 @@ public class PluginTest {
             final String firstRecvHash = PluginUtils.getReceiveHash(first);
             final String firstSendHash = PluginUtils.getSendHash(first);
             for (final InterfaceVersionDescription vitf : itf.getInterfaceVersions()) {
-                Assert.assertEquals(firstRecvHash, PluginUtils.getReceiveHash(vitf));
-                Assert.assertEquals(firstSendHash, PluginUtils.getSendHash(vitf));
+                Assertions.assertEquals(firstRecvHash, PluginUtils.getReceiveHash(vitf));
+                Assertions.assertEquals(firstSendHash, PluginUtils.getSendHash(vitf));
             }
         }
     }

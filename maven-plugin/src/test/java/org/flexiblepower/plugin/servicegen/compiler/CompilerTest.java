@@ -22,7 +22,7 @@ package org.flexiblepower.plugin.servicegen.compiler;
 import java.io.IOException;
 import java.nio.file.Paths;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * CompilerTest

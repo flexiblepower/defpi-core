@@ -47,6 +47,9 @@ import org.flexiblepower.service.InterfaceInfo;
                receiveTypes = {RamlResponse.class})
 public class TestClientConnectionHandler implements ConnectionHandler {
 
+    /**
+     * @param c The connection this handler handles
+     */
     public TestClientConnectionHandler(final Connection c) {
         // TODO Auto-generated constructor stub
     }
