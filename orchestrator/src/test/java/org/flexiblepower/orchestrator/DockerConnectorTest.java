@@ -20,14 +20,14 @@
 package org.flexiblepower.orchestrator;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.flexiblepower.connectors.DockerConnector;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
@@ -39,24 +39,22 @@ import com.spotify.docker.client.messages.swarm.Node;
  * @version 0.1
  * @since May 8, 2017
  */
-@Ignore
+@Disabled
+@Timeout(value = 5, unit = TimeUnit.SECONDS)
 @SuppressWarnings({"static-method", "javadoc"})
 public class DockerConnectorTest {
-
-    @Rule
-    public Timeout globalTimeout = Timeout.seconds(5);
 
     @Test
     public void runDockerConnectorTest() throws DockerException, InterruptedException, DockerCertificateException {
         try {
             DockerConnector.getInstance();
         } catch (final Exception e) {
-            Assume.assumeNoException(e);
+            Assumptions.assumeTrue(false);
         }
 
         final List<Node> nodes = DockerConnector.getInstance().listNodes();
         System.out.println(nodes);
-        Assert.assertNotNull(nodes);
+        Assertions.assertNotNull(nodes);
     }
 
 }

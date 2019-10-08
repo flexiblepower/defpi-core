@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,8 +22,8 @@ package org.flexiblepower.service;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 /**
  * ConfigTest
@@ -36,7 +36,7 @@ public class ConfigTest {
 
     @Test
     public void defaultConfig() {
-        Assert.assertNull(ServiceConfig.generateConfig(Void.class, new HashMap<>()));
+        Assertions.assertNull(ServiceConfig.generateConfig(Void.class, new HashMap<>()));
     }
 
     @Test
@@ -47,25 +47,25 @@ public class ConfigTest {
         valueMap.put("invalidObjectType", "{\"key\":\"value\"}");
 
         final GeneratedConfig config = ServiceConfig.generateConfig(GeneratedConfig.class, valueMap);
-        Assert.assertEquals("Configuration", config.getName());
-        Assert.assertEquals(7, config.getUpdateInterval());
-        Assert.assertEquals(0.0, config.getInexistentParameter(), 1e-16);
-        Assert.assertEquals(20, config.getInexistentButDefaultByte());
+        Assertions.assertEquals("Configuration", config.getName());
+        Assertions.assertEquals(7, config.getUpdateInterval());
+        Assertions.assertEquals(0.0, config.getInexistentParameter(), 1e-16);
+        Assertions.assertEquals(20, config.getInexistentButDefaultByte());
 
         try {
             config.incorrectlyNamedProperty();
-            Assert.fail("Expected " + IllegalArgumentException.class);
+            Assertions.fail("Expected " + IllegalArgumentException.class);
         } catch (final Exception e) {
-            Assert.assertEquals(IllegalArgumentException.class, e.getClass());
-            Assert.assertEquals("Can only invoke 'getters'", e.getMessage());
+            Assertions.assertEquals(IllegalArgumentException.class, e.getClass());
+            Assertions.assertEquals("Can only invoke 'getters'", e.getMessage());
         }
 
         try {
             config.getInvalidObjectType();
-            Assert.fail("Expected " + IllegalArgumentException.class);
+            Assertions.fail("Expected " + IllegalArgumentException.class);
         } catch (final Exception e) {
-            Assert.assertEquals(IllegalArgumentException.class, e.getClass());
-            Assert.assertEquals("Unable to return parameter of type 'interface java.util.Map'", e.getMessage());
+            Assertions.assertEquals(IllegalArgumentException.class, e.getClass());
+            Assertions.assertEquals("Unable to return parameter of type 'interface java.util.Map'", e.getMessage());
         }
     }
 
@@ -83,15 +83,15 @@ public class ConfigTest {
         valueMap.put("string", "");
 
         final GeneratedConfig config = ServiceConfig.generateConfig(GeneratedConfig.class, valueMap);
-        Assert.assertEquals(true, config.getBool());
-        Assert.assertEquals(' ', config.getChar());
-        Assert.assertEquals(127, config.getByte());
-        Assert.assertEquals(Short.MAX_VALUE, config.getShort());
-        Assert.assertEquals(123, config.getInt());
-        Assert.assertEquals((long) -1e8, config.getLong());
-        Assert.assertEquals((float) 0.02, config.getFloat(), 1e-3);
-        Assert.assertEquals(Math.PI, config.getDouble(), 1e-10);
-        Assert.assertEquals("", config.getString());
+        Assertions.assertEquals(true, config.getBool());
+        Assertions.assertEquals(' ', config.getChar());
+        Assertions.assertEquals(127, config.getByte());
+        Assertions.assertEquals(Short.MAX_VALUE, config.getShort());
+        Assertions.assertEquals(123, config.getInt());
+        Assertions.assertEquals((long) -1e8, config.getLong());
+        Assertions.assertEquals((float) 0.02, config.getFloat(), 1e-3);
+        Assertions.assertEquals(Math.PI, config.getDouble(), 1e-10);
+        Assertions.assertEquals("", config.getString());
     }
 
     @Test
@@ -103,11 +103,12 @@ public class ConfigTest {
         valueMap.put("doubleArray", "[]");
 
         final GeneratedConfig config = ServiceConfig.generateConfig(GeneratedConfig.class, valueMap);
-        Assert.assertArrayEquals(new boolean[] {true, true, false}, config.getBoolArray());
-        Assert.assertArrayEquals(new int[] {4, 8, 15, 16, 23, 42}, config.getIntArray());
-        Assert.assertArrayEquals(new long[] {0, 180}, config.getLongArray());
-        Assert.assertArrayEquals(new float[] {(float) 6.7, (float) 8.1}, config.getDefaultFloatArray(), (float) 0.1);
-        Assert.assertArrayEquals(new double[] {}, config.getDoubleArray(), 1e-16);
+        Assertions.assertArrayEquals(new boolean[] {true, true, false}, config.getBoolArray());
+        Assertions.assertArrayEquals(new int[] {4, 8, 15, 16, 23, 42}, config.getIntArray());
+        Assertions.assertArrayEquals(new long[] {0, 180}, config.getLongArray());
+        Assertions
+                .assertArrayEquals(new float[] {(float) 6.7, (float) 8.1}, config.getDefaultFloatArray(), (float) 0.1);
+        Assertions.assertArrayEquals(new double[] {}, config.getDoubleArray(), 1e-16);
     }
 
     public static interface GeneratedConfig {

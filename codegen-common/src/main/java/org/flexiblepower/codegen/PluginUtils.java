@@ -78,7 +78,6 @@ public class PluginUtils {
 
         final ObjectMapper mapper = new ObjectMapper();
         return mapper.readValue(inputFile, ServiceDescription.class);
-
     }
 
     /**
@@ -174,6 +173,17 @@ public class PluginUtils {
     }
 
     /**
+     * Simply replace the first letter by a capital letter. This is useful when a resource or type needs to be
+     * transformed to a proper class name.
+     *
+     * @param str The string to capitalize
+     * @return The same string with the first letter capitalized
+     */
+    public static String capitalize(final String str) {
+        return Character.toUpperCase(str.charAt(0)) + str.substring(1);
+    }
+
+    /**
      * Compute the outgoing dEF-Pi hash of a specific interface version.
      *
      * @param vitf The versioned interface description to compute the hash of.
@@ -243,12 +253,11 @@ public class PluginUtils {
      * @param dst The destination file to download to
      * @throws IOException When any exception occurs while reading from the URL, or to the destination file
      */
-    public static void downloadFile(final String src, final File dst) throws IOException {
+    public static void downloadFile(final URL src, final File dst) throws IOException {
         System.out.println("Downloading " + src + " to " + dst);
-        final URL url = new URL(src);
 
         try (
-                final InputStream in = new BufferedInputStream(url.openStream());
+                final InputStream in = new BufferedInputStream(src.openStream());
                 final FileOutputStream out = new FileOutputStream(dst)) {
             final byte[] buf = new byte[1024];
             int n = 0;
@@ -268,8 +277,9 @@ public class PluginUtils {
      */
     public static Path downloadFileOrResolve(final String location, final Path resources) throws FileNotFoundException {
         try {
+            final URL url = new URL(location);
             final Path tempFile = Files.createTempFile(null, null);
-            PluginUtils.downloadFile(location, tempFile.toFile());
+            PluginUtils.downloadFile(url, tempFile.toFile());
             return tempFile;
         } catch (final IOException e) {
             final Path ret = resources.resolve(location);

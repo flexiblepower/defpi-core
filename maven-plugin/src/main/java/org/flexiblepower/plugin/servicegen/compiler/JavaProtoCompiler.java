@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -44,7 +44,7 @@ public class JavaProtoCompiler extends ProtoCompiler {
     /**
      * Compile the proto file which is at the specified location to java code at a certain destination.
      *
-     * @param filePath   The input .proto file to compile to java code
+     * @param filePath The input .proto file to compile to java code
      * @param targetPath The target path where the java code should be put
      * @throws IOException When an exception occurs while reading the proto file, or writing the java code
      */

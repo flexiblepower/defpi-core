@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,8 +20,7 @@
 package org.flexiblepower.service;
 
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.flexiblepower.commons.TCPSocket;
 import org.flexiblepower.proto.ServiceProto.ErrorMessage;
@@ -34,13 +33,11 @@ import org.flexiblepower.serializers.JavaIOSerializer;
 import org.flexiblepower.serializers.MessageSerializer;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.flexiblepower.service.TestService.TestServiceConfiguration;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Timeout;
 
 import com.google.protobuf.ByteString;
 
@@ -50,14 +47,8 @@ import com.google.protobuf.ByteString;
  * @version 0.1
  * @since May 12, 2017
  */
-@RunWith(Parameterized.class)
 @SuppressWarnings("javadoc")
 public class ServiceTest {
-
-    @Parameters
-    public static List<Object[]> data() {
-        return Arrays.asList(new Object[3][0]);
-    }
 
     private static final String TEST_HOST = "localhost";
     private static final String PROCESS_ID = "null";
@@ -69,15 +60,18 @@ public class ServiceTest {
     private ServiceManager<TestServiceConfiguration> manager;
     private TCPSocket managementSocket;
 
-    @Before
+    @BeforeEach
     public void init() throws Exception {
         this.manager = new ServiceManager<>();
         try {
             this.manager.start(this.testService);
         } catch (final Exception e) {
-            Assert.assertEquals(RuntimeException.class, e.getClass());
-            Assert.assertEquals(IllegalArgumentException.class, e.getCause().getClass());
-            Assert.assertTrue(e.getMessage().contains("protocol = http host = null"));
+            // In some JREs this will be a NPE, in others it will be a runtime exception
+            if (!(e instanceof NullPointerException)) {
+                Assertions.assertEquals(RuntimeException.class, e.getClass());
+                Assertions.assertEquals(IllegalArgumentException.class, e.getCause().getClass());
+                Assertions.assertTrue(e.getMessage().contains("protocol = http host = null"));
+            }
         }
 
         this.managementSocket = TCPSocket.asClient(ServiceTest.TEST_HOST, ServiceManager.MANAGEMENT_PORT);
@@ -90,29 +84,31 @@ public class ServiceTest {
 
     }
 
-    @Test(timeout = 10000)
+    @RepeatedTest(3)
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
     public void runReconnectTests() throws Exception {
         this.managementSocket.send("Rare string".getBytes());
         byte[] data = this.managementSocket.read();
         Object e = this.pbSerializer.deserialize(data);
-        Assert.assertEquals(ErrorMessage.class, e.getClass());
-        Assert.assertTrue(((ErrorMessage) e).getDebugInformation()
+        Assertions.assertEquals(ErrorMessage.class, e.getClass());
+        Assertions.assertTrue(((ErrorMessage) e).getDebugInformation()
                 .startsWith("org.flexiblepower.exceptions.SerializationException"));
 
         this.managementSocket.close();
         this.managementSocket = TCPSocket.asClient(ServiceTest.TEST_HOST, ServiceManager.MANAGEMENT_PORT);
 
         data = this.managementSocket.read(200);
-        Assert.assertNull(data);
+        Assertions.assertNull(data);
         this.managementSocket.send("nog iets".getBytes());
         data = this.managementSocket.read();
         e = this.pbSerializer.deserialize(data);
-        Assert.assertEquals(ErrorMessage.class, e.getClass());
-        Assert.assertTrue(((ErrorMessage) e).getDebugInformation()
+        Assertions.assertEquals(ErrorMessage.class, e.getClass());
+        Assertions.assertTrue(((ErrorMessage) e).getDebugInformation()
                 .startsWith("org.flexiblepower.exceptions.SerializationException"));
     }
 
-    @Test(timeout = 60000)
+    @RepeatedTest(3)
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
     public void runTests() throws Exception {
         // One test since they have to be executed in the correct order
         this.runConfigure();
@@ -121,7 +117,8 @@ public class ServiceTest {
         this.runSuspend();
     }
 
-    @Test(timeout = 60000)
+    @RepeatedTest(3)
+    @Timeout(value = 1, unit = TimeUnit.MINUTES)
     public void runResumeTerminate() throws Exception {
         this.runResume();
         this.runConfigure();
@@ -136,14 +133,12 @@ public class ServiceTest {
         this.managementSocket.send(data);
 
         final byte[] received = this.managementSocket.read();
-        Assert.assertEquals(
-                ProcessStateUpdateMessage.newBuilder()
-                        .setProcessId(ServiceTest.PROCESS_ID)
-                        .setState(ProcessState.RUNNING)
-                        .setStateData(ByteString.copyFrom("".getBytes()))
-                        .build(),
-                this.pbSerializer.deserialize(received));
-        Assert.assertEquals("resumed", this.testService.stateQueue.take());
+        Assertions.assertEquals(ProcessStateUpdateMessage.newBuilder()
+                .setProcessId(ServiceTest.PROCESS_ID)
+                .setState(ProcessState.RUNNING)
+                .setStateData(ByteString.copyFrom("".getBytes()))
+                .build(), this.pbSerializer.deserialize(received));
+        Assertions.assertEquals("resumed", this.testService.stateQueue.take());
     }
 
     public void runConfigure() throws Exception {
@@ -154,12 +149,12 @@ public class ServiceTest {
                 .build());
         this.managementSocket.send(msg);
         final byte[] received = this.managementSocket.read();
-        Assert.assertArrayEquals(this.pbSerializer.serialize(ProcessStateUpdateMessage.newBuilder()
+        Assertions.assertArrayEquals(this.pbSerializer.serialize(ProcessStateUpdateMessage.newBuilder()
                 .setProcessId(ServiceTest.PROCESS_ID)
                 .setState(ProcessState.RUNNING)
                 .setStateData(ByteString.EMPTY)
                 .build()), received);
-        Assert.assertEquals("init", this.testService.stateQueue.take());
+        Assertions.assertEquals("init", this.testService.stateQueue.take());
     }
 
     public void runWithError() throws Exception {
@@ -171,8 +166,8 @@ public class ServiceTest {
         this.managementSocket.send(msg);
         final byte[] received = this.managementSocket.read();
         final Object err = this.pbSerializer.deserialize(received);
-        Assert.assertEquals(ErrorMessage.class, err.getClass());
-        Assert.assertEquals(ServiceTest.PROCESS_ID, ((ErrorMessage) err).getProcessId());
+        Assertions.assertEquals(ErrorMessage.class, err.getClass());
+        Assertions.assertEquals(ServiceTest.PROCESS_ID, ((ErrorMessage) err).getProcessId());
     }
 
     public void runReconfigure() throws Exception {
@@ -181,12 +176,12 @@ public class ServiceTest {
                 .setIsUpdate(true)
                 .putConfig("key", "othervalue")
                 .build()));
-        Assert.assertArrayEquals(this.pbSerializer.serialize(ProcessStateUpdateMessage.newBuilder()
+        Assertions.assertArrayEquals(this.pbSerializer.serialize(ProcessStateUpdateMessage.newBuilder()
                 .setProcessId(ServiceTest.PROCESS_ID)
                 .setState(ProcessState.RUNNING)
                 .setStateData(ByteString.EMPTY)
                 .build()), this.managementSocket.read());
-        Assert.assertEquals("modify", this.testService.stateQueue.take());
+        Assertions.assertEquals("modify", this.testService.stateQueue.take());
     }
 
     public void runSuspend() throws Exception {
@@ -195,12 +190,12 @@ public class ServiceTest {
                 .setTargetState(ProcessState.SUSPENDED)
                 .build()));
         final byte[] barr = this.managementSocket.read();
-        Assert.assertArrayEquals(this.pbSerializer.serialize(ProcessStateUpdateMessage.newBuilder()
+        Assertions.assertArrayEquals(this.pbSerializer.serialize(ProcessStateUpdateMessage.newBuilder()
                 .setProcessId(ServiceTest.PROCESS_ID)
                 .setState(ProcessState.SUSPENDED)
                 .setStateData(ByteString.copyFrom(this.serializer.serialize(TestService.class)))
                 .build()), barr);
-        Assert.assertEquals("suspend", this.testService.stateQueue.take());
+        Assertions.assertEquals("suspend", this.testService.stateQueue.take());
     }
 
     public void runTerminate() throws Exception {
@@ -208,15 +203,15 @@ public class ServiceTest {
                 .setProcessId(ServiceTest.PROCESS_ID)
                 .setTargetState(ProcessState.TERMINATED)
                 .build()));
-        Assert.assertArrayEquals(this.pbSerializer.serialize(ProcessStateUpdateMessage.newBuilder()
+        Assertions.assertArrayEquals(this.pbSerializer.serialize(ProcessStateUpdateMessage.newBuilder()
                 .setProcessId(ServiceTest.PROCESS_ID)
                 .setState(ProcessState.TERMINATED)
                 .setStateData(ByteString.EMPTY)
                 .build()), this.managementSocket.read());
-        Assert.assertEquals("terminate", this.testService.stateQueue.take());
+        Assertions.assertEquals("terminate", this.testService.stateQueue.take());
     }
 
-    @After
+    @AfterEach
     public void stop() throws InterruptedException {
         if (this.manager != null) {
             this.manager.close();
