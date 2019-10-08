@@ -1,24 +1,25 @@
-/**
- * File ConnectionManager.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi service managing library
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
 package org.flexiblepower.service;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,11 +40,12 @@ import com.google.protobuf.Message;
  * @version 0.1
  * @since May 10, 2017
  */
-public class ConnectionManager implements Closeable {
+public final class ConnectionManager implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(ConnectionManager.class);
-    private static final Map<String, ConnectionHandlerManager> connectionHandlers = new HashMap<>();
+    private static final Map<String, ConnectionHandlerManager> connectionBuilders = new HashMap<>();
     private static final Map<String, InterfaceInfo> interfaceInfo = new HashMap<>();
+    private static final Map<ConnectionHandler, Connection> handlerConnectionMap = new HashMap<>();
 
     private final Map<String, TCPConnection> connections = new HashMap<>();
 
@@ -54,7 +56,7 @@ public class ConnectionManager implements Closeable {
      * @return The resulting confirmation message containing the new connection state
      * @throws ConnectionModificationException When an error occurs while creating or updating the connection
      */
-    public Message handleConnectionMessage(final ConnectionMessage message) throws ConnectionModificationException {
+    Message handleConnectionMessage(final ConnectionMessage message) throws ConnectionModificationException {
         final String connectionId = message.getConnectionId();
         ConnectionManager.log
                 .info("Received ConnectionMessage for connection {} ({})", connectionId, message.getMode());
@@ -98,14 +100,13 @@ public class ConnectionManager implements Closeable {
     }
 
     /**
-     * @param message
-     * @throws ConnectionModificationException
-     * @throws IOException
+     * @param message A ConnectionMessage describing the connection to build
+     * @throws ConnectionModificationException When the service is unable to build / modify the connection
      */
     private Message createConnection(final ConnectionMessage message) throws ConnectionModificationException {
         // First find the correct handler to attach to the connection
         final String key = ConnectionManager.handlerKey(message.getReceiveHash(), message.getSendHash());
-        final ConnectionHandlerManager chf = ConnectionManager.connectionHandlers.get(key);
+        final ConnectionHandlerManager chf = ConnectionManager.connectionBuilders.get(key);
         final InterfaceInfo info = ConnectionManager.interfaceInfo.get(key);
 
         if ((chf == null) || (info == null)) {
@@ -146,13 +147,15 @@ public class ConnectionManager implements Closeable {
      */
     static ConnectionHandler buildHandlerForConnection(final Connection c, final InterfaceInfo info) {
         final String key = ConnectionManager.handlerKey(info.receivesHash(), info.sendsHash());
-        final ConnectionHandlerManager chf = ConnectionManager.connectionHandlers.get(key);
+        final ConnectionHandlerManager chf = ConnectionManager.connectionBuilders.get(key);
 
         final String methodName = "build" + ConnectionManager.camelCaps(info.version());
 
         try {
             final Method buildMethod = chf.getClass().getMethod(methodName, Connection.class);
-            return (ConnectionHandler) buildMethod.invoke(chf, c);
+            final ConnectionHandler handler = (ConnectionHandler) buildMethod.invoke(chf, c);
+            ConnectionManager.handlerConnectionMap.put(handler, c);
+            return handler;
         } catch (final Exception e) {
             throw new RuntimeException("Error building connection handler: " + e.getMessage(), e);
         }
@@ -167,7 +170,7 @@ public class ConnectionManager implements Closeable {
      * @param connectionHandlerManager The object that is capable of building the ConnectionHandler
      * @throws RuntimeException when the clazz argument class is not annotated with InterfaceInfo
      */
-    public static void registerConnectionHandlerFactory(final Class<? extends ConnectionHandler> clazz,
+    static void registerConnectionHandlerFactory(final Class<? extends ConnectionHandler> clazz,
             final ConnectionHandlerManager connectionHandlerManager) {
         if (!clazz.isAnnotationPresent(InterfaceInfo.class)) {
             throw new RuntimeException(
@@ -176,9 +179,30 @@ public class ConnectionManager implements Closeable {
         final InterfaceInfo info = clazz.getAnnotation(InterfaceInfo.class);
         final String key = ConnectionManager.handlerKey(info.receivesHash(), info.sendsHash());
 
-        ConnectionManager.connectionHandlers.put(key, connectionHandlerManager);
+        ConnectionManager.connectionBuilders.put(key, connectionHandlerManager);
         ConnectionManager.interfaceInfo.put(key, info);
         ConnectionManager.log.debug("Registered {} for type {}", connectionHandlerManager, key);
+    }
+
+    /**
+     * Remove a known handler from the handler map;
+     *
+     * @param handler the handler to remove
+     */
+    static void removeConnectionHandler(final ConnectionHandler handler) {
+        ConnectionManager.handlerConnectionMap.remove(handler);
+    }
+
+    /**
+     * This is a friendly way to get the connection of a connection handler. Handlers should have received their
+     * connection in their constructor, but for some services it is nice to get it via a central registry, which is
+     * provided with this function.
+     *
+     * @param handler the connection handler to find the connection of
+     * @return The connection which is handled by this handler
+     */
+    public static Connection getMyConnection(final ConnectionHandler handler) {
+        return ConnectionManager.handlerConnectionMap.get(handler);
     }
 
     private static String handlerKey(final String receivesHash, final String sendsHash) {

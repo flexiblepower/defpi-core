@@ -1,21 +1,22 @@
-/**
- * File XSDMessageSerializer.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi commons Library
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
-
 package org.flexiblepower.serializers;
 
 import java.io.ByteArrayInputStream;
@@ -44,7 +45,6 @@ public class XSDMessageSerializer implements MessageSerializer<Object> {
 
     private final Map<String, Class<?>> classes = new HashMap<>();
     private final DescriptorType type = DescriptorType.XSD;
-    private JAXBContext ctx;
     private Marshaller marshaller;
     private Unmarshaller unmarshaller;
 
@@ -109,13 +109,13 @@ public class XSDMessageSerializer implements MessageSerializer<Object> {
     /**
      * Lazy initialization to avoid having the constructor throw an exception
      *
-     * @throws JAXBException
+     * @throws JAXBException If there is any error while instantiating the marshaller or the unmarshaller
      */
     private void init() throws JAXBException {
         final Class<?>[] array = new Class<?>[this.classes.size()];
-        this.ctx = JAXBContext.newInstance(this.classes.values().toArray(array));
-        this.unmarshaller = this.ctx.createUnmarshaller();
-        this.marshaller = this.ctx.createMarshaller();
+        JAXBContext ctx = JAXBContext.newInstance(this.classes.values().toArray(array));
+        this.unmarshaller = ctx.createUnmarshaller();
+        this.marshaller = ctx.createMarshaller();
     }
 
 }

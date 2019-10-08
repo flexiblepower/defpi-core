@@ -1,25 +1,29 @@
-/**
- * File NodeRestApi.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
-
 package org.flexiblepower.rest;
 
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -27,12 +31,13 @@ import javax.ws.rs.core.Response.Status;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.api.NodeApi;
-import org.flexiblepower.api.UserApi;
 import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.NodePoolNotFoundException;
+import org.flexiblepower.exceptions.NotFoundException;
+import org.flexiblepower.model.Node;
 import org.flexiblepower.model.NodePool;
 import org.flexiblepower.model.PrivateNode;
 import org.flexiblepower.model.PublicNode;
@@ -52,6 +57,27 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NodeRestApi extends BaseApi implements NodeApi {
 
+    private static final Map<String, Function<Node, Comparable<?>>> NODE_SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<? super PrivateNode, Comparable<?>>> PRIVATENODE_SORT_MAP = new HashMap<>();
+    private static final Map<String, Function<? super PublicNode, Comparable<?>>> PUBLICNODE_SORT_MAP = new HashMap<>();
+    static {
+        NodeRestApi.NODE_SORT_MAP.put("id", Node::getId);
+        NodeRestApi.NODE_SORT_MAP.put("name", Node::getName);
+        NodeRestApi.NODE_SORT_MAP.put("hostname", Node::getHostname);
+        NodeRestApi.NODE_SORT_MAP.put("status", Node::getStatus);
+        NodeRestApi.NODE_SORT_MAP.put("dockerId", Node::getDockerId);
+        NodeRestApi.NODE_SORT_MAP.put("architecture", Node::getArchitecture);
+        NodeRestApi.NODE_SORT_MAP.put("lastSync", Node::getLastSync);
+
+        NodeRestApi.PRIVATENODE_SORT_MAP.putAll(NodeRestApi.NODE_SORT_MAP);
+        NodeRestApi.PRIVATENODE_SORT_MAP.put("userId",
+                (n) -> UserManager.getInstance().getUser(n.getUserId()).getUsername());
+
+        NodeRestApi.PUBLICNODE_SORT_MAP.putAll(NodeRestApi.NODE_SORT_MAP);
+        NodeRestApi.PUBLICNODE_SORT_MAP.put("nodePoolId",
+                (n) -> NodeManager.getInstance().getNodePool(n.getNodePoolId()).getName());
+    }
+
     /**
      * Create the REST API with the headers from the HTTP request (will be injected by the HTTP server)
      *
@@ -63,7 +89,8 @@ public class NodeRestApi extends BaseApi implements NodeApi {
 
     @Override
     public PrivateNode createPrivateNode(final PrivateNode newNode) throws AuthorizationException,
-            InvalidObjectIdException {
+            InvalidObjectIdException,
+            NotFoundException {
         this.assertUserIsAdmin();
         // TODO this is a hack. The UI gives the id of the Unidentified node, not of the dockerId...
         final ObjectId oid = MongoDbConnector.stringToObjectId(newNode.getDockerId());
@@ -74,7 +101,13 @@ public class NodeRestApi extends BaseApi implements NodeApi {
 
         final User owner = UserManager.getInstance().getUser(newNode.getUserId());
         if (owner == null) {
-            throw new ApiException(Status.NOT_FOUND, UserApi.USER_NOT_FOUND_MESSAGE);
+            throw new NodePoolNotFoundException();
+        }
+
+        if ((newNode.getName() != null) && !newNode.getName().isEmpty()) {
+            un.setName(newNode.getName());
+        } else {
+            un.setName(un.getHostname());
         }
 
         NodeRestApi.log.info("Making node " + newNode.getDockerId() + " into a private node");
@@ -83,7 +116,8 @@ public class NodeRestApi extends BaseApi implements NodeApi {
 
     @Override
     public PublicNode createPublicNode(final PublicNode newNode) throws AuthorizationException,
-            InvalidObjectIdException {
+            InvalidObjectIdException,
+            NodePoolNotFoundException {
         this.assertUserIsAdmin();
         // TODO this is a hack. The UI gives the id of the Unidentified node, not of the dockerId...
         final ObjectId oid = MongoDbConnector.stringToObjectId(newNode.getDockerId());
@@ -95,11 +129,45 @@ public class NodeRestApi extends BaseApi implements NodeApi {
 
         final NodePool nodePool = NodeManager.getInstance().getNodePool(newNode.getNodePoolId());
         if (nodePool == null) {
-            throw new ApiException(Status.NOT_FOUND, NodeApi.NODE_POOL_NOT_FOUND_MESSAGE);
+            throw new NodePoolNotFoundException();
+        }
+
+        if ((newNode.getName() != null) && !newNode.getName().isEmpty()) {
+            un.setName(newNode.getName());
+        } else {
+            un.setName(un.getHostname());
         }
 
         NodeRestApi.log.info("Making node " + newNode.getDockerId() + " into a public node");
         return NodeManager.getInstance().makeUnidentifiedNodePublic(un, nodePool);
+    }
+
+    @Override
+    public PrivateNode updatePrivateNode(final String nodeId, final PrivateNode updatedPrivateNode)
+            throws AuthorizationException,
+            InvalidObjectIdException {
+        final PrivateNode node = this.getPrivateNode(nodeId);
+
+        if ((node.getName() == null) || !node.getName().equals(updatedPrivateNode.getName())) {
+            node.setName(updatedPrivateNode.getName());
+        }
+
+        MongoDbConnector.getInstance().save(node);
+        return node;
+    }
+
+    @Override
+    public PublicNode updatePublicNode(final String nodeId, final PublicNode updatedPublicNode)
+            throws AuthorizationException,
+            InvalidObjectIdException {
+        final PublicNode node = this.getPublicNode(nodeId);
+
+        if ((node.getName() == null) || !node.getName().equals(updatedPublicNode.getName())) {
+            node.setName(updatedPublicNode.getName());
+        }
+
+        MongoDbConnector.getInstance().save(node);
+        return node;
     }
 
     @Override
@@ -157,16 +225,27 @@ public class NodeRestApi extends BaseApi implements NodeApi {
             final String sortField,
             final String filters) throws AuthorizationException {
         // TODO implement pagination
+        final NodeManager nm = NodeManager.getInstance();
+
         List<PrivateNode> content;
         if (this.sessionUser == null) {
             throw new AuthorizationException();
         } else if (this.sessionUser.isAdmin()) {
-            content = NodeManager.getInstance().getPrivateNodes();
+            content = nm.getPrivateNodes();
         } else {
-            content = NodeManager.getInstance().getPrivateNodesForUser(this.sessionUser);
+            content = nm.getPrivateNodesForUser(this.sessionUser);
         }
+
+        // Do some filtering
+        final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
+        RestUtils.filterMultiContent(content, PrivateNode::getId, filter, "ids[]");
+        RestUtils.filterContent(content, PrivateNode::getName, filter, "name");
+
         this.addTotalCount(content.size());
-        return content;
+        RestUtils.orderContent(content, NodeRestApi.PRIVATENODE_SORT_MAP.get(sortField), sortDir);
+
+        this.addTotalCount(content.size());
+        return RestUtils.paginate(content, page, perPage);
     }
 
     @Override
@@ -175,11 +254,19 @@ public class NodeRestApi extends BaseApi implements NodeApi {
             final String sortDir,
             final String sortField,
             final String filters) throws AuthorizationException {
-        // TODO implement pagination
         this.assertUserIsLoggedIn();
+
         final List<PublicNode> content = NodeManager.getInstance().getPublicNodes();
+
+        // Do some filtering
+        final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
+        RestUtils.filterMultiContent(content, PublicNode::getId, filter, "ids[]");
+        RestUtils.filterContent(content, PublicNode::getName, filter, "name");
+
+        RestUtils.orderContent(content, NodeRestApi.PUBLICNODE_SORT_MAP.get(sortField), sortDir);
+
         this.addTotalCount(content.size());
-        return content;
+        return RestUtils.paginate(content, page, perPage);
     }
 
     @Override
@@ -188,11 +275,13 @@ public class NodeRestApi extends BaseApi implements NodeApi {
             final String sortDir,
             final String sortField,
             final String filters) throws AuthorizationException {
-        // TODO implement pagination
         this.assertUserIsAdmin();
+
         final List<UnidentifiedNode> content = NodeManager.getInstance().getUnidentifiedNodes();
+        RestUtils.orderContent(content, NodeRestApi.NODE_SORT_MAP.get(sortField), sortDir);
+
         this.addTotalCount(content.size());
-        return content;
+        return RestUtils.paginate(content, page, perPage);
     }
 
     @Override
@@ -246,9 +335,25 @@ public class NodeRestApi extends BaseApi implements NodeApi {
             final String filters) throws AuthorizationException {
         this.assertUserIsLoggedIn();
         final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
-        final List<NodePool> content = NodeManager.getInstance()
-                .listNodePools(page, perPage, sortDir, sortField, filter);
+        final List<NodePool> content;
+
+        if (filter.containsKey("ids[]")) {
+            content = new LinkedList<>();
+
+            @SuppressWarnings("unchecked")
+            final List<String> ids = (List<String>) filter.get("ids[]");
+            for (final String id : ids) {
+                try {
+                    content.add(NodeManager.getInstance().getNodePool(MongoDbConnector.stringToObjectId(id)));
+                } catch (final InvalidObjectIdException e) {
+                    NodeRestApi.log.debug("Invalid objectId in list: {}", id);
+                }
+            }
+        } else {
+            content = NodeManager.getInstance().listNodePools(page, perPage, sortDir, sortField, filter);
+        }
         this.addTotalCount(NodeManager.getInstance().countNodePools(filter));
         return content;
     }
+
 }

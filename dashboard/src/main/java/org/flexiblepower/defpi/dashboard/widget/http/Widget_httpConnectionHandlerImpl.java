@@ -1,5 +1,25 @@
 package org.flexiblepower.defpi.dashboard.widget.http;
 
+/*-
+ * #%L
+ * dEF-Pi dashboard
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,6 +36,7 @@ import org.flexiblepower.defpi.dashboard.widget.http.proto.Widget_httpProto.Widg
 import org.flexiblepower.defpi.dashboard.widget.http.proto.Widget_httpProto.WidgetHTTPRequest.Method;
 import org.flexiblepower.defpi.dashboard.widget.http.proto.Widget_httpProto.WidgetHTTPResponse;
 import org.flexiblepower.defpi.dashboard.widget.http.proto.Widget_httpProto.WidgetInfo;
+import org.flexiblepower.defpi.dashboard.widget.http.proto.Widget_httpProto.WidgetInfo.WidgetType;
 import org.flexiblepower.service.Connection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +59,7 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
     private final Connection connection;
     private final Dashboard service;
     private final Map<Integer, HttpTask> responseList = new ConcurrentHashMap<>();
-    private String title;
+    private WidgetInfo widgetInfo = null;
 
     /**
      * Auto-generated constructor for the ConnectionHandlers of the provided service
@@ -49,8 +70,6 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
     public Widget_httpConnectionHandlerImpl(final Connection connection, final Dashboard service) {
         this.connection = connection;
         this.service = service;
-        this.title = null;
-        this.service.registerWidget(this);
     }
 
     @Override
@@ -72,7 +91,13 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
 
     @Override
     public void handleWidgetInfoMessage(final WidgetInfo message) {
-        this.title = message.getTitle();
+        if (this.widgetInfo == null) {
+            // Ah, now we're ready to register!
+            Widget_httpConnectionHandlerImpl.LOG
+                    .debug("Received WidgetInfo, registering widegt of type " + message.getType());
+            this.widgetInfo = message;
+            this.service.registerWidget(this);
+        }
     }
 
     @Override
@@ -101,7 +126,10 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
 
     @Override
     public void terminated() {
-        this.service.unregisterWidget(this);
+        if (this.widgetInfo != null) {
+            // if this.widgetInfo == null we never registered
+            this.service.unregisterWidget(this);
+        }
     }
 
     @Override
@@ -127,23 +155,26 @@ public class Widget_httpConnectionHandlerImpl implements Widget_httpConnectionHa
     }
 
     @Override
-    public String getFullWidgetId() {
-        return "";
+    public String getWidgetId() {
+        return this.widgetInfo.getId();
     }
 
     @Override
     public String getTitle() {
-        return this.title;
+        return this.widgetInfo.getTitle();
     }
 
     @Override
     public Type getType() {
-        return Widget.Type.SMALL;
-    }
-
-    @Override
-    public boolean isActive() {
-        return this.title != null;
+        if (this.widgetInfo == null) {
+            return null;
+        } else if (this.widgetInfo.getType() == WidgetType.FULL_WIDGET) {
+            return Widget.Type.FULL_WIDGET;
+        } else if (this.widgetInfo.getType() == WidgetType.PAGE) {
+            return Widget.Type.PAGE;
+        } else {
+            return Widget.Type.SMALL_WIDGET;
+        }
     }
 
 }

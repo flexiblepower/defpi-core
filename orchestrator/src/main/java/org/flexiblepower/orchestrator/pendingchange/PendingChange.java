@@ -1,21 +1,22 @@
-/**
- * File PendingChange.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
-
 package org.flexiblepower.orchestrator.pendingchange;
 
 import java.time.Duration;
@@ -74,7 +75,7 @@ public abstract class PendingChange {
     public static enum State {
         /**
          * The pending change is new, has never been attempted. By definition if the state is new,
-         * {@link PendingChange#getCount()} should equal 0
+         * the count should equal 0
          */
         NEW,
         /**
@@ -178,7 +179,7 @@ public abstract class PendingChange {
      * @return Time to wait before retrying in milliseconds.
      */
     protected long retryIntervalMs() {
-        return Math.min(PendingChange.DEFAULT_MINIMUM_RETRY_INTERVAL_MILLISECONDS + (2 ^ this.getCount()),
+        return Math.min(PendingChange.DEFAULT_MINIMUM_RETRY_INTERVAL_MILLISECONDS + (long) Math.pow(2, this.getCount()),
                 PendingChange.DEFAULT_MAXIMUM_RETRY_INTERVAL_MILLISECONDS);
     }
 

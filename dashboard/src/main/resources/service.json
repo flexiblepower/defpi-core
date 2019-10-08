@@ -50,7 +50,7 @@
 				{
 					"versionName": "HTTP",
 					"type": "proto",
-					"location": "https://raw.githubusercontent.com/defpi/interfaces/a1c30756096e9712a0470f43e1a6ced4110bd9d1/defpi/Widget.proto",
+					"location": "https://raw.githubusercontent.com/defpi/interfaces/ba7a15330ced763b7ff4eb3721370cf24b55a0b6/defpi/Widget.proto",
 					"sends": [
 						"WidgetHTTPRequest"
 					],

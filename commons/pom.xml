@@ -9,7 +9,7 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>17.11.5-SNAPSHOT</version>
+		<version>19.10-SNAPSHOT</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
@@ -19,15 +19,17 @@
 			<artifactId>protobuf-java</artifactId>
 		</dependency>
 
+		<!-- This was not at java 8 -->
 		<dependency>
 			<groupId>javax.xml.bind</groupId>
 			<artifactId>jaxb-api</artifactId>
-			<version>2.3.0</version>
+			<version>2.4.0-b180830.0359</version>
 		</dependency>
 	</dependencies>
 
 	<build>
 		<plugins>
+			<!-- Add the generated code to the build path -->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>build-helper-maven-plugin</artifactId>
@@ -43,6 +45,25 @@
 							<sources>
 								<source>${project.basedir}/src/main/generated</source>
 							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			
+			<!-- Just don't generate javadocs for it -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+						<configuration>
+							<sourceFileExcludes>
+								<sourceFileExclude>${project.basedir}/src/main/generated</sourceFileExclude>
+							</sourceFileExcludes>
 						</configuration>
 					</execution>
 				</executions>

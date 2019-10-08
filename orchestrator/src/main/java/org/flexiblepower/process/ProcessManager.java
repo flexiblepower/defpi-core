@@ -1,23 +1,26 @@
-/**
- * File ProcessManager.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
 package org.flexiblepower.process;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
@@ -76,7 +79,7 @@ public class ProcessManager {
     /**
      * @return The singleton instance of the ProcessManager
      */
-    public synchronized static ProcessManager getInstance() {
+    public static ProcessManager getInstance() {
         if (ProcessManager.instance == null) {
             ProcessManager.instance = new ProcessManager();
         }
@@ -122,6 +125,9 @@ public class ProcessManager {
      * <li>Node allocation (either a private node or a nodepool)</li>
      * </ul>
      *
+     * The ProcessManager will create the representation of the process, and a new pending change to create the docker
+     * service. Eventually the service itself will trigger a new pending change to get the process configuration.
+     *
      * @param process The (description of the) process to create
      * @return The created process with a valid ObjectId.
      */
@@ -130,6 +136,15 @@ public class ProcessManager {
             throw new IllegalArgumentException("A new process cannot have an identifier");
         }
         this.validateProcess(process);
+
+        // Create a random token for this process
+        process.setToken(UUID.randomUUID().toString());
+
+        // Does the process have a name? If not, think of one
+        if ((process.getName() == null) || process.getName().isEmpty()) {
+            process.setName(process.getServiceId() + " @"
+                    + UserManager.getInstance().getUser(process.getUserId()).getUsername());
+        }
 
         // Save with starting state and save
         process.setState(ProcessState.STARTING);
@@ -146,7 +161,7 @@ public class ProcessManager {
      *
      * @return Whether a process with the service id specified in the {@value #DASHBOARD_GATEWAY_SERVICE_ID_KEY} exists
      */
-    public boolean dashboardGatewayExists() {
+    private boolean dashboardGatewayExists() {
         return this.getDashboardGateway() != null;
     }
 
@@ -158,7 +173,6 @@ public class ProcessManager {
      */
     public static int getDashboardGatewayPort() {
         final String portFromEnv = System.getenv(ProcessManager.DASHBOARD_GATEWAY_PORT_KEY);
-        final int defaultPort = ProcessManager.DASHBOARD_GATEWAY_PORT_DFLT;
         if (portFromEnv != null) {
             try {
                 return Integer.parseInt(portFromEnv);
@@ -166,7 +180,7 @@ public class ProcessManager {
                 // We keep it at the default
             }
         }
-        return defaultPort;
+        return ProcessManager.DASHBOARD_GATEWAY_PORT_DFLT;
     }
 
     /**
@@ -177,10 +191,10 @@ public class ProcessManager {
      */
     public static String getDashboardGatewayServiceId() {
         final String gatewayService = System.getenv(ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID_KEY);
-        if (gatewayService == null) {
-            return ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID_DFLT;
-        } else {
+        if (gatewayService != null) {
             return gatewayService;
+        } else {
+            return ProcessManager.DASHBOARD_GATEWAY_SERVICE_ID_DFLT;
         }
     }
 
@@ -248,7 +262,7 @@ public class ProcessManager {
                             "The Process cannot be assigned to the private node of another user");
                 }
             }
-        } else if ((process.getPrivateNodeId() == null) && (process.getNodePoolId() == null)) {
+        } else {
             throw new IllegalArgumentException("Either the nodepool or the privatenode should be set");
         }
 
@@ -290,6 +304,11 @@ public class ProcessManager {
         this.validateProcess(newProcess);
 
         final Process currentProcess = MongoDbConnector.getInstance().get(Process.class, newProcess.getId());
+        // Rename the process?
+        if (!newProcess.getName().equals(currentProcess.getName())) {
+            currentProcess.setName(newProcess.getName());
+            MongoDbConnector.getInstance().save(currentProcess);
+        }
 
         if (!newProcess.getUserId().equals(currentProcess.getUserId())) {
             throw new IllegalArgumentException("A process cannot be assigned to a different user");
@@ -320,8 +339,11 @@ public class ProcessManager {
     }
 
     /**
-     * @param currentProcess
-     * @param newProcess
+     * Move a process according to the specified description. It must have an objectId which points to an existing
+     * process.
+     *
+     * @param currentProcess The current process running on a particular public node pool or a private node
+     * @param newProcess The new (description of the) process, which should run on another node
      */
     private void moveProcess(final Process currentProcess, final Process newProcess) {
         final PendingChangeManager pcm = PendingChangeManager.getInstance();
@@ -367,6 +389,16 @@ public class ProcessManager {
                     c,
                     c.getEndpointForProcess(currentProcess)));
         }
+    }
+
+    /**
+     * Find a process that is identified by a token.
+     *
+     * @param token the token that should uniquely identify this process
+     * @return The process that is identified by this token.
+     */
+    public Process getProcessByToken(final String token) {
+        return this.mongoDbConnector.getProcessByToken(token);
     }
 
 }

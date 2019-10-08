@@ -1,20 +1,23 @@
-/**
- * File Process.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi API
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
+
 package org.flexiblepower.model;
 
 import java.util.List;
@@ -44,7 +47,7 @@ import lombok.Value;
 @Entity
 @Data
 @Builder
-@NoArgsConstructor
+@NoArgsConstructor // Must be generated for Morphia
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EqualsAndHashCode(exclude = {"runningNodeId", "dockerId"})
 public class Process {
@@ -55,29 +58,29 @@ public class Process {
      * @version 0.1
      * @since Dec 6, 2017
      */
-    public static enum ProcessState {
-        /**
-         * The process is starting, meaning its specification exists somewhere in memory, but the docker container
-         * hasn't started
-         */
-        STARTING,
-        /**
-         * The docker container in which the process will run is running, but the process is still waiting for a
-         * configuration
-         */
-        INITIALIZING,
-        /**
-         * The process is operational and running
-         */
-        RUNNING,
-        /**
-         * The process is suspended, meaning the docker service is removed, but its state still exists in suspended mode
-         */
-        SUSPENDED,
-        /**
-         * The process is terminated and will not be resumed, it is ready to be completely deleted from memory
-         */
-        TERMINATED
+    public enum ProcessState {
+    /**
+     * The process is starting, meaning its specification exists somewhere in memory, but the docker container
+     * hasn't started
+     */
+    STARTING,
+    /**
+     * The docker container in which the process will run is running, but the process is still waiting for a
+     * configuration
+     */
+    INITIALIZING,
+    /**
+     * The process is operational and running
+     */
+    RUNNING,
+    /**
+     * The process is suspended, meaning the docker service is removed, but its state still exists in suspended mode
+     */
+    SUSPENDED,
+    /**
+     * The process is terminated and will not be resumed, it is ready to be completely deleted from memory
+     */
+    TERMINATED
     }
 
     /**
@@ -121,7 +124,7 @@ public class Process {
     @AllArgsConstructor
     @NoArgsConstructor(force = true)
     public static class ExposePort {
-        
+
         private int internal;
         private int external;
     }
@@ -131,6 +134,9 @@ public class Process {
     @JsonDeserialize(using = ObjectIdDeserializer.class)
     private ObjectId id;
 
+    // The name is only used for human readable identification.
+    private String name;
+    
     @JsonSerialize(using = ToStringSerializer.class)
     @JsonDeserialize(using = ObjectIdDeserializer.class)
     private ObjectId userId;
@@ -150,6 +156,8 @@ public class Process {
     @JsonSerialize(using = ToStringSerializer.class)
     @JsonDeserialize(using = ObjectIdDeserializer.class)
     private ObjectId privateNodeId;
+    
+    private String token;
 
     private List<Connection> connections;
 
@@ -177,10 +185,11 @@ public class Process {
     private long maxNanoCPUs;
 
     @Builder.Default
-    private boolean suspendOnDebug = true;
+    private boolean suspendOnDebug = false;
 
     /**
-     * Mount points can be added in order to allow physical devices be used from the java process. e.g. to use a usb device from /dev/usb0
+     * Mount points can be added in order to allow physical devices be used from the java process. e.g. to use a usb
+     * device from /dev/usb0
      */
     private List<MountPoint> mountPoints;
 

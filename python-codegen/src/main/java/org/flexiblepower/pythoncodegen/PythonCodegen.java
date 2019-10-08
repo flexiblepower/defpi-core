@@ -1,21 +1,22 @@
-/**
- * File PythonCodegen.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi python service creation
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
-
 package org.flexiblepower.pythoncodegen;
 
 import java.io.File;
@@ -34,8 +35,10 @@ import org.flexiblepower.codegen.model.InterfaceDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription;
 import org.flexiblepower.codegen.model.InterfaceVersionDescription.Type;
 import org.flexiblepower.codegen.model.ServiceDescription;
-import org.flexiblepower.pythoncodegen.compiler.ProtoCompiler;
 import org.flexiblepower.pythoncodegen.compiler.PyXBCompiler;
+import org.flexiblepower.pythoncodegen.compiler.PythonProtoCompiler;
+
+import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -49,45 +52,56 @@ import lombok.extern.slf4j.Slf4j;
 public class PythonCodegen {
 
     /**
-     *
+     * The file where the package declaration should be placed in
      */
-    private static final String DEFAULT_SERVICE_FILE = "service.json";
-    public static final String RESOURCE_LOCATION = "resources";
-    public static final String SOURCE_LOCATION = "service";
-    public static final String PROTOBUF_VERSION = "3.3.0";
     public static final String PACKAGE_DECLARATION = "__init__.py";
 
-    // In what subfolders to put all resources
-    public static final String PROTO_INPUT_LOCATION = "";
-    public static final String PROTO_OUTPUT_LOCATION = "proto";
-    public static final String XSD_INPUT_LOCATION = "";
-    public static final String XSD_OUTPUT_LOCATION = "xsd";
+    /**
+     * Use this version of the protobuf compiler (which is downloaded automatically)
+     */
+    private static final String PROTOBUF_VERSION = "3.3.0";
 
-    public static final String MODEL_SOURCE_LOCATION = "model";
+    // Constants where the files should be found relative to the working directory
+    private static final String DEFAULT_SERVICE_FILE = "service.json";
+    private static final String MODULE_DECLARATION = "__main__.py";
+    private static final String RESOURCE_LOCATION = "resources";
+    private static final String SOURCE_LOCATION = "service";
+    private static final String REQUIREMENTS_LOCATION = "";
 
-    // private final String xsdInputLocation = "xsd";
-    private final String dockerLocation = "docker";
-    private final String dockerArmLocation = "docker-arm";
+    /** The location where to find and place all interface resources, relative to {@value #RESOURCE_LOCATION} */
+    private static final String PROTO_INPUT_LOCATION = "";
+    private static final String PROTO_OUTPUT_LOCATION = "proto";
+    private static final String XSD_INPUT_LOCATION = "";
+    private static final String XSD_OUTPUT_LOCATION = "xsd";
 
-    private final String dockerEntryPoint = "python ./service/main.py";
+    /** The location of the docker files also relative to {@value #RESOURCE_LOCATION} */
+    private static final String DOCKER_LOCATION = "docker";
+    private static final String DOCKER_ARM_LOCATION = "docker-arm";
+
+    /** The location of the model files are placed as a subfolder of the {@value #SOURCE_LOCATION} */
+    private static final String MODEL_SOURCE_LOCATION = "model";
+
+    /** The entrypoint of the docker file, i.e. what to run in the process */
+    private static final String DOCKER_ENTRY_POINT = "python -m service";
 
     private final Map<String, InterfaceVersionDescription> hashes = new HashMap<>();
 
-    private ProtoCompiler protoCompiler;
+    private PythonProtoCompiler protoCompiler;
 
     private Path resourcePath;
     private PythonTemplates templates;
     private PyXBCompiler pyXbCompiler;
 
     /**
-     * Main function of the Maven plugin, will call the several stages of the
-     * plugin.
+     * Main function of the code generator, which will call the several stages of the generation
+     *
+     * @throws ProcessingException When an invalid service description is provided
+     * @throws IOException When unable to read the service description, or writing the output files
      */
-    public void run() throws Exception {
-        // this.resourcePath = Paths.get(this.resourceLocation);
+    public void run() throws IOException, ProcessingException {
         final File serviceDescriptionFile = Paths.get(PythonCodegen.DEFAULT_SERVICE_FILE).toFile();
         if (!PluginUtils.validateServiceDefinition(serviceDescriptionFile)) {
-            throw new Exception("Invalid service description, see message log");
+            throw new IOException("Invalid service description, see message log");
         }
 
         final ServiceDescription service = PluginUtils.readServiceDefinition(serviceDescriptionFile);
@@ -107,22 +121,27 @@ public class PythonCodegen {
 
         this.createPythonFiles(service, pythonSourceFolder);
         this.createDockerfiles(service);
+        this.createRequirements();
     }
 
     /**
      * Create stubs for the service implementation. By using the templates in
      * the Template object.
      *
-     * @param interfaces
-     *            List of interfaces for which stubs should be created.
      * @throws IOException
-     * @throws HashComputeException
      */
     private void createPythonFiles(final ServiceDescription serviceDescription, final Path dest) throws IOException {
         PythonCodegen.log.debug("Creating stubs");
 
         final String ext = ".py";
         Files.createDirectories(dest);
+
+        final Path moduleMain = dest.resolve(PythonCodegen.MODULE_DECLARATION);
+        if (moduleMain.toFile().exists()) {
+            PythonCodegen.log.debug("Skipping existing file " + moduleMain.toString());
+        } else {
+            Files.write(moduleMain, this.templates.generateServiceMain().getBytes());
+        }
 
         final Path serviceImpl = dest.resolve(PythonCodegenUtils.serviceImplClass(serviceDescription) + ext);
         if (serviceImpl.toFile().exists()) {
@@ -132,7 +151,8 @@ public class PythonCodegen {
         }
 
         for (final InterfaceDescription itf : serviceDescription.getInterfaces()) {
-            final Path interfacePath = Files.createDirectories(dest.resolve(itf.getName()));
+            final Path interfacePath = Files
+                    .createDirectories(dest.resolve(PythonCodegenUtils.getInterfacePackage(itf)));
             if (Files.notExists(interfacePath.resolve(PythonCodegen.PACKAGE_DECLARATION))) {
                 Files.createFile(interfacePath.resolve(PythonCodegen.PACKAGE_DECLARATION));
             }
@@ -185,14 +205,24 @@ public class PythonCodegen {
     private void createDockerfiles(final ServiceDescription service) throws IOException {
         PythonCodegen.log.debug("Creating Dockerfiles");
 
-        final Path dockerFolder = Files.createDirectories(this.resourcePath.resolve(this.dockerLocation));
-        final Path dockerArmFolder = Files.createDirectories(this.resourcePath.resolve(this.dockerArmLocation));
+        final Path dockerFolder = Files.createDirectories(this.resourcePath.resolve(PythonCodegen.DOCKER_LOCATION));
+        final Path dockerArmFolder = Files
+                .createDirectories(this.resourcePath.resolve(PythonCodegen.DOCKER_ARM_LOCATION));
 
         Files.write(dockerFolder.resolve("Dockerfile"),
-                this.templates.generateDockerfile("x86", this.dockerEntryPoint).getBytes());
+                this.templates.generateDockerfile("x86", PythonCodegen.DOCKER_ENTRY_POINT).getBytes());
 
         Files.write(dockerArmFolder.resolve("Dockerfile"),
-                this.templates.generateDockerfile("arm", this.dockerEntryPoint).getBytes());
+                this.templates.generateDockerfile("arm", PythonCodegen.DOCKER_ENTRY_POINT).getBytes());
+    }
+
+    private void createRequirements() throws IOException {
+        final Path requirements = Paths.get(PythonCodegen.REQUIREMENTS_LOCATION).resolve("requirements.txt");
+        if (requirements.toFile().exists()) {
+            PythonCodegen.log.debug("Skipping existing file " + requirements.toString());
+        } else {
+            Files.write(requirements, this.templates.generateRequirements().getBytes());
+        }
     }
 
     /**
@@ -202,7 +232,7 @@ public class PythonCodegen {
     private void compileDescriptors(final ServiceDescription service) throws IOException {
         PythonCodegen.log.debug("Compiling descriptors definitions to java code");
 
-        this.protoCompiler = new ProtoCompiler(PythonCodegen.PROTOBUF_VERSION);
+        this.protoCompiler = new PythonProtoCompiler(PythonCodegen.PROTOBUF_VERSION);
         this.pyXbCompiler = new PyXBCompiler();
 
         for (final InterfaceDescription iface : service.getInterfaces()) {

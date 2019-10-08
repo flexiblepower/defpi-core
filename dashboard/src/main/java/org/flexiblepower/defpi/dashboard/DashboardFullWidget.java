@@ -1,5 +1,25 @@
 package org.flexiblepower.defpi.dashboard;
 
+/*-
+ * #%L
+ * dEF-Pi dashboard
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -54,9 +74,7 @@ public class DashboardFullWidget implements Widget {
     private HTTPResponse getActiveWidgets(final HTTPRequest request) {
         final JSONObject map = new JSONObject();
         for (final Entry<Integer, Widget> e : this.widgets.entrySet()) {
-            if (e.getValue().isActive()) {
-                map.put(e.getKey().toString(), e.getValue().getTitle());
-            }
+            map.put(e.getKey().toString(), e.getValue().getTitle());
         }
         return HTTPResponse.newBuilder()
                 .setId(request.getId())
@@ -68,7 +86,7 @@ public class DashboardFullWidget implements Widget {
     }
 
     @Override
-    public String getFullWidgetId() {
+    public String getWidgetId() {
         return "dashboard";
     }
 
@@ -79,18 +97,18 @@ public class DashboardFullWidget implements Widget {
 
     @Override
     public Type getType() {
-        return Type.FULL;
+        return Type.FULL_WIDGET;
     }
 
     public void registerSmallWidget(final Widget widget) {
-        if (!widget.getType().equals(Widget.Type.SMALL)) {
+        if (!widget.getType().equals(Widget.Type.SMALL_WIDGET)) {
             throw new IllegalArgumentException("Can only accept small widgets");
         }
         this.widgets.put(this.idGenerator.getAndIncrement(), widget);
     }
 
     public void unregisterSmallWidget(final Widget widget) {
-        if (!widget.getType().equals(Widget.Type.SMALL)) {
+        if (!widget.getType().equals(Widget.Type.SMALL_WIDGET)) {
             throw new IllegalArgumentException("Can only accept small widgets");
         }
         final Iterator<Entry<Integer, Widget>> it = this.widgets.entrySet().iterator();
@@ -100,11 +118,6 @@ public class DashboardFullWidget implements Widget {
                 break;
             }
         }
-    }
-
-    @Override
-    public boolean isActive() {
-        return true;
     }
 
 }

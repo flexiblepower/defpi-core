@@ -1,21 +1,22 @@
-/**
- * File Connection.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi API
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
-
 package org.flexiblepower.model;
 
 import org.bson.types.ObjectId;
@@ -28,6 +29,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
+import lombok.AccessLevel;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -41,7 +43,7 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @Entity
-@NoArgsConstructor(force = true)
+@NoArgsConstructor(force = true, access = AccessLevel.PROTECTED) // Must be generated for Morphia
 public class Connection {
 
     /**
@@ -52,14 +54,14 @@ public class Connection {
      */
     @Data
     @Embedded
-    @NoArgsConstructor(force = true)
+    @NoArgsConstructor(force = true, access = AccessLevel.PROTECTED) // Must be generated for Morphia
     public static class Endpoint {
 
         /**
          * Construct a connection endpoint for the specified process and interface Id
-         * 
-         * @param processId The ObjectId of the process this endpoint will use
-         * @param interfaceId The ID of the interface this endpoint will use 
+         *
+         * @param processId   The ObjectId of the process this endpoint will use
+         * @param interfaceId The ID of the interface this endpoint will use
          */
         public Endpoint(final ObjectId processId, final String interfaceId) {
             this.processId = processId;
@@ -88,7 +90,7 @@ public class Connection {
     @Id
     @JsonSerialize(using = ToStringSerializer.class)
     @JsonDeserialize(using = ObjectIdDeserializer.class)
-    private ObjectId id;
+    private final ObjectId id;
 
     /**
      * The port where one endpoint will listen, and the other will target
@@ -107,7 +109,7 @@ public class Connection {
      * @param ep1 One endpoint
      * @param ep2 Second endpoint
      */
-    public Connection(final ObjectId oid, Endpoint ep1, Endpoint ep2) {
+    public Connection(final ObjectId oid, final Endpoint ep1, final Endpoint ep2) {
         this.id = oid;
         this.endpoint1 = ep1;
         this.endpoint2 = ep2;
@@ -116,7 +118,7 @@ public class Connection {
     /**
      * Returns the other endpoint of the connection. More formally it returns the endpoint e2 for which
      * <code>e.equals(e2)</code> does <i>not</i> hold.
-     * 
+     *
      * @param e the endpoint which we already have
      * @return the <b>other</b> endpoint
      * @throws IllegalArgumentException if the endpoint is not part of the connection at all
@@ -132,17 +134,18 @@ public class Connection {
     }
 
     /**
-     * Returns the endpoint of the connection with the provided process. More formally it returns the endpoint e for which
-     * <code>>e.getProcessId().equals(process)</code> holds.
-     * 
+     * Returns the endpoint of the connection with the provided process. More formally it returns the endpoint e for
+     * which
+     * <code>e.getProcessId().equals(process)</code> holds.
+     *
      * @param process the process to look up
      * @return the endpoint with the provided process
      * @throws IllegalArgumentException if the process is not part of either endpoint
      */
     public Endpoint getEndpointForProcess(final Process process) {
-        if (process.getId().equals(this.endpoint1.getProcessId())) {
+        if (this.endpoint1 != null && this.endpoint1.getProcessId().equals(process.getId())) {
             return this.endpoint1;
-        } else if (process.getId().equals(this.endpoint2.getProcessId())) {
+        } else if (this.endpoint2 != null && this.endpoint2.getProcessId().equals(process.getId())) {
             return this.endpoint2;
         } else {
             throw new IllegalArgumentException("The provided processId is not part of this connection");

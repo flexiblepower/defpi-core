@@ -1,27 +1,30 @@
-/**
- * File ProcessRestApi.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
-
 package org.flexiblepower.rest;
 
 import java.util.Collections;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -42,7 +45,6 @@ import org.flexiblepower.model.Service;
 import org.flexiblepower.orchestrator.ServiceManager;
 import org.flexiblepower.orchestrator.UserManager;
 import org.flexiblepower.process.ProcessManager;
-import org.json.JSONObject;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -54,6 +56,15 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class ProcessRestApi extends BaseApi implements ProcessApi {
+
+    private static final Map<String, Function<Process, Comparable<?>>> SORT_MAP = new HashMap<>();
+    static {
+        ProcessRestApi.SORT_MAP.put("name", Process::getName);
+        ProcessRestApi.SORT_MAP.put("id", Process::getId);
+        ProcessRestApi.SORT_MAP.put("serviceId", Process::getServiceId);
+        ProcessRestApi.SORT_MAP.put("state", Process::getState);
+        ProcessRestApi.SORT_MAP.put("userId", p -> UserManager.getInstance().getUser(p.getUserId()).getUsername());
+    }
 
     /**
      * Create the REST API with the headers from the HTTP request (will be injected by the HTTP server)
@@ -84,75 +95,43 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
             processes = ProcessManager.getInstance().listProcessesForUser(this.sessionUser);
         }
 
-        // Filters are a bit custom
-        if (filters != null) {
-            final JSONObject f = new JSONObject(filters);
-            if (f.has("hashpair") && f.getString("hashpair").contains(";")) {
-                final String[] split = f.getString("hashpair").split(";");
-                final Iterator<Process> it = processes.iterator();
-                while (it.hasNext()) {
-                    final Process p = it.next();
-                    boolean matches = false;
-                    try {
-                        final Service s = ServiceManager.getInstance().getService(p.getServiceId());
-                        outerloop: for (final Interface itfs : s.getInterfaces()) {
-                            for (final InterfaceVersion itfsv : itfs.getInterfaceVersions()) {
-                                if (itfsv.getSendsHash().equals(split[0]) && itfsv.getReceivesHash().equals(split[1])) {
-                                    matches = true;
-                                    break outerloop;
-                                }
+        final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
+        RestUtils.filterMultiContent(processes, Process::getId, filter, "ids[]");
+        RestUtils.filterContent(processes, Process::getName, filter, "name");
+        RestUtils.filterContent(processes, Process::getUserId, filter, "userId");
+
+        if (filter.containsKey("hashpair") && filter.get("hashpair").toString().contains(";")) {
+            // Select processes with specific hashpairs
+            final String[] split = filter.get("hashpair").toString().split(";");
+            final Iterator<Process> it = processes.iterator();
+            while (it.hasNext()) {
+                final Process p = it.next();
+                boolean matches = false;
+                try {
+                    final Service s = ServiceManager.getInstance().getService(p.getServiceId());
+                    outerloop: for (final Interface itfs : s.getInterfaces()) {
+                        for (final InterfaceVersion itfsv : itfs.getInterfaceVersions()) {
+                            if (itfsv.getSendsHash().equals(split[0]) && itfsv.getReceivesHash().equals(split[1])) {
+                                matches = true;
+                                break outerloop;
                             }
                         }
-                    } catch (final ServiceNotFoundException e) {
-                        // ignore
                     }
-                    if (!matches) {
-                        it.remove();
-                    }
+                } catch (final ServiceNotFoundException e) {
+                    // ignore
                 }
-            }
-            if (f.has("userId")) {
-                final Iterator<Process> it = processes.iterator();
-                while (it.hasNext()) {
-                    if (!it.next().getUserId().toString().equals(f.getString("userId"))) {
-                        it.remove();
-                    }
+                if (!matches) {
+                    it.remove();
                 }
             }
         }
 
         // Now do the sorting
-        final Comparator<Process> comparator;
-        switch (sortField) {
-        case "userId":
-            comparator = (one, other) -> UserManager.getInstance().getUser(one.getUserId()).getUsername().compareTo(
-                    UserManager.getInstance().getUser(other.getUserId()).getUsername());
-            break;
-        case "serviceId":
-            comparator = (one, other) -> one.getServiceId().compareTo(other.getServiceId());
-            break;
-        case "state":
-            comparator = (one, other) -> one.getState().toString().compareTo(other.getState().toString());
-            break;
-        case "Id":
-        default:
-            comparator = (one, other) -> one.getId().toString().compareTo(other.getId().toString());
-            break;
-        }
-        Collections.sort(processes, comparator);
-
-        // Order the sorting if necessary
-        if (sortDir.equals("DESC")) {
-            Collections.reverse(processes);
-        }
+        RestUtils.orderContent(processes, ProcessRestApi.SORT_MAP.get(sortField), sortDir);
+        this.addTotalCount(processes.size());
 
         // And finally pagination
-        this.addTotalCount(processes.size());
-        if ((page == 0) || (perPage == 0)) {
-            return processes;
-        }
-        return processes.subList(Math.min(processes.size(), (page - 1) * perPage),
-                Math.min(processes.size(), page * perPage));
+        return RestUtils.paginate(processes, page, perPage);
     }
 
     @Override
@@ -161,12 +140,9 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
             AuthorizationException {
         final ObjectId oid = MongoDbConnector.stringToObjectId(id);
         final Process ret = ProcessManager.getInstance().getProcess(oid);
-        // if (ret == null) {
-        // throw new ProcessNotFoundException(oid);
-        // }
 
+        // If not, use the logged in user
         this.assertUserIsAdminOrEquals(ret.getUserId());
-
         return ret;
     }
 
@@ -209,9 +185,18 @@ public class ProcessRestApi extends BaseApi implements ProcessApi {
     public void triggerProcessConfig(final String id) throws ProcessNotFoundException,
             InvalidObjectIdException,
             AuthorizationException {
-        // Immediately do all relevant checks...
-        final Process currentProcess = this.getProcess(id);
+        final ObjectId oid = MongoDbConnector.stringToObjectId(id);
+        final Process referencedProcess = ProcessManager.getInstance().getProcess(oid);
 
-        ProcessManager.getInstance().triggerConfig(currentProcess);
+        // See if we can do token-based authentication. This is the most common way to use this function
+        final Process authorizedProcess = this.getTokenProcess();
+        if ((authorizedProcess != null) && authorizedProcess.getId().equals(referencedProcess.getId())) {
+            ProcessManager.getInstance().triggerConfig(referencedProcess);
+            return;
+        }
+
+        // If that was not the case, see if and authorized person is manually trying to update the process
+        this.assertUserIsAdminOrEquals(referencedProcess.getUserId());
+        ProcessManager.getInstance().triggerConfig(referencedProcess);
     }
 }

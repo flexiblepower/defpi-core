@@ -1,27 +1,27 @@
-/**
- * File UserRestApi.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
-
 package org.flexiblepower.rest;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -33,6 +33,8 @@ import org.flexiblepower.connectors.MongoDbConnector;
 import org.flexiblepower.exceptions.ApiException;
 import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
+import org.flexiblepower.exceptions.NotFoundException;
+import org.flexiblepower.exceptions.UserNotFoundException;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.UserManager;
 
@@ -64,10 +66,10 @@ public class UserRestApi extends BaseApi implements UserApi {
         this.assertUserIsAdmin();
 
         // Update the password to store it encrypted
-        // if ((newUser.getPassword() != null) && (newUser.getPasswordHash() == null)) {
-        // newUser.setPasswordHash();
-        // }
-        newUser.setAuthenticationToken(UUID.randomUUID().toString());
+        if ((newUser.getPassword() != null) && (newUser.getPasswordHash() == null)) {
+            newUser.setPasswordHash();
+        }
+
         this.db.saveUser(newUser);
         return newUser;
     }
@@ -81,24 +83,26 @@ public class UserRestApi extends BaseApi implements UserApi {
     }
 
     @Override
-    public User getUser(final String userId) throws AuthorizationException, InvalidObjectIdException {
+    public User getUser(final String userId) throws AuthorizationException,
+            InvalidObjectIdException,
+            UserNotFoundException {
         final ObjectId oid = MongoDbConnector.stringToObjectId(userId);
         this.assertUserIsAdminOrEquals(oid);
 
         final User ret = this.db.getUser(oid);
         if (ret == null) {
-            throw new ApiException(Status.NOT_FOUND, UserApi.USER_NOT_FOUND_MESSAGE);
+            throw new UserNotFoundException();
         } else {
             return ret;
         }
     }
 
     @Override
-    public User getUserByUsername(final String username) throws AuthorizationException {
+    public User getUserByUsername(final String username) throws AuthorizationException, UserNotFoundException {
         final User ret = UserManager.getInstance().getUser(username);
         if (ret == null) {
             this.assertUserIsAdmin();
-            throw new ApiException(Status.NOT_FOUND, UserApi.USER_NOT_FOUND_MESSAGE);
+            throw new UserNotFoundException(username);
         } else {
             this.assertUserIsAdminOrEquals(ret.getId());
             return ret;
@@ -106,7 +110,8 @@ public class UserRestApi extends BaseApi implements UserApi {
     }
 
     @Override
-    public User updateUser(final String userId, final User updatedUser) throws AuthorizationException {
+    public User updateUser(final String userId, final User updatedUser) throws AuthorizationException,
+            NotFoundException {
         UserRestApi.log.debug("Received call to update user");
         if ((updatedUser.getId() == null) || (userId == null) || !userId.equals(updatedUser.getId().toString())) {
             throw new ApiException(Status.BAD_REQUEST, "No or wrong id provided");
@@ -116,7 +121,7 @@ public class UserRestApi extends BaseApi implements UserApi {
 
         final User ret = this.db.getUser(updatedUser.getId());
         if (ret == null) {
-            throw new ApiException(Status.NOT_FOUND, UserApi.USER_NOT_FOUND_MESSAGE);
+            throw new UserNotFoundException();
         }
 
         if (!ret.getUsername().equals(updatedUser.getUsername())) {
@@ -147,9 +152,13 @@ public class UserRestApi extends BaseApi implements UserApi {
             throw new AuthorizationException();
         } else if (this.sessionUser.isAdmin()) {
             final Map<String, Object> filter = MongoDbConnector.parseFilters(filters);
-            final List<User> userList = this.db.listUsers(page, perPage, sortDir, sortField, filter);
 
-            userList.forEach((u) -> u.clearPasswordHash());
+            @SuppressWarnings("unchecked")
+            final List<User> userList = filter.containsKey("ids[]")
+                    ? this.db.getUsers((List<String>) filter.get("ids[]"))
+                    : this.db.listUsers(page, perPage, sortDir, sortField, filter);
+
+            userList.forEach(User::clearPasswordHash);
 
             this.addTotalCount(this.db.countUsers(filter));
             return userList;
@@ -157,7 +166,7 @@ public class UserRestApi extends BaseApi implements UserApi {
             final User ret = this.sessionUser;
             ret.clearPasswordHash();
             this.addTotalCount(1);
-            return Arrays.asList(ret);
+            return Collections.singletonList(ret);
         }
     }
 }

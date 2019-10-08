@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json-schema.org/draft-06/schema#",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
     "name": {
@@ -13,14 +13,14 @@
       "type": "array",
       "uniqueItems": true,
       "items": {
-      	"type": "object",
+        "type": "object",
         "properties": {
           "id": {
             "type": "string",
             "pattern": "^([a-z])([a-zA-Z0-9])+$"
           },
           "name": {
-           	"$ref":"#/definitions/name"
+             "$ref":"#/definitions/name"
           },
           "type": {
             "enum": [
@@ -47,7 +47,7 @@
               "type": "string",
               "uniqueItems": true,
               "items": {
-         	    "type": "string"
+                "type": "string"
               }
             }
           },
@@ -98,7 +98,8 @@
                   "type": "string",
                   "enum": [
                     "xsd",
-                    "proto"
+                    "proto",
+                    "raml"
                   ]
                 },
                 "location": {
@@ -109,14 +110,31 @@
                 },
                 "receives": {
                   "$ref": "#/definitions/messageArray"
+                },
+                "interfaceRole": {
+                  "type": "string",
+                  "enum": [
+                    "server",
+                    "client"
+                  ] 
                 }
               },
-              "required": [
-                "versionName",
-                "type",
-                "location",
-                "sends",
-                "receives"
+              "oneOf": [
+                {
+                  "required": [
+                    "versionName",
+                    "location",
+                    "sends",
+                    "receives"
+                  ]
+                },
+                {
+                  "required": [
+                    "versionName",
+                    "location",
+                    "interfaceRole"
+                  ]
+                }
               ],
               "additionalProperties": false
             }

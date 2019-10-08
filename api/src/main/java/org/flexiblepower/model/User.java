@@ -1,21 +1,22 @@
-/**
- * File User.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi API
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
-
 package org.flexiblepower.model;
 
 import java.math.BigInteger;
@@ -33,6 +34,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -49,7 +51,7 @@ import lombok.Setter;
  */
 @Getter
 @Entity
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED) // Must be generated for Morphia
 public class User {
 
     private static final String SALT = "$salt@\"[3.c*%t<RBYA?,N\"2%[})X";
@@ -69,6 +71,7 @@ public class User {
 
     @Setter
     @JsonIgnore
+    @Deprecated
     private String authenticationToken;
 
     @Setter
@@ -122,7 +125,7 @@ public class User {
      * function, meaning that given the name and password we can compute the hash, but it is impossible to do the
      * reverse.
      * <p>
-     * This function uses the MD5 algorithm to compute hashes.
+     * This function uses the SHA256 algorithm to compute hashes.
      *
      * @param name The user name
      * @param password The user password
@@ -132,14 +135,14 @@ public class User {
         if ((name == null) || (password == null)) {
             throw new NullPointerException("Name and password must both be set to compute password hash");
         }
-        return User.md5(password + name + User.SALT);
+        return User.sha256(password + name + User.SALT);
     }
 
-    private static final String md5(final String password) {
+    private static String sha256(final String password) {
         try {
-            final MessageDigest mDigest = MessageDigest.getInstance("MD5");
-            mDigest.update(password.getBytes(), 0, password.length());
-            return new BigInteger(1, mDigest.digest()).toString(16);
+            final MessageDigest md = MessageDigest.getInstance("SHA-256");
+            md.update(password.getBytes());
+            return new BigInteger(1, md.digest()).toString(16);
         } catch (final NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }

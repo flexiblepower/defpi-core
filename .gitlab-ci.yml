@@ -6,11 +6,12 @@
 # since: 2-6-2017
 
 variables:
-  MAVEN_OPTS: "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true -Dmaven.repo.local=/cache/maven.repository"
+  MAVEN_OPTS: "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true -Dmaven.repo.local=cache/maven.repository -XX:+TieredCompilation -XX:TieredStopAtLevel=1"
   MAVEN_CLI_OPTS: "-T 4 --batch-mode --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
-  IMAGE_JDK8: maven:3.5.3-jdk-8-slim
-  IMAGE_JDK9: maven:3.5.3-jdk-9-slim
-  IMAGE_JDK10: maven:3.5.3-jdk-10-slim
+  JDK_8_IMAGE: maven:3.5.3-jdk-8-slim
+  JDK_10_IMAGE: maven:3.5.3-jdk-10-slim
+  DOCKER_IMAGE: docker:18.04.0-ce-git
+  BUSYBOX_IMAGE: busybox:latest
 
 stages:
   - build
@@ -18,52 +19,45 @@ stages:
   - predeploy
   - deploy
 
-cache:
-  paths:
-    - /cache/maven.repository
-
-# *** BUILD JOBS *** #
-
 # Validate branch make sure we don't merge ek2 into master
 branch-test:ek2:
-  image: busybox
   stage: build
   only:
     - ek2_ui
+  image: $BUSYBOX_IMAGE
   script:
     - "grep ek2 dashboard/pom.xml"
     - "grep ek2 dashboard-gateway/pom.xml"
 
 branch-test:other:
-  image: busybox
   stage: build
   except:
     - ek2_ui
+  image: $BUSYBOX_IMAGE
   script:
     - "! grep ek2 dashboard/pom.xml"
     - "! grep ek2 dashboard-gateway/pom.xml"
 
-# Validate java code using JDK8; for master this is a sanity check
+# Validate java code; usually this is a sanity check
 .java-compile: &compile
   stage: build
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml clean test-compile'
+  cache:
+    paths:
+      - cache/maven.repository
 
 java-compile:jdk8:
-  <<: *compile
-  image: $IMAGE_JDK8
+    <<: *compile
+    image: $JDK_8_IMAGE
 
-java-compile:jdk9:
-  <<: *compile
-  image: $IMAGE_JDK9
-  
 java-compile:jdk10:
-  <<: *compile
-  image: $IMAGE_JDK10
-  allow_failure: true
+    <<: *compile
+    image: $JDK_10_IMAGE
 
+# Compile the orchestrator-ui
 ui-compile:
-  image: docker:18.04.0-ce-git
+  image: $DOCKER_IMAGE
   stage: build
   script:
     - 'docker build orchestrator-ui'
@@ -76,114 +70,58 @@ ui-compile:
   except:
     - master
   script:
-    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml test'
+    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml package'
+  cache:
+    paths:
+      - cache/maven.repository
 
 java-test:jdk8:
-  <<: *test
-  image: $IMAGE_JDK8
-  
-java-test:jdk9:
-  <<: *test
-  image: $IMAGE_JDK9
+    <<: *test
+    image: $JDK_8_IMAGE
 
 java-test:jdk10:
-  <<: *test
-  image: $IMAGE_JDK10
-  allow_failure: true
+    <<: *test
+    image: $JDK_10_IMAGE
 
-# Plugin template, how test the plugins with the code generator
-.plugin_template: &plugin
-  stage: test
-  before_script:
-    - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml install -pl ../maven-plugin -am -DskipTests'
-  script:
-    - 'mvn $MAVEN_CLI_OPTS -f $TEST_PROJ/pom.xml defpi:generate'
-
-# Test plugin on xsd
-plugin-test:proto:
-  variables:
-    TEST_PROJ: skeleton_proto
-  <<: *plugin
-
-# Test plugin on xsd
-plugin-test:xsd:
-  variables:
-    TEST_PROJ: skeleton_xsd
-  <<: *plugin
-
-# Test to see if the orchestrator ui does what it is supposed to
-#ui-test:
-#  image: docker:17.03.2-ce-git
-#  tags:
-#    - defpi2
-#  stage: test
-#  except:
-#    - master
-#  before_script:
-#    - 'docker build orchestrator-ui -t orchestrator-ui:test'
-#    - 'docker run --rm --name ui-test -d -p 8756:80 orchestrator-ui:test'
-#    - 'sleep 10'
-#  script:
-#    - 'wget -q localhost:8756/login.html -O -| grep "Orchestrator"'
-#  after_script:
-#    - 'docker stop ui-test'
-
-# *** PREDEPLOYMENT JOBS *** #
+# *** predeployMENT JOBS *** #
 
 # Deploy the complete project with modules to artifactory and the orchestrator to registry
 java-deploy:
-  image: $IMAGE_JDK8
   stage: predeploy
   only:
     - master
     - defpici
+  image: $JDK_8_IMAGE
   script:
     - 'mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy -Ddocker.registry=defpi.hesilab.nl:5000'
+  cache:
+    paths:
+      - cache/maven.repository
 
 # Deploy UI to registry
 ui-deploy:
-  image: docker:18.04.0-ce-git
   stage: predeploy
   only:
     - master
     - defpici
+  image: $DOCKER_IMAGE
   before_script:  
     - 'docker build orchestrator-ui -t defpi.hesilab.nl:5000/defpi/orchestrator-ui'
   script:
     - 'docker push defpi.hesilab.nl:5000/defpi/orchestrator-ui'
 
-# Test the deployment first
-# test-deploy:
-#  image: tmaier/docker-compose:17.06
-#  tags:
-#    - defpi2
-#  only:
-#    - master
-#    - defpici
-#  stage: predeploy
-#  before_script:
-#    - 'docker-compose -p test -f orchestrator/docker-compose.test.yml pull'
-#    - 'docker-compose -p test -f orchestrator/docker-compose.test.yml up -d'
-#    - 'sleep 120'
-#  script:
-#    - 'nc -zv def-pi2.sensorlab.tno.nl:9999'
-#    - 'wget -q def-pi2.sensorlab.tno.nl:84/login.html -O - | grep "Orchestrator"'
-#    - 'wget -q def-pi2.sensorlab.tno.nl:8484/swagger.json -O - | grep "dEF-Pi API"'
-#  after_script:
-#    - 'docker-compose -p test -f orchestrator/docker-compose.test.yml down'
-
 # *** FINAL DEPLOY JOBS *** #
 
 # And finally run the orchestrator on hesilab using docker-compose
 deploy-compose:
-  image: tmaier/docker-compose:18.02
   stage: deploy
   tags:
     - hesilab
   only:
     - master
+  image: tmaier/docker-compose:18.09
   before_script:
     - 'docker-compose -f orchestrator/docker-compose.test.yml pull'
   script:
     - 'docker-compose -f orchestrator/docker-compose.test.yml up -d'
-
+  allow_failure: true

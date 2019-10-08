@@ -1,19 +1,21 @@
-/**
- * File NodeManager.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
 package org.flexiblepower.orchestrator;
 
@@ -51,7 +53,7 @@ public class NodeManager {
     /**
      * @return The singleton instance of the NodeManager
      */
-    public synchronized static NodeManager getInstance() {
+    public static NodeManager getInstance() {
         if (NodeManager.instance == null) {
             NodeManager.instance = new NodeManager();
         }
@@ -148,7 +150,8 @@ public class NodeManager {
         final MongoDbConnector mongo = MongoDbConnector.getInstance();
 
         final T node = mongo.get(nodeType, id);
-        if ((node.getLastSync().getTime() + NodeManager.ALLOWED_CACHE_TIME_MS) < System.currentTimeMillis()) {
+        if ((node != null)
+                && ((node.getLastSync().getTime() + NodeManager.ALLOWED_CACHE_TIME_MS) < System.currentTimeMillis())) {
             // Data too old, resync first
             this.syncAllNodes();
             // Retrieve new data
@@ -313,6 +316,7 @@ public class NodeManager {
      */
     public PrivateNode makeUnidentifiedNodePrivate(final UnidentifiedNode unidentifiedNode, final User owner) {
         final PrivateNode privateNode = new PrivateNode(unidentifiedNode, owner);
+        privateNode.setName(unidentifiedNode.getName());
         MongoDbConnector.getInstance().save(privateNode);
         MongoDbConnector.getInstance().delete(unidentifiedNode);
         return privateNode;
@@ -328,6 +332,7 @@ public class NodeManager {
      */
     public PublicNode makeUnidentifiedNodePublic(final UnidentifiedNode unidentifiedNode, final NodePool nodePool) {
         final PublicNode publicNode = new PublicNode(unidentifiedNode, nodePool);
+        publicNode.setName(unidentifiedNode.getName());
         MongoDbConnector.getInstance().save(publicNode);
         MongoDbConnector.getInstance().delete(unidentifiedNode);
         return publicNode;

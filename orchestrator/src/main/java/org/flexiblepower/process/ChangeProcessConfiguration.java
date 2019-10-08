@@ -1,23 +1,24 @@
-/**
- * File ChangeProcessConfiguration.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
 package org.flexiblepower.process;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -39,7 +40,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Entity("PendingChange")
 @Slf4j
-public class ChangeProcessConfiguration extends PendingChange {
+class ChangeProcessConfiguration extends PendingChange {
 
     private Process process;
     private List<ProcessParameter> newConfiguration;
@@ -56,9 +57,9 @@ public class ChangeProcessConfiguration extends PendingChange {
      * @param process The process to update
      * @param newConfiguration The new configuration as a list of parameters
      */
-    public ChangeProcessConfiguration(final Process process, final List<ProcessParameter> newConfiguration) {
+    ChangeProcessConfiguration(final Process process, final List<ProcessParameter> newConfiguration) {
         super(process.getUserId());
-        this.resources = Collections.unmodifiableList(Arrays.asList(process.getId()));
+        this.resources = Collections.singletonList(process.getId());
         this.process = process;
         this.newConfiguration = newConfiguration;
     }

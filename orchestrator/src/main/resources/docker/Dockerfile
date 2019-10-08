@@ -1,4 +1,4 @@
-FROM java:alpine
+FROM openjdk:11-jre-slim
 
 ENV BUILD_TIMESTAMP ${maven.build.timestamp}
 ENV BUILD_USER ${user.name}

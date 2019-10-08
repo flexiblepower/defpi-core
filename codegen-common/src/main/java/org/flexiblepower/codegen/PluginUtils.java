@@ -1,19 +1,21 @@
-/**
- * File PluginUtils.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi service codegen-common
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
 package org.flexiblepower.codegen;
 
@@ -164,9 +166,21 @@ public class PluginUtils {
      * @return A string in camel caps
      */
     public static String snakeCaps(final String str) {
-        return Stream.of(str.split(" ")).map(String::toLowerCase).collect(Collectors.joining("_")).replaceAll(
-                "[^a-zA-Z0-9_]",
-                "");
+        return Stream.of(str.split(" "))
+                .map(String::toLowerCase)
+                .collect(Collectors.joining("_"))
+                .replaceAll("[^a-zA-Z0-9_]", "");
+    }
+
+    /**
+     * Simply replace the first letter by a capital letter. This is useful when a resource or type needs to be
+     * transformed to a proper class name.
+     *
+     * @param str The string to capitalize
+     * @return The same string with the first letter capitalized
+     */
+    public static String capitalize(final String str) {
+        return Character.toUpperCase(str.charAt(0)) + str.substring(1);
     }
 
     /**
@@ -191,8 +205,8 @@ public class PluginUtils {
 
     private static String getHash(final InterfaceVersionDescription vitf, final Set<String> messageSet) {
         String baseHash = vitf.getHash();
-        for (final String key : messageSet) {
-            baseHash += ";" + key;
+        if ((messageSet != null) && !messageSet.isEmpty()) {
+            baseHash += ";" + String.join(";", messageSet);
         }
         return PluginUtils.SHA256(baseHash);
     }
@@ -239,12 +253,11 @@ public class PluginUtils {
      * @param dst The destination file to download to
      * @throws IOException When any exception occurs while reading from the URL, or to the destination file
      */
-    public static void downloadFile(final String src, final File dst) throws IOException {
+    public static void downloadFile(final URL src, final File dst) throws IOException {
         System.out.println("Downloading " + src + " to " + dst);
-        final URL url = new URL(src);
 
         try (
-                final InputStream in = new BufferedInputStream(url.openStream());
+                final InputStream in = new BufferedInputStream(src.openStream());
                 final FileOutputStream out = new FileOutputStream(dst)) {
             final byte[] buf = new byte[1024];
             int n = 0;
@@ -264,8 +277,9 @@ public class PluginUtils {
      */
     public static Path downloadFileOrResolve(final String location, final Path resources) throws FileNotFoundException {
         try {
+            final URL url = new URL(location);
             final Path tempFile = Files.createTempFile(null, null);
-            PluginUtils.downloadFile(location, tempFile.toFile());
+            PluginUtils.downloadFile(url, tempFile.toFile());
             return tempFile;
         } catch (final IOException e) {
             final Path ret = resources.resolve(location);

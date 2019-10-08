@@ -1,21 +1,22 @@
-/**
- * File UserApi.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi API
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
-
 package org.flexiblepower.api;
 
 import java.util.List;
@@ -36,6 +37,7 @@ import org.flexiblepower.exceptions.AuthorizationException;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.exceptions.NotFoundException;
 import org.flexiblepower.exceptions.ProcessNotFoundException;
+import org.flexiblepower.exceptions.UserNotFoundException;
 import org.flexiblepower.model.User;
 
 import io.swagger.annotations.Api;
@@ -55,11 +57,6 @@ import io.swagger.annotations.Authorization;
 @Path("user")
 @Produces(MediaType.APPLICATION_JSON)
 public interface UserApi {
-
-    /**
-     * Error message to display if the user is not found
-     */
-    static final String USER_NOT_FOUND_MESSAGE = "User not found";
 
     /**
      * Attempt to create a new user with provided specification.
@@ -130,7 +127,7 @@ public interface UserApi {
                   authorizations = {@Authorization(value = OrchestratorApi.ADMIN_AUTHENTICATION)})
     @ApiResponses(value = {@ApiResponse(code = 204, message = "User deleted"),
             @ApiResponse(code = 400, message = InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE),
-            @ApiResponse(code = 404, message = UserApi.USER_NOT_FOUND_MESSAGE),
+            @ApiResponse(code = 404, message = UserNotFoundException.USER_NOT_FOUND_MESSAGE),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public void deleteUser(
             @ApiParam(value = "The id of the user that needs to be deleted",
@@ -147,7 +144,7 @@ public interface UserApi {
      * @return User with the specified Id
      * @throws AuthorizationException If the user is not authorized to get information about the user.
      * @throws InvalidObjectIdException If the provided userId is not a valid ObjectId
-     * @throws NotFoundException When no user with the provided name
+     * @throws UserNotFoundException When no user with the provided name
      */
     @GET
     @Path("/{user_id}")
@@ -159,14 +156,14 @@ public interface UserApi {
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
     @ApiResponses(value = {@ApiResponse(code = 200, message = "User data", response = User.class),
             @ApiResponse(code = 400, message = InvalidObjectIdException.INVALID_OBJECT_ID_MESSAGE),
-            @ApiResponse(code = 404, message = UserApi.USER_NOT_FOUND_MESSAGE),
+            @ApiResponse(code = 404, message = UserNotFoundException.USER_NOT_FOUND_MESSAGE),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public User
             getUser(@ApiParam(value = "The id of the User that needs to be fetched",
                               required = true) @PathParam("user_id") final String userId)
                     throws AuthorizationException,
                     InvalidObjectIdException,
-                    NotFoundException;
+                    UserNotFoundException;
 
     /**
      * Get the user with the specified user name. This function will only return user information if the requested user
@@ -175,7 +172,7 @@ public interface UserApi {
      * @param username The name of the user to look up
      * @return User with the specified name
      * @throws AuthorizationException If the user is not authorized to get information about the user.
-     * @throws NotFoundException When no user with the provided name
+     * @throws UserNotFoundException When no user with the provided name
      */
     @GET
     @Path("/by_username/{username}")
@@ -186,13 +183,13 @@ public interface UserApi {
                   notes = "Get data of the user with the provided user name",
                   authorizations = {@Authorization(value = OrchestratorApi.USER_AUTHENTICATION)})
     @ApiResponses(value = {@ApiResponse(code = 200, message = "User data", response = User.class),
-            @ApiResponse(code = 404, message = UserApi.USER_NOT_FOUND_MESSAGE),
+            @ApiResponse(code = 404, message = UserNotFoundException.USER_NOT_FOUND_MESSAGE),
             @ApiResponse(code = 405, message = AuthorizationException.UNAUTHORIZED_MESSAGE)})
     public User getUserByUsername(
             @ApiParam(value = "The username of the User that needs to be fetched",
                       required = true) @PathParam("username") final String username)
             throws AuthorizationException,
-            NotFoundException;
+            UserNotFoundException;
 
     /**
      * List all existing users. All users are allowed to list users, but only administrators can receive more than one

@@ -1,19 +1,21 @@
-/**
- * File ServiceMain.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi service managing library
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
 package org.flexiblepower.service;
 
@@ -23,6 +25,7 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 import org.flexiblepower.service.exceptions.ServiceInvocationException;
 import org.reflections.Reflections;
@@ -60,7 +63,10 @@ public final class ServiceMain {
             ServiceMain.log.debug("Found {} as service type", serviceClass);
 
             // Call the constructor in the user thread.
-            final Service<T> service = ServiceExecutor.getInstance().submit(() -> serviceClass.newInstance()).get();
+            final Constructor<? extends Service<T>> c = serviceClass.getConstructor();
+            final Service<T> service = ServiceExecutor.getInstance()
+                    .submit((Callable<Service<T>>) c::newInstance)
+                    .get();
 
             ServiceMain.log.info("Starting service {}", service);
             ServiceMain.registerMessageHandlers(service);
@@ -114,7 +120,7 @@ public final class ServiceMain {
     /**
      * Registers all connectionHandlerFactories for their corresponding connectionHandlers.
      *
-     * @param service
+     * @param service The service to register
      */
     private static void registerMessageHandlers(final Service<?> service) {
         final Set<Class<? extends ConnectionHandlerManager>> managers = ServiceMain.reflections
@@ -152,17 +158,14 @@ public final class ServiceMain {
                         service,
                         e.getMessage());
                 ServiceMain.log.trace(e.getMessage(), e);
-                continue;
             }
         }
     }
 
     /**
-     * @param managerClass
-     * @param service
-     * @return
-     * @throws IllegalAccessException
-     * @throws InstantiationException
+     * @param managerClass The type of the ConnectionHandlerManager to instantiate
+     * @param service The service to instantiate the connection handler manager for
+     * @return A connectionHandlerManager instantiated particularly for the specified service
      */
     private static ConnectionHandlerManager instantiateManagerWithService(
             final Class<? extends ConnectionHandlerManager> managerClass,
@@ -183,7 +186,7 @@ public final class ServiceMain {
         // Try the empty constructor if it fails
         ServiceMain.log.debug("Attempting fallback empty constructor for {}", managerClass);
         try {
-            return managerClass.newInstance();
+            return managerClass.getConstructor().newInstance();
         } catch (final Exception e) {
             ServiceMain.log.warn("Unable to instantiate manager type {} of service {}: {}",
                     managerClass,

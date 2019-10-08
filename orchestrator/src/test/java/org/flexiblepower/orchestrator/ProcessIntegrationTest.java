@@ -1,25 +1,28 @@
-/**
- * File ProcessIntegrationTest.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
 package org.flexiblepower.orchestrator;
 
 import java.net.Socket;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.connectors.MongoDbConnector;
@@ -31,12 +34,13 @@ import org.flexiblepower.model.UnidentifiedNode;
 import org.flexiblepower.model.User;
 import org.flexiblepower.process.ConnectionManager;
 import org.flexiblepower.process.ProcessManager;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
@@ -51,7 +55,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since Apr 24, 2017
  */
 @Slf4j
-@Ignore // This test is not supposed to run in CI
+@Disabled // This test is not supposed to run in CI
 @SuppressWarnings("javadoc")
 public class ProcessIntegrationTest {
 
@@ -64,7 +68,7 @@ public class ProcessIntegrationTest {
     final ConnectionManager cm = ConnectionManager.getInstance();
     final ServiceManager sm = ServiceManager.getInstance();
 
-    @BeforeClass
+    @BeforeAll
     public static void init() {
         String mongoHost = System.getenv(MongoDbConnector.MONGO_HOST_KEY);
         if (mongoHost == null) {
@@ -79,17 +83,18 @@ public class ProcessIntegrationTest {
             // Do nothing
         } catch (final Exception e) {
             ProcessIntegrationTest.log.warn("Exception while connecting to MongoDb: {}", e.getMessage());
-            Assume.assumeNoException("Skipping tests because there is no Mongo service", e);
+            Assumptions.assumeTrue(false, "Skipping tests because there is no Mongo service");
         }
 
         try {
             RegistryConnector.getInstance().getServices("services");
         } catch (final Exception e) {
-            Assume.assumeNoException("Skipping tests because there is no registry", e);
+            Assumptions.assumeTrue(false, "Skipping tests because there is no registry");
         }
     }
 
-    @Test(timeout = 80000)
+    @Test
+    @Timeout(value = 1, unit = TimeUnit.MINUTES)
     public void runTest() throws Exception {
         // Get the user or create one
         User user = this.um.getUser(ProcessIntegrationTest.TEST_USER, ProcessIntegrationTest.TEST_PASS);
@@ -98,14 +103,14 @@ public class ProcessIntegrationTest {
                     .saveUser(new User(ProcessIntegrationTest.TEST_USER, ProcessIntegrationTest.TEST_PASS));
             user = this.um.getUser(uid);
         }
-        Assert.assertNotNull("User not found", user);
+        Assertions.assertNotNull(user, "User not found");
         ProcessIntegrationTest.log.info("Found user {}", user);
 
         // Get a private node or create one
         List<PrivateNode> myNodes = this.nm.getPrivateNodesForUser(user);
         if (myNodes.isEmpty()) {
             final List<UnidentifiedNode> UNList = this.nm.getUnidentifiedNodes();
-            Assume.assumeFalse(UNList.isEmpty());
+            Assumptions.assumeFalse(UNList.isEmpty());
             final UnidentifiedNode un = UNList.get(0);
             this.nm.makeUnidentifiedNodePrivate(un, user);
             myNodes = this.nm.getPrivateNodesForUser(user);
@@ -115,12 +120,12 @@ public class ProcessIntegrationTest {
         // Get the two first private nodes
         final PrivateNode node1 = myNodes.get(0);
         final PrivateNode node2 = myNodes.get(1 % myNodes.size());
-        Assert.assertNotNull("Node 1 not found", node1);
-        Assert.assertNotNull("Node 2 not found", node2);
+        Assertions.assertNotNull(node1, "Node 1 not found");
+        Assertions.assertNotNull(node2, "Node 2 not found");
 
         // Get a service to instantiate
         final Service service = this.sm.listServices().get(0);
-        Assert.assertNotNull("No service found", service);
+        Assertions.assertNotNull(service, "No service found");
 
         // Instantiate processes
         final Process process1 = this.pm.createProcess(
@@ -146,11 +151,11 @@ public class ProcessIntegrationTest {
 
         }
 
-        Assert.assertFalse(servicesForP1.isEmpty());
-        Assert.assertFalse(servicesForP2.isEmpty());
+        Assertions.assertFalse(servicesForP1.isEmpty());
+        Assertions.assertFalse(servicesForP2.isEmpty());
     }
 
-    @After
+    @AfterEach
     public void cleanUp() throws InterruptedException {
         final User user = this.um.getUser(ProcessIntegrationTest.TEST_USER, ProcessIntegrationTest.TEST_PASS);
 

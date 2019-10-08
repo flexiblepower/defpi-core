@@ -1,19 +1,21 @@
-/**
- * File TCPConnection.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi service managing library
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
 package org.flexiblepower.service;
 
@@ -66,8 +68,8 @@ final class TCPConnection implements Connection, Closeable {
      * The connection executor is the pool of threads that will run the different services to keep a connection alive,
      * and read its messages
      */
-    protected final ExecutorService connectionExecutor = Executors.newFixedThreadPool(3,
-            r -> new Thread(r, "dEF-Pi connThread" + TCPConnection.threadCounter++));
+    protected final ExecutorService connectionExecutor = Executors
+            .newCachedThreadPool(r -> new Thread(r, "dEF-Pi connThread" + TCPConnection.threadCounter++));
 
     /**
      * A runnable object that will make sure the messages in the queue are given to the responsible ConnectionHandler
@@ -104,7 +106,7 @@ final class TCPConnection implements Connection, Closeable {
      * The socket that provides the underlying message carrying mechanism. This may be closed and reinitialized as the
      * Connection is interrupted, suspended, or any transient intermediate state
      */
-    protected TCPSocket socket;
+    protected volatile TCPSocket socket;
 
     /**
      * The heartbeat monitor is an external object that periodically checks if the connection is still healthy.
@@ -152,14 +154,14 @@ final class TCPConnection implements Connection, Closeable {
 
         // Add serializer to the connection for user-defined messages
         try {
-            this.userMessageSerializer = info.serializer().newInstance();
-        } catch (InstantiationException | IllegalAccessException e) {
+            this.userMessageSerializer = info.serializer().getConstructor().newInstance();
+        } catch (final Exception e) {
             throw new RuntimeException("Unable to instantiate connection serializer");
         }
 
         // Add sending and receiving types to serializer
-        Arrays.asList(info.sendTypes()).forEach((type) -> this.userMessageSerializer.addMessageClass(type));
-        Arrays.asList(info.receiveTypes()).forEach((type) -> this.userMessageSerializer.addMessageClass(type));
+        Arrays.asList(info.sendTypes()).forEach(this.userMessageSerializer::addMessageClass);
+        Arrays.asList(info.receiveTypes()).forEach(this.userMessageSerializer::addMessageClass);
 
         this.connectionExecutor.submit(this.messageQueue);
         this.connectionExecutor.submit(this.socketReader);
@@ -204,7 +206,9 @@ final class TCPConnection implements Connection, Closeable {
 
         final byte[] data;
         try {
-            data = this.userMessageSerializer.serialize(message);
+            synchronized (this.userMessageSerializer) {
+                data = this.userMessageSerializer.serialize(message);
+            }
         } catch (final SerializationException e) {
             TCPConnection.log
                     .error("[{}] - Error while serializing message, not sending message.", this.connectionId, e);
@@ -263,7 +267,11 @@ final class TCPConnection implements Connection, Closeable {
                 }
             }
 
-            final Object message = this.userMessageSerializer.deserialize(msg);
+            final Object message;
+            synchronized (this.userMessageSerializer) {
+                message = this.userMessageSerializer.deserialize(msg);
+            }
+
             final Class<?> messageType = message.getClass();
             final Method[] allMethods = this.serviceHandler.getClass().getMethods();
             for (final Method method : allMethods) {
@@ -351,17 +359,17 @@ final class TCPConnection implements Connection, Closeable {
             });
             break;
         case INTERRUPTED:
-            this.serviceExecutor.submit(() -> this.serviceHandler.resumeAfterInterrupt());
+            this.serviceExecutor.submit(this.serviceHandler::resumeAfterInterrupt);
             break;
         case SUSPENDED:
-            this.serviceExecutor.submit(() -> this.serviceHandler.resumeAfterSuspend());
+            this.serviceExecutor.submit(this.serviceHandler::resumeAfterSuspend);
             break;
         case TERMINATED:
         default:
             TCPConnection.log.error("[{}] - Unexpected previous state: {}", this.connectionId, this.state);
         }
         // Make sure it runs AFTER user constructor
-        this.serviceExecutor.submit(() -> this.releaseWaitLock());
+        this.serviceExecutor.submit(this::releaseWaitLock);
     }
 
     /**
@@ -387,7 +395,7 @@ final class TCPConnection implements Connection, Closeable {
         this.state = ConnectionState.SUSPENDED;
         this.heartBeatMonitor.stop();
 
-        this.serviceExecutor.submit(() -> this.serviceHandler.onSuspend());
+        this.serviceExecutor.submit(this.serviceHandler::onSuspend);
     }
 
     /**
@@ -464,7 +472,8 @@ final class TCPConnection implements Connection, Closeable {
             this.state = ConnectionState.TERMINATED;
 
             if (this.serviceHandler != null) {
-                this.serviceExecutor.submit(() -> this.serviceHandler.terminated());
+                this.serviceExecutor.submit(this.serviceHandler::terminated);
+                ConnectionManager.removeConnectionHandler(this.serviceHandler);
             }
         }
 
@@ -496,7 +505,7 @@ final class TCPConnection implements Connection, Closeable {
         /**
          *
          */
-        protected SocketReader() {
+        SocketReader() {
             // Protected constructor for TCPConnection
         }
 
@@ -536,12 +545,23 @@ final class TCPConnection implements Connection, Closeable {
                     }
                 }
 
-                // Create the monitors
-                TCPConnection.log.debug("[{}] - Creating connection monitors", TCPConnection.this.connectionId);
-                TCPConnection.this.handShakeMonitor = new HandShakeMonitor(TCPConnection.this.socket,
-                        TCPConnection.this.connectionId);
-                TCPConnection.this.heartBeatMonitor = new HeartBeatMonitor(TCPConnection.this.socket,
-                        TCPConnection.this.connectionId);
+                try {
+                    // Create the monitors
+                    TCPConnection.log.debug("[{}] - Creating connection monitors", TCPConnection.this.connectionId);
+                    TCPConnection.this.handShakeMonitor = new HandShakeMonitor(TCPConnection.this.socket,
+                            TCPConnection.this.connectionId);
+                    TCPConnection.this.heartBeatMonitor = new HeartBeatMonitor(TCPConnection.this.socket,
+                            TCPConnection.this.connectionId);
+                } catch (final Exception e) {
+                    if (this.keepRunning) {
+                        TCPConnection.log.warn(
+                                "[{}] - Exception while instantiating connection monitors. Aborting setup",
+                                TCPConnection.this.connectionId);
+                        continue;
+                    } else {
+                        break;
+                    }
+                }
 
                 // Now we have a functioning socket, make sure that as soon as there is a handshake, go connected
                 TCPConnection.this.connectionExecutor.submit(() -> {
@@ -561,7 +581,7 @@ final class TCPConnection implements Connection, Closeable {
                     }
                 });
 
-                while (this.keepRunning && TCPConnection.this.socket.isConnected()) {
+                while (this.keepRunning && (TCPConnection.this.socket != null)) {
                     try {
                         final byte[] data = TCPConnection.this.socket.read();
 
@@ -569,7 +589,9 @@ final class TCPConnection implements Connection, Closeable {
                             continue;
                         }
 
-                        if (!TCPConnection.this.heartBeatMonitor.handleMessage(data)
+                        // Check the socket again, since it may have changed since we started read()
+                        if ((TCPConnection.this.socket != null)
+                                && !TCPConnection.this.heartBeatMonitor.handleMessage(data)
                                 && !TCPConnection.this.handShakeMonitor.handleHandShake(data)) {
                             TCPConnection.this.messageQueue.addMessage(data);
                         }
@@ -582,6 +604,13 @@ final class TCPConnection implements Connection, Closeable {
                             TCPConnection.log.trace(e.getMessage(), e);
                             TCPConnection.this.goToInterruptedState();
                         }
+                        break;
+                    } catch (final Exception e) {
+                        TCPConnection.log.error("[{}] - Unexpected exception while operating on socket: {}",
+                                TCPConnection.this.connectionId,
+                                e.getMessage());
+                        TCPConnection.log.trace(e.getMessage(), e);
+                        TCPConnection.this.goToInterruptedState();
                         break;
                     }
                 }
@@ -611,7 +640,7 @@ final class TCPConnection implements Connection, Closeable {
         /**
          *
          */
-        protected MessageQueue() {
+        MessageQueue() {
             // Protected constructor for TCPConnection
         }
 

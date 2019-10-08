@@ -1,19 +1,21 @@
-/**
- * File ServiceManager.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
 package org.flexiblepower.orchestrator;
 
@@ -27,8 +29,6 @@ import org.flexiblepower.exceptions.RepositoryNotFoundException;
 import org.flexiblepower.exceptions.ServiceNotFoundException;
 import org.flexiblepower.model.Interface;
 import org.flexiblepower.model.Service;
-
-import com.google.common.collect.ImmutableList;
 
 /**
  * ServiceManager
@@ -56,7 +56,7 @@ public class ServiceManager {
     /**
      * @return The singleton instance of the ServiceManager
      */
-    public synchronized static ServiceManager getInstance() {
+    public static ServiceManager getInstance() {
         if (ServiceManager.instance == null) {
             ServiceManager.instance = new ServiceManager();
         }
@@ -82,7 +82,7 @@ public class ServiceManager {
      */
     public List<Service> listServices() {
         try {
-            return ImmutableList.copyOf(RegistryConnector.getInstance().getServices(ServiceManager.SERVICE_REPOSITORY));
+            return RegistryConnector.getInstance().getServices(ServiceManager.SERVICE_REPOSITORY);
         } catch (final RepositoryNotFoundException e) {
             // Can't happen
             return Collections.emptyList();
@@ -98,7 +98,12 @@ public class ServiceManager {
     public List<Interface> listInterfaces() {
         final List<Interface> result = new LinkedList<>();
         for (final Service s : this.listServices()) {
-            result.addAll(s.getInterfaces());
+            for (final Interface i : s.getInterfaces()) {
+                if (!result.contains(i)) {
+                    result.add(i);
+                }
+            }
+            // result.addAll(s.getInterfaces());
         }
         return result;
     }
@@ -136,6 +141,17 @@ public class ServiceManager {
             }
         }
         return result;
+    }
+
+    /**
+     * Get all versions of a service with the specified Id.
+     *
+     * @param id The id of the service to retrieve from the registry
+     * @return The list of service versions with the specified Id
+     * @throws ServiceNotFoundException if no service is found with the specified id
+     */
+    public List<Service> listServiceVersions(final String id) throws ServiceNotFoundException {
+        return RegistryConnector.getInstance().getAllServiceVersions(ServiceManager.SERVICE_REPOSITORY, id);
     }
 
 }

@@ -1,21 +1,22 @@
-/**
- * File PythonTemplates.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi python service creation
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
-
 package org.flexiblepower.pythoncodegen;
 
 import java.io.IOException;
@@ -42,25 +43,57 @@ import org.flexiblepower.codegen.model.ServiceDescription;
 public class PythonTemplates extends Templates {
 
     /**
-     *
+     * Constant representing the code generator
      */
     private static final String GENERATOR_NAME = "Python code generator for dEF-Pi";
 
+    /**
+     * Create the object that provides the Templates for the python code generation for a service description
+     *
+     * @param descr The service description as parsed from the service.json file
+     */
     public PythonTemplates(final ServiceDescription descr) {
         super(descr);
     }
 
     /**
-     * @return
+     * Generate the main python file
+     *
+     * @return The string containing the content of __main__.py
+     * @throws IOException When an exception occurs while reading the template
+     */
+    public String generateServiceMain() throws IOException {
+        return this.generate("ServiceMain", null, null);
+    }
+
+    /**
+     * Generate the contents for the service implementation file
+     *
+     * @return The code that implements the service for the project.
+     * @throws IOException When an exception occurs while reading the template
      */
     public String generateServiceImplementation() throws IOException {
         return this.generate("ServiceImplementation", null, null);
     }
 
     /**
-     * @param itf
-     * @param version
-     * @return
+     * Generate the file contents for the pip requirements file
+     *
+     * @return The contents of the requirements.txt file
+     * @throws IOException When an exception occurs while reading the template
+     */
+    public String generateRequirements() throws IOException {
+        return this.generate("PipRequirements", null, null);
+    }
+
+    /**
+     * Generate the contents for the abstract base class defining the connection handler for the specified dEF-Pi
+     * interface version.
+     *
+     * @param itf The interface to generate the handler interface for
+     * @param version The version of the interface to generate the code for
+     * @return The code of the connection handler interface for the specified version of the interface
+     * @throws IOException When an exception occurs while reading the template file
      */
     public String generateHandlerInterface(final InterfaceDescription itf, final InterfaceVersionDescription version)
             throws IOException {
@@ -68,9 +101,12 @@ public class PythonTemplates extends Templates {
     }
 
     /**
-     * @param itf
-     * @param version
-     * @return
+     * Generate the code that implements the connection handler for the specified dEF-Pi interface version.
+     *
+     * @param itf The interface to generate the handler implementation for
+     * @param version The version of the interface to generate the code for
+     * @return The code of the connection handler implementation for the specified version of the interface
+     * @throws IOException When an exception occurs while reading the template file
      */
     public String generateHandlerImplementation(final InterfaceDescription itf,
             final InterfaceVersionDescription version) throws IOException {
@@ -78,18 +114,22 @@ public class PythonTemplates extends Templates {
     }
 
     /**
-     * @param itf
-     * @param version
-     * @return
+     * Generate the code of the java interface that defines the manager for the specified dEF-Pi interface.
+     *
+     * @param itf The interface to generate the manager interface for
+     * @return The code of the connection manager interface for the specified interface
+     * @throws IOException When an exception occurs while reading the template file
      */
     public String generateManagerInterface(final InterfaceDescription itf) throws IOException {
         return this.generate("ManagerInterface", itf, null);
     }
 
     /**
-     * @param itf
-     * @param version
-     * @return
+     * Generate the code that implements the manager for the specified dEF-Pi interface.
+     *
+     * @param itf The interface to generate the manager implementation for
+     * @return The code of the connection manager implementation for the specified interface
+     * @throws IOException When an exception occurs while reading the template file
      */
     public String generateManagerImplementation(final InterfaceDescription itf) throws IOException {
         return this.generate("ManagerClass", itf, null);
@@ -98,10 +138,11 @@ public class PythonTemplates extends Templates {
     /**
      * Generate a file based on the template and the provided interface description and version description
      *
-     * @param templateName
-     * @param itf
-     * @param version
-     * @return
+     * @param templateName The template to use while creating the code
+     * @param itf The interface to generate the code for
+     * @param version The version of the interface to generate the code for
+     * @return The filled-in template, which should provide valid java code
+     * @throws IOException When an exception occurs while reading the template file
      */
     private String generate(final String templateName,
             final InterfaceDescription itf,
@@ -111,7 +152,11 @@ public class PythonTemplates extends Templates {
         final Map<String, String> replaceMap = new HashMap<>();
 
         // Generic stuff that is the same everywhere
-        replaceMap.put("username", System.getProperty("user.name"));
+        String userName = System.getenv("USER");
+        if ((userName == null) || userName.isEmpty()) {
+            userName = System.getProperty("user.name");
+        }
+        replaceMap.put("username", userName);
         replaceMap.put("date", DateFormat.getDateTimeInstance().format(new Date()));
         replaceMap.put("generator", PythonTemplates.GENERATOR_NAME);
 
@@ -127,6 +172,7 @@ public class PythonTemplates extends Templates {
             final Set<String> definitions = new HashSet<>();
             final Set<String> implementations = new HashSet<>();
             final Set<String> itfimports = new HashSet<>();
+            final Set<String> itfitfimports = new HashSet<>();
             for (final InterfaceVersionDescription vitf : itf.getInterfaceVersions()) {
                 final String interfaceClass = PythonCodegenUtils.connectionHandlerInterface(itf, vitf);
                 final String implementationClass = PythonCodegenUtils.connectionHandlerClass(itf, vitf);
@@ -136,7 +182,7 @@ public class PythonTemplates extends Templates {
                 handlerReplace.put("vitf.handler.interface", interfaceClass);
                 handlerReplace.put("vitf.handler.class", implementationClass);
                 handlerReplace.put("vitf.version", interfaceVersionModule);
-                handlerReplace.put("vitf.version.builder", PythonCodegenUtils.builderFunctionName(itf, vitf));
+                handlerReplace.put("vitf.version.builder", PythonCodegenUtils.builderFunctionName(vitf));
 
                 definitions.add(this.replaceMap(this.getTemplate("BuilderDefinition"), handlerReplace));
                 implementations.add(this.replaceMap(this.getTemplate("BuilderImplementation"), handlerReplace));
@@ -145,13 +191,26 @@ public class PythonTemplates extends Templates {
                         interfaceVersionModule,
                         implementationClass,
                         implementationClass));
+                itfitfimports.add(
+                        String.format("from .%s.%s import %s", interfaceVersionModule, interfaceClass, interfaceClass));
             }
 
             replaceMap.put("itf.manager.definitions", String.join("\n\n", definitions));
             replaceMap.put("itf.manager.implementations", String.join("\n\n", implementations));
+            replaceMap.put("itf.manager.imports.interface", String.join("\n", itfitfimports));
             replaceMap.put("itf.manager.imports.implementation", String.join("\n", itfimports));
-        }
+        } else {
+            final Set<String> managerImports = new HashSet<>();
+            for (final InterfaceDescription descr : this.serviceDescription.getInterfaces()) {
+                managerImports.add(String.format("from .%s.%s import %s",
+                        PythonCodegenUtils.getInterfacePackage(descr),
+                        PythonCodegenUtils.managerClass(descr),
+                        PythonCodegenUtils.managerClass(descr)));
 
+            }
+            replaceMap.put("service.managerimports", String.join("\n", managerImports));
+
+        }
         // Build replaceMaps for the interface versions
         if ((itf != null) && (version != null)) {
             replaceMap.put("vitf.handler.interface", PythonCodegenUtils.connectionHandlerInterface(itf, version));
@@ -190,9 +249,9 @@ public class PythonTemplates extends Templates {
             replaceMap.put("vitf.handler.implementations", String.join("\n\n", implementations));
 
             if (version.getType().equals(Type.PROTO)) {
-                replaceMap.put("vitf.serializer", "ProtobufMessageSerializer");
+                replaceMap.put("vitf.serializer", "proto");
             } else if (version.getType().equals(Type.XSD)) {
-                replaceMap.put("vitf.serializer", "XSDMessageSerializer");
+                replaceMap.put("vitf.serializer", "xsd");
             }
 
             // Add imports for the handlers
@@ -214,17 +273,12 @@ public class PythonTemplates extends Templates {
         return this.replaceMap(template, replaceMap);
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see org.flexiblepower.pythoncodegen.Templates#getDockerBaseImage(java.lang.String)
-     */
     @Override
     protected String getDockerBaseImage(final String platform) {
         if (platform.equals("x86")) {
-            return "java:alpine";
+            return "python:3.5-slim";
         } else {
-            return "larmog/armhf-alpine-java:jdk-8u73";
+            return "armhf/python:3.5-alpine";
         }
     }
 

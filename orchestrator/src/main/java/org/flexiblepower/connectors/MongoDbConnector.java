@@ -1,21 +1,22 @@
-/**
- * File MongoDbConnector.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi REST Orchestrator
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
-
 package org.flexiblepower.connectors;
 
 import java.io.IOException;
@@ -25,12 +26,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Pattern;
 
 import org.bson.types.ObjectId;
 import org.flexiblepower.exceptions.InvalidObjectIdException;
 import org.flexiblepower.model.Connection;
 import org.flexiblepower.model.Process;
-import org.flexiblepower.model.PublicNode;
 import org.flexiblepower.model.UnidentifiedNode;
 import org.flexiblepower.model.User;
 import org.flexiblepower.orchestrator.pendingchange.PendingChange;
@@ -81,29 +82,25 @@ public final class MongoDbConnector {
 
     private static MongoDbConnector instance = null;
 
-    private final MongoClient client;
     private final Datastore datastore;
 
-    private String mongoDatabase;
-    private String mongoHost;
-    private String mongoPort;
-
     private MongoDbConnector() {
-        this.mongoHost = System.getenv(MongoDbConnector.MONGO_HOST_KEY);
-        if (this.mongoHost == null) {
-            this.mongoHost = MongoDbConnector.MONGO_HOST_DFLT;
+        String mongoHost = System.getenv(MongoDbConnector.MONGO_HOST_KEY);
+        if (mongoHost == null) {
+            mongoHost = MongoDbConnector.MONGO_HOST_DFLT;
         }
-        this.mongoDatabase = System.getenv(MongoDbConnector.MONGO_DATABASE_KEY);
-        if (this.mongoDatabase == null) {
-            this.mongoDatabase = MongoDbConnector.MONGO_DATABASE_DFLT;
+        String mongoDatabase = System.getenv(MongoDbConnector.MONGO_DATABASE_KEY);
+        if (mongoDatabase == null) {
+            mongoDatabase = MongoDbConnector.MONGO_DATABASE_DFLT;
         }
-        this.mongoPort = System.getenv(MongoDbConnector.MONGO_PORT_KEY);
-        if (this.mongoPort == null) {
-            this.mongoPort = MongoDbConnector.MONGO_PORT_DFLT;
+        String mongoPort = System.getenv(MongoDbConnector.MONGO_PORT_KEY);
+        if (mongoPort == null) {
+            mongoPort = MongoDbConnector.MONGO_PORT_DFLT;
         }
 
-        MongoDbConnector.log.info("Connecting to MongoDB on {}:{}", this.mongoHost, this.mongoPort);
-        this.client = new MongoClient(this.mongoHost, Integer.parseInt(this.mongoPort));
+        MongoDbConnector.log.info("Connecting to MongoDB on {}:{}", mongoHost, mongoPort);
+        @SuppressWarnings("resource")
+        final MongoClient client = new MongoClient(mongoHost, Integer.parseInt(mongoPort));
 
         // Instantiate Morphia where to find your classes can be called multiple times with different packages or
         // classes
@@ -111,14 +108,14 @@ public final class MongoDbConnector {
         morphia.mapPackage("org.flexiblepower.model");
 
         // create the Datastore connecting to the default port on the local host
-        this.datastore = morphia.createDatastore(this.client, this.mongoDatabase);
+        this.datastore = morphia.createDatastore(client, mongoDatabase);
         this.datastore.ensureIndexes();
     }
 
     /**
      * @return The singleton instance of the MongoDbConnector
      */
-    public synchronized static MongoDbConnector getInstance() {
+    public static MongoDbConnector getInstance() {
         if (MongoDbConnector.instance == null) {
             MongoDbConnector.instance = new MongoDbConnector();
         }
@@ -163,14 +160,27 @@ public final class MongoDbConnector {
             final String sortDir,
             final String sortField,
             final Map<String, Object> filter) {
-        final String sortSign = ("DESC".equals(sortDir)) ? "-" : "";
-        Query<T> query = this.datastore.createQuery(type);
+        final Query<T> query = this.datastore.createQuery(type);
         query.disableValidation();
-        for (final Entry<String, Object> e : filter.entrySet()) {
-            query.filter(e.getKey(), e.getValue());
+
+        // Filter
+        for (final Entry<String, Object> entry : filter.entrySet()) {
+            final String pattern = entry.getValue().toString();
+            if ((pattern.charAt(0) == '/') && (pattern.charAt(pattern.length() - 1) == '/')) {
+                query.filter(entry.getKey(), Pattern.compile(pattern.substring(1, pattern.length() - 1)));
+            } else {
+                query.filter(entry.getKey(), entry.getValue());
+            }
         }
+
+        // Sort
+        if ((sortField != null) && !sortField.isEmpty()) {
+            final String sortSign = ("DESC".equals(sortDir)) ? "-" : "";
+            query.order(sortSign + sortField);
+        }
+
+        // Paginate
         final FindOptions opts = new FindOptions().skip((page - 1) * perPage).limit(perPage);
-        query = query.order(sortSign + sortField);
         return query.asList(opts);
     }
 
@@ -193,6 +203,17 @@ public final class MongoDbConnector {
      */
     public <T> T get(final Class<T> type, final ObjectId id) {
         return this.datastore.get(type, id);
+    }
+
+    /**
+     * Get a list of objects with thea specific object ids
+     *
+     * @param type The type of object to retrieve
+     * @param ids The ObjectIds to search for
+     * @return A list of the specified objects in the mongo db
+     */
+    public <T> List<T> get(final Class<T> type, final List<ObjectId> ids) {
+        return this.datastore.get(type, ids).asList();
     }
 
     /**
@@ -296,12 +317,28 @@ public final class MongoDbConnector {
     /**
      * This is essentially a "login" action, in which the user obtains from the database his user information.
      *
+     * <i>This function is deprecated in favor of using process based token authentication</i>
+     *
      * @param token The user authentication token
      * @return the user that is stored in the database that has the provided user name and password or null
      */
+    @Deprecated
     public User getUserByToken(final String token) {
         final Query<User> q = this.datastore.find(User.class);
         q.criteria("authenticationToken").equal(token);
+        return q.get();
+    }
+
+    /**
+     * This is essentially a "login" action limited to a particular process, in which the user obtains from the database
+     * his process information.
+     *
+     * @param token The process authentication token
+     * @return the process that is stored in the database with the corresponding token
+     */
+    public Process getProcessByToken(final String token) {
+        final Query<Process> q = this.datastore.find(Process.class);
+        q.criteria("token").equal(token);
         return q.get();
     }
 
@@ -317,17 +354,17 @@ public final class MongoDbConnector {
         return q.get();
     }
 
-    /**
-     * Get a public node by finding its docker id
-     *
-     * @param dockerId the dockerId of the node to look for
-     * @return The PublicNode with the provided id, or null
-     */
-    public PublicNode getPublicNodeByDockerId(final String dockerId) {
-        final Query<PublicNode> q = this.datastore.find(PublicNode.class);
-        q.criteria("dockerId").equal(dockerId);
-        return q.get();
-    }
+    // /**
+    // * Get a public node by finding its docker id
+    // *
+    // * @param dockerId the dockerId of the node to look for
+    // * @return The PublicNode with the provided id, or null
+    // */
+    // public PublicNode getPublicNodeByDockerId(final String dockerId) {
+    // final Query<PublicNode> q = this.datastore.find(PublicNode.class);
+    // q.criteria("dockerId").equal(dockerId);
+    // return q.get();
+    // }
 
     /**
      * Retrieve the next PendingChange. It uses the findAndModify option to make sure that no tasks gets taken from the
@@ -393,13 +430,15 @@ public final class MongoDbConnector {
      */
     public String cleanPendingChanges() {
         // Remove pending changes that failed permanently
-        final Query<PendingChange> failed = this.datastore.createQuery(PendingChange.class).field("state").equal(
-                PendingChange.State.FAILED_PERMANENTLY);
+        final Query<PendingChange> failed = this.datastore.createQuery(PendingChange.class)
+                .field("state")
+                .equal(PendingChange.State.FAILED_PERMANENTLY);
         final int deletedFailed = this.datastore.delete(failed).getN();
 
         // Remove any pending changes that haven't been updated for a long time
-        final Query<PendingChange> lingering = this.datastore.createQuery(PendingChange.class).filter("obtainedAt <",
-                new Date(System.currentTimeMillis() - MongoDbConnector.PENDING_CHANGE_TIMEOUT_MS));
+        final Query<PendingChange> lingering = this.datastore.createQuery(PendingChange.class)
+                .filter("obtainedAt <",
+                        new Date(System.currentTimeMillis() - MongoDbConnector.PENDING_CHANGE_TIMEOUT_MS));
         final UpdateOperations<PendingChange> update = this.datastore.createUpdateOperations(PendingChange.class)
                 .unset("obtainedAt");
         final int deletedLingering = this.datastore.update(lingering, update).getUpdatedCount();

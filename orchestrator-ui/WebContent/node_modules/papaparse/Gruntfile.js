@@ -2,7 +2,9 @@ module.exports = function(grunt) {
 	grunt.initConfig({
 		uglify: {
 			options: {
-				preserveComments: 'some',
+				output: {
+					comments: 'some',
+				},
 			},
 			min: {
 				files: {
@@ -16,4 +18,4 @@ module.exports = function(grunt) {
 
 	grunt.registerTask('build', ['uglify']);
 	grunt.registerTask('default', ['uglify']);
-}
+};

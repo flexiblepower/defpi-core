@@ -1,25 +1,29 @@
-/**
- * File TestHandler.java
- *
- * Copyright 2017 FAN
- *
+/*-
+ * #%L
+ * dEF-Pi service managing library
+ * %%
+ * Copyright (C) 2017 - 2018 Flexible Power Alliance Network
+ * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * #L%
  */
 package org.flexiblepower.service;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.flexiblepower.proto.ServiceProto.ErrorMessage;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
@@ -53,55 +57,68 @@ public class TestHandler implements ConnectionHandler {
 
     static Map<String, TestHandler> handlerMap = new HashMap<>();
 
+    static BlockingQueue<String> messageQueue = new LinkedBlockingQueue<>();
+    static BlockingQueue<String> stateQueue = new LinkedBlockingQueue<>(2);
+
     private final Connection connection;
     private final String name;
     public volatile ErrorMessage lastMessage;
-    public String state;
 
     public TestHandler(final String name, final Connection connection) throws Exception {
         this.name = name;
 
         System.out.println(this.name + ": connected");
-        this.state = "connected";
+        TestHandler.stateQueue.put("connected");
         this.connection = connection;
-        if (this.name.equals("h1")) {
-            connection.send(
-                    ErrorMessage.newBuilder().setDebugInformation("started").setProcessId("Error process").build());
-        }
+        connection.send(ErrorMessage.newBuilder().setDebugInformation("started").setProcessId("Error process").build());
     }
 
     @Override
     public void onSuspend() {
         System.out.println(this.name + ": onSuspend()");
-        this.state = "suspended";
+        try {
+            TestHandler.stateQueue.put("suspended");
+        } catch (final InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void resumeAfterSuspend() {
         System.out.println(this.name + ": resumeAfterSuspend()");
-        this.state = "resume-suspended";
-        if (this.name.equals("h1")) {
-            try {
-                this.connection.send(ErrorMessage.newBuilder()
-                        .setDebugInformation("resumed from suspend")
-                        .setProcessId("Error process")
-                        .build());
-            } catch (final IOException e) {
-                throw new RuntimeException(e);
-            }
+        try {
+            TestHandler.stateQueue.put("resume-suspended");
+        } catch (final InterruptedException e1) {
+            e1.printStackTrace();
+        }
+        try {
+            this.connection.send(ErrorMessage.newBuilder()
+                    .setDebugInformation("resumed from suspend")
+                    .setProcessId("Error process")
+                    .build());
+        } catch (final IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
     @Override
     public void onInterrupt() {
         System.out.println(this.name + ": onInterrupt()");
-        this.state = "interrupted";
+        try {
+            TestHandler.stateQueue.put("interrupted");
+        } catch (final InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void resumeAfterInterrupt() {
         System.out.println(this.name + ": resumeAfterInterrupt()");
-        this.state = "resume-interrupted";
+        try {
+            TestHandler.stateQueue.put("resume-interrupted");
+        } catch (final InterruptedException e1) {
+            e1.printStackTrace();
+        }
         try {
             this.connection.send(ErrorMessage.newBuilder()
                     .setDebugInformation("resumed from interrupt")
@@ -115,12 +132,17 @@ public class TestHandler implements ConnectionHandler {
     @Override
     public void terminated() {
         System.out.println(this.name + ": terminated()");
-        this.state = "terminated";
+        try {
+            TestHandler.stateQueue.put("terminated");
+        } catch (final InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public void handleErrorMessageMessage(final ErrorMessage o) {
         System.out.println(this.name + ": received object with value " + o.getDebugInformation());
         this.lastMessage = o;
+        TestHandler.messageQueue.add(o.getDebugInformation());
     }
 
 }
