@@ -333,8 +333,7 @@
 					<plugin>
 						<groupId>com.spotify</groupId>
 						<artifactId>docker-maven-plugin</artifactId>
-						<!-- Upgrading to 1.2.0 breaks deploying with credentials, see https://github.com/spotify/docker-maven-plugin/issues/309 -->
-						<version>1.1.1</version>
+						<version>1.2.0</version>
 
 						<dependencies>
 							<dependency>
@@ -343,6 +342,11 @@
 								<version>1.1.1</version>
 							</dependency>
 						</dependencies>
+
+						<configuration>
+							<registryUrl>${docker.registry}</registryUrl>
+							<serverId>defpi-registry</serverId>
+						</configuration>
 
 						<executions>
 							<execution>
