@@ -14,7 +14,7 @@
 	</parent>
 
 	<properties>
-		<jersey.version>2.29</jersey.version>
+		<jersey.version>2.29.1</jersey.version>
 
 		<project.resourcedir>${project.basedir}/src/main/resources</project.resourcedir>
 		<mainClass>org.flexiblepower.orchestrator.Main</mainClass>
@@ -106,21 +106,21 @@
 		<dependency>
 			<groupId>javax.xml.bind</groupId>
 			<artifactId>jaxb-api</artifactId>
-			<version>2.3.0-b170201.1204</version>
+			<version>2.3.1</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/javax.activation/activation -->
 		<dependency>
 			<groupId>javax.activation</groupId>
 			<artifactId>activation</artifactId>
-			<version>1.1</version>
+			<version>1.1.1</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.glassfish.jaxb/jaxb-runtime -->
 		<dependency>
 			<groupId>org.glassfish.jaxb</groupId>
 			<artifactId>jaxb-runtime</artifactId>
-			<version>2.3.0-b170127.1453</version>
+			<version>2.3.2</version>
 		</dependency>
 	</dependencies>
 
@@ -167,80 +167,15 @@
 				</configuration>
 			</plugin>
 
-			<!-- The assembly plugin puts all java code in one jar -->
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
-				<configuration>
-					<archive>
-						<manifest>
-							<mainClass>${mainClass}</mainClass>
-						</manifest>
-					</archive>
-					<descriptorRefs>
-						<descriptorRef>jar-with-dependencies</descriptorRef>
-					</descriptorRefs>
-					<includeProjectBuildFilters>true</includeProjectBuildFilters>
-				</configuration>
-				<executions>
-					<execution>
-						<id>make-assembly</id>
-						<phase>package</phase>
-						<goals>
-							<goal>single</goal>
-						</goals>
-					</execution>
-				</executions>
+				<!-- config comes from plugin management from master pom -->
 			</plugin>
 
-			<!-- Spotify's docker plugin builds, tags and pushed docker images -->
 			<plugin>
 				<groupId>com.spotify</groupId>
 				<artifactId>docker-maven-plugin</artifactId>
-				<executions>
-					<execution>
-						<!-- Build x86_64 image -->
-						<id>build-image</id>
-						<phase>package</phase>
-						<goals>
-							<goal>build</goal>
-						</goals>
-						<configuration>
-							<dockerDirectory>${project.build.directory}/docker</dockerDirectory>
-							<resources>
-								<resource>
-									<directory>${project.build.directory}</directory>
-									<include>${project.artifactId}-${project.version}-jar-with-dependencies.jar</include>
-								</resource>
-							</resources>
-							<imageName>${docker.imageName}:latest</imageName>
-							<imageTags>
-								<imageTag>${project.version}</imageTag>
-							</imageTags>
-						</configuration>
-					</execution>
-					<execution>
-						<!-- Push latest image -->
-						<id>push-latest-image</id>
-						<phase>deploy</phase>
-						<goals>
-							<goal>push</goal>
-						</goals>
-						<configuration>
-							<imageName>${docker.imageName}:latest</imageName>
-						</configuration>
-					</execution>
-					<execution>
-						<!-- Push versioned image -->
-						<id>push-versioned-image</id>
-						<phase>deploy</phase>
-						<goals>
-							<goal>push</goal>
-						</goals>
-						<configuration>
-							<imageName>${docker.imageName}:${project.version}</imageName>
-						</configuration>
-					</execution>
-				</executions>
+				<!-- config comes from plugin management from master pom -->
 			</plugin>
 		</plugins>
 	</build>
