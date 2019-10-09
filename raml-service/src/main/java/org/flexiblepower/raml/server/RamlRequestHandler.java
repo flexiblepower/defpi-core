@@ -24,6 +24,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.ws.rs.core.Response;
+
 import org.flexiblepower.proto.RamlProto.RamlRequest;
 import org.flexiblepower.proto.RamlProto.RamlResponse;
 import org.flexiblepower.service.Connection;
@@ -77,13 +79,15 @@ public class RamlRequestHandler {
             return;
         }
 
-        try {
-            final Object o = request.invoke(message);
-
-            if (o != null) {
-                builder.setStatus(200).setBody(ByteString.copyFrom(RamlRequestHandler.mapper.writeValueAsBytes(o)));
-            } else {
-                builder.setStatus(204);
+        try (final Response o = (Response) request.invoke(message)) {
+            if (o.hasEntity()) {
+                builder.setBody(ByteString.copyFrom(RamlRequestHandler.mapper.writeValueAsBytes(o.getEntity())));
+            }
+            builder.setStatus(o.getStatus());
+            for (final String header : o.getHeaders().keySet()) {
+                for (final Object value : o.getHeaders().get(header)) {
+                    builder.putHeaders(header, value.toString());
+                }
             }
 
             RamlRequestHandler.respond(conn, builder.build());
