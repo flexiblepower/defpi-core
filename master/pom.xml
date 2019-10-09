@@ -287,22 +287,95 @@
 					<version>1.16</version>
 				</plugin>
 
-				<plugin>
-					<groupId>com.spotify</groupId>
-					<artifactId>docker-maven-plugin</artifactId>
-					<!-- Upgrading to 1.2.0 breaks deploying with credentials, see https://github.com/spotify/docker-maven-plugin/issues/309 -->
-					<version>1.2.0</version>
-				</plugin>
 
 				<plugin>
 					<groupId>org.codehaus.mojo</groupId>
 					<artifactId>versions-maven-plugin</artifactId>
 					<version>2.7</version>
 				</plugin>
-				
+
+				<!-- The assembly plugin puts all java code in one jar -->
 				<plugin>
 					<artifactId>maven-assembly-plugin</artifactId>
 					<version>3.1.1</version>
+					<configuration>
+						<archive>
+							<manifest>
+								<mainClass>${mainClass}</mainClass>
+							</manifest>
+						</archive>
+						<descriptorRefs>
+							<descriptorRef>jar-with-dependencies</descriptorRef>
+						</descriptorRefs>
+						<includeProjectBuildFilters>true</includeProjectBuildFilters>
+					</configuration>
+					<executions>
+						<execution>
+							<id>make-assembly</id>
+							<phase>package</phase>
+							<goals>
+								<goal>single</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+
+				<!-- Spotify's docker plugin builds, tags and pushed docker images -->
+				<plugin>
+					<groupId>com.spotify</groupId>
+					<artifactId>docker-maven-plugin</artifactId>
+					<version>1.2.0</version>
+
+					<configuration>
+						<registryUrl>${docker.registry}</registryUrl>
+						<serverId>defpi-registry</serverId>
+					</configuration>
+
+					<executions>
+						<execution>
+							<!-- Build x86_64 image -->
+							<id>build-image</id>
+							<phase>package</phase>
+							<goals>
+								<goal>build</goal>
+							</goals>
+							<configuration>
+								<dockerDirectory>${project.build.directory}/docker</dockerDirectory>
+								<resources>
+									<resource>
+										<directory>${project.build.directory}</directory>
+										<include>${project.artifactId}-${project.version}-jar-with-dependencies.jar</include>
+									</resource>
+								</resources>
+								<imageName>${docker.imageName}:latest</imageName>
+								<imageTags>
+									<imageTag>${project.version}</imageTag>
+								</imageTags>
+							</configuration>
+						</execution>
+						<execution>
+							<!-- Push latest image -->
+							<id>push-latest-image</id>
+							<phase>deploy</phase>
+							<goals>
+								<goal>push</goal>
+							</goals>
+							<configuration>
+								<imageName>${docker.imageName}:latest</imageName>
+							</configuration>
+						</execution>
+						<execution>
+							<!-- Push versioned image -->
+							<id>push-versioned-image</id>
+							<phase>deploy</phase>
+							<goals>
+								<goal>push</goal>
+							</goals>
+							<configuration>
+								<imageName>${docker.imageName}:${project.version}</imageName>
+							</configuration>
+						</execution>
+					</executions>
 				</plugin>
 			</plugins>
 		</pluginManagement>
