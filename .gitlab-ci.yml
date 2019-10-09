@@ -92,8 +92,6 @@ java-deploy:
     - master
     - defpici
   image: $JDK_8_IMAGE
-  before_script:  
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
   script:
     - mvn $MAVEN_CLI_OPTS -f master/pom.xml deploy -Ddocker.registry=$CI_REGISTRY
   cache:
