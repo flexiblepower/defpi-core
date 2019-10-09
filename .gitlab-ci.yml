@@ -117,7 +117,7 @@ ui-deploy:
 deploy-compose:
   stage: deploy
   tags:
-    - hesilab
+    - defpi
   only:
     - master
   image: tmaier/docker-compose:18.09
