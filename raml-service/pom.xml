@@ -31,16 +31,22 @@
 			<artifactId>jackson-jaxrs-json-provider</artifactId>
 			<version>${jackson.databind.version}</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>com.fasterxml.jackson.datatype</groupId>
 			<artifactId>jackson-datatype-jsr310</artifactId>
 			<version>${jackson.databind.version}</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.glassfish.jersey.core</groupId>
 			<artifactId>jersey-common</artifactId>
+			<version>2.29.1</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.glassfish.jersey.core</groupId>
+			<artifactId>jersey-client</artifactId>
 			<version>2.29.1</version>
 		</dependency>
 	</dependencies>
@@ -83,6 +89,32 @@
 								<sourceFileExclude>${project.basedir}/src/main/generated</sourceFileExclude>
 							</sourceFileExcludes>
 						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.raml.jaxrs</groupId>
+				<artifactId>raml-to-jaxrs-maven-plugin</artifactId>
+				<version>3.0.5</version>
+				<configuration>
+					<ramlFile>${project.basedir}/src/test/resources/humans.raml</ramlFile>
+					<outputDirectory>${project.basedir}/src/test/java</outputDirectory>
+
+					<resourcePackage>org.flexiblepower.raml.example</resourcePackage>
+					<modelPackage>org.flexiblepower.raml.example.model</modelPackage>
+					<supportPackage>org.flexiblepower.raml.example.support</supportPackage>
+					<jsonMapper>jackson2</jsonMapper>
+					<generateTypesWith>
+						<value>jackson2</value>
+					</generateTypesWith>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<phase>generate-sources</phase>
 					</execution>
 				</executions>
 			</plugin>

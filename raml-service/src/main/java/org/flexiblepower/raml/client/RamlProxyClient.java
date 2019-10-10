@@ -24,15 +24,18 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HEAD;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.OPTIONS;
 import javax.ws.rs.PATCH;
 import javax.ws.rs.POST;
@@ -49,6 +52,7 @@ import org.flexiblepower.service.ConnectionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
@@ -122,7 +126,7 @@ public class RamlProxyClient {
                     pathParams.put(param.value(), args[i]);
                 } else if (params[i].isAnnotationPresent(QueryParam.class)) {
                     final QueryParam param = params[i].getAnnotation(QueryParam.class);
-                    queryParams.add(param.value() + "=" + args[i].toString());
+                    queryParams.add(param.value() + "=" + (args[i] == null ? "" : args[i].toString()));
                 } else if (body == null) {
                     body = args[i];
                 } else {
@@ -167,7 +171,7 @@ public class RamlProxyClient {
 
             if ((response.getStatus() > 300) && (response.getStatus() < 500)) {
                 RamlProxyHandler.log.error("RAML client error {}: {}", response.getStatus(), responseString);
-                throw new RuntimeException("Error invoking " + method.getName() + ": " + responseString);
+                throw new NotFoundException("Unable to find " + method.getName() + ": " + responseString);
             } else if (response.getStatus() >= 500) {
                 final int pos = responseString.indexOf("::");
                 @SuppressWarnings("unchecked")
@@ -180,7 +184,23 @@ public class RamlProxyClient {
                 // new RuntimeException("Error invoking " + method.getName() + ": " + responseString);
             }
 
-            return RamlProxyHandler.om.readValue(response.getBody().toStringUtf8(), method.getReturnType());
+            final JsonNode node = RamlProxyHandler.om.readTree(responseString);
+            final JsonNode typeNode = node.get("type");
+
+            Object entity = null;
+            if ((typeNode != null) && typeNode.has("rawType")
+                    && "java.util.List".equals(typeNode.get("rawType").asText())) {
+                final List<Object> list = new ArrayList<>();
+                final String arg = typeNode.get("actualTypeArguments").get(0).textValue();
+                final JsonNode entityNode = node.get("entity");
+                for (final JsonNode child : entityNode) {
+                    final String str = child.toString();
+                    list.add(RamlProxyHandler.om.readValue(str, Class.forName(arg)));
+                }
+                entity = list;
+            }
+
+            return new RamlClientResponseDelegate(entity, response);
         }
 
         private static final RamlRequest.Method getRamlMethod(final Method m) {

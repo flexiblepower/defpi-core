@@ -19,11 +19,21 @@
  */
 package org.flexiblepower.raml.server;
 
-import java.util.Map;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.GregorianCalendar;
 
 import org.flexiblepower.proto.RamlProto.RamlRequest;
 import org.flexiblepower.proto.RamlProto.RamlResponse;
-import org.flexiblepower.raml.Example;
+import org.flexiblepower.raml.example.Humans;
+import org.flexiblepower.raml.example.model.Arm;
+import org.flexiblepower.raml.example.model.ArmImpl;
+import org.flexiblepower.raml.example.model.Gender;
+import org.flexiblepower.raml.example.model.Human;
+import org.flexiblepower.raml.example.model.Leg;
+import org.flexiblepower.raml.example.model.LegImpl;
+import org.flexiblepower.raml.example.model.Person;
+import org.flexiblepower.raml.example.model.PersonImpl;
 import org.flexiblepower.serializers.ProtobufMessageSerializer;
 import org.flexiblepower.service.Connection;
 import org.flexiblepower.service.ConnectionHandler;
@@ -53,31 +63,56 @@ public class TestServerConnectionHandler implements ConnectionHandler {
         // Do whatever
     }
 
-    public Example getExample() {
-        return new Example() {
+    public Humans getHumans() {
+        return new Humans() {
 
             @Override
-            public String getExampleText() {
-                return this.getPersonalText("world");
+            public GetHumansResponse getHumans(final String type) {
+                return GetHumansResponse.respond200WithApplicationJson(
+                        Collections.singletonList(this.getCustomPerson(type)),
+                        GetHumansResponse.headersFor200());
             }
 
             @Override
-            public String getPersonalText(final String name) {
-                return "Hello " + name + "!";
+            public GetHumansAllResponse getHumansAll() {
+                return GetHumansAllResponse
+                        .respond200WithApplicationJson(Collections.singletonList(this.getExampleHuman()));
             }
 
             @Override
-            public String getPersonalText(final int reps) {
-                String ret = "";
-                for (int i = 0; i < reps; i++) {
-                    ret += this.getExampleText() + "\n";
-                }
-                return ret;
+            public GetHumansByIdResponse getHumansById(final String id, final String userType) {
+                return GetHumansByIdResponse.respond200WithApplicationJson(this.getExampleHuman());
             }
 
             @Override
-            public float setStuff(final int id, final String q, final double test, final Map<String, String> body) {
-                return (float) (id + Double.parseDouble(body.get(q)) + Math.sqrt(test));
+            public PutHumansByIdResponse putHumansById(final String id, final Human entity) {
+                return PutHumansByIdResponse.respond200(PutHumansByIdResponse.headersFor200());
+            }
+
+            @Override
+            public GetHumansPersonByIdResponse getHumansPersonById(final String id, final String type) {
+                return GetHumansPersonByIdResponse.respond200WithApplicationJson(this.getExampleHuman());
+            }
+
+            private Person getCustomPerson(final String name) {
+                final Person piet = new PersonImpl();
+                piet.setName(name);
+                piet.setWeight(80);
+                final GregorianCalendar dob = new GregorianCalendar(1985, 4, 17);
+                piet.setDateOfBirth(dob.getTime());
+                piet.setActualGender(Gender.MALE);
+
+                final Leg leg = new LegImpl();
+                leg.setToes(5);
+                final Arm arm = new ArmImpl();
+                arm.setFingers(5);
+
+                piet.setLimbs(Arrays.asList(leg, leg, arm, arm));
+                return piet;
+            }
+
+            private Person getExampleHuman() {
+                return this.getCustomPerson("Piet");
             }
 
         };

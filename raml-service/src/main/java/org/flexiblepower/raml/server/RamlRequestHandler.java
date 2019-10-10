@@ -81,6 +81,7 @@ public class RamlRequestHandler {
 
         try (final Response o = (Response) request.invoke(message)) {
             if (o.hasEntity()) {
+                // final String out = RamlRequestHandler.mapper.writeValueAsString(o.getEntity());
                 builder.setBody(ByteString.copyFrom(RamlRequestHandler.mapper.writeValueAsBytes(o.getEntity())));
             }
             builder.setStatus(o.getStatus());
@@ -111,6 +112,14 @@ public class RamlRequestHandler {
                             .build());
         } catch (final JsonProcessingException e) {
             RamlRequestHandler.log.warn("Unable to create response: {}", e.getMessage());
+            RamlRequestHandler.log.trace(e.getMessage(), e);
+            RamlRequestHandler.respond(conn,
+                    builder.setStatus(500)
+                            .setBody(ByteString
+                                    .copyFromUtf8(e.getClass().getName() + "::" + RamlRequestHandler.writeException(e)))
+                            .build());
+        } catch (final Throwable e) {
+            RamlRequestHandler.log.warn("Unexpected exception: {}", e.getMessage());
             RamlRequestHandler.log.trace(e.getMessage(), e);
             RamlRequestHandler.respond(conn,
                     builder.setStatus(500)

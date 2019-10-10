@@ -19,15 +19,21 @@
  */
 package org.flexiblepower.raml;
 
-import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import javax.ws.rs.core.GenericType;
 
 import org.flexiblepower.proto.RamlProto.RamlRequest;
 import org.flexiblepower.proto.RamlProto.RamlResponse;
 import org.flexiblepower.raml.client.RamlProxyClient;
 import org.flexiblepower.raml.client.TestClientConnectionHandler;
 import org.flexiblepower.raml.client.TestConnection;
+import org.flexiblepower.raml.example.Humans;
+import org.flexiblepower.raml.example.Humans.GetHumansAllResponse;
+import org.flexiblepower.raml.example.Humans.GetHumansByIdResponse;
+import org.flexiblepower.raml.example.model.Human;
 import org.flexiblepower.raml.server.TestServerConnectionHandler;
 import org.flexiblepower.service.TestConnectionManager;
 import org.junit.jupiter.api.AfterAll;
@@ -40,6 +46,7 @@ import org.junit.jupiter.api.Test;
  * @version 0.1
  * @since Aug 27, 2019
  */
+// @Timeout(value = 10, unit = TimeUnit.SECONDS)
 @SuppressWarnings({"javadoc", "static-method"})
 public class RamlIntegrationTest {
 
@@ -50,36 +57,45 @@ public class RamlIntegrationTest {
 
     @Test
     public void runSimpleTest() {
-        Assertions.assertEquals("Hello world!", RamlIntegrationTest.client.getExample().getExampleText());
+        final GetHumansAllResponse r = RamlIntegrationTest.client.getExample().getHumansAll();
+        final List<Human> list = r.readEntity(new GenericType<List<Human>>() {
+            // This is okay
+        });
+        Assertions.assertEquals(1, list.size());
+        Assertions.assertEquals("Person", list.get(0).getHumanType());
+        Assertions.assertNotNull(list.get(0).getDateOfBirth());
     }
 
     @Test
     public void runQueryTest() {
-        Assertions.assertEquals("Hello Wrapper!", RamlIntegrationTest.client.getExample().getPersonalText("Wrapper"));
+        final GetHumansByIdResponse r = RamlIntegrationTest.client.getExample().getHumansById("piet", null);
+        final Human somebody = r.readEntity(Human.class);
+        Assertions.assertEquals("Person", somebody.getHumanType());
+        Assertions.assertNotNull(somebody.getDateOfBirth());
     }
-
-    @Test
-    public void runPathTest() {
-        Assertions.assertEquals("Hello world!\nHello world!\n",
-                RamlIntegrationTest.client.getExample().getPersonalText(2));
-    }
-
-    @Test
-    public void runComplexTest() {
-        Assertions.assertEquals(187f,
-                RamlIntegrationTest.client.getExample()
-                        .setStuff(100, "waarde", 25.0, Collections.singletonMap("waarde", "82")));
-    }
-
-    @Test
-    public void runErrorTest() throws Exception {
-        Assertions.assertThrows(NullPointerException.class,
-                () -> RamlIntegrationTest.client.getExample()
-                        .setStuff(100, "waarde", 25.0, Collections.singletonMap("waarde", null)));
-        Assertions.assertThrows(NumberFormatException.class,
-                () -> RamlIntegrationTest.client.getExample()
-                        .setStuff(100, "waarde", 25.0, Collections.singletonMap("waarde", "zeven")));
-    }
+    //
+    // @Test
+    // public void runPathTest() {
+    // Assertions.assertEquals("Hello world!\nHello world!\n",
+    // RamlIntegrationTest.client.getExample().getPersonalText(2));
+    // }
+    //
+    // @Test
+    // public void runComplexTest() {
+    // Assertions.assertEquals(187f,
+    // RamlIntegrationTest.client.getExample()
+    // .setStuff(100, "waarde", 25.0, Collections.singletonMap("waarde", "82")));
+    // }
+    //
+    // @Test
+    // public void runErrorTest() throws Exception {
+    // Assertions.assertThrows(NullPointerException.class,
+    // () -> RamlIntegrationTest.client.getExample()
+    // .setStuff(100, "waarde", 25.0, Collections.singletonMap("waarde", null)));
+    // Assertions.assertThrows(NumberFormatException.class,
+    // () -> RamlIntegrationTest.client.getExample()
+    // .setStuff(100, "waarde", 25.0, Collections.singletonMap("waarde", "zeven")));
+    // }
 
     @AfterAll
     public static void stop() {
@@ -92,11 +108,11 @@ public class RamlIntegrationTest {
 
         final TestClientConnectionHandler handler = TestConnectionManager
                 .getClientHandler(RamlIntegrationTest.testConnection);
-        final Example example = RamlProxyClient.generateClient(Example.class, this.handler);
+        final Humans example = RamlProxyClient.generateClient(Humans.class, this.handler);
 
         public volatile boolean running = true;
 
-        public Example getExample() {
+        public Humans getExample() {
             return this.example;
         }
 
