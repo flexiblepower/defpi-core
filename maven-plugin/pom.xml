@@ -18,6 +18,17 @@
 		<maven>3.0.5</maven>
 	</prerequisites>
 
+	<repositories>
+		<repository>
+			<id>hesi-snapshot</id>
+			<name>HESI snapshot artifactory</name>
+			<url>http://ci.hesi.energy:8081/artifactory/libs-snapshot-local</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.apache.maven</groupId>
@@ -57,11 +68,11 @@
 			<artifactId>jaxb-fluent-api</artifactId>
 			<version>2.1.8</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.raml.jaxrs</groupId>
 			<artifactId>jaxrs-code-generator</artifactId>
-			<version>3.0.5</version>
+			<version>3.0.6-SNAPSHOT</version>
 			<exclusions>
 				<exclusion>
 					<groupId>junit</groupId>

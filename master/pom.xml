@@ -405,7 +405,7 @@
 					<failOnNotUptodateHeader>true</failOnNotUptodateHeader>
 					<roots>
 						<root>${project.basedir}/src/main/java</root>
-						<root>${project.basedir}/src/test/java</root>
+						<!-- root>${project.basedir}/src/test/java</root -->
 					</roots>
 				</configuration>
 				<executions>

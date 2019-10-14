@@ -66,6 +66,8 @@ public class JavaRamlCompiler implements InterfaceCompiler {
         config.setJsonMapperConfiguration(Collections.emptyMap());
         config.setTypeConfiguration(new String[0]);
 
+        config.setGenerateResponseClasses(false);
+
         final DefpiRamlScanner scanner = new DefpiRamlScanner(config);
         scanner.handle(sourceFile.toFile());
         this.resources = scanner.getResourceNames();
