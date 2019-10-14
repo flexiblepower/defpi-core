@@ -5,7 +5,7 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>master</artifactId>
-	<version>19.10-SNAPSHOT</version>
+	<version>19.10.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<name>dEF-Pi master POM</name>
@@ -64,12 +64,13 @@
 
 		<!-- The plugin needs the protobuf version to obtain the compiler from 
 			maven central explicitly -->
-		<protobuf.version>3.9.0</protobuf.version>
-		<jackson.databind.version>2.10.0.pr1</jackson.databind.version>
-		<mongodb.version>3.11.0-rc0</mongodb.version>
-		<log4j.version>2.12.0</log4j.version>
-		<swagger.version>1.5.21</swagger.version>
-		<junit.version>5.5.1</junit.version>
+		<protobuf.version>3.10.0</protobuf.version>
+		<jackson.databind.version>2.10.0</jackson.databind.version>
+		<json.version>20190722</json.version>
+		<mongodb.version>3.11.0</mongodb.version>
+		<log4j.version>2.12.1</log4j.version>
+		<swagger.version>1.5.23</swagger.version>
+		<junit.version>5.5.2</junit.version>
 	</properties>
 
 	<prerequisites>
@@ -115,7 +116,7 @@
 			<dependency>
 				<groupId>org.projectlombok</groupId>
 				<artifactId>lombok</artifactId>
-				<version>1.18.8</version>
+				<version>1.18.10</version>
 				<scope>provided</scope>
 			</dependency>
 
@@ -146,7 +147,7 @@
 			<dependency>
 				<groupId>org.json</groupId>
 				<artifactId>json</artifactId>
-				<version>20180813</version>
+				<version>20190722</version>
 			</dependency>
 
 			<dependency>
@@ -286,22 +287,95 @@
 					<version>1.16</version>
 				</plugin>
 
-				<plugin>
-					<groupId>com.spotify</groupId>
-					<artifactId>docker-maven-plugin</artifactId>
-					<!-- Upgrading to 1.2.0 breaks deploying with credentials, see https://github.com/spotify/docker-maven-plugin/issues/309 -->
-					<version>1.1.1</version>
-				</plugin>
 
 				<plugin>
 					<groupId>org.codehaus.mojo</groupId>
 					<artifactId>versions-maven-plugin</artifactId>
 					<version>2.7</version>
 				</plugin>
-				
+
+				<!-- The assembly plugin puts all java code in one jar -->
 				<plugin>
 					<artifactId>maven-assembly-plugin</artifactId>
 					<version>3.1.1</version>
+					<configuration>
+						<archive>
+							<manifest>
+								<mainClass>${mainClass}</mainClass>
+							</manifest>
+						</archive>
+						<descriptorRefs>
+							<descriptorRef>jar-with-dependencies</descriptorRef>
+						</descriptorRefs>
+						<includeProjectBuildFilters>true</includeProjectBuildFilters>
+					</configuration>
+					<executions>
+						<execution>
+							<id>make-assembly</id>
+							<phase>package</phase>
+							<goals>
+								<goal>single</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+
+				<!-- Spotify's docker plugin builds, tags and pushed docker images -->
+				<plugin>
+					<groupId>com.spotify</groupId>
+					<artifactId>docker-maven-plugin</artifactId>
+					<version>1.2.0</version>
+
+					<configuration>
+						<registryUrl>${docker.registry}</registryUrl>
+						<serverId>defpi-registry</serverId>
+					</configuration>
+
+					<executions>
+						<execution>
+							<!-- Build x86_64 image -->
+							<id>build-image</id>
+							<phase>package</phase>
+							<goals>
+								<goal>build</goal>
+							</goals>
+							<configuration>
+								<dockerDirectory>${project.build.directory}/docker</dockerDirectory>
+								<resources>
+									<resource>
+										<directory>${project.build.directory}</directory>
+										<include>${project.artifactId}-${project.version}-jar-with-dependencies.jar</include>
+									</resource>
+								</resources>
+								<imageName>${docker.imageName}:latest</imageName>
+								<imageTags>
+									<imageTag>${project.version}</imageTag>
+								</imageTags>
+							</configuration>
+						</execution>
+						<execution>
+							<!-- Push latest image -->
+							<id>push-latest-image</id>
+							<phase>deploy</phase>
+							<goals>
+								<goal>push</goal>
+							</goals>
+							<configuration>
+								<imageName>${docker.imageName}:latest</imageName>
+							</configuration>
+						</execution>
+						<execution>
+							<!-- Push versioned image -->
+							<id>push-versioned-image</id>
+							<phase>deploy</phase>
+							<goals>
+								<goal>push</goal>
+							</goals>
+							<configuration>
+								<imageName>${docker.imageName}:${project.version}</imageName>
+							</configuration>
+						</execution>
+					</executions>
 				</plugin>
 			</plugins>
 		</pluginManagement>

@@ -24,7 +24,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+
 import org.flexiblepower.proto.RamlProto.RamlRequest;
+import org.flexiblepower.proto.RamlProto.RamlRequest.Method;
 import org.flexiblepower.proto.RamlProto.RamlResponse;
 import org.flexiblepower.service.Connection;
 import org.flexiblepower.service.ConnectionHandler;
@@ -59,16 +63,23 @@ public class RamlRequestHandler {
             RamlRequestHandler.RESOURCES.put(handler, new RamlResourceRegistry(handler));
         }
 
+        // Get the connection to send the request in
         final Connection conn = ConnectionManager.getMyConnection(handler);
         if (conn == null) {
             RamlRequestHandler.log.error("Unable to handle request without return connection");
             return;
         }
 
+        // Start building the response already
         final RamlResponse.Builder builder = RamlResponse.newBuilder().setId(message.getId());
+        builder.putHeaders(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
+        builder.putHeaders("Server", RamlRequestHandler.class.getSimpleName());
 
+        // Find the request handler for this resource
         final RamlResourceRequest request = RamlRequestHandler.RESOURCES.get(handler).getResourceForMessage(message);
         if (request == null) {
+            // TODO set 405 if the location is correct but not the method
+            // TODO set 415 if the location and method are correct but the content-type is not correct
             RamlRequestHandler.log.warn("Unable to locate resource for {}", message.getUri());
             RamlRequestHandler.respond(conn,
                     builder.setStatus(404)
@@ -77,15 +88,22 @@ public class RamlRequestHandler {
             return;
         }
 
+        // Now we actually call our local code
         try {
             final Object o = request.invoke(message);
-
+            // And build the returning response
+            int status = 204;
             if (o != null) {
-                builder.setStatus(200).setBody(ByteString.copyFrom(RamlRequestHandler.mapper.writeValueAsBytes(o)));
-            } else {
-                builder.setStatus(204);
+                builder.setBody(ByteString.copyFrom(RamlRequestHandler.mapper.writeValueAsBytes(o)));
+                status = 200;
             }
 
+            if (((status == 204) && Method.PUT.equals(message.getMethod()))
+                    || Method.POST.equals(message.getMethod())) {
+                status = 201;
+            }
+
+            builder.setStatus(status);
             RamlRequestHandler.respond(conn, builder.build());
 
         } catch (final InvocationTargetException e) {
@@ -107,6 +125,14 @@ public class RamlRequestHandler {
                             .build());
         } catch (final JsonProcessingException e) {
             RamlRequestHandler.log.warn("Unable to create response: {}", e.getMessage());
+            RamlRequestHandler.log.trace(e.getMessage(), e);
+            RamlRequestHandler.respond(conn,
+                    builder.setStatus(500)
+                            .setBody(ByteString
+                                    .copyFromUtf8(e.getClass().getName() + "::" + RamlRequestHandler.writeException(e)))
+                            .build());
+        } catch (final Throwable e) {
+            RamlRequestHandler.log.warn("Unexpected exception: {}", e.getMessage());
             RamlRequestHandler.log.trace(e.getMessage(), e);
             RamlRequestHandler.respond(conn,
                     builder.setStatus(500)

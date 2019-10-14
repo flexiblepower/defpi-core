@@ -135,7 +135,7 @@ public class TestRamlRegistry {
         final RamlResponse response = (RamlResponse) TestRamlRegistry.connection.peek(); //
 
         System.out.println(response.getBody().toStringUtf8());
-        Assertions.assertEquals(200, response.getStatus());
+        Assertions.assertEquals(201, response.getStatus());
 
         Assertions.assertEquals(187f, TestRamlRegistry.mapper.readValue(response.getBody().toByteArray(), Float.class));
     }

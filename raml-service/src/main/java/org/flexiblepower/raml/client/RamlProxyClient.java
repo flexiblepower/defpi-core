@@ -25,6 +25,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -33,6 +34,7 @@ import java.util.Set;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HEAD;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.OPTIONS;
 import javax.ws.rs.PATCH;
 import javax.ws.rs.POST;
@@ -49,6 +51,8 @@ import org.flexiblepower.service.ConnectionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
@@ -58,6 +62,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * @since Aug 22, 2019
  */
 public class RamlProxyClient {
+
+    static final Map<String, TypeReference<?>> typeReferences = new HashMap<>();
+    static ObjectMapper om = new ObjectMapper();
 
     /**
      * Generate a resource object that implements a specific class by wrapping a RamlMessage sending connection. This
@@ -75,6 +82,14 @@ public class RamlProxyClient {
     }
 
     /**
+     * @param uri The URI of the RAML location to use this typeReference
+     * @param typeReference The type reference to deserialize responses with
+     */
+    public static void registerTypeReference(final String uri, final TypeReference<?> typeReference) {
+        RamlProxyClient.typeReferences.put(uri, typeReference);
+    }
+
+    /**
      * RamlProxyHandler
      *
      * @version 0.1
@@ -85,7 +100,6 @@ public class RamlProxyClient {
         private static final Logger log = LoggerFactory.getLogger(RamlResponseHandler.class);
 
         private static int messageCounter = 0;
-        private static ObjectMapper om = new ObjectMapper();
         private final ConnectionHandler handler;
         private final String typePath;
 
@@ -111,10 +125,12 @@ public class RamlProxyClient {
                 throw new IllegalStateException("Unable to send a message when there is no connection");
             }
 
+            // Prepare all the arguments that go in the request
             final Map<String, Object> pathParams = new HashMap<>();
             final Set<String> queryParams = new HashSet<>();
             Object body = null;
 
+            // Loop over the parameters of the method
             final Parameter[] params = method.getParameters();
             for (int i = 0; i < params.length; i++) {
                 if (params[i].isAnnotationPresent(PathParam.class)) {
@@ -122,7 +138,7 @@ public class RamlProxyClient {
                     pathParams.put(param.value(), args[i]);
                 } else if (params[i].isAnnotationPresent(QueryParam.class)) {
                     final QueryParam param = params[i].getAnnotation(QueryParam.class);
-                    queryParams.add(param.value() + "=" + args[i].toString());
+                    queryParams.add(param.value() + "=" + (args[i] == null ? "" : args[i].toString()));
                 } else if (body == null) {
                     body = args[i];
                 } else {
@@ -145,6 +161,9 @@ public class RamlProxyClient {
                 methodPath = "";
             }
 
+            // Get the typereference (if available) for parsing later
+            final TypeReference<?> tRef = RamlProxyClient.typeReferences.get(this.typePath + methodPath);
+
             // Append any query parameters
             if (!queryParams.isEmpty()) {
                 methodPath = methodPath + "?" + String.join("&", queryParams);
@@ -156,9 +175,10 @@ public class RamlProxyClient {
                     .setUri(this.typePath + methodPath)
                     .setMethod(ramlMethod);
             if (body != null) {
-                builder.setBody(RamlProxyHandler.om.writeValueAsString(body));
+                builder.setBody(RamlProxyClient.om.writeValueAsString(body));
             }
 
+            // Send the actual message and wait for a reponse
             final RamlRequest message = builder.build();
             conn.send(message);
             final RamlResponse response = RamlResponseHandler.getResponse(message.getId());
@@ -167,7 +187,7 @@ public class RamlProxyClient {
 
             if ((response.getStatus() > 300) && (response.getStatus() < 500)) {
                 RamlProxyHandler.log.error("RAML client error {}: {}", response.getStatus(), responseString);
-                throw new RuntimeException("Error invoking " + method.getName() + ": " + responseString);
+                throw new NotFoundException("Unable to find " + method.getName() + ": " + responseString);
             } else if (response.getStatus() >= 500) {
                 final int pos = responseString.indexOf("::");
                 @SuppressWarnings("unchecked")
@@ -175,12 +195,18 @@ public class RamlProxyClient {
                         .forName(responseString.substring(0, pos));
 
                 RamlProxyHandler.log.error("RAML server error {}: {}", response.getStatus(), responseString);
-                final Throwable e = RamlProxyHandler.om.readValue(responseString.substring(pos + 2), clazz);
+                final Throwable e = RamlProxyClient.om.readValue(responseString.substring(pos + 2), clazz);
                 throw e;
-                // new RuntimeException("Error invoking " + method.getName() + ": " + responseString);
             }
 
-            return RamlProxyHandler.om.readValue(response.getBody().toStringUtf8(), method.getReturnType());
+            // TODO add generic return types such as List, Set, Map, Array
+            final Class<?> returnClass = method.getReturnType();
+            if ((tRef != null)
+                    && (Map.class.isAssignableFrom(returnClass) || Collection.class.isAssignableFrom(returnClass))) {
+                return RamlProxyClient.om.readValue(response.getBody().toByteArray(), tRef);
+            } else {
+                return RamlProxyClient.om.readValue(response.getBody().toByteArray(), method.getReturnType());
+            }
         }
 
         private static final RamlRequest.Method getRamlMethod(final Method m) {
@@ -201,6 +227,17 @@ public class RamlProxyClient {
             return newUri;
         }
 
+    }
+
+    /**
+     * @param entity The generic entity to read
+     * @param typeReference The Type Reference to use to parse the entity
+     * @return The object parsed using the proper TypeReference
+     * @throws JsonProcessingException When the mapper is unable to serialize or deserialize the entity
+     */
+    public static <T extends Collection<?>> T readGenericEntity(final T entity, final TypeReference<T> typeReference)
+            throws JsonProcessingException {
+        return RamlProxyClient.om.readValue(RamlProxyClient.om.writeValueAsString(entity), typeReference);
     }
 
 }
