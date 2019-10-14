@@ -25,6 +25,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -50,6 +51,8 @@ import org.flexiblepower.service.ConnectionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
@@ -59,6 +62,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * @since Aug 22, 2019
  */
 public class RamlProxyClient {
+
+    static final Map<String, TypeReference<?>> typeReferences = new HashMap<>();
+    static ObjectMapper om = new ObjectMapper();
 
     /**
      * Generate a resource object that implements a specific class by wrapping a RamlMessage sending connection. This
@@ -76,6 +82,14 @@ public class RamlProxyClient {
     }
 
     /**
+     * @param uri The URI of the RAML location to use this typeReference
+     * @param typeReference The type reference to deserialize responses with
+     */
+    public static void registerTypeReference(final String uri, final TypeReference<?> typeReference) {
+        RamlProxyClient.typeReferences.put(uri, typeReference);
+    }
+
+    /**
      * RamlProxyHandler
      *
      * @version 0.1
@@ -86,8 +100,6 @@ public class RamlProxyClient {
         private static final Logger log = LoggerFactory.getLogger(RamlResponseHandler.class);
 
         private static int messageCounter = 0;
-        private static ObjectMapper om = new ObjectMapper();
-
         private final ConnectionHandler handler;
         private final String typePath;
 
@@ -149,6 +161,9 @@ public class RamlProxyClient {
                 methodPath = "";
             }
 
+            // Get the typereference (if available) for parsing later
+            final TypeReference<?> tRef = RamlProxyClient.typeReferences.get(this.typePath + methodPath);
+
             // Append any query parameters
             if (!queryParams.isEmpty()) {
                 methodPath = methodPath + "?" + String.join("&", queryParams);
@@ -160,7 +175,7 @@ public class RamlProxyClient {
                     .setUri(this.typePath + methodPath)
                     .setMethod(ramlMethod);
             if (body != null) {
-                builder.setBody(RamlProxyHandler.om.writeValueAsString(body));
+                builder.setBody(RamlProxyClient.om.writeValueAsString(body));
             }
 
             // Send the actual message and wait for a reponse
@@ -180,13 +195,18 @@ public class RamlProxyClient {
                         .forName(responseString.substring(0, pos));
 
                 RamlProxyHandler.log.error("RAML server error {}: {}", response.getStatus(), responseString);
-                final Throwable e = RamlProxyHandler.om.readValue(responseString.substring(pos + 2), clazz);
+                final Throwable e = RamlProxyClient.om.readValue(responseString.substring(pos + 2), clazz);
                 throw e;
-                // new RuntimeException("Error invoking " + method.getName() + ": " + responseString);
             }
 
             // TODO add generic return types such as List, Set, Map, Array
-            return RamlProxyHandler.om.readValue(response.getBody().toByteArray(), method.getReturnType());
+            final Class<?> returnClass = method.getReturnType();
+            if ((tRef != null)
+                    && (Map.class.isAssignableFrom(returnClass) || Collection.class.isAssignableFrom(returnClass))) {
+                return RamlProxyClient.om.readValue(response.getBody().toByteArray(), tRef);
+            } else {
+                return RamlProxyClient.om.readValue(response.getBody().toByteArray(), method.getReturnType());
+            }
         }
 
         private static final RamlRequest.Method getRamlMethod(final Method m) {
@@ -207,6 +227,17 @@ public class RamlProxyClient {
             return newUri;
         }
 
+    }
+
+    /**
+     * @param entity The generic entity to read
+     * @param typeReference The Type Reference to use to parse the entity
+     * @return The object parsed using the proper TypeReference
+     * @throws JsonProcessingException When the mapper is unable to serialize or deserialize the entity
+     */
+    public static <T extends Collection<?>> T readGenericEntity(final T entity, final TypeReference<T> typeReference)
+            throws JsonProcessingException {
+        return RamlProxyClient.om.readValue(RamlProxyClient.om.writeValueAsString(entity), typeReference);
     }
 
 }
