@@ -62,24 +62,57 @@ public class RamlIntegrationTest {
 
     @Test
     public void runSimpleTest() {
+        Assertions.assertEquals("Hello world!", RamlIntegrationTest.client.getExample().getExampleText());
+    }
+
+    @Test
+    public void runQueryTest() {
+        Assertions.assertEquals("Hello Wrapper!", RamlIntegrationTest.client.getExample().getPersonalText("Wrapper"));
+    }
+
+    @Test
+    public void runPathTest() {
+        Assertions.assertEquals("Hello world!\nHello world!\n",
+                RamlIntegrationTest.client.getExample().getPersonalText(2));
+    }
+
+    @Test
+    public void runComplexTest() {
+        Assertions.assertEquals(187f,
+                RamlIntegrationTest.client.getExample()
+                        .setStuff(100, "waarde", 25.0, Collections.singletonMap("waarde", "82")));
+    }
+
+    @Test
+    public void runErrorTest() throws Exception {
+        Assertions.assertThrows(NullPointerException.class,
+                () -> RamlIntegrationTest.client.getExample()
+                        .setStuff(100, "waarde", 25.0, Collections.singletonMap("waarde", null)));
+        Assertions.assertThrows(NumberFormatException.class,
+                () -> RamlIntegrationTest.client.getExample()
+                        .setStuff(100, "waarde", 25.0, Collections.singletonMap("waarde", "zeven")));
+    }
+
+    @Test
+    public void runSimpleGeneratedTest() {
         RamlProxyClient.registerTypeReference("/humans/all", RamlIntegrationTest.listOfHumans);
         System.out.println(Collections.singletonMap("generateBuilders", true));
-        final List<Human> list = RamlIntegrationTest.client.getExample().getHumansAll();
+        final List<Human> list = RamlIntegrationTest.client.getHumans().getHumansAll();
         Assertions.assertEquals(1, list.size());
         Assertions.assertEquals("person", list.get(0).getHumanType());
         Assertions.assertNotNull(list.get(0).getDateOfBirth());
     }
 
     @Test
-    public void runQueryTest() {
-        final Human somebody = RamlIntegrationTest.client.getExample().getHumansById("piet", null);
+    public void runQueryGeneratedTest() {
+        final Human somebody = RamlIntegrationTest.client.getHumans().getHumansById("piet", null);
         Assertions.assertEquals("person", somebody.getHumanType());
         Assertions.assertNotNull(somebody.getDateOfBirth());
     }
 
     @Test
-    public void runPathTest() throws JsonProcessingException {
-        final List<Human> list = RamlIntegrationTest.client.getExample().getHumans("henk");
+    public void runPathGeneratedTest() throws JsonProcessingException {
+        final List<Human> list = RamlIntegrationTest.client.getHumans().getHumans("henk");
         final List<Human> humans = RamlProxyClient.readGenericEntity(list, RamlIntegrationTest.listOfHumans);
         Assertions.assertEquals(1, humans.size());
         Assertions.assertEquals("person", humans.get(0).getHumanType());
@@ -88,13 +121,13 @@ public class RamlIntegrationTest {
     }
 
     @Test
-    public void runErrorTest() throws Exception {
+    public void runErrorGeneratedTest() throws Exception {
         final PersonImpl npePerson = new PersonImpl();
         Assertions.assertThrows(NullPointerException.class,
-                () -> RamlIntegrationTest.client.getExample().putHumansById("21", npePerson));
+                () -> RamlIntegrationTest.client.getHumans().putHumansById("21", npePerson));
         npePerson.setName("zeven");
         Assertions.assertThrows(NumberFormatException.class,
-                () -> RamlIntegrationTest.client.getExample().putHumansById("21", npePerson));
+                () -> RamlIntegrationTest.client.getHumans().putHumansById("21", npePerson));
     }
 
     @AfterAll
@@ -108,12 +141,17 @@ public class RamlIntegrationTest {
 
         final TestClientConnectionHandler handler = TestConnectionManager
                 .getClientHandler(RamlIntegrationTest.testConnection);
-        final Humans example = RamlProxyClient.generateClient(Humans.class, this.handler);
+        final Humans humans = RamlProxyClient.generateClient(Humans.class, this.handler);
+        final Example example = RamlProxyClient.generateClient(Example.class, this.handler);
 
         public volatile boolean running = true;
 
-        public Humans getExample() {
+        public Example getExample() {
             return this.example;
+        }
+
+        public Humans getHumans() {
+            return this.humans;
         }
 
         Client() {

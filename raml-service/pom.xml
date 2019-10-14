@@ -61,10 +61,6 @@
 			<artifactId>jersey-client</artifactId>
 			<version>2.29.1</version>
 		</dependency>
-
-		<!-- dependency> <groupId>org.javassist</groupId> <artifactId>javassist</artifactId> 
-			<version>3.26.0-GA</version> </dependency -->
-
 	</dependencies>
 
 	<build>
@@ -77,13 +73,25 @@
 				<executions>
 					<execution>
 						<id>add-source</id>
-						<phase>generate-sources</phase>
+						<phase>process-sources</phase>
 						<goals>
 							<goal>add-source</goal>
 						</goals>
 						<configuration>
 							<sources>
 								<source>${project.basedir}/src/main/generated</source>
+							</sources>
+						</configuration>
+					</execution>
+					<execution>
+						<id>add-test-source</id>
+						<phase>process-test-sources</phase>
+						<goals>
+							<goal>add-test-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>${project.basedir}/src/test/generated</source>
 							</sources>
 						</configuration>
 					</execution>
@@ -102,7 +110,7 @@
 						</goals>
 						<configuration>
 							<sourceFileExcludes>
-								<sourceFileExclude>${project.basedir}/src/main/generated</sourceFileExclude>
+								<sourceFileExclude>**/RamlProto.java</sourceFileExclude>
 							</sourceFileExcludes>
 						</configuration>
 					</execution>
@@ -116,7 +124,7 @@
 				<configuration>
 					<ramlFile>${project.basedir}/src/test/resources/humans.raml</ramlFile>
 
-					<outputDirectory>${project.basedir}/src/test/java</outputDirectory>
+					<outputDirectory>${project.basedir}/src/test/generated</outputDirectory>
 					<resourcePackage>org.flexiblepower.raml.example</resourcePackage>
 					<modelPackage>org.flexiblepower.raml.example.model</modelPackage>
 					<supportPackage>org.flexiblepower.raml.example.support</supportPackage>
@@ -131,7 +139,7 @@
 						<goals>
 							<goal>generate</goal>
 						</goals>
-						<phase>generate-sources</phase>
+						<phase>generate-test-sources</phase>
 					</execution>
 				</executions>
 			</plugin>

@@ -23,9 +23,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Map;
 
 import org.flexiblepower.proto.RamlProto.RamlRequest;
 import org.flexiblepower.proto.RamlProto.RamlResponse;
+import org.flexiblepower.raml.Example;
 import org.flexiblepower.raml.example.Humans;
 import org.flexiblepower.raml.example.model.Arm;
 import org.flexiblepower.raml.example.model.ArmImpl;
@@ -114,6 +116,37 @@ public class TestServerConnectionHandler implements ConnectionHandler {
             }
 
         };
+    }
+
+    public Example getExample() {
+        return new Example() {
+
+            @Override
+            public String getExampleText() {
+                return this.getPersonalText("world");
+            }
+
+            @Override
+            public String getPersonalText(final String name) {
+                return "Hello " + name + "!";
+            }
+
+            @Override
+            public String getPersonalText(final int reps) {
+                String ret = "";
+                for (int i = 0; i < reps; i++) {
+                    ret += this.getExampleText() + "\n";
+                }
+                return ret;
+            }
+
+            @Override
+            public float setStuff(final int id, final String q, final double test, final Map<String, String> body) {
+                return (float) (id + Double.parseDouble(body.get(q)) + Math.sqrt(test));
+            }
+
+        };
+
     }
 
     // This would normally be implemented as a default implementation in the generated code

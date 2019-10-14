@@ -62,7 +62,8 @@
 						</goals>
 						<configuration>
 							<sourceFileExcludes>
-								<sourceFileExclude>${project.basedir}/src/main/generated</sourceFileExclude>
+								<sourceFileExclude>**/ConnectionProto.java</sourceFileExclude>
+								<sourceFileExclude>**/ServiceProto.java</sourceFileExclude>
 							</sourceFileExcludes>
 						</configuration>
 					</execution>
