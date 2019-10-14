@@ -19,11 +19,10 @@
  */
 package org.flexiblepower.raml;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import javax.ws.rs.core.GenericType;
 
 import org.flexiblepower.proto.RamlProto.RamlRequest;
 import org.flexiblepower.proto.RamlProto.RamlResponse;
@@ -31,8 +30,6 @@ import org.flexiblepower.raml.client.RamlProxyClient;
 import org.flexiblepower.raml.client.TestClientConnectionHandler;
 import org.flexiblepower.raml.client.TestConnection;
 import org.flexiblepower.raml.example.Humans;
-import org.flexiblepower.raml.example.Humans.GetHumansAllResponse;
-import org.flexiblepower.raml.example.Humans.GetHumansByIdResponse;
 import org.flexiblepower.raml.example.model.Human;
 import org.flexiblepower.raml.server.TestServerConnectionHandler;
 import org.flexiblepower.service.TestConnectionManager;
@@ -57,10 +54,8 @@ public class RamlIntegrationTest {
 
     @Test
     public void runSimpleTest() {
-        final GetHumansAllResponse r = RamlIntegrationTest.client.getExample().getHumansAll();
-        final List<Human> list = r.readEntity(new GenericType<List<Human>>() {
-            // This is okay
-        });
+        System.out.println(Collections.singletonMap("generateBuilders", true));
+        final List<Human> list = RamlIntegrationTest.client.getExample().getHumansAll();
         Assertions.assertEquals(1, list.size());
         Assertions.assertEquals("Person", list.get(0).getHumanType());
         Assertions.assertNotNull(list.get(0).getDateOfBirth());
@@ -68,9 +63,8 @@ public class RamlIntegrationTest {
 
     @Test
     public void runQueryTest() {
-        final GetHumansByIdResponse r = RamlIntegrationTest.client.getExample().getHumansById("piet", null);
-        final Human somebody = r.readEntity(Human.class);
-        Assertions.assertEquals("Person", somebody.getHumanType());
+        final Human somebody = RamlIntegrationTest.client.getExample().getHumansById("piet", null);
+        Assertions.assertEquals("person", somebody.getHumanType());
         Assertions.assertNotNull(somebody.getDateOfBirth());
     }
     //

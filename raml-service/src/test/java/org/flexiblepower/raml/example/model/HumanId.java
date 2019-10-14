@@ -10,12 +10,6 @@ import java.util.Map;
     as = HumanIdImpl.class
 )
 public interface HumanId {
-  @JsonAnyGetter
-  Map<String, Object> getAdditionalProperties();
-
-  @JsonAnySetter
-  void setAdditionalProperties(String key, Object value);
-
   @JsonProperty("serial")
   String getSerial();
 
@@ -27,4 +21,10 @@ public interface HumanId {
 
   @JsonProperty("type")
   void setType(String type);
+
+  @JsonAnyGetter
+  Map<String, Object> getAdditionalProperties();
+
+  @JsonAnySetter
+  void setAdditionalProperties(String key, Object value);
 }

@@ -32,27 +32,28 @@ public class HumanImpl implements Human {
   @JsonProperty("limbs")
   private List<Limb> limbs;
 
+  @JsonProperty("timeOfArrival")
   @JsonFormat(
       shape = JsonFormat.Shape.STRING,
       pattern = "yyyy-MM-dd'T'HH:mm:ss"
   )
-  @JsonProperty("timeOfArrival")
   private Date timeOfArrival;
 
-  @JsonProperty("timeOfBirth")
   @JsonFormat(
       shape = JsonFormat.Shape.STRING,
       pattern = "HH:mm:ss"
   )
+  @JsonProperty("timeOfBirth")
   private Date timeOfBirth;
 
+  @JsonProperty("dateOfBirth")
   @JsonFormat(
       shape = JsonFormat.Shape.STRING,
       pattern = "yyyy-MM-dd"
   )
-  @JsonProperty("dateOfBirth")
   private Date dateOfBirth;
 
+  @JsonProperty("instantOfBirth")
   @JsonFormat(
       shape = JsonFormat.Shape.STRING,
       pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"
@@ -60,14 +61,13 @@ public class HumanImpl implements Human {
   @JsonDeserialize(
       using = TimestampDeserializer.class
   )
-  @JsonProperty("instantOfBirth")
   private Date instantOfBirth;
 
+  @JsonProperty("requestTime")
   @JsonFormat(
       shape = JsonFormat.Shape.STRING,
       pattern = "EEE, dd MMM yyyy HH:mm:ss z"
   )
-  @JsonProperty("requestTime")
   private Date requestTime;
 
   @JsonProperty("actualGender")

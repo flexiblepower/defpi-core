@@ -16,12 +16,6 @@ import java.util.Map;
 public interface Person extends Human {
   String _DISCRIMINATOR_TYPE_NAME = "person";
 
-  @JsonAnyGetter
-  Map<String, Object> getAdditionalProperties();
-
-  @JsonAnySetter
-  void setAdditionalProperties(String key, Object value);
-
   @JsonProperty("humanType")
   String getHumanType();
 
@@ -84,4 +78,10 @@ public interface Person extends Human {
 
   @JsonProperty("siblings")
   void setSiblings(List<Human> siblings);
+
+  @JsonAnyGetter
+  Map<String, Object> getAdditionalProperties();
+
+  @JsonAnySetter
+  void setAdditionalProperties(String key, Object value);
 }

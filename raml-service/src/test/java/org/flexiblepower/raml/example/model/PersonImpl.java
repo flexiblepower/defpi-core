@@ -49,11 +49,11 @@ public class PersonImpl implements Person {
   @JsonProperty("timeOfBirth")
   private Date timeOfBirth;
 
+  @JsonProperty("dateOfBirth")
   @JsonFormat(
       shape = JsonFormat.Shape.STRING,
       pattern = "yyyy-MM-dd"
   )
-  @JsonProperty("dateOfBirth")
   private Date dateOfBirth;
 
   @JsonProperty("instantOfBirth")

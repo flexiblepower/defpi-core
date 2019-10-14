@@ -33,11 +33,11 @@ public class CorpseImpl implements Corpse {
   @JsonProperty("limbs")
   private List<Limb> limbs;
 
-  @JsonProperty("timeOfArrival")
   @JsonFormat(
       shape = JsonFormat.Shape.STRING,
       pattern = "yyyy-MM-dd'T'HH:mm:ss"
   )
+  @JsonProperty("timeOfArrival")
   private Date timeOfArrival;
 
   @JsonProperty("timeOfBirth")
@@ -47,11 +47,11 @@ public class CorpseImpl implements Corpse {
   )
   private Date timeOfBirth;
 
+  @JsonProperty("dateOfBirth")
   @JsonFormat(
       shape = JsonFormat.Shape.STRING,
       pattern = "yyyy-MM-dd"
   )
-  @JsonProperty("dateOfBirth")
   private Date dateOfBirth;
 
   @JsonProperty("instantOfBirth")
@@ -74,11 +74,11 @@ public class CorpseImpl implements Corpse {
   @JsonProperty("actualGender")
   private Gender actualGender;
 
-  @JsonProperty("dateOfDeath")
   @JsonFormat(
       shape = JsonFormat.Shape.STRING,
       pattern = "yyyy-MM-dd"
   )
+  @JsonProperty("dateOfDeath")
   private Date dateOfDeath;
 
   @JsonIgnore

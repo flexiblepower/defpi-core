@@ -24,11 +24,9 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Proxy;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -52,7 +50,6 @@ import org.flexiblepower.service.ConnectionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
@@ -90,6 +87,7 @@ public class RamlProxyClient {
 
         private static int messageCounter = 0;
         private static ObjectMapper om = new ObjectMapper();
+
         private final ConnectionHandler handler;
         private final String typePath;
 
@@ -115,10 +113,12 @@ public class RamlProxyClient {
                 throw new IllegalStateException("Unable to send a message when there is no connection");
             }
 
+            // Prepare all the arguments that go in the request
             final Map<String, Object> pathParams = new HashMap<>();
             final Set<String> queryParams = new HashSet<>();
             Object body = null;
 
+            // Loop over the parameters of the method
             final Parameter[] params = method.getParameters();
             for (int i = 0; i < params.length; i++) {
                 if (params[i].isAnnotationPresent(PathParam.class)) {
@@ -163,6 +163,7 @@ public class RamlProxyClient {
                 builder.setBody(RamlProxyHandler.om.writeValueAsString(body));
             }
 
+            // Send the actual message and wait for a reponse
             final RamlRequest message = builder.build();
             conn.send(message);
             final RamlResponse response = RamlResponseHandler.getResponse(message.getId());
@@ -184,23 +185,8 @@ public class RamlProxyClient {
                 // new RuntimeException("Error invoking " + method.getName() + ": " + responseString);
             }
 
-            final JsonNode node = RamlProxyHandler.om.readTree(responseString);
-            final JsonNode typeNode = node.get("type");
-
-            Object entity = null;
-            if ((typeNode != null) && typeNode.has("rawType")
-                    && "java.util.List".equals(typeNode.get("rawType").asText())) {
-                final List<Object> list = new ArrayList<>();
-                final String arg = typeNode.get("actualTypeArguments").get(0).textValue();
-                final JsonNode entityNode = node.get("entity");
-                for (final JsonNode child : entityNode) {
-                    final String str = child.toString();
-                    list.add(RamlProxyHandler.om.readValue(str, Class.forName(arg)));
-                }
-                entity = list;
-            }
-
-            return new RamlClientResponseDelegate(entity, response);
+            // TODO add generic return types such as List, Set, Map, Array
+            return RamlProxyHandler.om.readValue(response.getBody().toByteArray(), method.getReturnType());
         }
 
         private static final RamlRequest.Method getRamlMethod(final Method m) {

@@ -28,12 +28,6 @@ import java.util.Map;
 public interface Human {
   String _DISCRIMINATOR_TYPE_NAME = "human";
 
-  @JsonAnyGetter
-  Map<String, Object> getAdditionalProperties();
-
-  @JsonAnySetter
-  void setAdditionalProperties(String key, Object value);
-
   @JsonProperty("humanType")
   String getHumanType();
 
@@ -78,4 +72,10 @@ public interface Human {
 
   @JsonProperty("actualGender")
   void setActualGender(Gender actualGender);
+
+  @JsonAnyGetter
+  Map<String, Object> getAdditionalProperties();
+
+  @JsonAnySetter
+  void setAdditionalProperties(String key, Object value);
 }

@@ -49,6 +49,13 @@
 			<artifactId>jersey-client</artifactId>
 			<version>2.29.1</version>
 		</dependency>
+
+		<!-- dependency>
+			<groupId>org.javassist</groupId>
+			<artifactId>javassist</artifactId>
+			<version>3.26.0-GA</version>
+		</dependency -->
+
 	</dependencies>
 
 	<build>
@@ -96,14 +103,14 @@
 			<plugin>
 				<groupId>org.raml.jaxrs</groupId>
 				<artifactId>raml-to-jaxrs-maven-plugin</artifactId>
-				<version>3.0.5</version>
+				<version>3.0.6-SNAPSHOT</version>
 				<configuration>
 					<ramlFile>${project.basedir}/src/test/resources/humans.raml</ramlFile>
 					<outputDirectory>${project.basedir}/src/test/java</outputDirectory>
-
 					<resourcePackage>org.flexiblepower.raml.example</resourcePackage>
 					<modelPackage>org.flexiblepower.raml.example.model</modelPackage>
 					<supportPackage>org.flexiblepower.raml.example.support</supportPackage>
+					<generateResponseClasses>false</generateResponseClasses>
 					<jsonMapper>jackson2</jsonMapper>
 					<generateTypesWith>
 						<value>jackson2</value>

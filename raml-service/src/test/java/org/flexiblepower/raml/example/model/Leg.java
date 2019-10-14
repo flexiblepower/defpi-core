@@ -10,15 +10,15 @@ import java.util.Map;
     as = LegImpl.class
 )
 public interface Leg extends Limb {
-  @JsonAnyGetter
-  Map<String, Object> getAdditionalProperties();
-
-  @JsonAnySetter
-  void setAdditionalProperties(String key, Object value);
-
   @JsonProperty("toes")
   int getToes();
 
   @JsonProperty("toes")
   void setToes(int toes);
+
+  @JsonAnyGetter
+  Map<String, Object> getAdditionalProperties();
+
+  @JsonAnySetter
+  void setAdditionalProperties(String key, Object value);
 }

@@ -10,12 +10,6 @@ import java.util.Map;
     as = ArmImpl.class
 )
 public interface Arm extends Limb {
-  @JsonAnyGetter
-  Map<String, Object> getAdditionalProperties();
-
-  @JsonAnySetter
-  void setAdditionalProperties(String key, Object value);
-
   @JsonProperty(
       value = "fingers",
       defaultValue = "5"
@@ -27,4 +21,10 @@ public interface Arm extends Limb {
       defaultValue = "5"
   )
   void setFingers(int fingers);
+
+  @JsonAnyGetter
+  Map<String, Object> getAdditionalProperties();
+
+  @JsonAnySetter
+  void setAdditionalProperties(String key, Object value);
 }
