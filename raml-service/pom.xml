@@ -13,6 +13,18 @@
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
+	<!-- Where to find dependencies -->
+	<pluginRepositories>
+		<pluginRepository>
+			<id>hesi-snapshot</id>
+			<name>HESI snapshot artifactory</name>
+			<url>http://ci.hesi.energy:8081/artifactory/libs-snapshot-local</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</pluginRepository>
+	</pluginRepositories>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.flexiblepower.defpi</groupId>
