@@ -24,6 +24,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 
@@ -36,6 +37,7 @@ import org.flexiblepower.service.ConnectionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.ByteString;
@@ -51,6 +53,10 @@ public class RamlRequestHandler {
     private static final Logger log = LoggerFactory.getLogger(RamlRequestHandler.class);
     private static final ObjectMapper mapper = new ObjectMapper();
     private static Map<ConnectionHandler, RamlResourceRegistry> RESOURCES = new HashMap<>();
+
+    static {
+        RamlRequestHandler.mapper.setSerializationInclusion(Include.NON_EMPTY);
+    }
 
     /**
      * Handle a message by invoking the corresponding resource
@@ -72,7 +78,6 @@ public class RamlRequestHandler {
 
         // Start building the response already
         final RamlResponse.Builder builder = RamlResponse.newBuilder().setId(message.getId());
-        builder.putHeaders(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
         builder.putHeaders("Server", RamlRequestHandler.class.getSimpleName());
 
         // Find the request handler for this resource
@@ -95,6 +100,7 @@ public class RamlRequestHandler {
             int status = 204;
             if (o != null) {
                 builder.setBody(ByteString.copyFrom(RamlRequestHandler.mapper.writeValueAsBytes(o)));
+                builder.putHeaders(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
                 status = 200;
             }
 
@@ -110,11 +116,19 @@ public class RamlRequestHandler {
             final Throwable cause = e.getCause();
             RamlRequestHandler.log.warn("Error invoking raml resource: {}", cause.getMessage());
             RamlRequestHandler.log.trace(cause.getMessage(), cause);
-            RamlRequestHandler.respond(conn,
-                    builder.setStatus(500)
-                            .setBody(ByteString.copyFromUtf8(
-                                    cause.getClass().getName() + "::" + RamlRequestHandler.writeException(cause)))
-                            .build());
+            if (cause instanceof WebApplicationException) {
+                final WebApplicationException wae = (WebApplicationException) cause;
+                RamlRequestHandler.respond(conn,
+                        builder.setStatus(wae.getResponse().getStatus())
+                                .setBody(ByteString.copyFromUtf8(wae.getMessage()))
+                                .build());
+            } else {
+                RamlRequestHandler.respond(conn,
+                        builder.setStatus(500)
+                                .setBody(ByteString.copyFromUtf8(
+                                        cause.getClass().getName() + "::" + RamlRequestHandler.writeException(cause)))
+                                .build());
+            }
         } catch (final IllegalArgumentException | IllegalAccessException e) {
             RamlRequestHandler.log.warn("Error invoking raml resource: {}", e.getMessage());
             RamlRequestHandler.log.trace(e.getMessage(), e);
