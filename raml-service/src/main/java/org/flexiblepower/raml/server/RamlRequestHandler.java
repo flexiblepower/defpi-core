@@ -24,7 +24,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+
 import org.flexiblepower.proto.RamlProto.RamlRequest;
+import org.flexiblepower.proto.RamlProto.RamlRequest.Method;
 import org.flexiblepower.proto.RamlProto.RamlResponse;
 import org.flexiblepower.service.Connection;
 import org.flexiblepower.service.ConnectionHandler;
@@ -32,6 +37,7 @@ import org.flexiblepower.service.ConnectionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.ByteString;
@@ -48,6 +54,10 @@ public class RamlRequestHandler {
     private static final ObjectMapper mapper = new ObjectMapper();
     private static Map<ConnectionHandler, RamlResourceRegistry> RESOURCES = new HashMap<>();
 
+    static {
+        RamlRequestHandler.mapper.setSerializationInclusion(Include.NON_EMPTY);
+    }
+
     /**
      * Handle a message by invoking the corresponding resource
      *
@@ -59,16 +69,22 @@ public class RamlRequestHandler {
             RamlRequestHandler.RESOURCES.put(handler, new RamlResourceRegistry(handler));
         }
 
+        // Get the connection to send the request in
         final Connection conn = ConnectionManager.getMyConnection(handler);
         if (conn == null) {
             RamlRequestHandler.log.error("Unable to handle request without return connection");
             return;
         }
 
+        // Start building the response already
         final RamlResponse.Builder builder = RamlResponse.newBuilder().setId(message.getId());
+        builder.putHeaders("Server", RamlRequestHandler.class.getSimpleName());
 
+        // Find the request handler for this resource
         final RamlResourceRequest request = RamlRequestHandler.RESOURCES.get(handler).getResourceForMessage(message);
         if (request == null) {
+            // TODO set 405 if the location is correct but not the method
+            // TODO set 415 if the location and method are correct but the content-type is not correct
             RamlRequestHandler.log.warn("Unable to locate resource for {}", message.getUri());
             RamlRequestHandler.respond(conn,
                     builder.setStatus(404)
@@ -77,26 +93,42 @@ public class RamlRequestHandler {
             return;
         }
 
+        // Now we actually call our local code
         try {
             final Object o = request.invoke(message);
-
+            // And build the returning response
+            int status = 204;
             if (o != null) {
-                builder.setStatus(200).setBody(ByteString.copyFrom(RamlRequestHandler.mapper.writeValueAsBytes(o)));
-            } else {
-                builder.setStatus(204);
+                builder.setBody(ByteString.copyFrom(RamlRequestHandler.mapper.writeValueAsBytes(o)));
+                builder.putHeaders(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
+                status = 200;
             }
 
+            if (((status == 204) && Method.PUT.equals(message.getMethod()))
+                    || Method.POST.equals(message.getMethod())) {
+                status = 201;
+            }
+
+            builder.setStatus(status);
             RamlRequestHandler.respond(conn, builder.build());
 
         } catch (final InvocationTargetException e) {
             final Throwable cause = e.getCause();
             RamlRequestHandler.log.warn("Error invoking raml resource: {}", cause.getMessage());
             RamlRequestHandler.log.trace(cause.getMessage(), cause);
-            RamlRequestHandler.respond(conn,
-                    builder.setStatus(500)
-                            .setBody(ByteString.copyFromUtf8(
-                                    cause.getClass().getName() + "::" + RamlRequestHandler.writeException(cause)))
-                            .build());
+            if (cause instanceof WebApplicationException) {
+                final WebApplicationException wae = (WebApplicationException) cause;
+                RamlRequestHandler.respond(conn,
+                        builder.setStatus(wae.getResponse().getStatus())
+                                .setBody(ByteString.copyFromUtf8(wae.getMessage()))
+                                .build());
+            } else {
+                RamlRequestHandler.respond(conn,
+                        builder.setStatus(500)
+                                .setBody(ByteString.copyFromUtf8(
+                                        cause.getClass().getName() + "::" + RamlRequestHandler.writeException(cause)))
+                                .build());
+            }
         } catch (final IllegalArgumentException | IllegalAccessException e) {
             RamlRequestHandler.log.warn("Error invoking raml resource: {}", e.getMessage());
             RamlRequestHandler.log.trace(e.getMessage(), e);
@@ -107,6 +139,14 @@ public class RamlRequestHandler {
                             .build());
         } catch (final JsonProcessingException e) {
             RamlRequestHandler.log.warn("Unable to create response: {}", e.getMessage());
+            RamlRequestHandler.log.trace(e.getMessage(), e);
+            RamlRequestHandler.respond(conn,
+                    builder.setStatus(500)
+                            .setBody(ByteString
+                                    .copyFromUtf8(e.getClass().getName() + "::" + RamlRequestHandler.writeException(e)))
+                            .build());
+        } catch (final Throwable e) {
+            RamlRequestHandler.log.warn("Unexpected exception: {}", e.getMessage());
             RamlRequestHandler.log.trace(e.getMessage(), e);
             RamlRequestHandler.respond(conn,
                     builder.setStatus(500)

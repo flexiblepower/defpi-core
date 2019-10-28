@@ -68,11 +68,13 @@ public class RamlResourceRegistry {
      * @param handler The connection handler to create a registry for.
      */
     public RamlResourceRegistry(final ConnectionHandler handler) {
+        int counter = 0;
         for (final Method m : handler.getClass().getMethods()) {
             final Class<?> clazz = m.getReturnType();
             if (m.getName().equals("get" + clazz.getSimpleName()) && (m.getParameters().length == 0)
                     && clazz.isAnnotationPresent(Path.class)) {
                 // This is a resource provider
+                counter++;
                 try {
                     final Object resource = m.invoke(handler);
                     this.resources.put(clazz.getAnnotation(Path.class).value(), new MethodRegistry(resource));
@@ -82,6 +84,9 @@ public class RamlResourceRegistry {
                             handler.getClass());
                 }
             }
+        }
+        if (counter == 0) {
+            RamlResourceRegistry.log.warn("No resources found in handler, please define handlers as 'public X getX()'");
         }
     }
 

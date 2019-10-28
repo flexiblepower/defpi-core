@@ -19,6 +19,8 @@
  */
 package org.flexiblepower.raml.client;
 
+import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -28,6 +30,14 @@ import java.util.concurrent.Future;
 import org.flexiblepower.proto.RamlProto.RamlRequest;
 import org.flexiblepower.proto.RamlProto.RamlRequest.Method;
 import org.flexiblepower.raml.Example;
+import org.flexiblepower.raml.example.Humans;
+import org.flexiblepower.raml.example.model.Arm;
+import org.flexiblepower.raml.example.model.ArmImpl;
+import org.flexiblepower.raml.example.model.Gender;
+import org.flexiblepower.raml.example.model.Human;
+import org.flexiblepower.raml.example.model.HumanImpl;
+import org.flexiblepower.raml.example.model.Leg;
+import org.flexiblepower.raml.example.model.LegImpl;
 import org.flexiblepower.service.ConnectionHandler;
 import org.flexiblepower.service.TestConnectionManager;
 import org.junit.jupiter.api.Assertions;
@@ -52,19 +62,21 @@ public class TestRamlProxy {
     final ObjectMapper mapper = new ObjectMapper();
     final ExecutorService executor = Executors.newCachedThreadPool();
 
-    static Example ex;
+    static Example example;
+    static Humans humans;
 
     @BeforeAll
     public static void init() {
         final ConnectionHandler handler = TestConnectionManager.getClientHandler(TestRamlProxy.connection);
-        TestRamlProxy.ex = RamlProxyClient.generateClient(Example.class, handler);
+        TestRamlProxy.example = RamlProxyClient.generateClient(Example.class, handler);
+        TestRamlProxy.humans = RamlProxyClient.generateClient(Humans.class, handler);
     }
 
     @Test
     @Timeout(1)
     public void runTest() throws InterruptedException {
         // Have to run it asynchronously because it will block forever until it receives a response
-        final Future<?> f = this.executor.submit(TestRamlProxy.ex::getExampleText);
+        final Future<?> f = this.executor.submit(TestRamlProxy.example::getExampleText);
         while (!TestRamlProxy.connection.contains(RamlRequest.class)) {
             Thread.sleep(10);
         }
@@ -80,7 +92,7 @@ public class TestRamlProxy {
     @Timeout(1)
     public void runQueryParamTest() throws InterruptedException {
         // Have to run it asynchronously because it will block forever until it receives a response
-        final Future<?> f = this.executor.submit(() -> TestRamlProxy.ex.getPersonalText("Harry"));
+        final Future<?> f = this.executor.submit(() -> TestRamlProxy.example.getPersonalText("Harry"));
         while (!TestRamlProxy.connection.contains(RamlRequest.class)) {
             Thread.sleep(10);
         }
@@ -96,7 +108,7 @@ public class TestRamlProxy {
     @Timeout(1)
     public void runPathParamTest() throws InterruptedException {
         // Have to run it asynchronously because it will block forever until it receives a response
-        final Future<?> f = this.executor.submit(() -> TestRamlProxy.ex.getPersonalText(5));
+        final Future<?> f = this.executor.submit(() -> TestRamlProxy.example.getPersonalText(5));
         while (!TestRamlProxy.connection.contains(RamlRequest.class)) {
             Thread.sleep(10);
         }
@@ -112,8 +124,8 @@ public class TestRamlProxy {
     @Timeout(1)
     public void runComplexTest() throws InterruptedException, JsonMappingException, JsonProcessingException {
         // Have to run it asynchronously because it will block forever until it receives a response
-        final Future<?> f = this.executor
-                .submit(() -> TestRamlProxy.ex.setStuff(187, "query", Math.PI, Collections.singletonMap("ape", "nut")));
+        final Future<?> f = this.executor.submit(
+                () -> TestRamlProxy.example.setStuff(187, "query", Math.PI, Collections.singletonMap("ape", "nut")));
         while (!TestRamlProxy.connection.contains(RamlRequest.class)) {
             Thread.sleep(10);
         }
@@ -132,6 +144,82 @@ public class TestRamlProxy {
         @SuppressWarnings("unchecked")
         final Map<String, String> body = this.mapper.readValue(msg.getBody(), Map.class);
         Assertions.assertEquals("nut", body.get("ape"));
+    }
+
+    @Test
+    @Timeout(1)
+    public void runGeneratedTest() throws InterruptedException {
+        // Have to run it asynchronously because it will block forever until it receives a response
+        final Future<?> f = this.executor.submit(TestRamlProxy.humans::getHumansAll);
+        while (!TestRamlProxy.connection.contains(RamlRequest.class)) {
+            Thread.sleep(10);
+        }
+        f.cancel(true);
+
+        final RamlRequest msg = (RamlRequest) TestRamlProxy.connection.pop();
+        Assertions.assertEquals("/humans/all", msg.getUri());
+        Assertions.assertEquals(Method.GET, msg.getMethod());
+        Assertions.assertFalse(msg.hasBody());
+    }
+
+    @Test
+    @Timeout(1)
+    public void runGeneratedQueryParamTest() throws InterruptedException {
+        // Have to run it asynchronously because it will block forever until it receives a response
+        final Future<?> f = this.executor.submit(() -> TestRamlProxy.humans.getHumans("male"));
+        while (!TestRamlProxy.connection.contains(RamlRequest.class)) {
+            Thread.sleep(10);
+        }
+        f.cancel(true);
+
+        final RamlRequest msg = (RamlRequest) TestRamlProxy.connection.pop();
+        Assertions.assertEquals("/humans?type=male", msg.getUri());
+        Assertions.assertEquals(Method.GET, msg.getMethod());
+        Assertions.assertFalse(msg.hasBody());
+    }
+
+    @Test
+    @Timeout(1)
+    public void runGeneratedPathParamTest() throws InterruptedException {
+        // Have to run it asynchronously because it will block forever until it receives a response
+        final Future<?> f = this.executor.submit(() -> TestRamlProxy.humans.getHumansById("Harry", "male"));
+        while (!TestRamlProxy.connection.contains(RamlRequest.class)) {
+            Thread.sleep(10);
+        }
+        f.cancel(true);
+
+        final RamlRequest msg = (RamlRequest) TestRamlProxy.connection.pop();
+        Assertions.assertEquals("/humans/Harry?userType=male", msg.getUri());
+        Assertions.assertEquals(Method.GET, msg.getMethod());
+        Assertions.assertFalse(msg.hasBody());
+    }
+
+    @Test
+    @Timeout(1)
+    public void runGeneratedComplexTest() throws InterruptedException, JsonMappingException, JsonProcessingException {
+        // Have to run it asynchronously because it will block forever until it receives a response
+        final Human henk = new HumanImpl();
+        henk.setDateOfBirth(java.util.Date.from(Instant.EPOCH)); // Such a coincidence
+        henk.setActualGender(Gender.MALE);
+
+        final Leg leg = new LegImpl();
+        leg.setToes(5);
+        final Arm arm = new ArmImpl();
+        arm.setFingers(4);
+
+        henk.setLimbs(Arrays.asList(leg, leg, arm, arm));
+
+        final Future<?> f = this.executor.submit(() -> TestRamlProxy.humans.putHumansById("Henk", henk));
+        while (!TestRamlProxy.connection.contains(RamlRequest.class)) {
+            Thread.sleep(10);
+        }
+        f.cancel(true);
+
+        final RamlRequest msg = (RamlRequest) TestRamlProxy.connection.pop();
+        final String messageUri = msg.getUri();
+        Assertions.assertEquals("/humans/Henk", messageUri);
+        Assertions.assertEquals(Method.PUT, msg.getMethod());
+        Assertions.assertTrue(msg.hasBody());
     }
 
 }

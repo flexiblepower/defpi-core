@@ -58,13 +58,14 @@ public class JavaRamlCompiler implements InterfaceCompiler {
 
         config.setResourcePackage(this.basePackageName);
         config.setModelPackage(this.basePackageName + ".model");
-        config.setSupportPackage(this.basePackageName + ".support");
 
         config.setOutputDirectory(targetPath.toFile());
-        config.setJsonMapper(AnnotationStyle.NONE);
+        config.setJsonMapper(AnnotationStyle.JACKSON2);
 
         config.setJsonMapperConfiguration(Collections.emptyMap());
-        config.setTypeConfiguration(new String[0]);
+        config.setTypeConfiguration(new String[] {"jackson2"});
+
+        config.setGenerateResponseClasses(false);
 
         final DefpiRamlScanner scanner = new DefpiRamlScanner(config);
         scanner.handle(sourceFile.toFile());
