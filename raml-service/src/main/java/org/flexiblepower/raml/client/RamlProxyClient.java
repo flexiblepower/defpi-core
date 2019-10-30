@@ -63,8 +63,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class RamlProxyClient {
 
-    static final Map<String, TypeReference<?>> typeReferences = new HashMap<>();
-    static ObjectMapper om = new ObjectMapper();
+    /**
+     * A map of type references for endpoints to deserialize return types
+     */
+    protected static final Map<String, TypeReference<?>> typeReferences = new HashMap<>();
+    /**
+     * The object mapper, to deserialize return types
+     */
+    protected static final ObjectMapper om = new ObjectMapper();
 
     /**
      * Generate a resource object that implements a specific class by wrapping a RamlMessage sending connection. This
