@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.URI;
+import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.core.MediaType;
 
@@ -40,12 +41,11 @@ import org.flexiblepower.api.ServiceApi;
 import org.flexiblepower.api.UserApi;
 import org.flexiblepower.connectors.DockerConnector;
 import org.flexiblepower.rest.OrchestratorApplication;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.SwaggerDefinition;
@@ -56,24 +56,22 @@ import io.swagger.annotations.SwaggerDefinition;
  * @version 0.1
  * @since Nov 23, 2017
  */
+@Timeout(value = 20, unit = TimeUnit.SECONDS)
 @SuppressWarnings({"static-method", "javadoc"})
 public class RestServerTest {
 
     private static final int TEST_PORT = Main.URI_PORT;
     private static Server server;
 
-    @BeforeClass
+    @BeforeAll
     public static void init() throws Exception {
         RestServerTest.server = Main.startServer();
     }
 
-    @AfterClass
+    @AfterAll
     public static void stop() throws Exception {
         RestServerTest.server.stop();
     }
-
-    @Rule
-    public Timeout globalTimeout = Timeout.seconds(20);
 
     public void testListUsers() throws Exception {
         this.defaultTests("user", "_perPage=2&_sortDir=DESC", 200, MediaType.APPLICATION_JSON_TYPE);
@@ -93,21 +91,21 @@ public class RestServerTest {
     @Test
     public void test401() throws Exception {
         final String content = this.defaultTests("service", null, 401, MediaType.TEXT_HTML_TYPE);
-        Assert.assertTrue(content.contains("<h1>Unauthorized</h1>"));
-        Assert.assertTrue(content.contains("The user is not authorized to perform this operation"));
+        Assertions.assertTrue(content.contains("<h1>Unauthorized</h1>"));
+        Assertions.assertTrue(content.contains("The user is not authorized to perform this operation"));
 
         // We do not expect a stack trace
-        Assert.assertFalse(content.contains("<details><summary>"));
+        Assertions.assertFalse(content.contains("<details><summary>"));
     }
 
     @Test
     public void test400() throws Exception {
         final String content = this.defaultTests("connection/1", null, 400, MediaType.TEXT_HTML_TYPE);
-        Assert.assertTrue(content.contains("<h1>Invalid input</h1>"));
-        Assert.assertTrue(content.contains("The provided id is not a valid ObjectId (1)"));
+        Assertions.assertTrue(content.contains("<h1>Invalid input</h1>"));
+        Assertions.assertTrue(content.contains("The provided id is not a valid ObjectId (1)"));
 
         // We do not expect a stack trace
-        Assert.assertFalse(content.contains("<details><summary>"));
+        Assertions.assertFalse(content.contains("<details><summary>"));
     }
 
     @Test
@@ -131,31 +129,29 @@ public class RestServerTest {
         final String content = this.defaultTests("swagger.json", null, 200, MediaType.APPLICATION_JSON_TYPE);
 
         // Test for some stuff which should NOT be there
-        Assert.assertFalse(content.contains("Response"));
-        Assert.assertFalse(content.contains("NewCookie"));
-        Assert.assertFalse(content.contains("Exception"));
+        Assertions.assertFalse(content.contains("Response"));
+        Assertions.assertFalse(content.contains("NewCookie"));
+        Assertions.assertFalse(content.contains("Exception"));
 
-        Assert.assertTrue(content.contains("swagger"));
+        Assertions.assertTrue(content.contains("swagger"));
 
-        Assert.assertTrue(content
+        Assertions.assertTrue(content
                 .contains(OrchestratorApplication.class.getAnnotation(SwaggerDefinition.class).info().description()));
-        Assert.assertTrue(content.contains(
+        Assertions.assertTrue(content.contains(
                 OrchestratorApplication.class.getAnnotation(SwaggerDefinition.class).info().termsOfService()));
 
         for (final Class<?> c : new Class[] {ConnectionApi.class, InterfaceApi.class, NodeApi.class,
                 PendingChangeApi.class, ProcessApi.class, ServiceApi.class, UserApi.class}) {
             for (final Method m : c.getMethods()) {
                 final ApiOperation annotation = m.getAnnotation(ApiOperation.class);
-                Assert.assertNotNull(
+                Assertions.assertNotNull(annotation,
                         "Method " + m.getName() + " of class " + c.getName()
-                                + " does not contain the @ApiOperation annotation",
-                        annotation);
-                Assert.assertTrue(content.contains(annotation.value()));
-                Assert.assertTrue(content.contains(annotation.notes()));
-                Assert.assertTrue(content.contains(annotation.nickname()));
+                                + " does not contain the @ApiOperation annotation");
+                Assertions.assertTrue(content.contains(annotation.value()));
+                Assertions.assertTrue(content.contains(annotation.notes()));
+                Assertions.assertTrue(content.contains(annotation.nickname()));
             }
         }
-
     }
 
     @SuppressWarnings("resource")
@@ -175,11 +171,11 @@ public class RestServerTest {
         final HttpClient client = HttpClientBuilder.create().build();
 
         final HttpResponse response = client.execute(request);
-        Assert.assertEquals(expectedResponse, response.getStatusLine().getStatusCode());
+        Assertions.assertEquals(expectedResponse, response.getStatusLine().getStatusCode());
         if (response.getEntity().getContentLength() == 0) {
             return "";
         }
-        Assert.assertEquals(expectedType.toString(), response.getEntity().getContentType().getValue());
+        Assertions.assertEquals(expectedType.toString(), response.getEntity().getContentType().getValue());
 
         final byte[] buf = new byte[128];
         int len = 0;

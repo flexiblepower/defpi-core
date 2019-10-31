@@ -9,12 +9,12 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>18.6.2-SNAPSHOT</version>
+		<version>19.10.1-SNAPSHOT</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
 	<properties>
-		<jersey.version>2.27</jersey.version>
+		<jersey.version>2.29.1</jersey.version>
 
 		<project.resourcedir>${project.basedir}/src/main/resources</project.resourcedir>
 		<mainClass>org.flexiblepower.orchestrator.Main</mainClass>
@@ -42,10 +42,10 @@
 			<groupId>org.glassfish.jersey.containers</groupId>
 			<artifactId>jersey-container-jetty-http</artifactId>
 		</dependency>
-		
+
 		<dependency>
-		    <groupId>org.glassfish.jersey.inject</groupId>
-		    <artifactId>jersey-hk2</artifactId>
+			<groupId>org.glassfish.jersey.inject</groupId>
+			<artifactId>jersey-hk2</artifactId>
 		</dependency>
 
 		<dependency>
@@ -84,7 +84,7 @@
 		<dependency>
 			<groupId>com.spotify</groupId>
 			<artifactId>docker-client</artifactId>
-			<version>8.11.7</version>
+			<version>8.16.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>ch.qos.logback</groupId>
@@ -102,6 +102,26 @@
 			<groupId>org.flexiblepower.defpi</groupId>
 			<artifactId>commons</artifactId>
 		</dependency>
+
+		<dependency>
+			<groupId>javax.xml.bind</groupId>
+			<artifactId>jaxb-api</artifactId>
+			<version>2.3.1</version>
+		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/javax.activation/activation -->
+		<dependency>
+			<groupId>javax.activation</groupId>
+			<artifactId>activation</artifactId>
+			<version>1.1.1</version>
+		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/org.glassfish.jaxb/jaxb-runtime -->
+		<dependency>
+			<groupId>org.glassfish.jaxb</groupId>
+			<artifactId>jaxb-runtime</artifactId>
+			<version>2.3.2</version>
+		</dependency>
 	</dependencies>
 
 
@@ -110,7 +130,7 @@
 			<plugin>
 				<groupId>pl.project13.maven</groupId>
 				<artifactId>git-commit-id-plugin</artifactId>
-				<version>2.2.4</version>
+				<version>2.2.5</version>
 				<executions>
 					<execution>
 						<id>get-the-git-infos</id>
@@ -147,83 +167,15 @@
 				</configuration>
 			</plugin>
 
-			<!-- The assembly plugin puts all java code in one jar -->
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
-				<!-- Upgrading to version 3.x.x makes it MUCH slower -->
-				<version>2.6</version>
-				<configuration>
-					<archive>
-						<manifest>
-							<mainClass>${mainClass}</mainClass>
-						</manifest>
-					</archive>
-					<descriptorRefs>
-						<descriptorRef>jar-with-dependencies</descriptorRef>
-					</descriptorRefs>
-					<includeProjectBuildFilters>true</includeProjectBuildFilters>
-				</configuration>
-				<executions>
-					<execution>
-						<id>make-assembly</id>
-						<phase>package</phase>
-						<goals>
-							<goal>single</goal>
-						</goals>
-					</execution>
-				</executions>
+				<!-- config comes from plugin management from master pom -->
 			</plugin>
 
-			<!-- Spotify's docker plugin builds, tags and pushed docker images -->
 			<plugin>
 				<groupId>com.spotify</groupId>
 				<artifactId>docker-maven-plugin</artifactId>
-				<version>1.1.1</version>
-				<executions>
-					<execution>
-						<!-- Build x86_64 image -->
-						<id>build-image</id>
-						<phase>package</phase>
-						<goals>
-							<goal>build</goal>
-						</goals>
-						<configuration>
-							<dockerDirectory>${project.build.directory}/docker</dockerDirectory>
-							<resources>
-								<resource>
-									<directory>${project.build.directory}</directory>
-									<include>${project.artifactId}-${project.version}-jar-with-dependencies.jar</include>
-								</resource>
-							</resources>
-							<imageName>${docker.imageName}:latest</imageName>
-							<imageTags>
-								<imageTag>${project.version}</imageTag>
-							</imageTags>
-						</configuration>
-					</execution>
-					<execution>
-						<!-- Push latest image -->
-						<id>push-latest-image</id>
-						<phase>deploy</phase>
-						<goals>
-							<goal>push</goal>
-						</goals>
-						<configuration>
-							<imageName>${docker.imageName}:latest</imageName>
-						</configuration>
-					</execution>
-					<execution>
-						<!-- Push versioned image -->
-						<id>push-versioned-image</id>
-						<phase>deploy</phase>
-						<goals>
-							<goal>push</goal>
-						</goals>
-						<configuration>
-							<imageName>${docker.imageName}:${project.version}</imageName>
-						</configuration>
-					</execution>
-				</executions>
+				<!-- config comes from plugin management from master pom -->
 			</plugin>
 		</plugins>
 	</build>

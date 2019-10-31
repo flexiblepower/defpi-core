@@ -154,8 +154,8 @@ final class TCPConnection implements Connection, Closeable {
 
         // Add serializer to the connection for user-defined messages
         try {
-            this.userMessageSerializer = info.serializer().newInstance();
-        } catch (InstantiationException | IllegalAccessException e) {
+            this.userMessageSerializer = info.serializer().getConstructor().newInstance();
+        } catch (final Exception e) {
             throw new RuntimeException("Unable to instantiate connection serializer");
         }
 
@@ -473,6 +473,7 @@ final class TCPConnection implements Connection, Closeable {
 
             if (this.serviceHandler != null) {
                 this.serviceExecutor.submit(this.serviceHandler::terminated);
+                ConnectionManager.removeConnectionHandler(this.serviceHandler);
             }
         }
 

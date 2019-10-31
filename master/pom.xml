@@ -5,7 +5,7 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>master</artifactId>
-	<version>18.6.2-SNAPSHOT</version>
+	<version>19.10.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<name>dEF-Pi master POM</name>
@@ -64,15 +64,17 @@
 
 		<!-- The plugin needs the protobuf version to obtain the compiler from 
 			maven central explicitly -->
-		<protobuf.version>3.6.1</protobuf.version>
-		<jackson.databind.version>2.9.6</jackson.databind.version>
-		<mongodb.version>3.8.1</mongodb.version>
-		<log4j.version>2.11.1</log4j.version>
-		<swagger.version>1.5.21</swagger.version>
+		<protobuf.version>3.10.0</protobuf.version>
+		<jackson.databind.version>2.10.0</jackson.databind.version>
+		<json.version>20190722</json.version>
+		<mongodb.version>3.11.0</mongodb.version>
+		<log4j.version>2.12.1</log4j.version>
+		<swagger.version>1.5.23</swagger.version>
+		<junit.version>5.5.2</junit.version>
 	</properties>
 
 	<prerequisites>
-		<maven>3.0</maven>
+		<maven>3.0.5</maven>
 	</prerequisites>
 
 	<modules>
@@ -82,8 +84,9 @@
 		<module>../commons</module>
 		<module>../codegen-common</module>
 		<module>../maven-plugin</module>
-		<module>../python-codegen</module>
 		<module>../orchestrator</module>
+		<module>../python-codegen</module>
+		<module>../raml-service</module>
 		<module>../service</module>
 	</modules>
 
@@ -113,7 +116,7 @@
 			<dependency>
 				<groupId>org.projectlombok</groupId>
 				<artifactId>lombok</artifactId>
-				<version>1.18.2</version>
+				<version>1.18.10</version>
 				<scope>provided</scope>
 			</dependency>
 
@@ -144,7 +147,7 @@
 			<dependency>
 				<groupId>org.json</groupId>
 				<artifactId>json</artifactId>
-				<version>20180130</version>
+				<version>20190722</version>
 			</dependency>
 
 			<dependency>
@@ -188,9 +191,15 @@
 		</dependency>
 
 		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.12</version>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<version>${junit.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-engine</artifactId>
+			<version>${junit.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -211,7 +220,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
-					<version>2.22.0</version>
+					<version>3.0.0-M2</version>
 					<configuration>
 						<systemProperties>
 							<property>
@@ -239,19 +248,19 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-deploy-plugin</artifactId>
-					<version>2.8.2</version>
+					<version>3.0.0-M1</version>
 				</plugin>
 
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-install-plugin</artifactId>
-					<version>2.5.2</version>
+					<version>3.0.0-M1</version>
 				</plugin>
 
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-jar-plugin</artifactId>
-					<version>3.1.0</version>
+					<version>3.1.1</version>
 				</plugin>
 
 				<plugin>
@@ -277,6 +286,97 @@
 					<artifactId>license-maven-plugin</artifactId>
 					<version>1.16</version>
 				</plugin>
+
+
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>versions-maven-plugin</artifactId>
+					<version>2.7</version>
+				</plugin>
+
+				<!-- The assembly plugin puts all java code in one jar -->
+				<plugin>
+					<artifactId>maven-assembly-plugin</artifactId>
+					<version>3.1.1</version>
+					<configuration>
+						<archive>
+							<manifest>
+								<mainClass>${mainClass}</mainClass>
+							</manifest>
+						</archive>
+						<descriptorRefs>
+							<descriptorRef>jar-with-dependencies</descriptorRef>
+						</descriptorRefs>
+						<includeProjectBuildFilters>true</includeProjectBuildFilters>
+					</configuration>
+					<executions>
+						<execution>
+							<id>make-assembly</id>
+							<phase>package</phase>
+							<goals>
+								<goal>single</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+
+				<!-- Spotify's docker plugin builds, tags and pushed docker images -->
+				<plugin>
+					<groupId>com.spotify</groupId>
+					<artifactId>docker-maven-plugin</artifactId>
+					<version>1.2.0</version>
+
+					<configuration>
+						<registryUrl>${docker.registry}</registryUrl>
+						<serverId>defpi-registry</serverId>
+					</configuration>
+
+					<executions>
+						<execution>
+							<!-- Build x86_64 image -->
+							<id>build-image</id>
+							<phase>package</phase>
+							<goals>
+								<goal>build</goal>
+							</goals>
+							<configuration>
+								<dockerDirectory>${project.build.directory}/docker</dockerDirectory>
+								<resources>
+									<resource>
+										<directory>${project.build.directory}</directory>
+										<include>${project.artifactId}-${project.version}-jar-with-dependencies.jar</include>
+									</resource>
+								</resources>
+								<imageName>${docker.imageName}:latest</imageName>
+								<imageTags>
+									<imageTag>${project.version}</imageTag>
+								</imageTags>
+							</configuration>
+						</execution>
+						<execution>
+							<!-- Push latest image -->
+							<id>push-latest-image</id>
+							<phase>deploy</phase>
+							<goals>
+								<goal>push</goal>
+							</goals>
+							<configuration>
+								<imageName>${docker.imageName}:latest</imageName>
+							</configuration>
+						</execution>
+						<execution>
+							<!-- Push versioned image -->
+							<id>push-versioned-image</id>
+							<phase>deploy</phase>
+							<goals>
+								<goal>push</goal>
+							</goals>
+							<configuration>
+								<imageName>${docker.imageName}:${project.version}</imageName>
+							</configuration>
+						</execution>
+					</executions>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 
@@ -290,28 +390,6 @@
 						<goals>
 							<goal>jar</goal>
 						</goals>
-					</execution>
-				</executions>
-			</plugin>
-
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>versions-maven-plugin</artifactId>
-				<version>2.5</version>
-				<executions>
-					<execution>
-						<id>check-dependency-versions</id>
-						<goals>
-							<goal>display-dependency-updates</goal>
-						</goals>
-						<phase>verify</phase>
-					</execution>
-					<execution>
-						<id>check-plugin-versions</id>
-						<goals>
-							<goal>display-plugin-updates</goal>
-						</goals>
-						<phase>verify</phase>
 					</execution>
 				</executions>
 			</plugin>
@@ -352,6 +430,7 @@
 						</goals>
 						<configuration>
 							<quiet>true</quiet>
+							<!-- additionalOptions>-html5</additionalOptions -->
 						</configuration>
 					</execution>
 				</executions>

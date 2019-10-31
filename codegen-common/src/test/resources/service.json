@@ -23,7 +23,6 @@
       "interfaceVersions": [
         {
           "versionName": "v0.0.1",
-          "type": "proto",
           "location": "echoProtocol.proto",
           "sends": [],
           "receives": ["Msg"]

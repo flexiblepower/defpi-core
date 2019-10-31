@@ -51,6 +51,7 @@ import org.flexiblepower.orchestrator.UserManager;
 import org.flexiblepower.process.ProcessManager;
 import org.flexiblepower.proto.DefPiParams;
 
+import com.google.common.collect.ImmutableList;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.DockerClient.ListNetworksParam;
@@ -58,8 +59,10 @@ import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.AttachedNetwork;
 import com.spotify.docker.client.messages.ContainerInfo;
+import com.spotify.docker.client.messages.EndpointConfig;
 import com.spotify.docker.client.messages.Network;
 import com.spotify.docker.client.messages.NetworkConfig;
+import com.spotify.docker.client.messages.NetworkConnection;
 import com.spotify.docker.client.messages.ServiceCreateResponse;
 import com.spotify.docker.client.messages.mount.Mount;
 import com.spotify.docker.client.messages.swarm.ContainerSpec;
@@ -196,6 +199,7 @@ public class DockerConnector {
             // synchronized (this.netLocks.get(process.getUserId())) {
             this.ensureProcessNetworkExists(process);
             this.ensureProcessNetworkIsAttached(process);
+            this.ensureDashboardGatewayIsConnected(process);
             // }
 
             final Service service = ServiceManager.getInstance().getService(process.getServiceId());
@@ -319,6 +323,23 @@ public class DockerConnector {
     }
 
     /**
+     * Make sure the orchestrator is attached to all user nets. The processes belongs to a user, who has a private
+     * network, this function takes one process of every user and attempts to connect them.
+     */
+    public void ensureAllUserNetsAttached() {
+        for (final User u : UserManager.getInstance().getUsers()) {
+            final List<Process> userProcesses = ProcessManager.getInstance().listProcessesForUser(u);
+            if ((userProcesses != null) && !userProcesses.isEmpty()) {
+                try {
+                    this.ensureProcessNetworkIsAttached(userProcesses.get(0));
+                } catch (DockerException | InterruptedException e) {
+                    DockerConnector.log.warn("Unable to ensure attachment to network of user {}", u.getUsername());
+                }
+            }
+        }
+    }
+
+    /**
      * Make sure the process and the orchestrator share a network. The process belongs to a user, who has a private
      * network, and the orchestrator is added to this network in runtime.
      *
@@ -341,12 +362,40 @@ public class DockerConnector {
             if ((networks == null) || networks.isEmpty() || !networks.containsKey(newProcessNetworkName)) {
                 DockerConnector.log.info("Connecting {} to network {}", orchestratorContainerId, newProcessNetworkName);
                 this.runOrTimeout(() -> {
-                    this.client.connectToNetwork(orchestratorContainerId, newProcessNetworkName);
+                    final EndpointConfig endpoint = EndpointConfig.builder()
+                            .aliases(ImmutableList.of("orchestrator"))
+                            .build();
+                    final NetworkConnection conn = NetworkConnection.builder()
+                            .containerId(orchestratorContainerId)
+                            .endpointConfig(endpoint)
+                            .build();
+
+                    this.client.connectToNetwork(networkId, conn);
+                    // this.client.connectToNetwork(orchestratorContainerId, newProcessNetworkName);
                     return true;
                 });
             }
+        } catch (DockerException | InterruptedException e) {
+            DockerConnector.destroy("Exception attaching process", e);
+            throw e;
+        }
+    }
 
-            // Connect dashboard gateway to network
+    /**
+     * Make sure the process and the dashboard gateway share a network. The process belongs to a user, who has a private
+     * network, and the dashboard gateway is added to this network in runtime.
+     *
+     * @param process the process which we want to make sure is in an attached network
+     * @throws InterruptedException If an interruption occurs before the docker client was able to get the required info
+     * @throws DockerException If an exception occurs in the docker client
+     */
+    void ensureDashboardGatewayIsConnected(final Process process) throws DockerException, InterruptedException {
+        try {
+            // Also connect dashboard gateway to the user network
+            final String newProcessNetworkName = DockerConnector.getNetworkNameFromProcess(process);
+            final String networkId = this.runOrTimeout(
+                    () -> this.client.listNetworks(ListNetworksParam.byNetworkName(newProcessNetworkName)).get(0).id());
+
             final Process dashboardGateway = ProcessManager.getInstance().getDashboardGateway();
             if (dashboardGateway != null) {
                 final String dockerServiceId = dashboardGateway.getDockerId();
@@ -528,7 +577,8 @@ public class DockerConnector {
 
         final Map<String, String> envArgs = new HashMap<>();
         if (process.getDebuggingPort() != 0) {
-            jvmArgs += String.format("-Xdebug -agentlib:jdwp=transport=dt_socket,server=y,suspend=%s,address=%d",
+            jvmArgs += String.format(
+                    "-Xdebug -agentlib:jdwp=transport=dt_socket,server=y,suspend=%s,address=0.0.0.0:%d",
                     process.isSuspendOnDebug() ? "y" : "n",
                     DockerConnector.INTERNAL_DEBUGGING_PORT);
             endpointSpec.addPort(PortConfig.builder()

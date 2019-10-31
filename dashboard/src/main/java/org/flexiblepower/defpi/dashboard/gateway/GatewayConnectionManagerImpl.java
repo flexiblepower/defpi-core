@@ -23,8 +23,8 @@ package org.flexiblepower.defpi.dashboard.gateway;
 import javax.annotation.Generated;
 
 import org.flexiblepower.defpi.dashboard.Dashboard;
-import org.flexiblepower.defpi.dashboard.gateway.http.Gateway_httpConnectionHandlerImpl;
 import org.flexiblepower.defpi.dashboard.gateway.http.Gateway_httpConnectionHandler;
+import org.flexiblepower.defpi.dashboard.gateway.http.Gateway_httpConnectionHandlerImpl;
 import org.flexiblepower.service.Connection;
 
 /**

@@ -1,0 +1,149 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<artifactId>raml-service</artifactId>
+	<name>dEF-Pi RAML services</name>
+
+	<parent>
+		<groupId>org.flexiblepower.defpi</groupId>
+		<artifactId>master</artifactId>
+		<version>19.10.1-SNAPSHOT</version>
+		<relativePath>../master/pom.xml</relativePath>
+	</parent>
+
+	<!-- Where to find dependencies -->
+	<pluginRepositories>
+		<pluginRepository>
+			<id>hesi-snapshot</id>
+			<name>HESI snapshot artifactory</name>
+			<url>http://ci.hesi.energy:8081/artifactory/libs-snapshot-local</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</pluginRepository>
+	</pluginRepositories>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.flexiblepower.defpi</groupId>
+			<artifactId>service</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>javax.ws.rs</groupId>
+			<artifactId>javax.ws.rs-api</artifactId>
+			<version>2.1.1</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.fasterxml.jackson.jaxrs</groupId>
+			<artifactId>jackson-jaxrs-json-provider</artifactId>
+			<version>${jackson.databind.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+			<version>${jackson.databind.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.glassfish.jersey.core</groupId>
+			<artifactId>jersey-common</artifactId>
+			<version>2.29.1</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.glassfish.jersey.core</groupId>
+			<artifactId>jersey-client</artifactId>
+			<version>2.29.1</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<!-- Add the generated code to the build path -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>3.0.0</version>
+				<executions>
+					<execution>
+						<id>add-source</id>
+						<phase>process-sources</phase>
+						<goals>
+							<goal>add-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>${project.basedir}/src/main/generated</source>
+							</sources>
+						</configuration>
+					</execution>
+					<execution>
+						<id>add-test-source</id>
+						<phase>process-test-sources</phase>
+						<goals>
+							<goal>add-test-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>${project.basedir}/src/test/generated</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Just don't generate javadocs for it -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+						<configuration>
+							<sourceFileExcludes>
+								<sourceFileExclude>**/RamlProto.java</sourceFileExclude>
+							</sourceFileExcludes>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.raml.jaxrs</groupId>
+				<artifactId>raml-to-jaxrs-maven-plugin</artifactId>
+				<version>3.0.6-SNAPSHOT</version>
+				<configuration>
+					<ramlFile>${project.basedir}/src/test/resources/humans.raml</ramlFile>
+
+					<outputDirectory>${project.basedir}/src/test/generated</outputDirectory>
+					<resourcePackage>org.flexiblepower.raml.example</resourcePackage>
+					<modelPackage>org.flexiblepower.raml.example.model</modelPackage>
+					<supportPackage>org.flexiblepower.raml.example.support</supportPackage>
+					<generateResponseClasses>false</generateResponseClasses>
+					<jsonMapper>jackson2</jsonMapper>
+					<generateTypesWith>
+						<value>jackson2</value>
+					</generateTypesWith>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<phase>generate-test-sources</phase>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

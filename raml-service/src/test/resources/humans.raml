@@ -1,0 +1,135 @@
+#%RAML 1.0
+title: ExampleRaml
+version: v1
+baseUri: https://api.github.com
+
+types:
+    HumanId:
+        properties:
+            serial: string
+            type: string
+    Gender:
+        enum: [male, female, other]
+    Limb:
+        type: object
+    Leg:
+        type: Limb
+        properties:
+            toes: integer
+    Arm:
+        type: Limb
+        properties:
+            fingers:
+              type: integer
+              default: 5
+    Person:
+        type: Human
+        discriminatorValue: person
+        properties:
+            name:
+                required: true
+                type: string
+            weight:
+                required: true
+                type: integer
+            siblings:
+                type: Human[]
+    Corpse:
+        type: Human
+        discriminatorValue: corpse
+        properties:
+            dateOfDeath:
+                required: true
+                type: date-only
+    Human:
+        type: object
+        discriminator: humanType
+        discriminatorValue: human
+        properties:
+            humanType: string
+            limbs: Limb[]
+            timeOfArrival: datetime-only
+            timeOfBirth: time-only
+            dateOfBirth: date-only
+            instantOfBirth: datetime
+            requestTime:
+                type: datetime
+                format: rfc2616
+            actualGender:
+                type: Gender
+
+/complexhumans:
+    description: Hello!!!
+    get:
+        description: getme
+        queryParameters:
+            id:
+              type: HumanId
+              required: false
+        responses:
+          200:
+            description: response
+            body:
+                application/json:
+                    type: Human
+    /{id}:
+        uriParameters:
+            id: HumanId
+        get:
+            responses:
+                200:
+                    body:
+                        application/json:
+                            type: Human
+
+/humans:
+    get:
+        queryParameters:
+            type: string
+        responses:
+            200:
+                body:
+                    application/json:
+                        type: Human[]
+                headers:
+                  boo:
+                  somethingElse:
+    /all:
+        get:
+            responses:
+                200:
+                    body:
+                        application/json:
+                            type: Human[]
+    /{id}:
+        uriParameters:
+            id: string
+        get:
+            queryParameters:
+                userType:
+                  type: string
+                  maxLength: 18
+            responses:
+                200:
+                    body:
+                        application/json:
+                            type: Human
+        put:
+            body:
+                application/json:
+                    type: Human
+            responses:
+                200:
+                  headers:
+                    someOtherHeader:
+    /person/{id}:
+        uriParameters:
+            id: string
+        get:
+            queryParameters:
+                type: string
+            responses:
+                200:
+                    body:
+                        application/json:
+                            type: Person
