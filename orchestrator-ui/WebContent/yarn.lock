@@ -34,8 +34,9 @@ angular-ui-bootstrap@~1.2.1:
   version "1.2.5"
   resolved "https://registry.yarnpkg.com/angular-ui-bootstrap/-/angular-ui-bootstrap-1.2.5.tgz#b0c1eff0bf3b7a65668984a1b81820a90dc60995"
 
-"angular-ui-codemirror@github:jpetitcolas/ui-codemirror#di":
+angular-ui-codemirror@jpetitcolas/ui-codemirror#di:
   version "0.3.0"
+  uid f1f5385799494d3260a31b12c814a7ab54b91948
   resolved "https://codeload.github.com/jpetitcolas/ui-codemirror/tar.gz/f1f5385799494d3260a31b12c814a7ab54b91948"
 
 angular-ui-router@~0.4.0:
@@ -63,8 +64,8 @@ base64-js@0.0.8:
   resolved "https://registry.yarnpkg.com/base64-js/-/base64-js-0.0.8.tgz#1101e9544f4a76b1bc3b26d452ca96d7a35e7978"
 
 bootstrap-sass@^3.3.7:
-  version "3.3.7"
-  resolved "https://registry.yarnpkg.com/bootstrap-sass/-/bootstrap-sass-3.3.7.tgz#6596c7ab40f6637393323ab0bc80d064fc630498"
+  version "3.4.1"
+  resolved "https://registry.yarnpkg.com/bootstrap-sass/-/bootstrap-sass-3.4.1.tgz#6843c73b1c258a0ac5cb2cc6f6f5285b664a8e9a"
 
 browserify-zlib@~0.1.4:
   version "0.1.4"
