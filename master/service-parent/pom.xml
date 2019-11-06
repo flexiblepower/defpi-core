@@ -6,7 +6,7 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>service-parent</artifactId>
-	<version>19.10.1-SNAPSHOT</version>
+	<version>19.10.1</version>
 	<packaging>pom</packaging>
 
 	<name>dEF-Pi service parent POM</name>
@@ -65,7 +65,7 @@
 		<java.target>1.8</java.target>
 		<license.licenseName>apache_v2</license.licenseName>
 
-		<defpi.version>19.10.1-SNAPSHOT</defpi.version>
+		<defpi.version>19.10.1</defpi.version>
 
 		<defpi.sources.generated>${project.build.directory}/generated-sources/java</defpi.sources.generated>
 		<defpi.resources.generated>${project.build.directory}/generated-resources/defpi</defpi.resources.generated>
@@ -188,13 +188,6 @@
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-javadoc-plugin</artifactId>
 					<version>3.0.1</version>
-					<configuration>
-						<additionalOptions>
-							<additionalOption>--add-modules java.xml.bind</additionalOption>
-							<additionalOption>--add-modules java.xml.ws.annotation</additionalOption>
-							<!-- additionalOptions>-html5</additionalOptions -->
-						</additionalOptions>
-					</configuration>
 				</plugin>
 
 				<plugin>
@@ -461,6 +454,26 @@
 					<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
 				</repository>
 			</distributionManagement>
+
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>1.6</version>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+
 		</profile>
 
 	</profiles>

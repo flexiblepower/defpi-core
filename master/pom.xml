@@ -5,7 +5,7 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>master</artifactId>
-	<version>19.10.1-SNAPSHOT</version>
+	<version>19.10.1</version>
 	<packaging>pom</packaging>
 
 	<name>dEF-Pi master POM</name>
@@ -186,10 +186,9 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-slf4j-impl</artifactId>
-			<version>${log4j.version}</version>
-			<scope>runtime</scope>
+			<version>2.12.1</version>
+			<scope>test</scope>
 		</dependency>
-
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-api</artifactId>
@@ -451,6 +450,20 @@
 			</distributionManagement>
 
 			<build>
+				<pluginManagement>
+					<plugins>
+						<plugin>
+							<groupId>com.spotify</groupId>
+							<artifactId>docker-maven-plugin</artifactId>
+
+							<configuration>
+								<registryUrl>docker.io</registryUrl>
+								<serverId>docker.io</serverId>
+							</configuration>
+						</plugin>
+					</plugins>
+				</pluginManagement>
+
 				<plugins>
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>

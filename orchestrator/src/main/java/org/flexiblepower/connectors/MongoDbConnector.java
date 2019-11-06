@@ -146,6 +146,7 @@ public final class MongoDbConnector {
     /**
      * List object; It is possible to paginate, sort and filter all objects depending on the provided arguments.
      *
+     * @param <T> Generic class type to list from the database
      * @param type The type of object to retrieve
      * @param page The page to view
      * @param perPage The amount of objects to view per page, and thus the maximum amount of objects returned
@@ -187,6 +188,7 @@ public final class MongoDbConnector {
     /**
      * List object of a specific type
      *
+     * @param <T> Generic class type to list from the database
      * @param type The type of object to retrieve
      * @return A list of all objects in the mongo db of the specified type
      */
@@ -197,6 +199,7 @@ public final class MongoDbConnector {
     /**
      * Get object with a specific object id
      *
+     * @param <T> Generic class type of the object to get from the database
      * @param type The type of object to retrieve
      * @param id The ObjectId to search for
      * @return A list of all objects in the mongo db of the specified type
@@ -208,6 +211,7 @@ public final class MongoDbConnector {
     /**
      * Get a list of objects with thea specific object ids
      *
+     * @param <T> Generic class type of the object to get from the database
      * @param type The type of object to retrieve
      * @param ids The ObjectIds to search for
      * @return A list of the specified objects in the mongo db
@@ -220,6 +224,7 @@ public final class MongoDbConnector {
      * Count all objects of a particular type currently stored in the database; possibly count the subset that match a
      * set of criteria
      *
+     * @param <T> Generic class type of the object to count the database
      * @param type The type of object to count
      * @param filter A filter to count a specific filtered subset of objects, may be empty
      * @return The number of objects that match the filter
