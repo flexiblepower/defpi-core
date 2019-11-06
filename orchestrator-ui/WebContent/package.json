@@ -1,5 +1,7 @@
 {
+  "name": "defpi-orchestrator-ui",
   "dependencies": {
     "ng-admin": "^1.0.5"
-  }
+  },
+  "version": "19.10.1"
 }
