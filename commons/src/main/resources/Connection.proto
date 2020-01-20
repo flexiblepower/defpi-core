@@ -21,6 +21,7 @@ message ConnectionMessage {
   optional string remoteInterfaceId = 7;
   optional string remoteProcessId = 8;
   optional string remoteServiceId = 9;
+  optional string remoteProcessName = 10;
 }
 
 enum ConnectionState {
