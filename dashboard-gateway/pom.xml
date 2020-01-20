@@ -35,10 +35,11 @@
 	</developers>
 
 	<dependencies>
+		<!-- https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-server -->
 		<dependency>
-			<groupId>org.eclipse.jetty</groupId>
-			<artifactId>jetty-server</artifactId>
-			<version>9.4.21.v20190926</version>
+		    <groupId>org.eclipse.jetty</groupId>
+		    <artifactId>jetty-server</artifactId>
+		    <version>9.4.26.v20200117</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>
