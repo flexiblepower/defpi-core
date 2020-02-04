@@ -64,13 +64,13 @@
 
 		<!-- The plugin needs the protobuf version to obtain the compiler from 
 			maven central explicitly -->
-		<protobuf.version>3.11.1</protobuf.version>
+		<protobuf.version>3.11.3</protobuf.version>
 		<jackson.databind.version>2.10.2</jackson.databind.version>
 		<json.version>20190722</json.version>
 		<mongodb.version>3.12.1</mongodb.version>
 		<log4j.version>2.13.0</log4j.version>
 		<swagger.version>1.6.0</swagger.version>
-		<junit.version>5.5.2</junit.version>
+		<junit.version>5.6.0</junit.version>
 	</properties>
 
 	<prerequisites>
@@ -180,7 +180,7 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>1.7.25</version>
+			<version>1.7.30</version>
 		</dependency>
 
 		<dependency>
@@ -428,6 +428,7 @@
 							<goal>jar</goal>
 						</goals>
 						<configuration>
+      						<source>8</source>
 							<quiet>true</quiet>
 							<!-- additionalOptions>-html5</additionalOptions -->
 						</configuration>
