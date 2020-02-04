@@ -9,12 +9,12 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>19.10.1</version>
+		<version>20.04-SNAPSHOT</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
 	<properties>
-		<jersey.version>2.29.1</jersey.version>
+		<jersey.version>2.30</jersey.version>
 
 		<project.resourcedir>${project.basedir}/src/main/resources</project.resourcedir>
 		<mainClass>org.flexiblepower.orchestrator.Main</mainClass>
@@ -122,15 +122,21 @@
 			<artifactId>jaxb-runtime</artifactId>
 			<version>2.3.2</version>
 		</dependency>
+		
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-slf4j-impl</artifactId>
+			<version>${log4j.version}</version>
+			<scope>runtime</scope>
+		</dependency>
 	</dependencies>
-
 
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>pl.project13.maven</groupId>
 				<artifactId>git-commit-id-plugin</artifactId>
-				<version>2.2.5</version>
+				<version>4.0.0</version>
 				<executions>
 					<execution>
 						<id>get-the-git-infos</id>

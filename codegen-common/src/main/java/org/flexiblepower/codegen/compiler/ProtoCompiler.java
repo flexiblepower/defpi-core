@@ -68,7 +68,7 @@ public abstract class ProtoCompiler implements InterfaceCompiler {
         synchronized (ProtoCompiler.downloadFileLock) {
             if (!this.compilerFile.exists()) {
                 Files.createDirectories(this.compilerFile.toPath().getParent());
-                PluginUtils.downloadFile(new URL("http://central.maven.org/maven2/com/google/protobuf/protoc/"
+                PluginUtils.downloadFile(new URL("https://repo1.maven.org/maven2/com/google/protobuf/protoc/"
                         + this.protobufVersion + "/" + this.compilerFile.getName()), this.compilerFile);
                 this.compilerFile.setExecutable(true);
             }

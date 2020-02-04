@@ -332,11 +332,14 @@ public class ProcessConnector {
                 createOrResumeEndpoint(final Connection connection, final Endpoint endpoint, final ModeType type) {
             final Endpoint otherEndpoint = connection.getOtherEndpoint(endpoint);
             String remoteServiceId;
+            String remoteProcessName;
             try {
                 final Process otherProcess = ProcessManager.getInstance().getProcess(otherEndpoint.getProcessId());
                 remoteServiceId = otherProcess.getServiceId();
+                remoteProcessName = otherProcess.getName();
             } catch (final ProcessNotFoundException e) {
                 remoteServiceId = null;
+                remoteProcessName = null;
             }
 
             InterfaceVersion interfaceVersion;
@@ -373,6 +376,7 @@ public class ProcessConnector {
                     .setRemoteProcessId(otherEndpoint.getProcessId().toString())
                     .setRemoteInterfaceId(otherEndpoint.getInterfaceId())
                     .setRemoteServiceId(remoteServiceId)
+                    .setRemoteProcessName(remoteProcessName)
                     .build();
 
             final ConnectionHandshake response = this.send(connectionMessage, ConnectionHandshake.class);
