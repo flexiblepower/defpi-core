@@ -62,11 +62,13 @@ public class ConnectionIntegrationTest {
                         info,
                         "",
                         "",
+                        "",
                         "");
                 final TCPConnection mc2 = new TCPConnection("CIT",
                         ConnectionIntegrationTest.TEST_PORT,
                         "localhost",
                         info,
+                        "",
                         "",
                         "",
                         "")) {
@@ -91,11 +93,13 @@ public class ConnectionIntegrationTest {
                         info,
                         "",
                         "",
+                        "",
                         "");
                 final TCPConnection mc2 = new TCPConnection("CIT",
                         ConnectionIntegrationTest.TEST_PORT,
                         "localhost",
                         info,
+                        "",
                         "",
                         "",
                         "")) {
@@ -136,12 +140,14 @@ public class ConnectionIntegrationTest {
                         info,
                         "",
                         "",
+                        "",
                         "")) {
             try (
                     final TCPConnection mc1 = new TCPConnection("CIT",
                             ConnectionIntegrationTest.TEST_PORT,
                             "",
                             info,
+                            "",
                             "",
                             "",
                             "")) {
@@ -165,6 +171,7 @@ public class ConnectionIntegrationTest {
                             ConnectionIntegrationTest.TEST_PORT,
                             "",
                             info,
+                            "",
                             "",
                             "",
                             "")) {
