@@ -6,7 +6,7 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>service-parent</artifactId>
-	<version>20.04-SNAPSHOT</version>
+	<version>20.04.1</version>
 	<packaging>pom</packaging>
 
 	<name>dEF-Pi service parent POM</name>
@@ -65,7 +65,7 @@
 		<java.target>1.8</java.target>
 		<license.licenseName>apache_v2</license.licenseName>
 
-		<defpi.version>20.04-SNAPSHOT</defpi.version>
+		<defpi.version>20.04.1</defpi.version>
 
 		<defpi.sources.generated>${project.build.directory}/generated-sources/java</defpi.sources.generated>
 		<defpi.resources.generated>${project.build.directory}/generated-resources/defpi</defpi.resources.generated>
@@ -73,7 +73,7 @@
 		<defpi.dockerfolder.x86>docker</defpi.dockerfolder.x86>
 		<defpi.dockerfolder.arm>docker-arm</defpi.dockerfolder.arm>
 
-		<protobuf.version>3.11.1</protobuf.version>
+		<protobuf.version>3.12.2</protobuf.version>
 
 		<!-- Main class for any service should be the main from the library -->
 		<mainClass>org.flexiblepower.service.ServiceMain</mainClass>
