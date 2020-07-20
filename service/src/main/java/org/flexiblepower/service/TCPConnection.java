@@ -121,6 +121,7 @@ final class TCPConnection implements Connection, Closeable {
 
     private volatile ConnectionState state;
     private final String remoteProcessId;
+    private final String remoteProcessName;
     private final String remoteServiceId;
     private final String remoteInterfaceId;
 
@@ -132,6 +133,7 @@ final class TCPConnection implements Connection, Closeable {
      *            client, or an empty string when it should act as a server.
      * @param info the InterfaceInfo the appropriate ConnectionHandler is annotated with.
      * @param remoteProcessId The process ID of the remote endpoint as specified by the orchestrator
+     * @param remoteProcessName The process name of the remote endpoint as specified by the orchestrator
      * @param remoteServiceId The service ID of the remote process as specified by the orchestrator
      * @param remoteInterfaceId The interface ID of the remote service
      */
@@ -141,6 +143,7 @@ final class TCPConnection implements Connection, Closeable {
             final String targetAddress,
             final InterfaceInfo info,
             final String remoteProcessId,
+            final String remoteProcessName,
             final String remoteServiceId,
             final String remoteInterfaceId) {
         this.state = ConnectionState.STARTING;
@@ -149,6 +152,7 @@ final class TCPConnection implements Connection, Closeable {
         this.targetAddress = targetAddress;
         this.info = info;
         this.remoteProcessId = remoteProcessId;
+        this.remoteProcessName = remoteProcessName;
         this.remoteServiceId = remoteServiceId;
         this.remoteInterfaceId = remoteInterfaceId;
 
@@ -229,6 +233,11 @@ final class TCPConnection implements Connection, Closeable {
     @Override
     public String remoteProcessId() {
         return this.remoteProcessId;
+    }
+
+    @Override
+    public String remoteProcessName() {
+        return this.remoteProcessName;
     }
 
     @Override

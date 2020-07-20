@@ -97,7 +97,7 @@ public abstract class ProtoCompiler implements InterfaceCompiler {
      * @return The name of the current system architecture (e.g x86_64, x64_32).
      */
     static String getArchitecture() {
-        return System.getProperty("os.arch").equals("amd64") ? "x86_64" : "x86_32";
+        return System.getProperty("os.arch").contains("64") ? "x86_64" : "x86_32";
     }
 
     /**

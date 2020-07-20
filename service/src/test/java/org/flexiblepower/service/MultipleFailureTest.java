@@ -69,12 +69,14 @@ public class MultipleFailureTest {
                         info,
                         "",
                         "",
+                        "",
                         "")) {
             try (
                     final TCPConnection mc1 = new TCPConnection("CIT",
                             MultipleFailureTest.TEST_PORT,
                             "",
                             info,
+                            "",
                             "",
                             "",
                             "")) {

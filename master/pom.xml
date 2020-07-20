@@ -5,7 +5,7 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>master</artifactId>
-	<version>20.04</version>
+	<version>20.04.1</version>
 	<packaging>pom</packaging>
 
 	<name>dEF-Pi master POM</name>
@@ -64,13 +64,13 @@
 
 		<!-- The plugin needs the protobuf version to obtain the compiler from 
 			maven central explicitly -->
-		<protobuf.version>3.11.3</protobuf.version>
-		<jackson.databind.version>2.10.2</jackson.databind.version>
-		<json.version>20190722</json.version>
-		<mongodb.version>3.12.1</mongodb.version>
-		<log4j.version>2.13.0</log4j.version>
-		<swagger.version>1.6.0</swagger.version>
-		<junit.version>5.6.0</junit.version>
+		<protobuf.version>3.12.2</protobuf.version>
+		<jackson.databind.version>2.11.1</jackson.databind.version>
+		<json.version>20200518</json.version>
+		<mongodb.version>3.12.6</mongodb.version>
+		<log4j.version>2.13.3</log4j.version>
+		<swagger.version>1.6.2</swagger.version>
+		<junit.version>5.6.2</junit.version>
 	</properties>
 
 	<prerequisites>
@@ -116,7 +116,7 @@
 			<dependency>
 				<groupId>org.projectlombok</groupId>
 				<artifactId>lombok</artifactId>
-				<version>1.18.10</version>
+				<version>1.18.12</version>
 				<scope>provided</scope>
 			</dependency>
 
@@ -147,7 +147,7 @@
 			<dependency>
 				<groupId>org.json</groupId>
 				<artifactId>json</artifactId>
-				<version>20190722</version>
+				<version>${json.version}</version>
 			</dependency>
 
 			<dependency>
@@ -219,7 +219,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
-					<version>3.0.0-M2</version>
+					<version>3.0.0-M5</version>
 					<configuration>
 						<systemProperties>
 							<property>
