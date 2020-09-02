@@ -78,7 +78,10 @@ public class RamlResourceRegistry {
                 try {
                     final Object resource = m.invoke(handler);
                     this.resources.put(clazz.getAnnotation(Path.class).value(), new MethodRegistry(resource));
-                } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+                } catch (NullPointerException
+                        | IllegalAccessException
+                        | IllegalArgumentException
+                        | InvocationTargetException e) {
                     RamlResourceRegistry.log.warn("Unable to add resource {} for interface {}",
                             clazz.getSimpleName(),
                             handler.getClass());
