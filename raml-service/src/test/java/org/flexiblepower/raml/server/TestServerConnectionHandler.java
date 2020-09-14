@@ -86,7 +86,11 @@ public class TestServerConnectionHandler implements ConnectionHandler {
 
             @Override
             public void putHumansById(final String id, final Human entity) {
-                System.out.println(Double.parseDouble(((Person) entity).getName()));
+                if (entity instanceof Person) {
+                    System.out.println(Double.parseDouble(((Person) entity).getName()));
+                } else {
+                    System.out.println(entity.getTimeOfBirth());
+                }
             }
 
             @Override

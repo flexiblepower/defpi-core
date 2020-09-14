@@ -207,7 +207,9 @@ public class RamlProxyClient {
 
             // TODO add generic return types such as List, Set, Map, Array
             final Class<?> returnClass = method.getReturnType();
-            if ((tRef != null)
+            if (!response.hasBody()) {
+                return null;
+            } else if ((tRef != null)
                     && (Map.class.isAssignableFrom(returnClass) || Collection.class.isAssignableFrom(returnClass))) {
                 return RamlProxyClient.om.readValue(response.getBody().toByteArray(), tRef);
             } else {
