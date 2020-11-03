@@ -182,19 +182,16 @@ public class TCPSocketTest {
         final Thread serverThread = new Thread(() -> {
             try {
                 TCPSocket server = TCPSocket.asServer(TCPSocketTest.TEST_PORT);
-                while (true) {
+                while (!Thread.currentThread().isInterrupted()) {
                     try {
-                        System.out.println(new String(server.read()));
+                        server.read(100);
                     } catch (final Exception e) {
+                        // Reached end of stream...
                         server.close();
-                        if (!Thread.currentThread().isInterrupted()) {
-                            // Rebuild!
-                            server = TCPSocket.asServer(TCPSocketTest.TEST_PORT);
-                        } else {
-                            break;
-                        }
+                        server = TCPSocket.asServer(TCPSocketTest.TEST_PORT);
                     }
                 }
+                server.close();
             } catch (final Exception e) {
                 e.printStackTrace();
             }
@@ -258,7 +255,7 @@ public class TCPSocketTest {
             } else {
                 clientSocket.close(); // Same effect
             }
-            client1.join(); // Wait until the thread completes
+            client1.join(10); // Wait until the thread completes
             Assertions.assertFalse(clientSocket.isConnected());
             Assertions.assertTrue(clientSocket.isClosed());
 
@@ -272,8 +269,9 @@ public class TCPSocketTest {
             clientSocket2.waitUntilConnected();
             Assertions.assertTrue(clientSocket2.isConnected());
             client2.interrupt(); // Will make sure clientSocket2 is closed
+            client2.join(100);
             serverThread.interrupt();
-            serverThread.join(); // Wait until the thread completes
+            serverThread.join(100); // Wait until the thread completes
 
             Assertions.assertFalse(clientSocket2.isConnected());
             Assertions.assertTrue(clientSocket2.isClosed());
