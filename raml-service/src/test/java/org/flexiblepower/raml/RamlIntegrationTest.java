@@ -20,6 +20,7 @@
 package org.flexiblepower.raml;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -30,7 +31,9 @@ import org.flexiblepower.raml.client.RamlProxyClient;
 import org.flexiblepower.raml.client.TestClientConnectionHandler;
 import org.flexiblepower.raml.client.TestConnection;
 import org.flexiblepower.raml.example.Humans;
+import org.flexiblepower.raml.example.model.Gender;
 import org.flexiblepower.raml.example.model.Human;
+import org.flexiblepower.raml.example.model.HumanImpl;
 import org.flexiblepower.raml.example.model.Person;
 import org.flexiblepower.raml.example.model.PersonImpl;
 import org.flexiblepower.raml.server.TestServerConnectionHandler;
@@ -66,6 +69,11 @@ public class RamlIntegrationTest {
     }
 
     @Test
+    public void runSubTypeTest() {
+        System.out.println(RamlIntegrationTest.client.getHumans().getHumansPersonById("henk", "doctor"));
+    }
+
+    @Test
     public void runQueryTest() {
         Assertions.assertEquals("Hello Wrapper!", RamlIntegrationTest.client.getExample().getPersonalText("Wrapper"));
     }
@@ -91,6 +99,14 @@ public class RamlIntegrationTest {
         Assertions.assertThrows(NumberFormatException.class,
                 () -> RamlIntegrationTest.client.getExample()
                         .setStuff(100, "waarde", 25.0, Collections.singletonMap("waarde", "zeven")));
+    }
+
+    @Test
+    public void runPutGeneratedTest() {
+        final Human h = new HumanImpl();
+        h.setActualGender(Gender.MALE);
+        h.setDateOfBirth(new Date());
+        RamlIntegrationTest.client.getHumans().putHumansById("henk", h);
     }
 
     @Test

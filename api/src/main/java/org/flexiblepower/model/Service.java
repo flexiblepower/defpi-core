@@ -25,7 +25,10 @@ import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.NoArgsConstructor;
 import lombok.Value;
 
 /**
@@ -39,6 +42,8 @@ import lombok.Value;
  */
 @Value
 @Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(force = true)  // For Jackson serialization
 public class Service {
 
     private final String name;

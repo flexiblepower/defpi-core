@@ -9,12 +9,12 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>20.04</version>
+		<version>20.10</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
 	<properties>
-		<jersey.version>2.30</jersey.version>
+		<jersey.version>2.31</jersey.version>
 
 		<project.resourcedir>${project.basedir}/src/main/resources</project.resourcedir>
 		<mainClass>org.flexiblepower.orchestrator.Main</mainClass>

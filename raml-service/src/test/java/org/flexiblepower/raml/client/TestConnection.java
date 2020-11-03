@@ -70,6 +70,11 @@ public class TestConnection implements Connection {
     }
 
     @Override
+    public String remoteProcessName() {
+        return null;
+    }
+
+    @Override
     public String remoteServiceId() {
         return null;
     }

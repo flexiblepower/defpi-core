@@ -10,7 +10,7 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>20.04</version>
+		<version>20.10</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
@@ -72,6 +72,7 @@
 		<dependency>
 			<groupId>org.raml.jaxrs</groupId>
 			<artifactId>jaxrs-code-generator</artifactId>
+            <!-- The required changes will be available in release 3.0.8 -->
 			<version>3.0.6-SNAPSHOT</version>
 			<exclusions>
 				<exclusion>

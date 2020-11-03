@@ -50,6 +50,7 @@ public class ApiException extends WebApplicationException {
      * @param message The message to display on the page. If {@code null}, a default message will be used
      * @param cause The cause of the exception, if {@code null} nothing will be displayed
      */
+    @SuppressWarnings("resource")
     protected ApiException(final Status status, final String title, final String message, final Throwable cause) {
         super(Response.status(status)
                 .entity(ApiException.createErrorPage(title, message, cause))

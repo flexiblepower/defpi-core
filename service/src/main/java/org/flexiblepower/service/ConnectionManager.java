@@ -122,6 +122,7 @@ public final class ConnectionManager implements Closeable {
                     message.getTargetAddress(),
                     info,
                     message.getRemoteProcessId(),
+                    message.getRemoteProcessName(),
                     message.getRemoteServiceId(),
                     message.getRemoteInterfaceId());
             this.connections.put(message.getConnectionId(), conn);

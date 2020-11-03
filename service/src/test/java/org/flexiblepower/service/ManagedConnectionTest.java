@@ -45,6 +45,7 @@ public class ManagedConnectionTest {
                         TestService.class.getAnnotation(InterfaceInfo.class),
                         "",
                         "",
+                        "",
                         "")) {
             Assertions.assertEquals(ConnectionState.STARTING, conn.getState());
             conn.goToTerminatedState();
