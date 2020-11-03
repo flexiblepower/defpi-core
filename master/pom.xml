@@ -5,7 +5,7 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>master</artifactId>
-	<version>20.10-SNAPSHOT</version>
+	<version>20.10</version>
 	<packaging>pom</packaging>
 
 	<name>dEF-Pi master POM</name>

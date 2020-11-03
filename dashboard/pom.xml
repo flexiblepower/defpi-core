@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>defpi-service</artifactId>
-		<version>20.10-SNAPSHOT</version>
+		<version>20.10</version>
 		<relativePath>../master/service-parent/defpi-service/pom.xml</relativePath>
 	</parent>
 
