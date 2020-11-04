@@ -92,6 +92,12 @@
 
 	<!-- Where to push the maven compiled jars -->
 	<distributionManagement>
+		<repository>
+			<id>hesi</id>
+			<name>HESI artifactory</name>
+			<url>http://ci.hesi.energy:8081/artifactory/libs-release-local</url>
+		</repository>
+	
 		<snapshotRepository>
 			<id>ossrh</id>
 			<name>Sonatype snapshot repository</name>

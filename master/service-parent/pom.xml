@@ -88,6 +88,12 @@
 
 	<!-- Where to push the service parent itself, should not be used by children -->
 	<distributionManagement>
+		<repository>
+			<id>hesi</id>
+			<name>HESI artifactory</name>
+			<url>http://ci.hesi.energy:8081/artifactory/libs-release-local</url>
+		</repository>
+	
 		<snapshotRepository>
 			<id>ossrh</id>
 			<name>Sonatype snapshot repository</name>
