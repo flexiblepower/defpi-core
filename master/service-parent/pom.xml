@@ -65,7 +65,7 @@
 		<java.target>1.8</java.target>
 		<license.licenseName>apache_v2</license.licenseName>
 
-		<defpi.version>20.10</defpi.version>
+		<defpi.version>21.04-SNAPSHOT</defpi.version>
 
 		<defpi.sources.generated>${project.build.directory}/generated-sources/java</defpi.sources.generated>
 		<defpi.resources.generated>${project.build.directory}/generated-resources/defpi</defpi.resources.generated>
