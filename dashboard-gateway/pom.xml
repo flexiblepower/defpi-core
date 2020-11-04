@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>defpi-service</artifactId>
-		<version>20.10</version>
+		<version>21.04-SNAPSHOT</version>
 		<relativePath>../master/service-parent/defpi-service/pom.xml</relativePath>
 	</parent>
 
@@ -39,7 +39,7 @@
 		<dependency>
 		    <groupId>org.eclipse.jetty</groupId>
 		    <artifactId>jetty-server</artifactId>
-		    <version>9.4.30.v20200611</version>
+		    <version>9.4.32.v20200930</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>

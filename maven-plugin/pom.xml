@@ -10,7 +10,7 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>20.10</version>
+		<version>21.04-SNAPSHOT</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
