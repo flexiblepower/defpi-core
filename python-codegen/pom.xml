@@ -78,25 +78,6 @@
 			<properties>
 				<docker.imageName>docker.io/flexiblepower/defpi-codegen-python</docker.imageName>
 			</properties>
-
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.codehaus.mojo</groupId>
-						<artifactId>license-maven-plugin</artifactId>
-						<version>1.16</version>
-						<executions>
-							<execution>
-								<id>add-third-party</id>
-								<goals>
-									<goal>add-third-party</goal>
-								</goals>
-								<phase>generate-sources</phase>
-							</execution>
-						</executions>
-					</plugin>
-				</plugins>
-			</build>
 		</profile>
 
 	</profiles>

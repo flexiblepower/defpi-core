@@ -73,7 +73,8 @@
 		<defpi.dockerfolder.x86>docker</defpi.dockerfolder.x86>
 		<defpi.dockerfolder.arm>docker-arm</defpi.dockerfolder.arm>
 
-		<protobuf.version>3.12.2</protobuf.version>
+		<!-- This property is used by the defpi-maven-plugin -->
+		<protobuf.version>3.13.0</protobuf.version>
 
 		<!-- Main class for any service should be the main from the library -->
 		<mainClass>org.flexiblepower.service.ServiceMain</mainClass>
@@ -132,7 +133,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
-					<version>3.8.0</version>
+					<version>3.8.1</version>
 					<configuration>
 						<source>${java.source}</source>
 						<target>${java.target}</target>
@@ -142,7 +143,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
-					<version>3.0.0-M2</version>
+					<version>3.0.0-M5</version>
 					<configuration>
 						<systemProperties>
 							<property>
@@ -163,7 +164,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-source-plugin</artifactId>
-					<version>3.0.1</version>
+					<version>3.2.1</version>
 				</plugin>
 
 				<plugin>
@@ -181,7 +182,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-jar-plugin</artifactId>
-					<version>3.1.1</version>
+					<version>3.2.0</version>
 				</plugin>
 
 				<plugin>
@@ -193,13 +194,13 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-javadoc-plugin</artifactId>
-					<version>3.0.1</version>
+					<version>3.2.0</version>
 				</plugin>
 
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-site-plugin</artifactId>
-					<version>3.7.1</version>
+					<version>3.9.1</version>
 				</plugin>
 			</plugins>
 		</pluginManagement>
@@ -238,7 +239,7 @@
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>build-helper-maven-plugin</artifactId>
-						<version>3.0.0</version>
+						<version>3.2.0</version>
 						<executions>
 							<execution>
 								<id>add-source</id>
@@ -305,7 +306,7 @@
 					<!-- The assembly plugin puts all java code in one jar -->
 					<plugin>
 						<artifactId>maven-assembly-plugin</artifactId>
-						<version>3.1.1</version>
+						<version>3.3.0</version>
 						<configuration>
 							<archive>
 								<manifest>
@@ -332,7 +333,7 @@
 					<plugin>
 						<groupId>com.spotify</groupId>
 						<artifactId>docker-maven-plugin</artifactId>
-						<version>1.2.0</version>
+						<version>1.2.2</version>
 
 						<dependencies>
 							<dependency>
