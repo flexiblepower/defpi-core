@@ -35,7 +35,7 @@ public class ProcessNotFoundException extends NotFoundException {
      * @param processId Create an execption that the process with the provided ID cannot be found.
      */
     public ProcessNotFoundException(final ObjectId processId) {
-        super("Could not find Process with id " + processId.toString());
+        super("Could not find Process with id " + (processId == null ? "null" : processId.toString()));
     }
 
 }
