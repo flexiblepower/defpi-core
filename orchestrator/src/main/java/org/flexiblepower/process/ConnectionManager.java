@@ -110,6 +110,10 @@ public class ConnectionManager {
                 .submit(new CreateConnectionEndpoint(process1.getUserId(), connection, connection.getEndpoint2()));
     }
 
+    /**
+     * Checks whether the interface supports multiple connections, and if not, checks whether there already is another
+     * connection connected.
+     */
     private static void validateMultipleConnect(final Connection newConnection) throws ProcessNotFoundException,
             ServiceNotFoundException,
             ConnectionException {
@@ -179,6 +183,12 @@ public class ConnectionManager {
         if ((c.getEndpoint1().getInterfaceId() == null) || c.getEndpoint1().getInterfaceId().isEmpty()
                 || (c.getEndpoint2().getInterfaceId() == null) || c.getEndpoint2().getInterfaceId().isEmpty()) {
             throw new IllegalArgumentException("Interface identifier cannot be empty");
+        }
+
+        if (MongoDbConnector.getInstance().connectionExists(c)) {
+            throw new IllegalArgumentException(
+                    "There already exists a connection from " + c.getEndpoint1().getProcessId() + " to "
+                            + c.getEndpoint2().getProcessId() + " between the same interfaces.");
         }
 
         try {
@@ -313,6 +323,9 @@ public class ConnectionManager {
                                 final Connection.Endpoint ep2 = new Connection.Endpoint(otherProcess.getId(),
                                         otherIntface.getId());
                                 final Connection connection = new Connection(null, ep1, ep2);
+                                if (MongoDbConnector.getInstance().connectionExists(connection)) {
+                                    continue;
+                                }
                                 try {
                                     ConnectionManager.getInstance().createConnection(connection);
                                 } catch (final ProcessNotFoundException e) {
