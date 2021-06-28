@@ -95,7 +95,7 @@
 		<repository>
 			<id>hesi</id>
 			<name>HESI artifactory</name>
-			<url>http://ci.hesi.energy:8081/artifactory/libs-release-local</url>
+			<url>https://ci.hesi.energy:8081/artifactory/libs-release-local</url>
 		</repository>
 	
 		<snapshotRepository>

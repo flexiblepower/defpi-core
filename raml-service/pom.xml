@@ -18,7 +18,7 @@
 		<pluginRepository>
 			<id>hesi-snapshot</id>
 			<name>HESI snapshot artifactory</name>
-			<url>http://ci.hesi.energy:8081/artifactory/libs-snapshot-local</url>
+			<url>https://ci.hesi.energy:8081/artifactory/libs-snapshot-local</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
