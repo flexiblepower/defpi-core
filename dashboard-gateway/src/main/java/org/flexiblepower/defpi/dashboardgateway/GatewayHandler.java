@@ -9,9 +9,9 @@ package org.flexiblepower.defpi.dashboardgateway;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -137,7 +138,7 @@ public class GatewayHandler extends AbstractHandler {
         for (final String line : content.split("&")) {
             if (line.contains("=")) {
                 final String[] split = line.split("=");
-                params.put(split[0], split[1]);
+                params.put(URLDecoder.decode(split[0], "UTF-8"), URLDecoder.decode(split[1], "UTF-8"));
             }
         }
         return params;
@@ -176,8 +177,8 @@ public class GatewayHandler extends AbstractHandler {
                         .warn("User " + username + " logged in, but there is no dashboard found for this user");
                 response.setHeader("content-type", "text/html");
                 response.setHeader(GatewayHandler.NO_CACHE_KEY, GatewayHandler.NO_CACHE_VALUE);
-                response.getWriter().print(
-                        "<html><body><h1>No dashboard found</h1><p><a href=\"/logout\">Logout</a></p></body></html>");
+                response.getWriter()
+                        .print("<html><body><h1>No dashboard found</h1><p><a href=\"/logout\">Logout</a></p></body></html>");
                 response.getWriter().close();
             } else {
                 handler.handle(target, baseRequest, request, response);

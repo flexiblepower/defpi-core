@@ -21,6 +21,7 @@ package org.flexiblepower.raml.client;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 import org.flexiblepower.proto.RamlProto.RamlResponse;
 import org.flexiblepower.service.ConnectionHandler;
@@ -36,6 +37,8 @@ import org.slf4j.LoggerFactory;
 public class RamlResponseHandler {
 
     private static final Logger log = LoggerFactory.getLogger(RamlResponseHandler.class);
+    public static final long TIMEOUT_MILLISECONDS = 30000;
+
     private static Map<Integer, Object> requestLocks = new HashMap<>();
     private static Map<Integer, RamlResponse> responses = new HashMap<>();
 
@@ -61,8 +64,10 @@ public class RamlResponseHandler {
      * @param messageId The id of the message to get the response of
      * @return The RAML response to the message with the provided id
      * @throws InterruptedException When the thread is interrupted before the message arrives
+     * @throws TimeoutException When more than {@value #TIMEOUT_MILLISECONDS} milliseconds passed since waiting for the
+     *             response.
      */
-    synchronized static RamlResponse getResponse(final int messageId) throws InterruptedException {
+    synchronized static RamlResponse getResponse(final int messageId) throws InterruptedException, TimeoutException {
         if (RamlResponseHandler.responses.containsKey(messageId)) {
             return RamlResponseHandler.responses.remove(messageId);
         }
@@ -72,14 +77,14 @@ public class RamlResponseHandler {
         }
 
         synchronized (RamlResponseHandler.requestLocks.get(messageId)) {
-            RamlResponseHandler.requestLocks.get(messageId).wait();
+            RamlResponseHandler.requestLocks.get(messageId).wait(RamlResponseHandler.TIMEOUT_MILLISECONDS);
         }
 
         if (RamlResponseHandler.responses.containsKey(messageId)) {
             return RamlResponseHandler.responses.remove(messageId);
         } else {
-            RamlResponseHandler.log.warn("Unable to get response from RAML");
-            return null;
+            RamlResponseHandler.log.error("Unable to get response from RAML");
+            throw new TimeoutException("RAML request timed out.");
         }
     }
 

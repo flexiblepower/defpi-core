@@ -10,7 +10,7 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>21.04-SNAPSHOT</version>
+		<version>21.06</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
@@ -22,7 +22,7 @@
 		<repository>
 			<id>hesi-snapshot</id>
 			<name>HESI snapshot artifactory</name>
-			<url>http://ci.hesi.energy:8081/artifactory/libs-snapshot-local</url>
+			<url>https://ci.hesi.energy/artifactory/libs-snapshot-local</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
@@ -33,13 +33,13 @@
 		<dependency>
 			<groupId>org.apache.maven</groupId>
 			<artifactId>maven-plugin-api</artifactId>
-			<version>3.6.3</version>
+			<version>3.8.1</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.apache.maven.plugin-tools</groupId>
 			<artifactId>maven-plugin-annotations</artifactId>
-			<version>3.6.0</version>
+			<version>3.6.1</version>
 		</dependency>
 
 		<dependency>
@@ -60,7 +60,7 @@
 				a JRE -->
 			<groupId>org.glassfish.jaxb</groupId>
 			<artifactId>jaxb-xjc</artifactId>
-			<version>2.4.0-b180830.0438</version>
+			<version>3.0.1</version>
 		</dependency>
 
 		<dependency>

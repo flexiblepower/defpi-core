@@ -54,7 +54,7 @@ import org.slf4j.LoggerFactory;
 public class RamlResourceRegistry {
 
     @SuppressWarnings("javadoc")
-    protected static final Logger log = LoggerFactory.getLogger(RamlRequestHandler.class);
+    protected static final Logger log = LoggerFactory.getLogger(RamlResourceRegistry.class);
 
     /**
      * Entries in this map have as the key, their top level path (i.e. the path the class is annotated with), and as

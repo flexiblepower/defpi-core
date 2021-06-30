@@ -5,7 +5,7 @@
 
 	<groupId>org.flexiblepower.defpi</groupId>
 	<artifactId>master</artifactId>
-	<version>21.04-SNAPSHOT</version>
+	<version>21.06</version>
 	<packaging>pom</packaging>
 
 	<name>dEF-Pi master POM</name>
@@ -64,13 +64,13 @@
 
 		<!-- The plugin needs the protobuf version to obtain the compiler from 
 			maven central explicitly -->
-		<protobuf.version>3.13.0</protobuf.version>
-		<jackson.databind.version>2.11.3</jackson.databind.version>
-		<json.version>20200518</json.version>
-		<mongodb.version>3.12.7</mongodb.version>
-		<log4j.version>2.13.3</log4j.version>
+		<protobuf.version>3.17.3</protobuf.version>
+		<jackson.databind.version>2.12.3</jackson.databind.version>
+		<json.version>20210307</json.version>
+		<mongodb.version>3.12.8</mongodb.version>
+		<log4j.version>2.14.1</log4j.version>
 		<swagger.version>1.6.2</swagger.version>
-		<junit.version>5.7.0</junit.version>
+		<junit.version>5.7.2</junit.version>
 	</properties>
 
 	<prerequisites>
@@ -95,7 +95,7 @@
 		<repository>
 			<id>hesi</id>
 			<name>HESI artifactory</name>
-			<url>http://ci.hesi.energy:8081/artifactory/libs-release-local</url>
+			<url>https://ci.hesi.energy/artifactory/libs-release-local</url>
 		</repository>
 	
 		<snapshotRepository>
@@ -133,7 +133,7 @@
 			<dependency>
 				<groupId>org.projectlombok</groupId>
 				<artifactId>lombok</artifactId>
-				<version>1.18.16</version>
+				<version>1.18.20</version>
 				<scope>provided</scope>
 			</dependency>
 
@@ -197,7 +197,7 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>1.7.30</version>
+			<version>1.7.31</version>
 		</dependency>
 
 		<dependency>

@@ -9,7 +9,7 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>21.04-SNAPSHOT</version>
+		<version>21.06</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
@@ -33,7 +33,7 @@
 		<dependency>
 			<groupId>org.raml</groupId>
 			<artifactId>raml-parser-2</artifactId>
-			<version>1.0.51</version>
+			<version>1.0.54</version>
 		</dependency>
 
 		<dependency>

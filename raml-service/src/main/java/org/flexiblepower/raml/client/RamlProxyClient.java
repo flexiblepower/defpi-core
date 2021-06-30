@@ -34,7 +34,6 @@ import java.util.Set;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HEAD;
-import javax.ws.rs.NotFoundException;
 import javax.ws.rs.OPTIONS;
 import javax.ws.rs.PATCH;
 import javax.ws.rs.POST;
@@ -42,6 +41,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 
 import org.flexiblepower.proto.RamlProto.RamlRequest;
 import org.flexiblepower.proto.RamlProto.RamlResponse;
@@ -103,7 +103,7 @@ public class RamlProxyClient {
      */
     private final static class RamlProxyHandler implements InvocationHandler {
 
-        private static final Logger log = LoggerFactory.getLogger(RamlResponseHandler.class);
+        private static final Logger log = LoggerFactory.getLogger(RamlProxyHandler.class);
 
         private static int messageCounter = 0;
         private final ConnectionHandler handler;
@@ -193,7 +193,7 @@ public class RamlProxyClient {
 
             if ((response.getStatus() > 300) && (response.getStatus() < 500)) {
                 RamlProxyHandler.log.error("RAML client error {}: {}", response.getStatus(), responseString);
-                throw new NotFoundException("Unable to find " + method.getName() + ": " + responseString);
+                throw new WebApplicationException(responseString, response.getStatus());
             } else if (response.getStatus() >= 500) {
                 final int pos = responseString.indexOf("::");
                 @SuppressWarnings("unchecked")

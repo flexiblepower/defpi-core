@@ -144,6 +144,31 @@ public final class MongoDbConnector {
     }
 
     /**
+     * @param connection The connection to find in the mongoDb
+     * @return whether the connection already exists or not
+     */
+    public boolean connectionExists(final Connection connection) {
+        final Query<Connection> q = this.datastore.find(Connection.class);
+        // @formatter:off
+        q.or(
+            q.and(
+                    q.criteria("endpoint1.processId").equal(connection.getEndpoint1().getProcessId()),
+                    q.criteria("endpoint1.interfaceId").equal(connection.getEndpoint1().getInterfaceId()),
+                    q.criteria("endpoint2.processId").equal(connection.getEndpoint2().getProcessId()),
+                    q.criteria("endpoint2.interfaceId").equal(connection.getEndpoint2().getInterfaceId())
+            ),
+            q.and(
+                    q.criteria("endpoint1.processId").equal(connection.getEndpoint2().getProcessId()),
+                    q.criteria("endpoint1.interfaceId").equal(connection.getEndpoint2().getInterfaceId()),
+                    q.criteria("endpoint2.processId").equal(connection.getEndpoint1().getProcessId()),
+                    q.criteria("endpoint2.interfaceId").equal(connection.getEndpoint1().getInterfaceId())
+            )
+        );
+        // @formatter:on
+        return q.count() > 0;
+    }
+
+    /**
      * List object; It is possible to paginate, sort and filter all objects depending on the provided arguments.
      *
      * @param <T> Generic class type to list from the database
