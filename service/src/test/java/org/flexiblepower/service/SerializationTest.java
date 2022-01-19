@@ -40,6 +40,7 @@ import org.junit.jupiter.api.Test;
  * @version 0.1
  * @since Jul 6, 2021
  */
+@SuppressWarnings({"static-method", "javadoc"})
 public class SerializationTest {
 
     private static ExecutorService executor = Executors.newSingleThreadExecutor();
