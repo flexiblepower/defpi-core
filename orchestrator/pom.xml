@@ -9,12 +9,12 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>21.06</version>
+		<version>22.01</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
 	<properties>
-		<jersey.version>2.34</jersey.version>
+		<jersey.version>2.35</jersey.version>
 
 		<project.resourcedir>${project.basedir}/src/main/resources</project.resourcedir>
 		<mainClass>org.flexiblepower.orchestrator.Main</mainClass>
@@ -136,7 +136,7 @@
 			<plugin>
 				<groupId>pl.project13.maven</groupId>
 				<artifactId>git-commit-id-plugin</artifactId>
-				<version>4.0.0</version>
+				<version>4.9.10</version>
 				<executions>
 					<execution>
 						<id>get-the-git-infos</id>

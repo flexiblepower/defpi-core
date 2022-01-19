@@ -9,7 +9,7 @@
 	<parent>
 		<groupId>org.flexiblepower.defpi</groupId>
 		<artifactId>master</artifactId>
-		<version>21.06</version>
+		<version>22.01</version>
 		<relativePath>../master/pom.xml</relativePath>
 	</parent>
 
@@ -18,7 +18,7 @@
 		<pluginRepository>
 			<id>hesi-snapshot</id>
 			<name>HESI snapshot artifactory</name>
-			<url>https://ci.hesi.energy:8081/artifactory/libs-snapshot-local</url>
+			<url>https://ci.hesi.energy/artifactory/libs-snapshot-local</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
@@ -69,7 +69,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>build-helper-maven-plugin</artifactId>
-				<version>3.2.0</version>
+				<version>3.3.0</version>
 				<executions>
 					<execution>
 						<id>add-source</id>
